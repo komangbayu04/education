@@ -4,6 +4,7 @@ import { initMagnetic } from './magnetic';
 import { initNav } from './nav';
 import { initHero } from './hero';
 import { initTimeline } from './timeline';
+import { initCredibility } from './credibility';
 import { debounce, prefersReducedMotion } from './utils/device';
 
 /**
@@ -17,7 +18,13 @@ function initPage(): void {
   initScroll();
 
   ctx = gsap.context(() => {
-    const cleanups = [initNav(), initHero(), initMagnetic(), initTimeline()];
+    const cleanups = [
+      initNav(),
+      initHero(),
+      initMagnetic(),
+      initTimeline(),
+      initCredibility(),
+    ];
     return () => cleanups.forEach((fn) => fn());
   });
 

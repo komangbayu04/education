@@ -5,6 +5,7 @@ import Showcase from '../components/sections/Showcase.astro';
 import Overclock from '../components/sections/Overclock.astro';
 import Bedford from '../components/sections/Bedford.astro';
 import Celpip from '../components/sections/Celpip.astro';
+import Credibility from '../components/sections/Credibility.astro';
 ---
 
 <Base>
@@ -56,6 +57,14 @@ import Celpip from '../components/sections/Celpip.astro';
       <Celpip />
     </div>
   </div>
+
+  {/*
+    Chapter 6, outside the scene on purpose. The pin ends with the scene, so
+    CELPIP hands over to this on plain document scroll — no pin, no crossfade,
+    no scrub (explicit direction). Its own one-shot entrance lives in
+    src/scripts/credibility.ts.
+  */}
+  <Credibility />
 </Base>
 
 <style>

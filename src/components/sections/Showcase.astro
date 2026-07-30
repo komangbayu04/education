@@ -91,8 +91,12 @@ const {
   }
 
   /* --- Text --------------------------------------------------------------- */
+  /* No mask — the copy travels the full height of the section and is only
+     ever clipped by the section's own edges. See ProjectSection. */
   .showcase__text {
     grid-column: 1 / span 4;
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
@@ -114,23 +118,28 @@ const {
   }
 
   /* --- Media -------------------------------------------------------------- */
-  /* Right side, vertically centred, fully contained — no part of it bleeds
-     past the section edge to be clipped by overflow:hidden. Taken out of the
+  /* Flush against the section's right edge, vertically centred, and capped in
+     height so nothing runs off the top or bottom. Taken out of the
      grid so it can do that independently of the text row (and so the pin
      interaction in timeline.ts can hold it perfectly still while the text
      column animates on top of it). */
   .showcase__media {
     position: absolute;
-    right: clamp(1rem, 3vw, 4rem);
+    right: 0;
     top: 50%;
     translate: 0 -50%;
-    width: clamp(18rem, 40vw, 42rem);
+    width: clamp(20rem, 52vw, 56rem);
+    max-height: 88svh;
     margin: 0;
   }
 
   .showcase__media img {
+    display: block;
     width: 100%;
     height: auto;
+    max-height: 88svh;
+    object-fit: contain;
+    object-position: center right;
   }
 
   /* --- Marker --------------------------------------------------------------
@@ -172,6 +181,11 @@ const {
       translate: none;
       width: 100%;
       max-width: 34rem;
+      max-height: none;
+    }
+
+    .showcase__media img {
+      max-height: none;
     }
 
     .showcase__marker {
@@ -205,20 +219,18 @@ const {
 
   /* --- Pre-animation state (only when JS is live, only at the width where
      hero.ts's pinned handover reveals this text — see there for the matching
-     fromTo(yPercent: 30 → 0, opacity: 0 → 1) that plays near the end of
-     phase A, once Showcase itself has crossfaded in). Below 1200px this
-     section is normal-flow and no scroll handover ever touches it, so the
-     text must stay visible there. */
+     fromTo(y: below the section's bottom edge → 0), a pure slide with no fade,
+     that plays near the end of phase A once Showcase itself has crossfaded
+     in). Below 1200px this section is normal-flow and no scroll handover ever
+     touches it, so the text must stay visible there. */
   @media (min-width: 1200px) {
     :global(html[data-js='true']) .showcase__text {
-      opacity: 0;
-      transform: translateY(30%);
+      transform: translateY(80svh);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     :global(html[data-js='true']) .showcase__text {
-      opacity: 1;
       transform: none;
     }
   }

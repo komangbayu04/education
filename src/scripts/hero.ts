@@ -324,11 +324,34 @@ export function initHero(): () => void {
       // entrance predates that pattern and needed adding by hand since it
       // shares phase A with the pixel reveal rather than getting its own
       // phase.
+      /**
+       * How far a chapter's text has to travel to sit just past its section's
+       * bottom / top edge — i.e. fully out of frame, clipped by the section's
+       * own overflow, with the copy itself never cut mid-line.
+       *
+       * Measured off offsetTop/offsetHeight rather than getBoundingClientRect
+       * so a tween already running on the element can't feed its own transform
+       * back into the next measurement. Both are passed to GSAP as functions,
+       * so `invalidateOnRefresh` re-reads them after a resize.
+       *
+       * `y` (pixels), never `yPercent`: yPercent is relative to the element's
+       * own height, which is far too short to clear a viewport-tall section,
+       * and the CSS parks this element with a translateY that GSAP would
+       * otherwise read back as a *separate* y and stack on top of.
+       */
+      const GAP = 24;
+      const belowEdge = (text: HTMLElement) => {
+        const section = text.closest('section');
+        const sectionHeight = section?.clientHeight ?? window.innerHeight;
+        return sectionHeight - text.offsetTop + GAP;
+      };
+      const aboveEdge = (text: HTMLElement) => -(text.offsetTop + text.offsetHeight + GAP);
+
       if (showcaseText) {
         handover.fromTo(
           showcaseText,
-          { yPercent: 30, opacity: 0 },
-          { yPercent: 0, opacity: 1, ease: 'power2.out', duration: durHeroToShowcase * 0.25 },
+          { y: () => belowEdge(showcaseText) },
+          { y: 0, ease: 'power2.out', duration: durHeroToShowcase * 0.25 },
           atHeroToShowcase + durHeroToShowcase * 0.75,
         );
       }
@@ -337,17 +360,18 @@ export function initHero(): () => void {
       if (showcaseText) {
         handover.to(
           showcaseText,
-          { yPercent: -120, opacity: 0, ease: 'none', duration: durShowcaseExit },
+          { y: () => aboveEdge(showcaseText), ease: 'none', duration: durShowcaseExit },
           atShowcaseExit,
         );
       }
 
       /**
        * One plain-opacity arrival: `arriving` fades 0 → 1 over the whole
-       * phase, and `arrivingText` rises into view (fade + translate, not
-       * scale) across the back half of it, once the crossfade is mostly
-       * settled. No pixels, no zoom anywhere — deliberately not phase A's
-       * mechanic (explicit direction: keep this one simple).
+       * phase — the section handover itself stays a crossfade, deliberately
+       * not phase A's mechanic and deliberately not a slide. Only
+       * `arrivingText` moves: up from past the section's bottom edge, on
+       * translation alone with no fade of its own, across the back half of
+       * the phase once the crossfade is mostly settled.
        */
       const addArrival = (
         arriving: HTMLElement | null | undefined,
@@ -364,17 +388,17 @@ export function initHero(): () => void {
         if (arrivingText) {
           handover.fromTo(
             arrivingText,
-            { yPercent: 30, opacity: 0 },
-            { yPercent: 0, opacity: 1, ease: 'power2.out', duration: duration * 0.5 },
+            { y: () => belowEdge(arrivingText) },
+            { y: 0, ease: 'power2.out', duration: duration * 0.5 },
             start + duration * 0.5,
           );
         }
       };
 
-      /** That section's own text scrolling up and out, in place. */
+      /** That section's own text travelling up and out past its top edge. */
       const addExit = (text: HTMLElement | null | undefined, start: number, duration: number) => {
         if (!text) return;
-        handover.to(text, { yPercent: -120, opacity: 0, ease: 'none', duration }, start);
+        handover.to(text, { y: () => aboveEdge(text), ease: 'none', duration }, start);
       };
 
       addArrival(overclockLayer, overclockText, atOverclockArrival, durOverclockArrival);
