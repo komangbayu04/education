@@ -1,0 +1,435 @@
+---
+/**
+ * Credibility — chapter 6, the first section *after* the pinned scene.
+ *
+ * Deliberately outside <div data-scene> in index.astro: the handover from
+ * CELPIP into this one is plain document scroll, no pin, no crossfade, no
+ * scrub (explicit direction). The only motion here is a one-shot reveal when
+ * the section first enters the viewport — see src/scripts/credibility.ts.
+ *
+ * Layout is a ring of surfaces around one centre. Every node is placed by
+ * percentage inside a square stage (`--cred-size`), so the whole diagram
+ * scales with the viewport and the geometry never needs re-deriving:
+ *   - five nodes sit on the circle itself, at the angles below
+ *   - two (Landing pages, Social presence) sit outside it, on the horizontal
+ *     axis that runs full-bleed through "YOUR CREDIBILITY"
+ * Labels carry the page background so they knock a gap in that axis line
+ * rather than sitting on top of it.
+ */
+interface Node {
+  label: string;
+  /** % of the stage box, from its left edge — may be negative / over 100 */
+  x: number;
+  /** % of the stage box, from its top edge */
+  y: number;
+  side: 'left' | 'right' | 'top';
+}
+
+const nodes: Node[] = [
+  { label: 'Website', x: 1.5, y: 38, side: 'left' },
+  { label: 'One-pagers', x: 98.5, y: 38, side: 'right' },
+  { label: 'Landing pages', x: -14.3, y: 64.1, side: 'left' },
+  { label: 'Social presence', x: 114.3, y: 64.1, side: 'right' },
+  { label: 'Product Design', x: 11.7, y: 82.1, side: 'left' },
+  { label: 'Ads', x: 88.3, y: 82.1, side: 'right' },
+  { label: 'Pitch Deck', x: 50, y: 100, side: 'top' },
+];
+
+interface Props {
+  title?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const {
+  title = 'Trust is decided before anyone talks to you.',
+  ctaLabel = 'How we work',
+  ctaHref = '/how-we-work',
+} = Astro.props;
+---
+
+<section class="cred" aria-labelledby="cred-title" data-cred>
+  <h2 class="cred__title" id="cred-title" data-cred-reveal="title">{title}</h2>
+
+  <div class="cred__frame">
+    <div class="cred__rules" aria-hidden="true" data-cred-rules>
+      <span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="cred__stage">
+      <div class="cred__axis" aria-hidden="true" data-cred-axis></div>
+      <div class="cred__circle" aria-hidden="true" data-cred-circle></div>
+
+      <div class="cred__intro" data-cred-reveal="intro">
+        <p>
+          In education, the buyer checks you out long before they talk to you. A parent, a
+          counselor, a professional deciding on a cohort:
+        </p>
+        <p>
+          They look at the site, the founder, the materials, and they decide. We design those
+          surfaces as one system, so what they find matches what you've actually built.
+        </p>
+      </div>
+
+      <p class="cred__core" data-cred-reveal="core">Your credibility</p>
+
+      <ul class="cred__nodes">
+        {nodes.map((node) => (
+          <li
+            class={`cred__node cred__node--${node.side}`}
+            style={`--node-x:${node.x}%;--node-y:${node.y}%`}
+            data-cred-node
+          >
+            <span class="cred__node-label">{node.label}</span>
+            <span class="cred__node-dot" aria-hidden="true"></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="cred__outro">
+      <p class="cred__outro-copy" data-cred-reveal="outro">
+        Credible enough to answer, or quietly ignored.
+      </p>
+      <a class="cred__cta" href={ctaHref} data-magnetic="0.2" data-cred-reveal="cta">
+        <span class="cred__cta-fill" aria-hidden="true"></span>
+        <span class="cred__cta-label" data-magnetic-inner>{ctaLabel}</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cred {
+    /* One knob for the whole diagram: the stage is square, and every node,
+       the intro block and the core label are positioned as a % of it. */
+    --cred-size: min(47.6vw, 43rem);
+
+    position: relative;
+    padding-top: clamp(3rem, 6vw, 5rem);
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+  }
+
+  .cred__title {
+    max-width: 22ch;
+    margin-inline: auto;
+    padding-inline: var(--section-padding-x);
+    padding-bottom: clamp(2rem, 4vw, 3.5rem);
+    font-size: clamp(1.75rem, 3.2vw, 3rem);
+    line-height: 1.14;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  /* Full-bleed top rule, as in the reference frame */
+  .cred__frame {
+    position: relative;
+    border-top: 1px solid var(--color-line);
+    padding-bottom: clamp(2.5rem, 5vw, 4.5rem);
+  }
+
+  /* --- Column rules --------------------------------------------------------
+     Four hairlines: both container edges plus the two that split it into
+     three equal columns. Inset by the container padding so they line up with
+     every other section's gutter. */
+  .cred__rules {
+    position: absolute;
+    inset: 0;
+    margin-inline: var(--section-padding-x);
+    pointer-events: none;
+  }
+
+  .cred__rules span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--color-line);
+    transform-origin: top center;
+  }
+
+  .cred__rules span:nth-child(1) {
+    left: 0;
+  }
+  .cred__rules span:nth-child(2) {
+    left: 33.3333%;
+  }
+  .cred__rules span:nth-child(3) {
+    left: 66.6667%;
+  }
+  .cred__rules span:nth-child(4) {
+    right: 0;
+  }
+
+  /* --- Stage ---------------------------------------------------------------
+     Square, centred, and the positioning context for everything radial. */
+  .cred__stage {
+    position: relative;
+    width: var(--cred-size);
+    height: var(--cred-size);
+    margin-inline: auto;
+  }
+
+  .cred__circle {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 50%;
+  }
+
+  /* Runs the full width of the viewport, not just the stage — it reads as an
+     axis the whole section is hung from. */
+  .cred__axis {
+    position: absolute;
+    top: 64.1%;
+    left: 50%;
+    width: 100vw;
+    height: 1px;
+    background: var(--color-line-strong);
+    transform: translateX(-50%);
+    transform-origin: center;
+  }
+
+  .cred__intro {
+    position: absolute;
+    top: 17.9%;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+    width: 51%;
+    transform: translateX(-50%);
+    font-size: clamp(0.8125rem, 1.05vw, 0.9375rem);
+    line-height: 1.62;
+    text-align: center;
+    text-wrap: pretty;
+  }
+
+  .cred__core {
+    position: absolute;
+    top: 64.1%;
+    left: 50%;
+    /* Opaque, so it knocks a clean gap in the axis line behind it */
+    padding-inline: 0.75rem;
+    background: var(--color-bg-primary);
+    font-size: clamp(1.25rem, 2.4vw, 2.125rem);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+  }
+
+  /* --- Nodes ---------------------------------------------------------------
+     Each <li> is anchored at its own point on (or beside) the circle, then
+     shifted so the 12px square — not the label — lands exactly on it. */
+  .cred__nodes {
+    position: absolute;
+    inset: 0;
+  }
+
+  .cred__node {
+    position: absolute;
+    top: var(--node-y);
+    left: var(--node-x);
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding-inline: 0.375rem;
+    background: var(--color-bg-primary);
+    font-size: clamp(0.8125rem, 1.15vw, 1.0625rem);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .cred__node-dot {
+    flex: none;
+    width: 0.75rem;
+    height: 0.75rem;
+    background: var(--color-ink);
+  }
+
+  /* Label left of the square: the square is the row's last item, so pull the
+     row left by its whole width, less half a square. */
+  .cred__node--left {
+    transform: translate(calc(-100% + 0.375rem), -50%);
+  }
+
+  .cred__node--right {
+    flex-direction: row-reverse;
+    transform: translate(-0.375rem, -50%);
+  }
+
+  /* Bottom of the circle — label stacked above its square. Plain `column`,
+     not column-reverse: the label is first in the DOM, so it belongs on top,
+     and the square ends the stack where the -100% shift can land it on the
+     anchor point. */
+  .cred__node--top {
+    flex-direction: column;
+    gap: 0.5rem;
+    transform: translate(-50%, calc(-100% + 0.375rem));
+  }
+
+  /* --- Outro --------------------------------------------------------------- */
+  .cred__outro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(1.25rem, 2.4vw, 2rem);
+    margin-top: clamp(1.75rem, 3.5vw, 3rem);
+    padding-inline: var(--section-padding-x);
+  }
+
+  .cred__outro-copy {
+    max-width: 28ch;
+    font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+    line-height: 1.5;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  /* Same shape as the hero's CTA, which scopes its own .btn styles */
+  .cred__cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8125rem 1.75rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    will-change: transform;
+  }
+
+  .cred__cta-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-primary);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .cred__cta-label {
+    position: relative;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .cred__cta:hover,
+  .cred__cta:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+
+  .cred__cta:hover .cred__cta-fill,
+  .cred__cta:focus-visible .cred__cta-fill {
+    transform: scaleY(1);
+  }
+
+  .cred__cta:hover .cred__cta-label,
+  .cred__cta:focus-visible .cred__cta-label {
+    color: var(--color-ink);
+  }
+
+  /* --- Responsive ----------------------------------------------------------
+     The outer two nodes hang 14.3% past the stage on each side, so the stage
+     has to give that room back as the viewport narrows. */
+  @media (max-width: 1199px) {
+    .cred {
+      --cred-size: min(58vw, 34rem);
+    }
+  }
+
+  /* Below this the ring can't hold seven labels without collisions, so it
+     unrolls into a plain list and the circle stops being load-bearing. */
+  @media (max-width: 48rem) {
+    .cred__stage {
+      width: 100%;
+      height: auto;
+      padding-inline: var(--section-padding-x);
+      padding-block: clamp(2rem, 8vw, 3rem);
+    }
+
+    .cred__circle,
+    .cred__axis {
+      display: none;
+    }
+
+    .cred__intro,
+    .cred__core {
+      position: static;
+      width: auto;
+      padding: 0;
+      transform: none;
+    }
+
+    .cred__core {
+      margin-top: clamp(1.5rem, 6vw, 2.5rem);
+      text-align: center;
+    }
+
+    .cred__nodes {
+      position: static;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.875rem 1.5rem;
+      margin-top: clamp(1.5rem, 6vw, 2.5rem);
+    }
+
+    .cred__node,
+    .cred__node--left,
+    .cred__node--right,
+    .cred__node--top {
+      position: static;
+      flex-direction: row;
+      gap: 0.625rem;
+      padding: 0;
+      transform: none;
+      white-space: normal;
+    }
+  }
+
+  /* --- Pre-reveal state ----------------------------------------------------
+     JS-only, so no-JS renders the finished section. credibility.ts animates
+     these back to their resting values once the section scrolls in. */
+  :global(html[data-js='true']) [data-cred-reveal],
+  :global(html[data-js='true']) [data-cred-node] {
+    opacity: 0;
+  }
+
+  :global(html[data-js='true']) [data-cred-circle] {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  :global(html[data-js='true']) [data-cred-axis] {
+    transform: translateX(-50%) scaleX(0);
+  }
+
+  :global(html[data-js='true']) .cred__rules span {
+    transform: scaleY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) [data-cred-reveal],
+    :global(html[data-js='true']) [data-cred-node],
+    :global(html[data-js='true']) [data-cred-circle] {
+      opacity: 1;
+      transform: none;
+    }
+
+    :global(html[data-js='true']) [data-cred-axis] {
+      transform: translateX(-50%);
+    }
+
+    :global(html[data-js='true']) .cred__rules span {
+      transform: none;
+    }
+  }
+</style>

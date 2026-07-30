@@ -39,7 +39,7 @@ const {
   imageWidth,
   imageHeight,
   background,
-  mediaMaxWidth = 'clamp(18rem, 44vw, 46rem)',
+  mediaMaxWidth = 'clamp(20rem, 56vw, 60rem)',
 } = Astro.props;
 ---
 
@@ -92,9 +92,15 @@ const {
     height: 100%;
   }
 
-  /* --- Text --------------------------------------------------------------- */
+  /* --- Text ----------------------------------------------------------------
+     No mask of its own: the copy travels the full height of the section, and
+     the only thing that ever clips it is the section's own overflow at the
+     very top and bottom edge. z-index keeps it above the media, which is now
+     centred and wide enough to pass under this column. */
   .project__text {
     grid-column: 1 / span 4;
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
@@ -115,19 +121,27 @@ const {
   }
 
   /* --- Media -------------------------------------------------------------- */
-  /* Stacked into the bottom-right corner, bleeding past both edges. Taken out
-     of the grid so it can do that independently of the text row. */
+  /* Horizontally centred and sitting flush on the section's bottom edge. Taken
+     out of the grid so it can be anchored to the section rather than to the
+     text row. max-height keeps a tall shot from running off the top of the
+     section once it's this wide — object-fit holds it against the bottom. */
   .project__media {
     position: absolute;
-    right: clamp(-3rem, -2.5vw, -0.5rem);
-    bottom: clamp(-2.5rem, -3.5vw, -1rem);
+    left: 50%;
+    bottom: 0;
+    translate: -50% 0;
     width: var(--project-media-w);
+    max-height: 76svh;
     margin: 0;
   }
 
   .project__media img {
+    display: block;
     width: 100%;
     height: auto;
+    max-height: 76svh;
+    object-fit: contain;
+    object-position: bottom center;
   }
 
   /* --- Marker --------------------------------------------------------------
@@ -158,12 +172,20 @@ const {
       grid-column: 1 / span 6;
     }
 
-    /* Back into the flow — absolute placement would collide with the text */
+    /* Back into the flow — absolute placement would collide with the text.
+       translate/max-height are their own properties and are not reset by
+       position:static, so both have to be undone explicitly. */
     .project__media {
       position: static;
       grid-column: 1 / span 6;
+      translate: none;
       width: 100%;
-      max-width: 32rem;
+      max-width: 34rem;
+      max-height: none;
+    }
+
+    .project__media img {
+      max-height: none;
     }
 
     .project__marker {
@@ -197,20 +219,21 @@ const {
 
   /* --- Pre-animation state (only when JS is live, only at the width where
      hero.ts's pinned handover actually reveals this text — see there for the
-     matching fromTo(yPercent: 30 → 0, opacity: 0 → 1)). Below 1200px this
-     section is normal-flow and no scroll handover ever touches it, so the
-     text must stay visible there — gating this to the same breakpoint as the
+     matching fromTo(y: below the section's bottom edge → 0), a pure slide with
+     no fade). Roughly where hero.ts's `belowEdge` will park it a frame later —
+     the exact distance is measured there; this only has to be far enough down
+     that nothing shows before the timeline's first render. Below 1200px this
+     section is normal-flow and no scroll handover ever touches it, so the text
+     must stay visible there — gating this to the same breakpoint as the
      handover keeps the two in lock-step instead of hard-coding 1200px twice. */
   @media (min-width: 1200px) {
     :global(html[data-js='true']) .project__text {
-      opacity: 0;
-      transform: translateY(30%);
+      transform: translateY(80svh);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     :global(html[data-js='true']) .project__text {
-      opacity: 1;
       transform: none;
     }
   }
