@@ -1,0 +1,34 @@
+---
+/**
+ * Overclock — chapter 3. Layout lives in ../ui/ProjectSection.astro, shared
+ * with Bedford and CELPIP.
+ */
+import ProjectSection from '../ui/ProjectSection.astro';
+
+interface Props {
+  title?: string;
+  body?: string;
+  image?: string;
+  imageAlt?: string;
+}
+
+const {
+  title = 'Overclock',
+  body =
+    'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.',
+  image = '/media/overclock-device',
+  imageAlt = 'Overclock running on a tablet',
+} = Astro.props;
+---
+
+<ProjectSection
+  id="overclock"
+  chapter={3}
+  title={title}
+  body={body}
+  image={image}
+  imageAlt={imageAlt}
+  imageWidth={1400}
+  imageHeight={1374}
+  background="var(--color-bg-overclock)"
+/>

@@ -1,0 +1,447 @@
+---
+/**
+ * Hero — first viewport.
+ *
+ * One pre-composited image: the tree canopy and the rectangular ground photo
+ * (with its white pixel squares baked in) arrive as a single asset — no
+ * separate cutout, so no runtime registration math between two layers.
+ *
+ * Motion lives in src/scripts/hero.ts, hooked on data-hero-* attributes.
+ */
+interface Props {
+  lines?: string[];
+  forLabel?: string;
+  audiences?: string[];
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const {
+  lines = ['We', 'Design', 'Credibility'],
+  forLabel = 'For',
+  audiences = ['Education Companies', 'Cohorts', 'Platforms', 'and Credentials'],
+  ctaLabel = 'See the work',
+  ctaHref = '/work',
+} = Astro.props;
+---
+
+<section class="hero" data-hero data-chapter-section="1" aria-labelledby="hero-title">
+  <div class="hero__grid u-container">
+    <!-- Left: display headline -->
+    <div class="hero__col hero__col--title">
+      <h1 class="hero__title" id="hero-title" data-hero-title>
+        {lines.map((line) => <span class="hero__line">{line}</span>)}
+      </h1>
+    </div>
+
+    <!-- Centre: the hero image -->
+    <div class="hero__col hero__col--media">
+      <figure class="hero__stage" data-hero-stage>
+        {/*
+          Nested on purpose. .hero__stage carries the scroll-driven scale (it
+          has to — pointer parallax also translates it). Hover needs its own
+          scale, on its own element, or the two tweens would fight over the
+          same property on the same target.
+        */}
+        <div class="hero__zoom" data-hero-zoom>
+          <div class="hero__base" data-hero-base>
+            <picture>
+              <source srcset="/media/hero-base.avif" type="image/avif" />
+              <img
+                src="/media/hero-base.webp"
+                alt="A person reading beneath a large tree"
+                width="1274"
+                height="1394"
+                fetchpriority="high"
+                decoding="async"
+              />
+            </picture>
+          </div>
+        </div>
+      </figure>
+    </div>
+
+    <!-- Right: audience list + CTA, flush to the bottom edge -->
+    <div class="hero__col hero__col--aside">
+      <div class="hero__aside" data-hero-aside>
+        <p class="hero__for" data-hero-aside-item>{forLabel}</p>
+
+        <ul class="hero__list">
+          {audiences.map((item) => (
+            <li class="hero__list-item" data-hero-aside-item>
+              <a class="hero__list-link" href={ctaHref}>
+                <span class="hero__list-text">{item}</span>
+                <span class="hero__list-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none">
+                    <path d="M3 13 13 3M6 3h7v7" stroke="currentColor" stroke-width="1.4" />
+                  </svg>
+                </span>
+              </a>
+              <span class="hero__list-rule" aria-hidden="true"></span>
+            </li>
+          ))}
+        </ul>
+
+        <div class="hero__cta-wrap" data-hero-aside-item>
+          <a class="btn" href={ctaHref} data-magnetic="0.2">
+            <span class="btn__fill" aria-hidden="true"></span>
+            <span class="btn__label" data-magnetic-inner>{ctaLabel}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    --hero-pad-top: clamp(1.5rem, 2.6vw, 3rem);
+
+    position: relative;
+    /* Exactly one viewport. The scroll scene depends on this: a scene shorter
+       than the viewport makes the end of the pin unreachable. Room for the
+       overlaid nav is reserved with padding instead of layout height. */
+    height: 100svh;
+    min-height: 34rem;
+    padding-block: calc(var(--nav-height) + var(--hero-pad-top)) 0;
+  }
+
+  .hero__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr) minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 5.5rem);
+    align-items: stretch;
+    height: 100%;
+  }
+
+  .hero__col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* Type sits above the artwork — the canopy reaches into both side columns. */
+  .hero__col--title,
+  .hero__col--aside {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* --- Headline ----------------------------------------------------------- */
+  .hero__title {
+    font-size: var(--text-display-xl);
+    font-weight: 300;
+    line-height: var(--leading-display);
+    letter-spacing: -0.025em;
+    padding-top: clamp(0.5rem, 1.5vw, 1.75rem);
+  }
+
+  .hero__line {
+    display: block;
+    white-space: nowrap;
+  }
+
+  /* --- Media -------------------------------------------------------------- */
+  .hero__col--media {
+    /* Centred, not bottom-flush: this asset's aspect ratio is much wider than
+       the old two-layer composition, so at full height and pinned to the
+       bottom it read as bottom-heavy and crowded the neighbouring columns.
+       Centring gives it breathing room on every side instead of one hand-tuned
+       offset trying to fix both a horizontal and a vertical complaint at once. */
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+  }
+
+  .hero__stage {
+    position: relative;
+    /* Height-driven — width follows from the photo's own 1274 : 1394 ratio, so
+       it is never cropped.
+
+       113.4% and this left/top pair are the sum of several explicit, exact
+       requests (30% then +5% enlargement; +24px then +12px right; +16px up),
+       applied as given rather than silently re-tuned. Flagged, not hidden: at
+       83% height this box was measured to stay clear of the real glyph extent
+       of "Credibility" and the aside's leftmost word (via
+       Range.getBoundingClientRect, not layout boxes — a `display:block` line's
+       box is full column width regardless of how long the word actually is).
+       Each enlargement since has grown both dimensions together (aspect-ratio
+       is locked) and given some of that clearance back — see the project
+       history for exactly how much, at each step.
+
+       left/top are a static visual nudge, not layout: the box still occupies
+       its original space for other elements, only the paint moves —
+       independent of the GSAP tweens on this element, which all write to
+       `transform`, a different property. */
+    height: 113.4%;
+    width: auto;
+    aspect-ratio: 1274 / 1394;
+    margin: 0 auto;
+    left: -4.75rem;
+    top: -1.5rem;
+    /* Pointer parallax is applied here. */
+    will-change: transform;
+  }
+
+  /* Same box as .hero__stage (inset: 0 inside a sized, positioned parent), so
+     inserting it changes nothing about where .hero__base ends up — it only
+     gives the hover zoom a scale target of its own, independent from the
+     scroll-driven scale on .hero__stage. */
+  .hero__zoom {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+
+  .hero__base {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hero__base img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* --- Aside -------------------------------------------------------------- */
+  .hero__col--aside {
+    justify-content: flex-end;
+  }
+
+  .hero__aside {
+    display: flex;
+    flex-direction: column;
+    /* Flat 16px, not the fluid clamp the rest of the site uses — a deliberate
+       request for a tighter, fixed rhythm here rather than one that grows on
+       larger viewports. */
+    gap: 16px;
+    /* 24px clear of the bottom edge — was flush. Margin, not padding: the
+       parent (.hero__col--aside) is justify-content: flex-end, which aligns
+       this box's margin edge to the column's end — padding just grows the box
+       upward and stays flush, margin actually opens a gap. */
+    margin-bottom: 24px;
+  }
+
+  .hero__for {
+    font-size: 16px;
+    font-weight: 400;
+  }
+
+  .hero__list {
+    display: flex;
+    flex-direction: column;
+    /* The explicit 16px row-to-row spacing. Kept separate from the link's own
+       padding-block below rather than folded into it, so this number is the
+       one true source of the gap instead of being derived from doubling a
+       padding value. */
+    gap: 16px;
+  }
+
+  .hero__list-item {
+    position: relative;
+  }
+
+  .hero__list-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    /* Click-target padding only, not spacing — .hero__list's gap owns that now */
+    padding-block: 0.375rem;
+    font-size: 16px;
+    font-weight: 400;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .hero__list-text {
+    display: block;
+    transition: transform 0.5s var(--ease-out-expo);
+  }
+
+  .hero__list-arrow {
+    display: grid;
+    place-items: center;
+    width: 1.125rem;
+    opacity: 0;
+    transform: translate(-0.5rem, 0.35rem);
+    transition:
+      opacity 0.4s var(--ease-out-expo),
+      transform 0.5s var(--ease-out-expo);
+  }
+
+  .hero__list-link:hover .hero__list-text,
+  .hero__list-link:focus-visible .hero__list-text {
+    transform: translateX(0.5rem);
+  }
+
+  .hero__list-link:hover .hero__list-arrow,
+  .hero__list-link:focus-visible .hero__list-arrow {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  .hero__list-rule {
+    display: block;
+    height: 1px;
+    background: var(--color-line);
+    transform-origin: left center;
+  }
+
+  .hero__list-rule::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: var(--color-ink);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.6s var(--ease-out-expo);
+  }
+
+  .hero__list-item:hover .hero__list-rule::after {
+    transform: scaleX(1);
+  }
+
+  /* --- Button --------------------------------------------------------------- */
+  .hero__cta-wrap {
+    margin-top: clamp(0.5rem, 1.2vw, 1.25rem);
+  }
+
+  .btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8125rem 1.75rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    will-change: transform;
+  }
+
+  .btn__fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-primary);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .btn__label {
+    position: relative;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .btn:hover,
+  .btn:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+
+  .btn:hover .btn__fill,
+  .btn:focus-visible .btn__fill {
+    transform: scaleY(1);
+  }
+
+  .btn:hover .btn__label,
+  .btn:focus-visible .btn__label {
+    color: var(--color-ink);
+  }
+
+  /* --- Pre-animation state (only when JS is live) ------------------------- */
+  :global(html[data-js='true']) .hero__title,
+  :global(html[data-js='true']) [data-hero-aside-item] {
+    opacity: 0;
+  }
+
+  :global(html[data-js='true']) .hero__list-rule {
+    transform: scaleX(0);
+  }
+
+  :global(html[data-js='true']) .hero__base {
+    clip-path: inset(100% 0 0 0);
+  }
+
+  /* --- Responsive ---------------------------------------------------------
+     1199px, not 75rem: this must not overlap the (min-width: 1200px) gate that
+     builds the pinned handover, or at exactly 1200px the hero would be both
+     content-height and forced into a viewport-tall pinned scene. */
+  @media (max-width: 1199px) {
+    .hero {
+      --hero-pad-top: clamp(1.5rem, 4vw, 3rem);
+      height: auto;
+      padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
+    }
+
+    .hero__grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      row-gap: clamp(2rem, 5vw, 4rem);
+      height: auto;
+    }
+
+    .hero__col--title {
+      grid-column: 1 / -1;
+    }
+
+    /* The row no longer has a definite height, so drive the stage from width.
+       The left/top nudge on the base rule is tuned for the ≥1200px row, where
+       the image sits between two columns of real text it has to clear; below
+       this, title is its own full-width row above media+aside (confirmed zero
+       vertical overlap between them), so that offset has nothing left to
+       correct and was only pushing the now width-constrained box partly off
+       the left edge of the viewport. Reset both. */
+    .hero__stage {
+      height: auto;
+      width: 78%;
+      left: 0;
+      top: 0;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .hero__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hero__title,
+    .hero__line {
+      white-space: normal;
+    }
+
+    .hero__stage {
+      /* Width-driven on narrow screens — viewport width is the constraint */
+      height: auto;
+      width: 86%;
+    }
+
+    .hero__col--aside {
+      justify-content: flex-start;
+    }
+
+    .btn {
+      width: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) .hero__title,
+    :global(html[data-js='true']) [data-hero-aside-item] {
+      opacity: 1;
+    }
+
+    :global(html[data-js='true']) .hero__list-rule {
+      transform: scaleX(1);
+    }
+
+    :global(html[data-js='true']) .hero__base {
+      clip-path: inset(0%);
+    }
+  }
+</style>

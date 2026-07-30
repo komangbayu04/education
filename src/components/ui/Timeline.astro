@@ -1,0 +1,90 @@
+---
+/**
+ * Timeline — the small chapter marker repeated in each project section
+ * (Showcase, Overclock, Bedford, CELPIP).
+ *
+ * Its 4 slots do NOT map 1:1 onto the 5 sections in the DOM. Hero and
+ * Showcase deliberately share slot 1 — an explicit, earlier direction was
+ * that the marker should still read "1" for all of hero → Showcase, only
+ * advancing once Showcase has genuinely been left behind. So the mapping is:
+ *   slot 1 = hero + Showcase   slot 2 = Overclock
+ *   slot 3 = Bedford           slot 4 = CELPIP
+ * Each section's own `data-chapter-section` attribute (1–5, one per section,
+ * matching document order) is a separate, purely descriptive index — nothing
+ * reads its value; don't assume it lines up with the marker's slot number.
+ *
+ * Every instance on the page shows the same thing: which slot is currently
+ * "arrived at". `src/scripts/timeline.ts` exports the `setActiveChapter()`
+ * function that updates every `[data-timeline]` instance in lockstep — moving
+ * the dot down to the active rule and toggling `.is-active` (which is what
+ * actually lengthens/darkens a rule; a plain class, not an attribute
+ * selector, so there's no specificity fight between "the static default" and
+ * "what JS wants right now"). It's called from `src/scripts/hero.ts`, which
+ * owns the actual scroll math for every transition — see that file's
+ * docstring for the full sequence. Slot 1 ships active in the markup itself,
+ * so no-JS and reduced-motion both render a sensible resting state with
+ * nothing left for JS to fix up on init.
+ */
+interface Props {
+  total?: number;
+}
+
+const { total = 4 } = Astro.props;
+const chapters = Array.from({ length: total }, (_, i) => i + 1);
+---
+
+<div class="timeline" aria-hidden="true" data-timeline>
+  <span class="timeline__dot" data-timeline-dot></span>
+  <div class="timeline__rules">
+    {
+      chapters.map((n) => (
+        <span class="timeline__rule" class:list={{ 'is-active': n === 1 }} data-chapter={n} />
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .timeline__rules {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: clamp(0.75rem, 1.4vw, 1.125rem);
+    width: 100%;
+  }
+
+  .timeline__rule {
+    width: 55%;
+    height: 1px;
+    background: #96a3b5;
+    transform-origin: right center;
+    transition:
+      width 0.5s var(--ease-out-expo),
+      background-color 0.5s var(--ease-out-expo);
+  }
+
+  .timeline__rule.is-active {
+    width: 100%;
+    background: var(--color-ink);
+  }
+
+  .timeline__dot {
+    position: absolute;
+    top: 0;
+    right: 100%;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: 0.5rem;
+    background: var(--color-ink);
+    /* Moved with a transform (translateY) by timeline.ts, never by re-flowing
+       layout — see there for how the offset is measured. */
+    will-change: transform;
+  }
+</style>
