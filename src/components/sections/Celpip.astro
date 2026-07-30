@@ -1,0 +1,33 @@
+---
+/**
+ * CELPIP — chapter 5, currently the last one. Layout lives in
+ * ../ui/ProjectSection.astro, shared with Overclock and Bedford.
+ */
+import ProjectSection from '../ui/ProjectSection.astro';
+
+interface Props {
+  title?: string;
+  body?: string;
+  image?: string;
+  imageAlt?: string;
+}
+
+const {
+  title = 'CELPIP',
+  body = 'A global English proficiency test taken in 180 countries. Enrollment-season campaign creative.',
+  image = '/media/celpip-device',
+  imageAlt = 'CELPIP running on two tablets',
+} = Astro.props;
+---
+
+<ProjectSection
+  id="celpip"
+  chapter={5}
+  title={title}
+  body={body}
+  image={image}
+  imageAlt={imageAlt}
+  imageWidth={1400}
+  imageHeight={1379}
+  background="var(--color-bg-celpip)"
+/>

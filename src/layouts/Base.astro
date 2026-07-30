@@ -1,0 +1,56 @@
+---
+import { Font } from 'astro:assets';
+import { ClientRouter } from 'astro:transitions';
+import Nav from '../components/layout/Nav.astro';
+import '../styles/globals.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Tribe — We design credibility',
+  description =
+    'Tribe is a design studio for education companies, cohorts, platforms and credentials.',
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+
+    <Font cssVariable="--font-display" preload />
+    <ClientRouter />
+
+    <!-- Marks that JS is live so components can safely hide their pre-animation
+         state. Without it a failed script would leave content invisible. -->
+    <script is:inline>
+      document.documentElement.dataset.js = 'true';
+    </script>
+  </head>
+
+  <body>
+    <a class="u-skip-link" href="#main">Skip to main content</a>
+
+    <Nav />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <script>
+      import '../scripts/main';
+    </script>
+  </body>
+</html>

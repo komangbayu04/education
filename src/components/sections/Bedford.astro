@@ -1,0 +1,34 @@
+---
+/**
+ * Bedford — chapter 4. Layout lives in ../ui/ProjectSection.astro, shared
+ * with Overclock and CELPIP.
+ */
+import ProjectSection from '../ui/ProjectSection.astro';
+
+interface Props {
+  title?: string;
+  body?: string;
+  image?: string;
+  imageAlt?: string;
+}
+
+const {
+  title = 'Bedford',
+  body =
+    'A modern learning institution for the creator economy. Brand, launch creative, and website for its first enrollment seasons.',
+  image = '/media/bedford-device',
+  imageAlt = 'Bedford running on an iMac',
+} = Astro.props;
+---
+
+<ProjectSection
+  id="bedford"
+  chapter={4}
+  title={title}
+  body={body}
+  image={image}
+  imageAlt={imageAlt}
+  imageWidth={1400}
+  imageHeight={1258}
+  background="var(--color-bg-bedford)"
+/>

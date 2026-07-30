@@ -1,0 +1,225 @@
+---
+/**
+ * Showcase — chapter 2 of the site (`data-chapter-section="2"`), the section
+ * the hero transitions into.
+ *
+ * Soft blue ground, project title and blurb on the left, device shot stacked
+ * into the bottom-right corner (bleeding past both edges), and the shared
+ * <Timeline /> chapter marker at the right — see src/scripts/timeline.ts for
+ * how that stays in sync with Overclock's copy of the same component.
+ */
+import Timeline from '../ui/Timeline.astro';
+
+interface Props {
+  title?: string;
+  body?: string;
+  image?: string;
+  imageAlt?: string;
+}
+
+const {
+  title = 'A College Counseling Platform',
+  body =
+    'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.',
+  image = '/media/showcase-device',
+  imageAlt = 'The platform running on a phone',
+} = Astro.props;
+---
+
+<section class="showcase" aria-labelledby="showcase-title" data-chapter-section="2">
+  <div class="showcase__texture" aria-hidden="true"></div>
+
+  <div class="showcase__inner u-container">
+    <div class="showcase__text" data-chapter-text>
+      <h2 class="showcase__title" id="showcase-title" data-showcase-item>{title}</h2>
+      <p class="showcase__body" data-showcase-item>{body}</p>
+    </div>
+
+    <figure class="showcase__media" data-showcase-media>
+      <picture>
+        <source srcset={`${image}.avif`} type="image/avif" />
+        <img src={`${image}.webp`} alt={imageAlt} width="1400" height="1139" decoding="async" />
+      </picture>
+    </figure>
+
+    <div class="showcase__marker">
+      <Timeline />
+    </div>
+  </div>
+</section>
+
+<style>
+  .showcase {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-height: 100svh;
+    overflow: hidden;
+    background: linear-gradient(
+      160deg,
+      var(--color-bg-showcase) 0%,
+      #eef2f7 55%,
+      #f4f7fa 100%
+    );
+    color: var(--color-ink);
+  }
+
+  /* Faint pixel field, as in the reference frame. One line to remove. */
+  .showcase__texture {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.55) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(120% 90% at 6% 60%, #000 0%, transparent 62%);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+
+  .showcase__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: center;
+    gap: clamp(1.5rem, 3vw, 3rem);
+    width: 100%;
+    /* Full section height, so the absolutely placed media can be anchored to
+       the section's bottom edge and bleed past it */
+    height: 100%;
+  }
+
+  /* --- Text --------------------------------------------------------------- */
+  .showcase__text {
+    grid-column: 1 / span 4;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 1.6vw, 1.5rem);
+  }
+
+  .showcase__title {
+    font-size: clamp(1.875rem, 3.1vw, 3rem);
+    font-weight: 400;
+    line-height: 1.14;
+    letter-spacing: -0.02em;
+    color: #0d1b33;
+  }
+
+  .showcase__body {
+    max-width: 24ch;
+    font-size: var(--text-body);
+    line-height: 1.75;
+    color: #1c2333;
+  }
+
+  /* --- Media -------------------------------------------------------------- */
+  /* Right side, vertically centred, fully contained — no part of it bleeds
+     past the section edge to be clipped by overflow:hidden. Taken out of the
+     grid so it can do that independently of the text row (and so the pin
+     interaction in timeline.ts can hold it perfectly still while the text
+     column animates on top of it). */
+  .showcase__media {
+    position: absolute;
+    right: clamp(1rem, 3vw, 4rem);
+    top: 50%;
+    translate: 0 -50%;
+    width: clamp(18rem, 40vw, 42rem);
+    margin: 0;
+  }
+
+  .showcase__media img {
+    width: 100%;
+    height: auto;
+  }
+
+  /* --- Marker --------------------------------------------------------------
+     Grid placement only — the marker's own shape and its active/inactive
+     styling live in <Timeline /> (src/components/ui/Timeline.astro), shared
+     with Overclock so the two stay visually identical. */
+  .showcase__marker {
+    grid-column: 11 / span 2;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- Responsive --------------------------------------------------------- */
+  /* 1199px to stay in step with the hero's desktop breakpoint */
+  @media (max-width: 1199px) {
+    .showcase {
+      height: auto;
+      padding-block: clamp(3rem, 8vw, 6rem) 0;
+      align-items: start;
+    }
+
+    .showcase__inner {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      row-gap: clamp(2rem, 5vw, 3.5rem);
+      height: auto;
+    }
+
+    .showcase__text {
+      grid-column: 1 / span 6;
+    }
+
+    /* Back into the flow — absolute placement would collide with the text.
+       translate is its own property (not reset by position:static), so it
+       has to be zeroed explicitly or the -50% vertical centring from the
+       desktop rule keeps applying and shifts this out of place. */
+    .showcase__media {
+      position: static;
+      grid-column: 1 / span 6;
+      translate: none;
+      width: 100%;
+      max-width: 34rem;
+    }
+
+    .showcase__marker {
+      grid-column: 6 / span 1;
+      align-self: start;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .showcase__inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .showcase__text,
+    .showcase__media {
+      grid-column: 1 / -1;
+    }
+
+    .showcase__media {
+      margin-inline: auto;
+    }
+
+    .showcase__body {
+      max-width: 38ch;
+    }
+
+    .showcase__marker {
+      display: none;
+    }
+  }
+
+  /* --- Pre-animation state (only when JS is live, only at the width where
+     hero.ts's pinned handover reveals this text — see there for the matching
+     fromTo(yPercent: 30 → 0, opacity: 0 → 1) that plays near the end of
+     phase A, once Showcase itself has crossfaded in). Below 1200px this
+     section is normal-flow and no scroll handover ever touches it, so the
+     text must stay visible there. */
+  @media (min-width: 1200px) {
+    :global(html[data-js='true']) .showcase__text {
+      opacity: 0;
+      transform: translateY(30%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) .showcase__text {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

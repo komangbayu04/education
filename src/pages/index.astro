@@ -1,0 +1,153 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/sections/Hero.astro';
+import Showcase from '../components/sections/Showcase.astro';
+import Overclock from '../components/sections/Overclock.astro';
+import Bedford from '../components/sections/Bedford.astro';
+import Celpip from '../components/sections/Celpip.astro';
+---
+
+<Base>
+  {/*
+    Five chapters, one scroll scene. src/scripts/hero.ts switches this into
+    pinned mode (all five stacked absolutely on top of each other) and drives
+    every handover as phases of the same extended pin:
+      hero → Showcase        pixel reveal, spreading from the hero photo —
+                              the one bespoke transition, kept exactly as
+                              tuned; nothing after it copies this mechanic
+      Showcase's text scrolls out, in place
+      Showcase → Overclock   plain opacity crossfade, no zoom, no pixels
+      Overclock's text scrolls out, in place
+      Overclock → Bedford    same plain crossfade
+      Bedford's text scrolls out, in place
+      Bedford → CELPIP       same plain crossfade
+    Without JS — or with reduced motion — all five stay in normal flow and
+    read top to bottom, no pin, no crossfades.
+  */}
+  <div class="scene" data-scene>
+    <div class="scene__layer scene__layer--hero" data-scene-hero>
+      <Hero />
+    </div>
+
+    {/*
+      Pixel reveal (hero → Showcase only). A grid of tiles in Showcase's own
+      ground colour, built by JS because the count depends on the viewport.
+      Scrolling drops them in one by one, spreading outward from the hero
+      photo — the same pixel language baked into the photo's own edges. Once
+      the field is laid, Showcase crossfades in on top of it, same colour, no
+      seam. Every later handover (Overclock, Bedford, CELPIP) is a plain
+      opacity crossfade with no pixel field of its own — see hero.ts.
+    */}
+    <div class="scene__pixels" data-scene-pixels aria-hidden="true"></div>
+
+    <div class="scene__layer scene__layer--next" data-scene-next>
+      <Showcase />
+    </div>
+
+    <div class="scene__layer scene__layer--overclock" data-scene-overclock>
+      <Overclock />
+    </div>
+
+    <div class="scene__layer scene__layer--bedford" data-scene-bedford>
+      <Bedford />
+    </div>
+
+    <div class="scene__layer scene__layer--celpip" data-scene-celpip>
+      <Celpip />
+    </div>
+  </div>
+</Base>
+
+<style>
+  .scene {
+    position: relative;
+  }
+
+  /* Pinned mode — set by JS only when motion is allowed */
+  .scene[data-scene-mode='pinned'] {
+    /* Must be a full viewport: the pin adds exactly this much scroll runway,
+       so a shorter scene leaves the end of the handover unreachable. */
+    height: 100svh;
+    /* Contains the hero artwork as it scales up */
+    overflow: clip;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__layer {
+    position: absolute;
+    inset: 0;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__layer--hero {
+    z-index: 1;
+  }
+
+  /*
+    Crossfades in on top of the finished pixel field, which is painted in the
+    same colour — so this fade has nothing visible to give away.
+
+    pointer-events: none is load-bearing, not decoration. This layer is
+    position: absolute; inset: 0 — full-viewport — for the entire pin, and
+    opacity: 0 does NOT stop an element from receiving clicks or hover. Left at
+    the default `auto`, this invisible section sits on top of everything
+    beneath it and silently eats every pointer event aimed at them. hero.ts
+    flips it to `auto` only once its own crossfade has essentially finished,
+    and back to `none` if the user scrolls back up past that point. The same
+    reasoning applies to every layer below, one z-index higher each time.
+  */
+  .scene[data-scene-mode='pinned'] .scene__layer--next {
+    z-index: 3;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__layer--overclock {
+    z-index: 4;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__layer--bedford {
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__layer--celpip {
+    z-index: 6;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+  }
+
+  /* --- Pixel field (hero → Showcase only) --------------------------------- */
+  .scene__pixels {
+    display: none;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__pixels {
+    position: absolute;
+    /* Overspill so a resize between rebuilds can't expose a bare edge */
+    inset: calc(-1 * var(--px-size, 4rem));
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(var(--px-cols, 1), var(--px-size, 4rem));
+    grid-auto-rows: var(--px-size, 4rem);
+    pointer-events: none;
+  }
+
+  /* No will-change here: there are hundreds of these, and promoting every one
+     to its own compositor layer costs far more than it saves.
+
+     The outline paints one pixel outside the box, in the same colour as the
+     fill. Without it, neighbouring tiles land on fractional device pixels and
+     the dark artwork behind the field shows through as hairlines along the
+     grid. The end scale of 1.04 (set in hero.ts) overlaps them further. */
+  [data-scene-pixels] :global(.scene__pixel) {
+    display: block;
+    background: var(--color-bg-showcase);
+    outline: 1px solid var(--color-bg-showcase);
+  }
+</style>

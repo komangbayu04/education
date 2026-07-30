@@ -1,0 +1,217 @@
+---
+/**
+ * ProjectSection — the shared layout behind Overclock, Bedford and CELPIP
+ * (chapters 3, 4, 5): title + body on the left, a device shot stacked into
+ * the bottom-right corner and bleeding past both edges, and the shared
+ * <Timeline /> chapter marker at the right.
+ *
+ * Showcase (chapter 2) is NOT built on this — it has its own gradient ground
+ * and texture overlay that predate this component, and there was no reason to
+ * disturb a section nobody asked to change. This exists so chapters 3+ don't
+ * each re-declare the same ~150 lines of near-identical CSS.
+ *
+ * Text entrance/exit and the crossfade between sections are driven entirely
+ * by src/scripts/hero.ts against the generic `[data-chapter-section]` /
+ * `[data-chapter-text]` hooks — nothing project-specific lives there.
+ */
+import Timeline from './Timeline.astro';
+
+interface Props {
+  id: string;
+  chapter: number;
+  title: string;
+  body: string;
+  image: string;
+  imageAlt: string;
+  imageWidth: number;
+  imageHeight: number;
+  background: string;
+  mediaMaxWidth?: string;
+}
+
+const {
+  id,
+  chapter,
+  title,
+  body,
+  image,
+  imageAlt,
+  imageWidth,
+  imageHeight,
+  background,
+  mediaMaxWidth = 'clamp(18rem, 44vw, 46rem)',
+} = Astro.props;
+---
+
+<section
+  class="project"
+  aria-labelledby={`${id}-title`}
+  data-chapter-section={chapter}
+  style={`--project-bg:${background};--project-media-w:${mediaMaxWidth}`}
+>
+  <div class="project__inner u-container">
+    <div class="project__text" data-chapter-text>
+      <h2 class="project__title" id={`${id}-title`}>{title}</h2>
+      <p class="project__body">{body}</p>
+    </div>
+
+    <figure class="project__media" data-project-media>
+      <picture>
+        <source srcset={`${image}.avif`} type="image/avif" />
+        <img src={`${image}.webp`} alt={imageAlt} width={imageWidth} height={imageHeight} decoding="async" />
+      </picture>
+    </figure>
+
+    <div class="project__marker">
+      <Timeline />
+    </div>
+  </div>
+</section>
+
+<style>
+  .project {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-height: 100svh;
+    overflow: hidden;
+    background: var(--project-bg);
+    color: var(--color-ink);
+  }
+
+  .project__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: center;
+    gap: clamp(1.5rem, 3vw, 3rem);
+    width: 100%;
+    /* Full section height, so the absolutely placed media can be anchored to
+       the section's corner and bleed past it */
+    height: 100%;
+  }
+
+  /* --- Text --------------------------------------------------------------- */
+  .project__text {
+    grid-column: 1 / span 4;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 1.6vw, 1.5rem);
+  }
+
+  .project__title {
+    font-size: clamp(1.875rem, 3.1vw, 3rem);
+    font-weight: 400;
+    line-height: 1.14;
+    letter-spacing: -0.02em;
+  }
+
+  .project__body {
+    max-width: 24ch;
+    font-size: var(--text-body);
+    line-height: 1.75;
+    color: var(--color-ink-secondary);
+  }
+
+  /* --- Media -------------------------------------------------------------- */
+  /* Stacked into the bottom-right corner, bleeding past both edges. Taken out
+     of the grid so it can do that independently of the text row. */
+  .project__media {
+    position: absolute;
+    right: clamp(-3rem, -2.5vw, -0.5rem);
+    bottom: clamp(-2.5rem, -3.5vw, -1rem);
+    width: var(--project-media-w);
+    margin: 0;
+  }
+
+  .project__media img {
+    width: 100%;
+    height: auto;
+  }
+
+  /* --- Marker --------------------------------------------------------------
+     Grid placement only — shape and active/inactive styling live in
+     <Timeline />, shared across every chapter. */
+  .project__marker {
+    grid-column: 11 / span 2;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- Responsive ---------------------------------------------------------
+     1199px to stay in step with the hero's desktop breakpoint */
+  @media (max-width: 1199px) {
+    .project {
+      height: auto;
+      padding-block: clamp(3rem, 8vw, 6rem) 0;
+      align-items: start;
+    }
+
+    .project__inner {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      row-gap: clamp(2rem, 5vw, 3.5rem);
+      height: auto;
+    }
+
+    .project__text {
+      grid-column: 1 / span 6;
+    }
+
+    /* Back into the flow — absolute placement would collide with the text */
+    .project__media {
+      position: static;
+      grid-column: 1 / span 6;
+      width: 100%;
+      max-width: 32rem;
+    }
+
+    .project__marker {
+      grid-column: 6 / span 1;
+      align-self: start;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .project__inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .project__text,
+    .project__media {
+      grid-column: 1 / -1;
+    }
+
+    .project__media {
+      margin-inline: auto;
+    }
+
+    .project__body {
+      max-width: 38ch;
+    }
+
+    .project__marker {
+      display: none;
+    }
+  }
+
+  /* --- Pre-animation state (only when JS is live, only at the width where
+     hero.ts's pinned handover actually reveals this text — see there for the
+     matching fromTo(yPercent: 30 → 0, opacity: 0 → 1)). Below 1200px this
+     section is normal-flow and no scroll handover ever touches it, so the
+     text must stay visible there — gating this to the same breakpoint as the
+     handover keeps the two in lock-step instead of hard-coding 1200px twice. */
+  @media (min-width: 1200px) {
+    :global(html[data-js='true']) .project__text {
+      opacity: 0;
+      transform: translateY(30%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) .project__text {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
