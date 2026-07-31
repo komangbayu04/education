@@ -405,6 +405,25 @@ const {
     }
   }
 
+  /* Large-desktop nudge — 20px further left, 16px further up, on top of the
+     base offset above. Only here: on smaller screens the current placement is
+     correct and must not move.
+
+     1600px is the gate because it separates the 16" MacBook from every
+     smaller Mac: the 16" reports 1728px at its default scaling (and 2056px on
+     "More Space"), while the 14" reports 1512px and the 13"/Air 1440-1470px —
+     all of which stay on the base offset.
+
+     Expressed as calc() against the base values rather than as new absolute
+     numbers, so the two nudges stay legible as "base, plus this screen's
+     extra" and the base can be retuned without re-deriving this. */
+  @media (min-width: 1600px) {
+    .hero__stage {
+      left: calc(-4.75rem - 20px);
+      top: calc(-1.5rem - 16px);
+    }
+  }
+
   @media (max-width: 48rem) {
     .hero__grid {
       grid-template-columns: minmax(0, 1fr);
