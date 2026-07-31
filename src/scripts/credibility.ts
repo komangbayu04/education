@@ -61,6 +61,11 @@ export function initCredibility(): () => void {
     tl.fromTo(circle, { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 1.1 }, 0.3);
   }
 
+  // Mobile fan only — display:none above 61.25rem, where the ring's circle
+  // and axis do this job instead. Fading it is harmless there.
+  const wires = pick('wires');
+  if (wires) tl.fromTo(wires, { opacity: 0 }, { opacity: 1, duration: 0.9 }, 0.3);
+
   const intro = pick('intro');
   if (intro) tl.fromTo(intro, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.8 }, 0.55);
 
