@@ -64,8 +64,10 @@ function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
  * scrollbar all work for free and correctly. On top of that:
  *   - the card list is rendered twice, and scrollLeft wraps at the halfway
  *     point, so the loop is seamless in both directions
- *   - a ticker callback adds the drift, paused whenever the pointer is over
- *     the rail or the user is dragging, and resumed a beat after they stop
+ *   - a ticker callback adds the drift, paused only while the user is actually
+ *     moving the rail — dragging it, or scrolling it sideways — and resumed a
+ *     beat after they stop. Hovering does NOT pause it (explicit direction):
+ *     the rail keeps travelling under a resting cursor.
  *   - pointer drag is added by hand, because a mouse otherwise has no way to
  *     scroll a horizontal rail
  *
@@ -191,16 +193,24 @@ function initMarquee(section: HTMLElement, cleanups: Array<() => void>): void {
     return;
   }
 
-  let hovering = false;
   let resumeAt = 0;
 
   const hold = () => {
     resumeAt = performance.now() + RESUME_DELAY;
   };
 
-  rail.addEventListener('pointerenter', () => { hovering = true; }, { signal });
-  rail.addEventListener('pointerleave', () => { hovering = false; hold(); }, { signal });
-  rail.addEventListener('wheel', hold, { signal, passive: true });
+  // Sideways wheels only. This listener fires for *every* wheel over the rail,
+  // including the plain vertical ones that are just scrolling the page past
+  // this section — holding on those stopped the marquee for as long as the
+  // cursor happened to rest here, which is the same complaint as the hover
+  // pause, arriving by a different route.
+  rail.addEventListener(
+    'wheel',
+    (event: WheelEvent) => {
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) hold();
+    },
+    { signal, passive: true },
+  );
   rail.addEventListener('touchstart', hold, { signal, passive: true });
   rail.addEventListener('touchmove', hold, { signal, passive: true });
 
@@ -209,7 +219,7 @@ function initMarquee(section: HTMLElement, cleanups: Array<() => void>): void {
     const dt = Math.min(64, time - last);
     last = time;
 
-    if (hovering || dragging || time < resumeAt || loopWidth <= 0) return;
+    if (dragging || time < resumeAt || loopWidth <= 0) return;
 
     rail.scrollLeft += (AUTO_SPEED * dt) / 1000;
     wrap();
