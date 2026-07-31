@@ -6,6 +6,11 @@ import Overclock from '../components/sections/Overclock.astro';
 import Bedford from '../components/sections/Bedford.astro';
 import Celpip from '../components/sections/Celpip.astro';
 import Credibility from '../components/sections/Credibility.astro';
+import TwoWays from '../components/sections/TwoWays.astro';
+import Testimonials from '../components/sections/Testimonials.astro';
+import Journal from '../components/sections/Journal.astro';
+import FounderQuote from '../components/sections/FounderQuote.astro';
+import Footer from '../components/layout/Footer.astro';
 ---
 
 <Base>
@@ -65,6 +70,34 @@ import Credibility from '../components/sections/Credibility.astro';
     src/scripts/credibility.ts.
   */}
   <Credibility />
+
+  {/*
+    Chapter 7, outside the scene for the same reason as Credibility: plain
+    document scroll into it, no pin and no crossfade (explicit direction).
+    Its own one-shot entrance lives in src/scripts/twoWays.ts.
+  */}
+  <TwoWays />
+
+  {/*
+    Chapter 8. Same plain-scroll treatment as the two sections above it. Its
+    hover accordion and auto/manual marquee live in
+    src/scripts/testimonials.ts.
+  */}
+  <Testimonials />
+
+  {/*
+    Chapter 9. Same plain-scroll treatment as the three sections above it —
+    its one-shot reveal lives in src/scripts/journal.ts.
+  */}
+  <Journal />
+
+  {/*
+    Chapter 10 and the footer. These two must stay adjacent: FounderQuote
+    dissolves its bottom edge into the footer's background colour with a band
+    of pixel squares, so anything placed between them would break that seam.
+  */}
+  <FounderQuote />
+  <Footer />
 </Base>
 
 <style>

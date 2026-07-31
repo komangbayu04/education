@@ -347,8 +347,16 @@ const {
   }
 
   /* Below this the ring can't hold seven labels without collisions, so it
-     unrolls into a plain list and the circle stops being load-bearing. */
-  @media (max-width: 48rem) {
+     unrolls into a plain list and the circle stops being load-bearing.
+
+     61.25rem (980px), not 48rem: the two outer nodes sit 14.3% past the stage
+     and their labels ("Landing pages", "Social presence") run on from there
+     with `white-space: nowrap`, so the ring's true footprint is much wider
+     than the stage itself. Measured across the range, that footprint pushed
+     the page into horizontal scroll everywhere from 769px to 979px — the exact
+     band this query used to leave the ring switched on. 980px is where it
+     first fits. */
+  @media (max-width: 61.25rem) {
     .cred__stage {
       width: 100%;
       height: auto;

@@ -1,4 +1,4 @@
-import { gsap } from './gsap';
+import { gsap, ScrollTrigger } from './gsap';
 import { prefersReducedMotion } from './utils/device';
 
 let instances: HTMLElement[] = [];
@@ -9,11 +9,13 @@ let current = 1;
  * moves each instance's dot to the target rule and toggles `.is-active`
  * (plain class, not an attribute selector — see Timeline.astro for why).
  *
- * Exported rather than kept private: chapters 1 (hero) → 2 (Showcase) → 3
- * (Overclock) are driven directly by hero.ts's own scroll handover, because
- * both transitions happen mid-scrub inside the same pin that already runs
- * the pixel reveal — there is no separate, independent scroll position to
- * watch from out here. See hero.ts's docstring for the full sequence.
+ * Exported rather than kept private because two different things drive it,
+ * depending on width:
+ *   - ≥1200px, hero.ts's pinned handover, mid-scrub (there is no independent
+ *     scroll position to watch from out here — see its docstring)
+ *   - <1200px, the plain ScrollTriggers set up in initTimeline below, since
+ *     that pin never runs at those widths
+ * The two are mutually exclusive by media query, so they can never fight.
  */
 export function setActiveChapter(chapter: number, animate: boolean): void {
   if (chapter === current && animate) return;
@@ -28,23 +30,39 @@ export function setActiveChapter(chapter: number, animate: boolean): void {
     rules.forEach((r) => r.classList.toggle('is-active', r === target));
 
     if (!dot) return;
-    // Distance from the stack's own top to the target rule's centre — each
-    // instance measures its own layout, so this stays correct even though
-    // the marker appears at a different size/position in every section.
-    const y = target.offsetTop + target.offsetHeight / 2;
+
+    // Which way the rules are stacked decides which way the dot travels. Read
+    // from the rendered layout rather than from a breakpoint, so the CSS in
+    // Timeline.astro stays the only place that decision is made — and so a
+    // stray offsetLeft (the rules are different widths, and right-aligned on
+    // desktop) can never be mistaken for a horizontal layout.
+    const vertical = rules.length < 2 || Math.abs(rules[1].offsetTop - rules[0].offsetTop) > 2;
+
+    // Distance from the stack's own edge to the target rule's centre — each
+    // instance measures its own layout, so this stays correct even though the
+    // marker appears at a different size and position in every section.
+    const to = vertical
+      ? { x: 0, y: target.offsetTop + target.offsetHeight / 2 }
+      : { x: target.offsetLeft + target.offsetWidth / 2, y: 0 };
 
     if (animate && !prefersReducedMotion()) {
-      gsap.to(dot, { y, duration: 0.5, ease: 'expo.out' });
+      gsap.to(dot, { ...to, duration: 0.5, ease: 'expo.out' });
     } else {
-      gsap.set(dot, { y });
+      gsap.set(dot, to);
     }
   });
 }
 
 /**
- * Finds every rendered `<Timeline />` instance and sets the resting state
- * (chapter 1). Returns a no-op cleanup — there are no ScrollTriggers created
- * here for it to tear down; hero.ts owns the one that actually drives this.
+ * Finds every rendered `<Timeline />` instance, sets the resting state, and —
+ * below the pin gate — wires up the scroll triggers that advance it.
+ *
+ * That second part matters: hero.ts's handover, which is what moves the marker
+ * on desktop, is built inside a `(min-width: 1200px)` matchMedia. Below that it
+ * never runs, so without these triggers the marker would render on mobile and
+ * then sit frozen on slot 1 forever — worse than not showing it at all.
+ *
+ * Returns a cleanup function.
  */
 export function initTimeline(): () => void {
   instances = gsap.utils.toArray<HTMLElement>('[data-timeline]');
@@ -53,5 +71,30 @@ export function initTimeline(): () => void {
   current = 1;
   setActiveChapter(1, false);
 
-  return () => {};
+  const mm = gsap.matchMedia();
+
+  mm.add('(max-width: 1199px)', () => {
+    const sections = gsap.utils.toArray<HTMLElement>('[data-chapter-section]');
+
+    const triggers = sections.map((section) => {
+      const chapter = Number(section.dataset.chapterSection);
+      // The marker has 4 slots for 5 sections: hero and Showcase share slot 1,
+      // so everything past Showcase shifts down by one. See Timeline.astro.
+      const slot = chapter <= 2 ? 1 : chapter - 1;
+
+      return ScrollTrigger.create({
+        trigger: section,
+        // Mid-viewport, so the marker turns over as a section takes the screen
+        // rather than as its first pixel appears.
+        start: 'top 60%',
+        end: 'bottom 40%',
+        onEnter: () => setActiveChapter(slot, true),
+        onEnterBack: () => setActiveChapter(slot, true),
+      });
+    });
+
+    return () => triggers.forEach((t) => t.kill());
+  });
+
+  return () => mm.revert();
 }

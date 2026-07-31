@@ -1,0 +1,459 @@
+---
+/**
+ * Two ways in — chapter 7, the section after Credibility.
+ *
+ * Like Credibility, it lives outside <div data-scene> in index.astro: the
+ * handover into it is plain document scroll — no pin, no crossfade, no scrub
+ * (explicit direction). The only motion is a one-shot reveal when the section
+ * first enters the viewport, in src/scripts/twoWays.ts.
+ *
+ * Layout is two columns. The left one is a flex column with the CTA block
+ * pushed to its bottom, so the two ends of the copy anchor to the top and
+ * bottom of the section the way the reference frame has them. The right one
+ * is the two offer cards over a row of working-rhythm pills.
+ *
+ * The rules between things are borders on the content, not free-standing
+ * elements: each card owns the vertical rule to its left, and the pill block
+ * owns the horizontal rules above and below it. That way they can never drift
+ * out of alignment with what they're separating.
+ */
+import Icon, { type IconName } from '../ui/Icon.astro';
+
+interface Offer {
+  /** Rendered as-is — the frame has these in caps, so the copy carries it */
+  name: string;
+  icon: IconName;
+  summary: string;
+  forItems: string[];
+  length: string;
+}
+
+interface Ritual {
+  label: string;
+  icon: IconName;
+}
+
+interface Props {
+  title?: string;
+  intro?: string;
+  offers?: Offer[];
+  rituals?: Ritual[];
+  ctaTitle?: string;
+  ctaCopy?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const {
+  title = 'Two ways in',
+  intro = 'Pushes have a way of becoming partnerships. Most of ours did.',
+  offers = [
+    {
+      name: 'THE PUSH',
+      icon: 'rocket',
+      summary: 'A concentrated engagement around a moment that matters.',
+      forItems: ['A Launch', 'A Rebrand', 'A Fundraise'],
+      length: 'Fixed. 4 weeks and up',
+    },
+    {
+      name: 'THE TEAM',
+      icon: 'multi-user',
+      summary: 'Your design function, year-round, across every surface.',
+      forItems: ['Brand', 'Website', 'Product Design', 'Marketing'],
+      length: 'Ongoing, month to month',
+    },
+  ],
+  rituals = [
+    { label: 'Weekly Calls', icon: 'phone' },
+    { label: 'Async reviews in Figma', icon: 'figma' },
+    { label: 'Slack in between', icon: 'slack' },
+    { label: 'Daily momentum and updates', icon: 'spinner' },
+  ],
+  ctaTitle = 'Ready to get going?',
+  ctaCopy = "Tell us what's coming and we'll tell you which way fits.",
+  ctaLabel = 'Talk to us',
+  ctaHref = '/contact',
+} = Astro.props;
+---
+
+<section class="two" aria-labelledby="two-title" data-two>
+  <div class="two__texture" aria-hidden="true"></div>
+
+  <div class="two__inner u-container">
+    <div class="two__lead">
+      <div class="two__intro">
+        <h2 class="two__title" id="two-title" data-two-reveal="title">{title}</h2>
+        <p class="two__intro-copy" data-two-reveal="intro">{intro}</p>
+      </div>
+
+      <div class="two__cta-block">
+        <h3 class="two__cta-title" data-two-reveal="cta-title">{ctaTitle}</h3>
+        <p class="two__cta-copy" data-two-reveal="cta-copy">{ctaCopy}</p>
+        <a class="two__cta" href={ctaHref} data-magnetic="0.2" data-two-reveal="cta">
+          <span class="two__cta-fill" aria-hidden="true"></span>
+          <span class="two__cta-label" data-magnetic-inner>{ctaLabel}</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="two__panel">
+      <div class="two__cards">
+        {
+          offers.map((offer) => (
+            <article class="two__card" data-two-card>
+              <h3 class="two__card-name">
+                {offer.name}
+                <Icon name={offer.icon} size="1.375rem" />
+              </h3>
+              <p class="two__card-summary">{offer.summary}</p>
+
+              <div class="two__card-group">
+                <p class="two__card-label">For</p>
+                <ul class="two__card-list">
+                  {offer.forItems.map((item) => (
+                    <li>
+                      <Icon name="check-circle" size="1.125rem" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* margin-top:auto on this block is what keeps both cards'
+                  LENGTH rows on the same line even though their FOR lists
+                  are different lengths */}
+              <div class="two__card-group two__card-group--length">
+                <p class="two__card-label">Length</p>
+                <p class="two__card-length">{offer.length}</p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+
+      <ul class="two__rituals">
+        {
+          rituals.map((ritual) => (
+            <li class="two__ritual" data-two-ritual>
+              <Icon name={ritual.icon} size="1.125rem" />
+              {ritual.label}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .two {
+    position: relative;
+    padding-block: clamp(3rem, 6vw, 5rem) clamp(3rem, 6vw, 5.5rem);
+    overflow: hidden;
+    background: var(--color-bg-twoways);
+    color: var(--color-ink);
+  }
+
+  /* --- Pixel field ---------------------------------------------------------
+     CSS-generated, not an asset — see the note in the summary. Two offset
+     repeating gradients make a checker of translucent squares (the overlaps
+     read darker, which is what gives it the mottled look), then a radial mask
+     fades it out so it only ever sits behind the left column. */
+  .two__texture {
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        rgb(0 0 0 / 0.022) 0 3rem,
+        transparent 3rem 6rem
+      ),
+      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.022) 0 3rem, transparent 3rem 6rem);
+    mask-image: radial-gradient(58% 46% at 24% 46%, #000 0%, transparent 72%);
+    pointer-events: none;
+  }
+
+  .two__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(2rem, 4vw, 4rem);
+    align-items: stretch;
+  }
+
+  /* --- Left column ---------------------------------------------------------
+     The CTA block is pushed to the bottom so the column's two ends anchor to
+     the section's, matching the frame. */
+  .two__lead {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(3rem, 8vw, 7rem);
+  }
+
+  .two__intro {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.2vw, 1.125rem);
+  }
+
+  .two__title {
+    font-size: clamp(1.875rem, 3.1vw, 3rem);
+    font-weight: 400;
+    line-height: 1.14;
+    letter-spacing: -0.02em;
+  }
+
+  .two__intro-copy {
+    max-width: 34ch;
+    font-size: var(--text-body);
+    line-height: 1.6;
+  }
+
+  .two__cta-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(0.625rem, 1vw, 0.875rem);
+    margin-top: auto;
+  }
+
+  .two__cta-title {
+    font-size: clamp(1.375rem, 2.1vw, 1.875rem);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
+
+  .two__cta-copy {
+    max-width: 38ch;
+    font-size: var(--text-body);
+    line-height: 1.6;
+    color: var(--color-ink-secondary);
+  }
+
+  /* Same shape as the hero's and Credibility's CTA */
+  .two__cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: clamp(0.75rem, 1.4vw, 1.25rem);
+    padding: 0.8125rem 1.75rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    will-change: transform;
+  }
+
+  .two__cta-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-twoways);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .two__cta-label {
+    position: relative;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .two__cta:hover,
+  .two__cta:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+
+  .two__cta:hover .two__cta-fill,
+  .two__cta:focus-visible .two__cta-fill {
+    transform: scaleY(1);
+  }
+
+  .two__cta:hover .two__cta-label,
+  .two__cta:focus-visible .two__cta-label {
+    color: var(--color-ink);
+  }
+
+  /* --- Right panel --------------------------------------------------------- */
+  .two__panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .two__cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* No gap: each card's own left border is the separator, so a gap would
+       just push the rules away from what they divide. */
+  }
+
+  .two__card {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.2vw, 1.125rem);
+    padding: 0 clamp(1.25rem, 2.2vw, 2rem) clamp(1.75rem, 3vw, 2.5rem);
+    border-left: 1px solid var(--color-line);
+  }
+
+  .two__card-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .two__card-summary {
+    max-width: 30ch;
+    font-size: var(--text-body);
+    line-height: 1.55;
+    color: var(--color-ink-secondary);
+  }
+
+  .two__card-group {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.625rem, 1vw, 0.875rem);
+    padding-top: clamp(1rem, 1.8vw, 1.5rem);
+    border-top: 1px solid var(--color-line);
+  }
+
+  /* Pins the LENGTH block to the bottom of whichever card is shorter, so the
+     two cards' LENGTH rows line up regardless of how many FOR items each has. */
+  .two__card-group--length {
+    margin-top: auto;
+  }
+
+  .two__card-label {
+    font-size: var(--text-body);
+    line-height: 1.2;
+  }
+
+  .two__card-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 0.8vw, 0.75rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .two__card-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: var(--text-body);
+    line-height: 1.3;
+  }
+
+  .two__card-length {
+    font-size: var(--text-body);
+    line-height: 1.4;
+    color: var(--color-ink-secondary);
+  }
+
+  /* --- Rituals -------------------------------------------------------------
+     Left to wrap on its own: at the reference width that lands 3-then-1,
+     which is what the frame shows, and it stays sane at every other width
+     without a hand-set grid fighting the content. */
+  .two__rituals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(0.625rem, 1vw, 0.875rem);
+    margin: 0;
+    padding-block: clamp(1.5rem, 2.6vw, 2.25rem);
+    padding-inline: clamp(1.25rem, 2.2vw, 2rem);
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+    list-style: none;
+  }
+
+  .two__ritual {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.75rem 1.375rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: var(--color-bg-primary);
+    font-size: var(--text-body);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 1199px) {
+    .two__inner {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(2.5rem, 6vw, 4rem);
+    }
+
+    /* Nothing left to push against once the columns stack, so the big
+       flexible gap has to come out or it strands the CTA. */
+    .two__lead {
+      gap: clamp(2rem, 5vw, 3rem);
+    }
+
+    .two__cta-block {
+      margin-top: 0;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .two__cards {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Stacked, the left rule reads as a stray mark against the page edge —
+       a rule between them is what's actually wanted. */
+    .two__card {
+      padding-inline: 0;
+      border-left: 0;
+    }
+
+    .two__card + .two__card {
+      margin-top: clamp(1.75rem, 6vw, 2.5rem);
+      padding-top: clamp(1.75rem, 6vw, 2.5rem);
+      border-top: 1px solid var(--color-line);
+    }
+
+    /* With one card per row there is no second card to line up with, so this
+       would only add a stray gap. */
+    .two__card-group--length {
+      margin-top: 0;
+    }
+
+    .two__rituals {
+      padding-inline: 0;
+    }
+
+    .two__ritual {
+      white-space: normal;
+    }
+  }
+
+  /* --- Pre-reveal state ----------------------------------------------------
+     JS-only, so no-JS renders the finished section. twoWays.ts animates these
+     back to their resting values once the section scrolls in. */
+  :global(html[data-js='true']) [data-two-reveal],
+  :global(html[data-js='true']) [data-two-card],
+  :global(html[data-js='true']) [data-two-ritual] {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) [data-two-reveal],
+    :global(html[data-js='true']) [data-two-card],
+    :global(html[data-js='true']) [data-two-ritual] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

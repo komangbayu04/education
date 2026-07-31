@@ -1,0 +1,236 @@
+---
+/**
+ * Footer — the page's closing block.
+ *
+ * Sits directly after <FounderQuote />, which dissolves its own bottom edge
+ * into this section's background colour (`--color-bg-footer`) with a band of
+ * pixel squares. The two interlock at that seam, so nothing may go between
+ * them in the page.
+ *
+ * Lives in index.astro rather than Base.astro for now: the site is a single
+ * page, and putting it in the layout would be an architectural change nobody
+ * asked for. Moving it there is a two-line change once a second page exists.
+ */
+
+interface FooterLink {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  wordmark?: string;
+  tagline?: string;
+  links?: FooterLink[];
+  email?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  legal?: string;
+}
+
+const {
+  wordmark = 'Tribe Designworks',
+  tagline = 'Built on what we build for you.',
+  links = [
+    { label: 'Work', href: '/work' },
+    { label: 'How we work', href: '/how-we-work' },
+    { label: 'What founders say', href: '/testimonials' },
+    { label: 'Blog', href: '/journal' },
+  ],
+  email = 'hello@tribelab.co',
+  ctaLabel = 'Talk to us',
+  ctaHref = '/contact',
+  legal = `©${new Date().getFullYear()} Tribe Designworks Inc. All rights reserved.`,
+} = Astro.props;
+---
+
+<footer class="ft">
+  <div class="ft__inner u-container">
+    <div class="ft__brand">
+      <p class="ft__wordmark">{wordmark}</p>
+      <p class="ft__tagline">{tagline}</p>
+    </div>
+
+    <div class="ft__cols">
+      <nav class="ft__nav" aria-label="Footer">
+        <ul>
+          {
+            links.map((link) => (
+              <li>
+                <a class="ft__link" href={link.href}>
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <div class="ft__contact">
+        {/* mailto rather than plain text — it's the one address on the page */}
+        <a class="ft__email" href={`mailto:${email}`}>{email}</a>
+        <a class="ft__cta" href={ctaHref} data-magnetic="0.2">
+          <span class="ft__cta-fill" aria-hidden="true"></span>
+          <span class="ft__cta-label" data-magnetic-inner>{ctaLabel}</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="ft__legal">{legal}</p>
+  </div>
+</footer>
+
+<style>
+  .ft {
+    background: var(--color-bg-footer);
+    color: var(--color-ink-invert);
+  }
+
+  .ft__inner {
+    padding-block: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  /* --- Brand --------------------------------------------------------------- */
+  .ft__wordmark {
+    font-size: clamp(2rem, 5.2vw, 4.25rem);
+    font-weight: 400;
+    line-height: 1.06;
+    letter-spacing: -0.025em;
+  }
+
+  .ft__tagline {
+    margin-top: clamp(0.375rem, 0.8vw, 0.625rem);
+    /* Optically aligned with the wordmark above: the display size carries a
+       negative letter-spacing that pulls its first glyph slightly left of the
+       body text's, so this nudges back to match. */
+    padding-left: 0.15em;
+    font-size: var(--text-body);
+    line-height: 1.5;
+    color: rgb(255 255 255 / 0.82);
+  }
+
+  /* --- Columns -------------------------------------------------------------
+     Pushed to the right, with the whole left side left open — as in the
+     reference frame. */
+  .ft__cols {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: clamp(2rem, 6vw, 7rem);
+    margin-top: clamp(1.75rem, 3.5vw, 3rem);
+    padding-top: clamp(1.75rem, 3.5vw, 3rem);
+    border-top: 1px solid rgb(255 255 255 / 0.16);
+  }
+
+  .ft__nav ul {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.625rem, 1.2vw, 1rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ft__link,
+  .ft__email {
+    font-size: 0.875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: inherit;
+    transition: opacity 0.35s var(--ease-out-expo);
+  }
+
+  .ft__link:hover,
+  .ft__link:focus-visible,
+  .ft__email:hover,
+  .ft__email:focus-visible {
+    opacity: 0.62;
+  }
+
+  .ft__contact {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  /* --- CTA -----------------------------------------------------------------
+     The inverse of the CTAs elsewhere on the page — light on dark — so the
+     fill sweeps to the footer's own background rather than to white. */
+  .ft__cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.8125rem 1.75rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    will-change: transform;
+  }
+
+  .ft__cta-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-footer);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .ft__cta-label {
+    position: relative;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .ft__cta:hover,
+  .ft__cta:focus-visible {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.5);
+  }
+
+  .ft__cta:hover .ft__cta-fill,
+  .ft__cta:focus-visible .ft__cta-fill {
+    transform: scaleY(1);
+  }
+
+  .ft__cta:hover .ft__cta-label,
+  .ft__cta:focus-visible .ft__cta-label {
+    color: var(--color-ink-invert);
+  }
+
+  /* --- Legal --------------------------------------------------------------- */
+  .ft__legal {
+    margin-top: clamp(1.75rem, 3.5vw, 3rem);
+    padding-top: clamp(1.25rem, 2.4vw, 2rem);
+    border-top: 1px solid rgb(255 255 255 / 0.16);
+    font-size: 0.8125rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.72);
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 48rem) {
+    .ft__cols {
+      justify-content: flex-start;
+      gap: clamp(1.75rem, 8vw, 2.75rem);
+    }
+
+    .ft__contact {
+      width: 100%;
+    }
+
+    .ft__cta {
+      width: auto;
+      min-width: 12rem;
+    }
+  }
+</style>

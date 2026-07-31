@@ -1,0 +1,295 @@
+---
+/**
+ * Founder quote — chapter 10, the page's closing note before the footer.
+ *
+ * A full-bleed image with two pixel bands dissolving into it:
+ *   - the top band is painted in the page background, so the section reads as
+ *     emerging out of the white above it
+ *   - the bottom band is painted in the FOOTER's background, so the footer
+ *     appears to rise up into the image
+ * That second band is why this section and <Footer /> have to sit directly
+ * next to each other in the page — they interlock at that edge rather than
+ * simply stacking.
+ *
+ * Both bands are generated below rather than hand-placed: at 30 columns a
+ * hand-authored scatter would be ~350 coordinates. They run in Astro's
+ * frontmatter, so this executes once at build time and ships as static HTML —
+ * there is no client-side randomness to mismatch.
+ *
+ * ASSETS: `image` (the backdrop) and `portrait` are both intentionally
+ * unset — pass them and the placeholders disappear. See the note on
+ * `.quote__scrim` for why the backdrop keeps a gradient over it even once a
+ * real photograph lands.
+ */
+
+interface Props {
+  name?: string;
+  role?: string;
+  quote?: string;
+  image?: string;
+  imageAlt?: string;
+  portrait?: string;
+  portraitAlt?: string;
+}
+
+const {
+  name = 'Yarik',
+  role = 'Founder',
+  quote =
+    'Every client we’ve loved working with had one thing in common: education. At some point we stopped calling it a coincidence. Now it’s the whole practice.',
+  image,
+  imageAlt = '',
+  portrait,
+  portraitAlt = `Portrait of ${name}`,
+} = Astro.props;
+
+const COLS = 30;
+
+/**
+ * Deterministic 0..1 from an integer — the usual sin-fract hash. Runs at build
+ * time, so "deterministic" here is about the scatter being reproducible
+ * between builds rather than about hydration.
+ */
+const hash = (i: number): number => {
+  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+/**
+ * One band of squares. `density` gives the fill chance per row, from the edge
+ * inward, so the band starts solid at the edge and thins out — the same
+ * dissolve the artwork itself uses.
+ */
+const band = (density: number[], seed: number) => {
+  const cells: Array<{ col: number; row: number }> = [];
+  density.forEach((chance, row) => {
+    for (let col = 0; col < COLS; col++) {
+      if (hash(seed + row * COLS + col) < chance) {
+        cells.push({ col: col + 1, row: row + 1 });
+      }
+    }
+  });
+  return cells;
+};
+
+// Top: solid at the very top edge, gone by the fifth row.
+const topCells = band([0.92, 0.62, 0.4, 0.22, 0.1], 0);
+// Bottom: written top-down here, so it reads sparse → solid, then the band is
+// flipped in CSS to sit against the bottom edge.
+const bottomCells = band([0.08, 0.16, 0.3, 0.45, 0.62, 0.8, 0.95], 5000);
+---
+
+<section class="quote" aria-labelledby="quote-name" data-quote>
+  <div class="quote__media">
+    {
+      image ? (
+        <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
+      ) : (
+        /* PLACEHOLDER — pass `image` to replace */
+        <span class="quote__media-fallback" aria-hidden="true" />
+      )
+    }
+    {/* Kept even with a real photograph: the quote is white, and this section
+        can't know how bright the image that lands here will be. */}
+    <span class="quote__scrim" aria-hidden="true"></span>
+  </div>
+
+  <div class="quote__band quote__band--top" aria-hidden="true">
+    {topCells.map((c) => <span style={`grid-column:${c.col};grid-row:${c.row}`} />)}
+  </div>
+
+  <div class="quote__band quote__band--bottom" aria-hidden="true">
+    {bottomCells.map((c) => <span style={`grid-column:${c.col};grid-row:${c.row}`} />)}
+  </div>
+
+  <div class="quote__inner u-container">
+    <figure class="quote__figure">
+      <figcaption class="quote__who" data-quote-reveal>
+        <p class="quote__name" id="quote-name">{name}</p>
+        <p class="quote__role">{role}</p>
+      </figcaption>
+      <blockquote class="quote__text" data-quote-reveal>{quote}</blockquote>
+    </figure>
+
+    <div class="quote__portrait" data-quote-reveal>
+      {
+        portrait ? (
+          <img src={portrait} alt={portraitAlt} loading="lazy" decoding="async" />
+        ) : (
+          /* PLACEHOLDER — pass `portrait` to replace */
+          <span class="quote__portrait-fallback" aria-hidden="true" />
+        )
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .quote {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: clamp(30rem, 66vw, 60rem);
+    overflow: hidden;
+    /* Matches the footer, so the bottom band has nothing to reveal but more of
+       the same colour if the image ever fails to load */
+    background: var(--color-bg-footer);
+    color: var(--color-ink-invert);
+  }
+
+  /* --- Backdrop ------------------------------------------------------------ */
+  .quote__media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .quote__media img,
+  .quote__media-fallback {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Deliberately dark: the quote sits on top in white, so a light placeholder
+     would leave the copy unreadable until the real image arrives. */
+  .quote__media-fallback {
+    background:
+      radial-gradient(80% 60% at 70% 30%, #3c4550, transparent 70%),
+      linear-gradient(200deg, #2b3138, #16191d);
+  }
+
+  /* Weighted to the left and bottom, where the copy actually sits, so a bright
+     photograph can't take the contrast out from under it. */
+  .quote__scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(100deg, rgb(8 10 12 / 0.62) 0%, rgb(8 10 12 / 0.24) 46%, transparent 72%),
+      linear-gradient(0deg, rgb(8 10 12 / 0.45) 0%, transparent 38%);
+  }
+
+  /* --- Pixel bands ---------------------------------------------------------
+     Each band is a 30-column grid; only the filled cells are rendered, placed
+     by explicit grid-column/grid-row. aspect-ratio on the cells is what keeps
+     them square — the rows size themselves to one column's width. */
+  .quote__band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: repeat(30, 1fr);
+    pointer-events: none;
+  }
+
+  .quote__band span {
+    aspect-ratio: 1;
+  }
+
+  .quote__band--top {
+    top: 0;
+  }
+
+  .quote__band--top span {
+    background: var(--color-bg-primary);
+  }
+
+  /* The density array is written sparse → solid, so the whole band is flipped
+     to put the solid end against the footer. */
+  .quote__band--bottom {
+    bottom: 0;
+    transform: scaleY(-1);
+  }
+
+  .quote__band--bottom span {
+    background: var(--color-bg-footer);
+  }
+
+  /* --- Content ------------------------------------------------------------- */
+  .quote__inner {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(2rem, 5vw, 5rem);
+    width: 100%;
+  }
+
+  .quote__figure {
+    max-width: 46rem;
+    margin: 0;
+  }
+
+  .quote__name {
+    font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .quote__role {
+    margin-top: 0.25rem;
+    font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
+    line-height: 1.3;
+    color: rgb(255 255 255 / 0.72);
+  }
+
+  .quote__text {
+    margin: clamp(1.5rem, 2.6vw, 2.25rem) 0 0;
+    font-size: clamp(1.25rem, 2.4vw, 2.125rem);
+    line-height: 1.32;
+    letter-spacing: -0.015em;
+    text-wrap: pretty;
+  }
+
+  .quote__portrait {
+    flex: none;
+    width: clamp(9rem, 22vw, 20rem);
+    aspect-ratio: 20 / 22;
+    overflow: hidden;
+    background: var(--color-bg-secondary);
+  }
+
+  .quote__portrait img,
+  .quote__portrait-fallback {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .quote__portrait-fallback {
+    background: linear-gradient(170deg, #ffffff, #dcdcd8);
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 61.25rem) {
+    .quote {
+      align-items: flex-end;
+      /* The bands eat into the top and bottom; this keeps the copy clear of
+         both once the section gets shorter. */
+      padding-block: clamp(9rem, 26vw, 14rem) clamp(9rem, 30vw, 16rem);
+    }
+
+    .quote__inner {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      gap: clamp(1.5rem, 4vw, 2.5rem);
+    }
+
+    .quote__portrait {
+      width: clamp(8rem, 34vw, 12rem);
+    }
+  }
+
+  /* --- Pre-reveal state ---------------------------------------------------- */
+  :global(html[data-js='true']) [data-quote-reveal] {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) [data-quote-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

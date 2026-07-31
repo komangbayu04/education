@@ -118,16 +118,16 @@ const {
   }
 
   /* --- Media -------------------------------------------------------------- */
-  /* Flush against the section's right edge, vertically centred, and capped in
-     height so nothing runs off the top or bottom. Taken out of the
-     grid so it can do that independently of the text row (and so the pin
-     interaction in timeline.ts can hold it perfectly still while the text
-     column animates on top of it). */
+  /* Bleeding past the section's right edge and nudged down from centre —
+     pushed further in both directions on request. Taken out of the grid so it
+     can do that independently of the text row (and so the pin interaction in
+     timeline.ts can hold it perfectly still while the text column animates on
+     top of it). */
   .showcase__media {
     position: absolute;
-    right: 0;
+    right: clamp(-4rem, -3vw, -1.5rem);
     top: 50%;
-    translate: 0 -50%;
+    translate: 0 -38%;
     width: clamp(20rem, 52vw, 56rem);
     max-height: 88svh;
     margin: 0;
@@ -200,7 +200,8 @@ const {
     }
 
     .showcase__text,
-    .showcase__media {
+    .showcase__media,
+    .showcase__marker {
       grid-column: 1 / -1;
     }
 
@@ -212,8 +213,11 @@ const {
       max-width: 38ch;
     }
 
+    /* Above the copy — see the matching note in ProjectSection.astro. */
     .showcase__marker {
-      display: none;
+      order: -1;
+      align-self: start;
+      margin-bottom: clamp(0.5rem, 2vw, 1rem);
     }
   }
 
