@@ -94,12 +94,19 @@ const {
   /* No mask — the copy travels the full height of the section and is only
      ever clipped by the section's own edges. See ProjectSection. */
   .showcase__text {
-    grid-column: 1 / span 4;
+    /* span 5, not 4: matches ProjectSection, and for the same reason — the
+       body is set to three lines and at span 4 the column became the limit
+       before the measure did. The media is right-anchored and out of the
+       grid, so track 5 was empty. */
+    grid-column: 1 / span 5;
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
+    /* Scrubbed on `y` for the whole pin — promote it once rather than let the
+       compositor re-decide every frame. */
+    will-change: transform;
   }
 
   .showcase__title {
@@ -111,7 +118,9 @@ const {
   }
 
   .showcase__body {
-    max-width: 24ch;
+    /* Three lines, same measure as the other project sections — this body is
+       the same 122 characters as Overclock's. See ProjectSection. */
+    max-width: 41ch;
     font-size: var(--text-body);
     line-height: 1.75;
     color: #1c2333;

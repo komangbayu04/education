@@ -215,7 +215,13 @@ export function initHero(): () => void {
           end: () => `+=${window.innerHeight * PIN_VIEWPORTS}`,
           pin: true,
           anticipatePin: 1,
-          scrub: 1,
+          /* 0.3, not 1. Lenis already eases the scroll position itself (see
+             scroll.ts, duration 1.2), so a second full second of catch-up here
+             put two smoothing stages in series: measured, the scene took just
+             over a second to finish reacting to a single flick, which reads as
+             lag rather than smoothness. This keeps a little smoothing of its
+             own without re-damping what Lenis has already damped. */
+          scrub: 0.3,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             let slot = 1;
@@ -285,8 +291,8 @@ export function initHero(): () => void {
         // invisible.
         handover.fromTo(
           next,
-          { opacity: 0 },
-          { opacity: 1, duration: durHeroToShowcase * 0.28 },
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: durHeroToShowcase * 0.28 },
           atHeroToShowcase + durHeroToShowcase * 0.66,
         );
 
@@ -392,10 +398,15 @@ export function initHero(): () => void {
       ) => {
         if (arriving) {
           const fade = duration * ARRIVAL_FADE;
+          // autoAlpha, not opacity: it parks the layer at visibility:hidden
+          // while it is transparent. These layers are full-viewport and
+          // permanently promoted (will-change: opacity), so a merely
+          // transparent one still costs a composited surface on every frame of
+          // the scrub — four of them, for most of the pin.
           handover.fromTo(
             arriving,
-            { opacity: 0 },
-            { opacity: 1, ease: 'none', duration: fade },
+            { autoAlpha: 0 },
+            { autoAlpha: 1, ease: 'none', duration: fade },
             start,
           );
           // Tied to the swap, not to the end of the phase: the layer is fully

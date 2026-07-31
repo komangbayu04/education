@@ -26,7 +26,6 @@ interface Props {
   imageWidth: number;
   imageHeight: number;
   background: string;
-  mediaMaxWidth?: string;
   /** Line measure for the body. Per project because "three lines" is a count,
    *  not a width: a shorter body needs a narrower measure to reach it. */
   bodyMeasure?: string;
@@ -42,7 +41,6 @@ const {
   imageWidth,
   imageHeight,
   background,
-  mediaMaxWidth = 'clamp(20rem, 62vw, 68rem)',
   bodyMeasure = '41ch',
 } = Astro.props;
 ---
@@ -51,7 +49,7 @@ const {
   class="project"
   aria-labelledby={`${id}-title`}
   data-chapter-section={chapter}
-  style={`--project-bg:${background};--project-media-w:${mediaMaxWidth};--project-body-w:${bodyMeasure}`}
+  style={`--project-bg:${background};--project-body-w:${bodyMeasure}`}
 >
   <div class="project__inner u-container">
     <div class="project__text" data-chapter-text>
@@ -113,6 +111,9 @@ const {
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
+    /* Scrubbed on `y` for the whole pin — promote it once rather than let the
+       compositor re-decide every frame. */
+    will-change: transform;
   }
 
   .project__title {
@@ -135,20 +136,40 @@ const {
   }
 
   /* --- Media -------------------------------------------------------------- */
-  /* Horizontally centred and sitting flush on the section's bottom edge. Taken
-     out of the grid so it can be anchored to the section rather than to the
-     text row. max-height keeps a tall shot from running off the top of the
-     section once it's this wide — object-fit holds it against the bottom. */
+  /* Occupies the band right of the text column and sits on the section's
+     bottom edge. Taken out of the grid so it can be anchored to the section
+     rather than to the text row. max-height keeps a tall shot from running off
+     the top of the section — object-fit holds it against the bottom, and
+     centres it inside the band. */
   .project__media {
     position: absolute;
-    left: 50%;
+    /* Confined to the band between the copy and the marker, so neither can
+       ever be read over the artwork. Centred, the image ran under the text by
+       as much as 227px at 1200px — measured against its *painted* extent
+       (object-fit: contain leaves transparent margins, so the element box
+       overstates it) and against the copy's real glyph extent.
+
+       The left edge follows the body's own measure, not the text column's
+       5/12: the body is capped well inside that column, so a grid fraction
+       either wasted artwork (at 1728px) or still collided (a fixed 3.5/12 was
+       88px into the copy at 1200px, because the measure is a fixed ch while
+       the column is a percentage). `ch` resolves the same here as it does on
+       .project__body — both inherit the same font-size — so this tracks the
+       measure exactly, including CELPIP's narrower one.
+
+       .project__inner is the padding box of .u-container, hence subtracting
+       the two paddings to get the grid's own width before taking a fraction
+       of it. */
+    left: calc(var(--section-padding-x) + var(--project-body-w) + clamp(1rem, 2vw, 2rem));
+    /* And stops before the marker's two tracks (11–12), which it otherwise
+       ran under — the chapter rules ended up drawn across the device screen. */
+    right: calc(var(--section-padding-x) + (100% - 2 * var(--section-padding-x)) * 2 / 12);
+    width: auto;
     /* Runs past the bottom edge instead of stopping on it. Flush at 0 the
        shot read as cropped — the wrists ended exactly on the section's edge,
        which looks like a mistake rather than a photograph continuing out of
        frame. The section's own overflow:hidden does the clipping. */
     bottom: -4svh;
-    translate: -50% 0;
-    width: var(--project-media-w);
     /* Both caps had to grow together. `object-fit: contain` paints at
        min(width-cap, height-cap), so raising only one of them changes
        nothing — the other one just keeps binding. */
@@ -194,12 +215,11 @@ const {
     }
 
     /* Back into the flow — absolute placement would collide with the text.
-       translate/max-height are their own properties and are not reset by
-       position:static, so both have to be undone explicitly. */
+       max-height is its own property and is not reset by position:static, so
+       it has to be undone explicitly. */
     .project__media {
       position: static;
       grid-column: 1 / span 6;
-      translate: none;
       width: 100%;
       max-width: 34rem;
       max-height: none;

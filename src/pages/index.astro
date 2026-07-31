@@ -139,6 +139,10 @@ import Footer from '../components/layout/Footer.astro';
   .scene[data-scene-mode='pinned'] .scene__layer--next {
     z-index: 3;
     opacity: 0;
+    /* Paired with opacity, and kept in step by GSAP's autoAlpha in hero.ts: a
+       transparent layer is still a full-viewport composited surface on every
+       scrubbed frame, a hidden one is not. */
+    visibility: hidden;
     pointer-events: none;
     will-change: opacity;
   }
@@ -146,6 +150,10 @@ import Footer from '../components/layout/Footer.astro';
   .scene[data-scene-mode='pinned'] .scene__layer--overclock {
     z-index: 4;
     opacity: 0;
+    /* Paired with opacity, and kept in step by GSAP's autoAlpha in hero.ts: a
+       transparent layer is still a full-viewport composited surface on every
+       scrubbed frame, a hidden one is not. */
+    visibility: hidden;
     pointer-events: none;
     will-change: opacity;
   }
@@ -153,6 +161,10 @@ import Footer from '../components/layout/Footer.astro';
   .scene[data-scene-mode='pinned'] .scene__layer--bedford {
     z-index: 5;
     opacity: 0;
+    /* Paired with opacity, and kept in step by GSAP's autoAlpha in hero.ts: a
+       transparent layer is still a full-viewport composited surface on every
+       scrubbed frame, a hidden one is not. */
+    visibility: hidden;
     pointer-events: none;
     will-change: opacity;
   }
@@ -160,6 +172,10 @@ import Footer from '../components/layout/Footer.astro';
   .scene[data-scene-mode='pinned'] .scene__layer--celpip {
     z-index: 6;
     opacity: 0;
+    /* Paired with opacity, and kept in step by GSAP's autoAlpha in hero.ts: a
+       transparent layer is still a full-viewport composited surface on every
+       scrubbed frame, a hidden one is not. */
+    visibility: hidden;
     pointer-events: none;
     will-change: opacity;
   }

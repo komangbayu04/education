@@ -58,6 +58,33 @@ const jobs = [
   { src: `${SRC}/image 4.png`, box: celpipBox, name: 'celpip-device', maxW: 1400 },
 ];
 
+// Photographs that need no cutout — portraits, journal cards, and the founder
+// quote's ground. No alphaBBox: these are full-frame images with no
+// transparency to trim, so they are resized and encoded as they are.
+//
+// webp only, deliberately: every one of these lands in a plain <img src>
+// (the device shots above use <picture> with an avif source, these do not), so
+// an avif sibling would never be requested.
+const photos = [
+  { src: `${SRC}/ahmed.png`, name: 'portrait-ahmed', maxW: 640 },
+  { src: `${SRC}/braden.png`, name: 'portrait-braden', maxW: 640 },
+  { src: `${SRC}/Geoffrey Langford.png`, name: 'portrait-geoffrey', maxW: 640 },
+  { src: `${SRC}/Wei Sun.png`, name: 'portrait-wei-sun', maxW: 640 },
+  { src: `${SRC}/yarik.png`, name: 'portrait-yarik', maxW: 640 },
+  { src: `${SRC}/blog1.png`, name: 'journal-1', maxW: 900 },
+  { src: `${SRC}/blog2.png`, name: 'journal-2', maxW: 900 },
+  { src: `${SRC}/blog3.png`, name: 'journal-3', maxW: 900 },
+  { src: `${SRC}/bg 2.png`, name: 'quote-ground', maxW: 1800 },
+];
+
+for (const { src, name, maxW } of photos) {
+  const out = await sharp(src)
+    .resize({ width: maxW, withoutEnlargement: true })
+    .webp({ quality: 82, effort: 6 })
+    .toFile(`${OUT}/${name}.webp`);
+  console.log(`${name}: webp ${out.width}x${out.height} ${(out.size / 1024).toFixed(0)}KB`);
+}
+
 for (const { src, box, name, maxW } of jobs) {
   const base = sharp(src)
     .extract({ left: box.minX, top: box.minY, width: box.w, height: box.h })
