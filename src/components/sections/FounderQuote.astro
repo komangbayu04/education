@@ -43,7 +43,10 @@ const {
   portraitAlt = `Portrait of ${name}`,
 } = Astro.props;
 
-const COLS = 30;
+/* 56, not 30: at 30 a cell was ~66px across on a 2000px viewport, which read
+   as blocks rather than as pixels. The CSS grid takes this same number through
+   --quote-cols rather than repeating it, so the two can't drift apart. */
+const COLS = 56;
 
 /**
  * Deterministic 0..1 from an integer — the usual sin-fract hash. Runs at build
@@ -74,12 +77,20 @@ const band = (density: number[], seed: number) => {
 
 // Top: solid at the very top edge, gone by the fifth row.
 const topCells = band([0.92, 0.62, 0.4, 0.22, 0.1], 0);
-// Bottom: written top-down here, so it reads sparse → solid, then the band is
-// flipped in CSS to sit against the bottom edge.
-const bottomCells = band([0.08, 0.16, 0.3, 0.45, 0.62, 0.8, 0.95], 5000);
+// Bottom: rows run top-down and the band is anchored to the bottom edge, so
+// writing it sparse → solid puts the solid end against the footer on its own.
+// It used to be flipped in CSS on top of that, which inverted it — the dense
+// black ended up at the band's top edge, floating clear of the black footer
+// it is supposed to dissolve into.
+const bottomCells = band([0.06, 0.14, 0.26, 0.42, 0.62, 0.82, 0.96], 5000);
 ---
 
-<section class="quote" aria-labelledby="quote-name" data-quote>
+<section
+  class="quote"
+  aria-labelledby="quote-name"
+  data-quote
+  style={`--quote-cols:${COLS}`}
+>
   <div class="quote__media">
     {
       image ? (
@@ -170,7 +181,7 @@ const bottomCells = band([0.08, 0.16, 0.3, 0.45, 0.62, 0.8, 0.95], 5000);
   }
 
   /* --- Pixel bands ---------------------------------------------------------
-     Each band is a 30-column grid; only the filled cells are rendered, placed
+     Each band is a --quote-cols grid; only filled cells are rendered, placed
      by explicit grid-column/grid-row. aspect-ratio on the cells is what keeps
      them square — the rows size themselves to one column's width. */
   .quote__band {
@@ -178,7 +189,7 @@ const bottomCells = band([0.08, 0.16, 0.3, 0.45, 0.62, 0.8, 0.95], 5000);
     left: 0;
     right: 0;
     display: grid;
-    grid-template-columns: repeat(30, 1fr);
+    grid-template-columns: repeat(var(--quote-cols), 1fr);
     pointer-events: none;
   }
 
@@ -194,11 +205,11 @@ const bottomCells = band([0.08, 0.16, 0.3, 0.45, 0.62, 0.8, 0.95], 5000);
     background: var(--color-bg-primary);
   }
 
-  /* The density array is written sparse → solid, so the whole band is flipped
-     to put the solid end against the footer. */
+  /* No flip: the density array is already written sparse → solid top-down and
+     this band is anchored to the bottom, so the solid end lands against the
+     footer by itself. Flipping it as well is what inverted it. */
   .quote__band--bottom {
     bottom: 0;
-    transform: scaleY(-1);
   }
 
   .quote__band--bottom span {

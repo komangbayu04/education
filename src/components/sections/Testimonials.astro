@@ -96,6 +96,8 @@ const {
     {
       name: 'Nova',
       role: 'Vice President, CELPIP',
+      // Placeholder: no portrait of their own in image/ yet.
+      photo: '/media/portrait-ahmed.webp',
       headline: 'Absolutely great working with Tribe.',
       quote:
         '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
@@ -104,6 +106,8 @@ const {
     {
       name: 'Marta Reyes',
       role: 'Head of Growth, Kinfolk',
+      // Placeholder: no portrait of their own in image/ yet.
+      photo: '/media/portrait-braden.webp',
       headline: 'It felt like one team, not two.',
       quote:
         '"Every handoff was already anticipated. We stopped writing briefs halfway through the engagement because they were reading the roadmap better than we were."',
@@ -172,9 +176,14 @@ const {
   </div>
 
   <!-- ================= Marquee: auto + manual ================= -->
-  {/* data-lenis-prevent keeps the page's smooth-scroll wrapper from
-      swallowing wheel events that belong to this rail */}
-  <div class="tm__rail" data-tm-rail data-lenis-prevent>
+  {/* Horizontal only. Plain data-lenis-prevent bowed Lenis out of *every*
+      gesture over this rail, vertical included — so a wheel here left the
+      page's smooth scroll untouched while the browser scrolled the document
+      natively underneath it, and the two fought until the page read as stuck.
+      Lenis picks this attribute by the gesture's own dominant axis (see its
+      onVirtualScroll), so a sideways swipe still belongs to the rail while a
+      normal downward wheel goes back to scrolling the page. */}
+  <div class="tm__rail" data-tm-rail data-lenis-prevent-horizontal>
     <div class="tm__track" data-tm-track>
       {[0, 1].map((copy) =>
         quotes.map((q) => (

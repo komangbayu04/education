@@ -67,24 +67,38 @@ const {
 /* Deterministic, not random: the scatter has to be identical between the
    server render and the client, or hydration would show it shifting. Weighted
    toward the lower half, matching how the real artwork dissolves. [x%, y%, size%] */
-const PIXELS: Array<[number, number, number]> = [
-  [58, 18, 6],
-  [77, 26, 5],
-  [20, 34, 5],
-  [88, 41, 6],
-  [46, 47, 5],
-  [8, 56, 6],
-  [66, 58, 7],
-  [30, 63, 5],
-  [52, 70, 6],
-  [82, 72, 5],
-  [14, 76, 7],
-  [40, 80, 5],
-  [70, 84, 6],
-  [24, 88, 6],
-  [92, 88, 5],
-  [56, 92, 5],
-];
+/* The dissolve that eats the bottom edge of each card's photo — the same
+   pixel motif as the hero field and the founder quote's bands, so a card with
+   real artwork carries it too. It used to be rendered only inside the
+   placeholder, which meant passing a real `image` silently removed it.
+
+   Deterministic: computed from a hash of the cell's own coordinates, not
+   Math.random, so the server render and the client agree — a mismatch would
+   show as the pattern shifting on hydration. */
+const COLS = 16;
+/* Bottom row first. Solid where the photo meets the card body, gone five rows
+   up, so the picture reads as dissolving into the card rather than as a strip
+   of squares laid over it. */
+const DENSITY = [0.95, 0.72, 0.48, 0.28, 0.14, 0.06];
+const ROWS = DENSITY.length;
+
+const hash = (i: number): number => {
+  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+const dissolve = (seed: number) => {
+  const cells: Array<{ col: number; row: number }> = [];
+  DENSITY.forEach((chance, i) => {
+    // Grid rows run top-down, DENSITY runs bottom-up.
+    const row = ROWS - i;
+    for (let col = 1; col <= COLS; col++) {
+      if (hash(seed + i * COLS + col) < chance) cells.push({ col, row });
+    }
+  });
+  return cells;
+};
+
 ---
 
 <section class="jr" aria-labelledby="jr-title" data-jr>
@@ -93,7 +107,7 @@ const PIXELS: Array<[number, number, number]> = [
 
     <ul class="jr__grid">
       {
-        posts.map((post) => (
+        posts.map((post, index) => (
           <li class="jr__item" data-jr-card>
             <a class="jr__card" href={post.href}>
               <div class="jr__media">
@@ -110,12 +124,14 @@ const PIXELS: Array<[number, number, number]> = [
                     class="jr__placeholder"
                     style={`--tint:${post.tint ?? '#8d8d88'}`}
                     aria-hidden="true"
-                  >
-                    {PIXELS.map(([x, y, s]) => (
-                      <span class="jr__px" style={`--x:${x}%;--y:${y}%;--s:${s}%`} />
-                    ))}
-                  </span>
+                  />
                 )}
+
+                <span class="jr__dissolve" aria-hidden="true">
+                  {dissolve(index * 977).map((c) => (
+                    <span style={`grid-column:${c.col};grid-row:${c.row}`} />
+                  ))}
+                </span>
               </div>
 
               <div class="jr__body">
@@ -188,14 +204,23 @@ const PIXELS: Array<[number, number, number]> = [
       var(--tint);
   }
 
-  /* The site's pixel motif, so a card without artwork still looks designed */
-  .jr__px {
+  /* The site's pixel motif. aspect-ratio COLS/ROWS on a grid of the same
+     COLSxROWS is what keeps every cell square without hard-coding a size:
+     each column is 1/16 of the width, and the band's height follows. */
+  .jr__dissolve {
     position: absolute;
-    top: var(--y);
-    left: var(--x);
-    width: var(--s);
-    aspect-ratio: 1;
-    background: var(--color-bg-primary);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    aspect-ratio: 16 / 6;
+    pointer-events: none;
+  }
+
+  .jr__dissolve span {
+    background: var(--color-surface);
   }
 
   .jr__card:hover .jr__media img,
