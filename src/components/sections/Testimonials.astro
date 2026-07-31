@@ -239,13 +239,26 @@ const {
     align-items: stretch;
   }
 
-  /* Card + note are one surface, so they share the background */
+  /* Card + note are one surface, so they share the background.
+     The open person carries the note's width as its own flex-basis, and both
+     people grow equally from there — so whatever is left over splits evenly
+     and the two *cards* come out the same width no matter which note is open.
+     That is what keeps the portraits the same size (they were 75px apart in
+     height, since .tm__portrait takes its height from its own width via
+     aspect-ratio) and what stops the row resizing mid-transition: the two
+     bases move by equal and opposite amounts on the same easing, so their sum
+     — and therefore the space the cards share — never changes. */
   .tm__person {
     display: flex;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
     margin: 0;
     background: var(--color-bg-twoways);
+    transition: flex-basis 0.55s var(--ease-out-expo);
+  }
+
+  .tm__person[data-open] {
+    flex-basis: var(--tm-note-w);
   }
 
   .tm__card {
@@ -519,7 +532,9 @@ const {
     /* Static, so the transition never runs and nothing depends on hover —
        which does not exist on the devices this width mostly means. */
     .tm__note,
-    .tm__person[data-open] .tm__note {
+    .tm__person[data-open] .tm__note,
+    .tm__person,
+    .tm__person[data-open] {
       flex-basis: auto;
       transition: none;
     }
