@@ -366,12 +366,23 @@ export function initHero(): () => void {
       }
 
       /**
-       * One plain-opacity arrival: `arriving` fades 0 → 1 over the whole
-       * phase — the section handover itself stays a crossfade, deliberately
-       * not phase A's mechanic and deliberately not a slide. Only
-       * `arrivingText` moves: up from past the section's bottom edge, on
+       * Fraction of an arrival phase the image swap gets. The outgoing
+       * section's layer never fades — the arriving one simply fades in on top
+       * of it — so this fraction *is* the window where both are on screen at
+       * once. At 1 (the whole phase, which is what this used to be) that was
+       * half a viewport of scrolling with two device shots visibly stacked.
+       * Short enough to read as a cut, not so short it strobes on a fast
+       * scroll: the scrub is 1s, so this still resolves over a real moment.
+       */
+      const ARRIVAL_FADE = 0.18;
+
+      /**
+       * One plain-opacity arrival: `arriving` fades 0 → 1 over the opening
+       * slice of the phase — the section handover itself stays a crossfade,
+       * deliberately not phase A's mechanic and deliberately not a slide.
+       * Only `arrivingText` moves: up from past the section's bottom edge, on
        * translation alone with no fade of its own, across the back half of
-       * the phase once the crossfade is mostly settled.
+       * the phase, still well after the swap has settled.
        */
       const addArrival = (
         arriving: HTMLElement | null | undefined,
@@ -380,10 +391,19 @@ export function initHero(): () => void {
         duration: number,
       ) => {
         if (arriving) {
-          handover.fromTo(arriving, { opacity: 0 }, { opacity: 1, ease: 'none', duration }, start);
+          const fade = duration * ARRIVAL_FADE;
+          handover.fromTo(
+            arriving,
+            { opacity: 0 },
+            { opacity: 1, ease: 'none', duration: fade },
+            start,
+          );
+          // Tied to the swap, not to the end of the phase: the layer is fully
+          // opaque from `start + fade` on, and an opaque layer that still
+          // refuses clicks is a bug waiting to be filed.
           handover
             .set(arriving, { pointerEvents: 'none' }, start)
-            .set(arriving, { pointerEvents: 'auto' }, start + duration * 0.94);
+            .set(arriving, { pointerEvents: 'auto' }, start + fade);
         }
         if (arrivingText) {
           handover.fromTo(
