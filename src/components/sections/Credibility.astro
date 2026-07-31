@@ -95,10 +95,19 @@ const {
       {/* `display: contents` above 61.25rem — the wrapper only becomes a box
           for the mobile fan, so the desktop ring is untouched by it. */}
       <div class="cred__diagram">
-        <p class="cred__core" data-cred-reveal="core">
-          <span class="cred__core-label">Your credibility</span>
-          <span class="cred__skyline" aria-hidden="true"><i></i><i></i><i></i></span>
-        </p>
+        {/* Stretched with inset:0 on mobile rather than left to inherit the
+            fan's aspect-ratio height directly. The box's own top/height are
+            percentages, and resolving those against an aspect-ratio-derived
+            height is not something every mobile engine agrees on — some drop
+            the box ~50px off its wires. Stretching a layer first gives the
+            percentages a definite height to bite on, which is exactly why the
+            nodes and the wires (both inset:0) already land correctly. */}
+        <div class="cred__core-layer">
+          <p class="cred__core" data-cred-reveal="core">
+            <span class="cred__core-label">Your credibility</span>
+            <span class="cred__skyline" aria-hidden="true"><i></i><i></i><i></i></span>
+          </p>
+        </div>
 
         <ul class="cred__nodes">
           {nodes.map((node) => (
@@ -254,7 +263,8 @@ const {
 
   /* Transparent on desktop: the ring's centre is a plain label. Only the
      mobile fan turns it into the filled box from the reference. */
-  .cred__diagram {
+  .cred__diagram,
+  .cred__core-layer {
     display: contents;
   }
 
@@ -447,9 +457,11 @@ const {
     }
 
     .cred__nodes,
-    .cred__wires {
+    .cred__wires,
+    .cred__core-layer {
       position: absolute;
       inset: 0;
+      display: block;
     }
 
     .cred__wires {
