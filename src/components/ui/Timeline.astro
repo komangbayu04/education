@@ -50,6 +50,12 @@ const chapters = Array.from({ length: total }, (_, i) => i + 1);
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    /* The rules used to fill the whole two-track marker column — 228px at a
+       16" MacBook, which read as a long line rather than a marker. Capped
+       here, and pushed back to the column's right edge with the auto margin
+       so only the left end moves in. */
+    max-width: 9rem;
+    margin-left: auto;
   }
 
   .timeline__rules {
@@ -81,6 +87,12 @@ const chapters = Array.from({ length: total }, (_, i) => i + 1);
     right: 100%;
     width: 0.75rem;
     height: 0.75rem;
+    /* timeline.ts moves the dot to the *centre* of the active rule, but `top`
+       anchors the dot's top edge — so the rule met the square's top edge and
+       the two read as misaligned by half the square (measured: 6px). Pulling
+       the box up by half its own height puts its centre on the anchor, which
+       is what the script has always been aiming at. */
+    margin-top: -0.375rem;
     margin-right: 0.5rem;
     background: var(--color-ink);
     /* Moved with a transform by timeline.ts, never by re-flowing layout — see
@@ -100,6 +112,9 @@ const chapters = Array.from({ length: total }, (_, i) => i + 1);
   @media (max-width: 48rem) {
     .timeline {
       align-items: flex-start;
+      /* The row is ~130px of rules and gaps; the desktop cap would clip it. */
+      max-width: none;
+      margin-left: 0;
       /* Reserves the dot's own row. On desktop the dot sits beside the rules
          and costs no height, but here it sits above them — without this the
          container would collapse to the rules' 1px and the dot would hang out
@@ -133,7 +148,9 @@ const chapters = Array.from({ length: total }, (_, i) => i + 1);
       right: auto;
       bottom: auto;
       left: 0;
-      margin: 0;
+      /* Same half-square correction as on desktop, on the axis this layout
+         actually travels along — here the script writes x, not y. */
+      margin: 0 0 0 -0.375rem;
     }
   }
 </style>

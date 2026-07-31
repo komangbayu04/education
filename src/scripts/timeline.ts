@@ -27,6 +27,17 @@ export function setActiveChapter(chapter: number, animate: boolean): void {
     const target = rules.find((r) => Number(r.dataset.chapter) === chapter);
     if (!target) return;
 
+    // Widths, read *before* the class flip. The rules animate their width with
+    // a CSS transition, so every offsetLeft/offsetWidth taken straight after
+    // the flip still describes the outgoing layout — which is what used to put
+    // the dot a whole rule away from its target in the horizontal layout
+    // (measured: 12px off). Only the two widths are needed; CSS stays the one
+    // place they are defined.
+    const activeWidth = (rules.find((r) => r.classList.contains('is-active')) ?? target).offsetWidth;
+    const inactiveWidth = (rules.find((r) => !r.classList.contains('is-active')) ?? target)
+      .offsetWidth;
+    const gap = parseFloat(getComputedStyle(target.parentElement as HTMLElement).columnGap) || 0;
+
     rules.forEach((r) => r.classList.toggle('is-active', r === target));
 
     if (!dot) return;
@@ -41,9 +52,14 @@ export function setActiveChapter(chapter: number, animate: boolean): void {
     // Distance from the stack's own edge to the target rule's centre — each
     // instance measures its own layout, so this stays correct even though the
     // marker appears at a different size and position in every section.
+    //
+    // Vertical can be measured directly: the rules only ever animate their
+    // width, so offsetTop is already final. Horizontal has to be derived from
+    // the widths captured above, because every rule to the left of the target
+    // ends up inactive and the target ends up active.
     const to = vertical
       ? { x: 0, y: target.offsetTop + target.offsetHeight / 2 }
-      : { x: target.offsetLeft + target.offsetWidth / 2, y: 0 };
+      : { x: rules.indexOf(target) * (inactiveWidth + gap) + activeWidth / 2, y: 0 };
 
     if (animate && !prefersReducedMotion()) {
       gsap.to(dot, { ...to, duration: 0.5, ease: 'expo.out' });

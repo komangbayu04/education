@@ -27,6 +27,9 @@ interface Props {
   imageHeight: number;
   background: string;
   mediaMaxWidth?: string;
+  /** Line measure for the body. Per project because "three lines" is a count,
+   *  not a width: a shorter body needs a narrower measure to reach it. */
+  bodyMeasure?: string;
 }
 
 const {
@@ -39,7 +42,8 @@ const {
   imageWidth,
   imageHeight,
   background,
-  mediaMaxWidth = 'clamp(20rem, 56vw, 60rem)',
+  mediaMaxWidth = 'clamp(20rem, 62vw, 68rem)',
+  bodyMeasure = '41ch',
 } = Astro.props;
 ---
 
@@ -47,7 +51,7 @@ const {
   class="project"
   aria-labelledby={`${id}-title`}
   data-chapter-section={chapter}
-  style={`--project-bg:${background};--project-media-w:${mediaMaxWidth}`}
+  style={`--project-bg:${background};--project-media-w:${mediaMaxWidth};--project-body-w:${bodyMeasure}`}
 >
   <div class="project__inner u-container">
     <div class="project__text" data-chapter-text>
@@ -98,7 +102,12 @@ const {
      very top and bottom edge. z-index keeps it above the media, which is now
      centred and wide enough to pass under this column. */
   .project__text {
-    grid-column: 1 / span 4;
+    /* span 5, not 4: the body is set to wrap onto three lines (see
+       .project__body), and at span 4 the column itself became the limit below
+       ~1450px and pushed it to four. Track 5 was empty — the media is placed
+       out of the grid — so this widens the text's room without moving
+       anything else. */
+    grid-column: 1 / span 5;
     position: relative;
     z-index: 1;
     display: flex;
@@ -114,7 +123,12 @@ const {
   }
 
   .project__body {
-    max-width: 24ch;
+    /* Three lines for every project. The default measure (41ch) is set by the
+       two longest bodies — Overclock and Bedford, 122 characters each. CELPIP
+       is only 93 and still fits on two lines there, so it passes a narrower
+       measure of its own: three lines is a line count, and a shorter
+       paragraph has to be set narrower to reach the same one. */
+    max-width: var(--project-body-w);
     font-size: var(--text-body);
     line-height: 1.75;
     color: var(--color-ink-secondary);
@@ -128,10 +142,17 @@ const {
   .project__media {
     position: absolute;
     left: 50%;
-    bottom: 0;
+    /* Runs past the bottom edge instead of stopping on it. Flush at 0 the
+       shot read as cropped — the wrists ended exactly on the section's edge,
+       which looks like a mistake rather than a photograph continuing out of
+       frame. The section's own overflow:hidden does the clipping. */
+    bottom: -4svh;
     translate: -50% 0;
     width: var(--project-media-w);
-    max-height: 76svh;
+    /* Both caps had to grow together. `object-fit: contain` paints at
+       min(width-cap, height-cap), so raising only one of them changes
+       nothing — the other one just keeps binding. */
+    max-height: 92svh;
     margin: 0;
   }
 
@@ -139,7 +160,7 @@ const {
     display: block;
     width: 100%;
     height: auto;
-    max-height: 76svh;
+    max-height: 92svh;
     object-fit: contain;
     object-position: bottom center;
   }
