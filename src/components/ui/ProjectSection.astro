@@ -200,7 +200,8 @@ const {
     }
 
     .project__text,
-    .project__media {
+    .project__media,
+    .project__marker {
       grid-column: 1 / -1;
     }
 
@@ -212,8 +213,15 @@ const {
       max-width: 38ch;
     }
 
+    /* Above the copy rather than after the image. It's a "chapter N of 4"
+       indicator, so it belongs before the content it labels — which is where
+       it reads on desktop too, just at the other end of the row. `order`
+       rather than moving it in the DOM: on desktop it belongs last, after the
+       content it annotates. */
     .project__marker {
-      display: none;
+      order: -1;
+      align-self: start;
+      margin-bottom: clamp(0.5rem, 2vw, 1rem);
     }
   }
 

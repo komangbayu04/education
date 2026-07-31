@@ -39,6 +39,21 @@
   /* Ground of the fifth section (CELPIP) — soft mint, from the reference frame. */
   --color-bg-celpip: #dbeee2;
 
+  /* Ground of the seventh section (Two ways in) — warm off-white, from the
+     reference frame. Chapter 6 (Credibility) sits on the plain page white. */
+  --color-bg-twoways: #f4f2ee;
+
+  /* A card surface, not a section ground — deliberately named differently from
+     the --color-bg-* tokens above, which each belong to one specific section.
+     Used by the Journal cards. */
+  --color-surface: #f2f0ed;
+
+  /* Footer ground. The pixel squares that dissolve up out of the footer into
+     the quote image above it are painted in this same value — that's what
+     makes the two read as one interlocking edge rather than two stacked
+     blocks, so they have to stay in sync. */
+  --color-bg-footer: #141414;
+
   /* Type families */
   --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
@@ -74,6 +89,18 @@
   --content-max-width: 1920px;
   /* Total nav band height, including the 28px gap above the rule */
   --nav-height: clamp(3.5rem, 5.5vw, 7rem);
+}
+
+/* Mobile gutter is a flat 20px, not fluid. The clamp above already floors at
+   1.25rem so phones were getting 20px anyway, but between roughly 590px and
+   768px the 3.4vw term takes over and creeps up to ~26px. Pinning it through
+   the whole mobile range keeps one consistent gutter everywhere the layout is
+   single-column. 48rem matches the breakpoint the sections themselves stack
+   at. */
+@media (max-width: 48rem) {
+  :root {
+    --section-padding-x: 1.25rem;
+  }
 }
 
 /* --------------------------------------------------------------------------

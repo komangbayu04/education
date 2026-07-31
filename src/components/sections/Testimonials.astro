@@ -1,0 +1,565 @@
+---
+/**
+ * Testimonials — chapter 8. Two independent pieces:
+ *
+ * 1. Featured (top). A horizontal accordion. Each person is a fixed card plus
+ *    a note panel that animates between 0 and full width. Exactly one note is
+ *    open at a time; the first person's is open by default and hovering any
+ *    other card moves the open state there, releasing returns it to the
+ *    default. Because one note opens exactly as another closes, the row's
+ *    total width never changes — the cards just share whatever is left.
+ *
+ * 2. Marquee (bottom). A native `overflow-x: auto` rail so manual scrolling
+ *    (trackpad, touch, drag) is free and correct, with an auto-scroll driven
+ *    off the shared GSAP ticker on top. The card list is rendered twice so the
+ *    loop can wrap seamlessly; the second copy is aria-hidden so screen
+ *    readers hear each quote once.
+ *
+ * Both behaviours live in src/scripts/testimonials.ts. Without JS the section
+ * still reads: every note is visible (stacked) and the rail is a plain
+ * scrollable row.
+ *
+ * ASSETS: no portraits or client logos were supplied. `photo` and `logo` are
+ * optional on every entry — pass them and the placeholders disappear. The
+ * play control only renders as a real link when a `video` URL is given, so no
+ * dead button ever ships.
+ */
+
+interface Featured {
+  name: string;
+  role: string;
+  company: string;
+  headline: string;
+  quote: string;
+  photo?: string;
+  logo?: string;
+  video?: string;
+}
+
+interface Quote {
+  name: string;
+  role: string;
+  headline: string;
+  quote: string;
+  photo?: string;
+  /** 'lead' puts the attribution first and hangs the portrait above the card;
+      'trail' puts it last and hangs the portrait below. Alternating the two
+      is what gives the rail its staggered rhythm. */
+  variant?: 'lead' | 'trail';
+}
+
+interface Props {
+  featured?: Featured[];
+  quotes?: Quote[];
+}
+
+const {
+  featured = [
+    {
+      name: 'Ahmed F. Haque',
+      role: 'Founder, Overclock',
+      company: 'Overclock',
+      headline: 'Design stopped being something we had to think about all the time.',
+      quote:
+        '"Speed to production was a huge difference... the fear is that you\'re going to get into this psychology experiment for three months and come out with a concept, but nothing that actually helps you move the business forward. That wasn\'t the experience I had with Tribe."',
+    },
+    {
+      name: 'Braden Weissman',
+      role: 'Co-Founder, NerdApply',
+      company: 'NerdApply',
+      headline: 'They shipped faster than our own team could have.',
+      quote:
+        '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
+    },
+  ],
+  quotes = [
+    {
+      name: 'Geoffrey Langford',
+      role: 'Sr. Product Manager, Studeo',
+      headline: 'Absolutely great working with Tribe.',
+      quote:
+        '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
+      variant: 'lead',
+    },
+    {
+      name: 'Wei Sun',
+      role: 'Founder, EMOD',
+      headline: 'This is top-tier design.',
+      quote:
+        '"I\'ve worked with some incredibly talented designers at a very high level, from senior to staff, and honestly, your design work is right up there at the same level."',
+      variant: 'trail',
+    },
+    {
+      name: 'Nova',
+      role: 'Vice President, CELPIP',
+      headline: 'Absolutely great working with Tribe.',
+      quote:
+        '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
+      variant: 'lead',
+    },
+    {
+      name: 'Marta Reyes',
+      role: 'Head of Growth, Kinfolk',
+      headline: 'It felt like one team, not two.',
+      quote:
+        '"Every handoff was already anticipated. We stopped writing briefs halfway through the engagement because they were reading the roadmap better than we were."',
+      variant: 'trail',
+    },
+  ],
+} = Astro.props;
+---
+
+<section class="tm" aria-labelledby="tm-title" data-tm>
+  <h2 class="u-sr-only" id="tm-title">What founders say</h2>
+
+  <!-- ================= Featured: hover accordion ================= -->
+  <div class="tm__feature u-container" data-tm-feature>
+    {
+      featured.map((person, i) => (
+        <figure class="tm__person" data-tm-person data-open={i === 0 ? '' : undefined}>
+          <div class="tm__card">
+            <div class="tm__portrait">
+              {person.photo ? (
+                <img src={person.photo} alt={`Portrait of ${person.name}`} loading="lazy" decoding="async" />
+              ) : (
+                /* PLACEHOLDER — pass `photo` to replace */
+                <span class="tm__portrait-fallback" aria-hidden="true" />
+              )}
+
+              {person.video ? (
+                <a class="tm__play" href={person.video} aria-label={`Play video testimonial from ${person.name}`}>
+                  <svg viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                    <path d="M12 7 0 14V0z" fill="currentColor" />
+                  </svg>
+                </a>
+              ) : (
+                /* No video URL supplied — decorative only, never a dead control */
+                <span class="tm__play" aria-hidden="true">
+                  <svg viewBox="0 0 12 14" fill="none">
+                    <path d="M12 7 0 14V0z" fill="currentColor" />
+                  </svg>
+                </span>
+              )}
+            </div>
+
+            <figcaption class="tm__meta">
+              <div class="tm__who">
+                <p class="tm__name">{person.name}</p>
+                <p class="tm__role">{person.role}</p>
+              </div>
+              {person.logo ? (
+                <img class="tm__logo-img" src={person.logo} alt={person.company} loading="lazy" decoding="async" />
+              ) : (
+                /* PLACEHOLDER wordmark — pass `logo` to replace */
+                <span class="tm__logo">{person.company}</span>
+              )}
+            </figcaption>
+          </div>
+
+          <div class="tm__note" data-tm-note>
+            <div class="tm__note-inner">
+              <p class="tm__headline">{person.headline}</p>
+              <blockquote class="tm__quote">{person.quote}</blockquote>
+            </div>
+          </div>
+        </figure>
+      ))
+    }
+  </div>
+
+  <!-- ================= Marquee: auto + manual ================= -->
+  {/* data-lenis-prevent keeps the page's smooth-scroll wrapper from
+      swallowing wheel events that belong to this rail */}
+  <div class="tm__rail" data-tm-rail data-lenis-prevent>
+    <div class="tm__track" data-tm-track>
+      {[0, 1].map((copy) =>
+        quotes.map((q) => (
+          <figure
+            class:list={['tm__quote-card', `tm__quote-card--${q.variant ?? 'lead'}`]}
+            aria-hidden={copy === 1 ? 'true' : undefined}
+          >
+            <div class="tm__quote-body">
+              <figcaption class="tm__quote-who">
+                <p class="tm__name">{q.name}</p>
+                <p class="tm__role">{q.role}</p>
+              </figcaption>
+
+              <p class="tm__quote-headline">{q.headline}</p>
+              <blockquote class="tm__quote-text">{q.quote}</blockquote>
+            </div>
+
+            <div class="tm__quote-portrait">
+              {q.photo ? (
+                <img src={q.photo} alt={`Portrait of ${q.name}`} loading="lazy" decoding="async" />
+              ) : (
+                <span class="tm__portrait-fallback" aria-hidden="true" />
+              )}
+            </div>
+          </figure>
+        )),
+      )}
+    </div>
+  </div>
+
+  <div class="tm__progress u-container" aria-hidden="true">
+    {quotes.map(() => <span class="tm__progress-seg" data-tm-seg />)}
+  </div>
+</section>
+
+<style>
+  .tm {
+    /* One knob for the open note's width. The note's inner wrapper is pinned
+       to the same value so the copy never re-wraps mid-animation. */
+    --tm-note-w: min(38vw, 34rem);
+
+    position: relative;
+    padding-block: clamp(3rem, 6vw, 5rem);
+    overflow: hidden;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+  }
+
+  /* ===================== Featured ===================== */
+  .tm__feature {
+    display: flex;
+    gap: clamp(1rem, 2vw, 1.75rem);
+    align-items: stretch;
+  }
+
+  /* Card + note are one surface, so they share the background */
+  .tm__person {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    background: var(--color-bg-twoways);
+  }
+
+  .tm__card {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.2vw, 1rem);
+    padding: clamp(0.75rem, 1.1vw, 1rem);
+  }
+
+  .tm__portrait {
+    position: relative;
+    aspect-ratio: 4 / 3.4;
+    overflow: hidden;
+    background: var(--color-line);
+  }
+
+  .tm__portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Neutral stand-in — deliberately flat, not a fake face */
+  .tm__portrait-fallback {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background:
+      linear-gradient(150deg, rgb(0 0 0 / 0.05), transparent 60%),
+      var(--color-line);
+  }
+
+  .tm__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: clamp(2.25rem, 3vw, 2.75rem);
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    transition: scale 0.4s var(--ease-out-expo);
+  }
+
+  .tm__play svg {
+    width: 0.6875rem;
+    margin-left: 2px;
+  }
+
+  a.tm__play:hover,
+  a.tm__play:focus-visible {
+    scale: 1.08;
+  }
+
+  .tm__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+  }
+
+  .tm__name {
+    font-size: var(--text-body);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .tm__role {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--color-ink-secondary);
+  }
+
+  .tm__logo {
+    font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .tm__logo-img {
+    max-width: clamp(6rem, 10vw, 9rem);
+    height: auto;
+  }
+
+  /* --- The note ------------------------------------------------------------
+     flex-basis is what animates, not width: the card next to it is
+     `flex: 1 1 0`, so it absorbs the change automatically and the row's
+     total width stays put. overflow:hidden clips the fixed-width inner
+     wrapper as the basis shrinks. */
+  .tm__note {
+    flex: 0 0 0;
+    overflow: hidden;
+    transition: flex-basis 0.55s var(--ease-out-expo);
+  }
+
+  .tm__person[data-open] .tm__note {
+    flex-basis: var(--tm-note-w);
+  }
+
+  .tm__note-inner {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2rem, 6vw, 5rem);
+    /* Pinned so the copy keeps its line breaks while the panel animates */
+    width: var(--tm-note-w);
+    height: 100%;
+    padding: clamp(1.25rem, 2.4vw, 2.25rem) clamp(1.25rem, 2.2vw, 2rem);
+  }
+
+  .tm__headline {
+    max-width: 20ch;
+    font-size: clamp(1.125rem, 1.9vw, 1.75rem);
+    line-height: 1.28;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .tm__quote {
+    max-width: 46ch;
+    margin: auto 0 0;
+    font-size: var(--text-body);
+    line-height: 1.62;
+  }
+
+  /* ===================== Marquee ===================== */
+  .tm__rail {
+    margin-top: clamp(3rem, 6vw, 5.5rem);
+    overflow-x: auto;
+    overflow-y: visible;
+    /* The rail is dragged and auto-scrolled; a snap would fight both */
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    cursor: grab;
+  }
+
+  .tm__rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tm__rail[data-dragging] {
+    cursor: grabbing;
+  }
+
+  .tm__track {
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(1.25rem, 2vw, 1.875rem);
+    width: max-content;
+    /* Room for the portraits that hang above and below the cards */
+    padding: clamp(4rem, 7vw, 6.5rem) var(--section-padding-x);
+  }
+
+  .tm__quote-card {
+    position: relative;
+    display: flex;
+    flex: none;
+    width: clamp(19rem, 34vw, 33rem);
+    margin: 0;
+    padding: clamp(1.25rem, 2vw, 1.875rem);
+    border: 1px solid var(--color-line);
+    background: var(--color-bg-primary);
+  }
+
+  /* The two variants sit at different heights — that offset is the rhythm */
+  .tm__quote-card--trail {
+    translate: 0 calc(-1 * clamp(2rem, 4vw, 3.5rem));
+  }
+
+  .tm__quote-body {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.875rem, 1.4vw, 1.25rem);
+    width: 100%;
+  }
+
+  /* 'trail' reads headline first and attribution last */
+  .tm__quote-card--trail .tm__quote-who {
+    order: 2;
+    margin-top: clamp(0.5rem, 1vw, 1rem);
+  }
+
+  .tm__quote-headline {
+    max-width: 18ch;
+    font-size: clamp(1.0625rem, 1.6vw, 1.4375rem);
+    line-height: 1.26;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .tm__quote-text {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  /* Hangs outside the card — the card must not clip it */
+  .tm__quote-portrait {
+    position: absolute;
+    right: clamp(0.75rem, 1.4vw, 1.25rem);
+    width: clamp(7rem, 13vw, 11rem);
+    aspect-ratio: 1 / 1.06;
+    overflow: hidden;
+    background: var(--color-line);
+  }
+
+  .tm__quote-card--lead .tm__quote-portrait {
+    top: 0;
+    translate: 0 -46%;
+  }
+
+  .tm__quote-card--trail .tm__quote-portrait {
+    bottom: 0;
+    translate: 0 46%;
+  }
+
+  .tm__quote-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Keep the copy clear of the portrait it overlaps */
+  .tm__quote-card--lead .tm__quote-who {
+    padding-right: clamp(7.5rem, 14vw, 12rem);
+    min-height: clamp(3rem, 5vw, 4.5rem);
+  }
+
+  .tm__quote-card--trail .tm__quote-text {
+    padding-right: clamp(7.5rem, 14vw, 12rem);
+  }
+
+  /* --- Progress ------------------------------------------------------------ */
+  .tm__progress {
+    display: flex;
+    gap: 0.375rem;
+    margin-top: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .tm__progress-seg {
+    width: 0.875rem;
+    height: 0.625rem;
+    background: var(--color-line-strong);
+    transition:
+      width 0.45s var(--ease-out-expo),
+      background-color 0.45s var(--ease-out-expo);
+  }
+
+  .tm__progress-seg[data-active] {
+    width: 2.25rem;
+    background: var(--color-ink);
+  }
+
+  /* ===================== Responsive ===================== */
+  /* The accordion needs two cards and an open note side by side; below this
+     there isn't room, so it unrolls and every note is simply always open. */
+  @media (max-width: 61.25rem) {
+    .tm__feature {
+      flex-direction: column;
+    }
+
+    .tm__person {
+      flex-direction: column;
+    }
+
+    /* Static, so the transition never runs and nothing depends on hover —
+       which does not exist on the devices this width mostly means. */
+    .tm__note,
+    .tm__person[data-open] .tm__note {
+      flex-basis: auto;
+      transition: none;
+    }
+
+    .tm__note-inner {
+      width: auto;
+      gap: clamp(1rem, 3vw, 1.75rem);
+    }
+
+    .tm__quote {
+      margin-top: 0;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .tm__quote-card {
+      width: min(80vw, 22rem);
+    }
+
+    /* Portraits stop hanging outside once the cards are this narrow — there
+       isn't the horizontal room, and the overlap starts eating the copy. */
+    .tm__quote-card--trail {
+      translate: none;
+    }
+
+    .tm__quote-portrait {
+      position: static;
+      width: clamp(5rem, 22vw, 7rem);
+      translate: none !important;
+      margin-top: 1rem;
+    }
+
+    .tm__quote-card--lead .tm__quote-who,
+    .tm__quote-card--trail .tm__quote-text {
+      padding-right: 0;
+      min-height: 0;
+    }
+
+    .tm__quote-card {
+      flex-direction: column;
+    }
+  }
+
+  /* ===================== Pre-reveal ===================== */
+  :global(html[data-js='true']) [data-tm-person],
+  :global(html[data-js='true']) .tm__quote-card {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) [data-tm-person],
+    :global(html[data-js='true']) .tm__quote-card {
+      opacity: 1;
+    }
+  }
+</style>

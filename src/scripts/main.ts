@@ -5,6 +5,10 @@ import { initNav } from './nav';
 import { initHero } from './hero';
 import { initTimeline } from './timeline';
 import { initCredibility } from './credibility';
+import { initTwoWays } from './twoWays';
+import { initTestimonials } from './testimonials';
+import { initJournal } from './journal';
+import { initFounderQuote } from './founderQuote';
 import { debounce, prefersReducedMotion } from './utils/device';
 
 /**
@@ -24,6 +28,10 @@ function initPage(): void {
       initMagnetic(),
       initTimeline(),
       initCredibility(),
+      initTwoWays(),
+      initTestimonials(),
+      initJournal(),
+      initFounderQuote(),
     ];
     return () => cleanups.forEach((fn) => fn());
   });

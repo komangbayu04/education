@@ -1,0 +1,67 @@
+---
+/**
+ * Icon — inlines one of the SVGs in src/assets/icons.
+ *
+ * Inlined rather than <img>: these need to inherit text colour (the CTA pills
+ * and card headings all sit on different grounds), which an <img> can't do.
+ * The source files are Figma exports with `fill="black"` baked in and fixed
+ * width/height attributes; both are stripped here rather than in the files
+ * themselves, so re-exporting from Figma needs no manual clean-up — same
+ * approach as the wordmark in Nav.astro.
+ */
+import checkCircle from '../../assets/icons/check-circle.svg?raw';
+import figma from '../../assets/icons/figma.svg?raw';
+import multiUser from '../../assets/icons/multi-user.svg?raw';
+import phone from '../../assets/icons/phone.svg?raw';
+import rocket from '../../assets/icons/rocket.svg?raw';
+import slack from '../../assets/icons/slack.svg?raw';
+import spinner from '../../assets/icons/spinner.svg?raw';
+
+const sources = {
+  'check-circle': checkCircle,
+  figma,
+  'multi-user': multiUser,
+  phone,
+  rocket,
+  slack,
+  spinner,
+} as const;
+
+export type IconName = keyof typeof sources;
+
+interface Props {
+  name: IconName;
+  /** Rendered size, any CSS length. The source viewBoxes differ (20/24/28), so
+      this is what actually decides how big it lands. */
+  size?: string;
+  class?: string;
+}
+
+const { name, size = '1.25rem', class: className } = Astro.props;
+
+const svg = sources[name]
+  .replace(/fill="black"/g, 'fill="currentColor"')
+  .replace(/\s(width|height)="[^"]*"/g, '')
+  .replace('<svg', '<svg aria-hidden="true" focusable="false"');
+---
+
+<span class:list={['icon', className]} style={`--icon-size:${size}`} set:html={svg} />
+
+<style>
+  .icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-size);
+    height: var(--icon-size);
+  }
+
+  /* Runtime-inlined markup carries no scope attribute, so this has to be
+     :global to reach it. */
+  .icon :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>

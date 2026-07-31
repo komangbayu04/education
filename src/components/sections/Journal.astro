@@ -1,0 +1,256 @@
+---
+/**
+ * From the Journal — chapter 9.
+ *
+ * A plain three-up grid of article cards: image on top, then a muted body
+ * carrying a category pill and the headline. Same post-scene treatment as
+ * chapters 6–8 — outside <div data-scene>, plain document scroll, with a
+ * one-shot reveal in src/scripts/journal.ts.
+ *
+ * The whole card is one link, so the click target is the card rather than
+ * just the headline.
+ *
+ * ASSETS: no article images were supplied. `image` is optional on every entry;
+ * without one, the card draws a tinted placeholder scattered with the same
+ * pixel squares the rest of the site uses, so a missing image still reads as
+ * part of the design rather than as a broken slot. Pass `image` and both the
+ * tint and the pixels disappear — real artwork is expected to carry that
+ * treatment baked in, the way the hero and project shots already do, so
+ * overlaying it again in CSS would double it up.
+ */
+
+interface Post {
+  category: string;
+  title: string;
+  href: string;
+  image?: string;
+  imageAlt?: string;
+  /** Only used by the placeholder — ignored once a real `image` is passed. */
+  tint?: string;
+}
+
+interface Props {
+  title?: string;
+  posts?: Post[];
+}
+
+const {
+  title = 'From the Journal',
+  posts = [
+    {
+      category: 'Branding',
+      title: 'Why Strong Branding Starts Before the First Logo',
+      href: '/journal/branding-before-the-first-logo',
+      tint: '#b8431f',
+    },
+    {
+      category: 'Web Design',
+      title: '5 Website Design Trends That Actually Improve User Experience',
+      href: '/journal/website-design-trends',
+      tint: '#4a7fc1',
+    },
+    {
+      category: 'UX Strategy',
+      title: 'How Strategic UX Decisions Turn More Visitors into Customers',
+      href: '/journal/strategic-ux-decisions',
+      tint: '#3f6ea8',
+    },
+  ],
+} = Astro.props;
+
+/* Deterministic, not random: the scatter has to be identical between the
+   server render and the client, or hydration would show it shifting. Weighted
+   toward the lower half, matching how the real artwork dissolves. [x%, y%, size%] */
+const PIXELS: Array<[number, number, number]> = [
+  [58, 18, 6],
+  [77, 26, 5],
+  [20, 34, 5],
+  [88, 41, 6],
+  [46, 47, 5],
+  [8, 56, 6],
+  [66, 58, 7],
+  [30, 63, 5],
+  [52, 70, 6],
+  [82, 72, 5],
+  [14, 76, 7],
+  [40, 80, 5],
+  [70, 84, 6],
+  [24, 88, 6],
+  [92, 88, 5],
+  [56, 92, 5],
+];
+---
+
+<section class="jr" aria-labelledby="jr-title" data-jr>
+  <div class="jr__inner u-container">
+    <h2 class="jr__title" id="jr-title" data-jr-reveal>{title}</h2>
+
+    <ul class="jr__grid">
+      {
+        posts.map((post) => (
+          <li class="jr__item" data-jr-card>
+            <a class="jr__card" href={post.href}>
+              <div class="jr__media">
+                {post.image ? (
+                  <img
+                    src={post.image}
+                    alt={post.imageAlt ?? ''}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  /* PLACEHOLDER — pass `image` to replace */
+                  <span
+                    class="jr__placeholder"
+                    style={`--tint:${post.tint ?? '#8d8d88'}`}
+                    aria-hidden="true"
+                  >
+                    {PIXELS.map(([x, y, s]) => (
+                      <span class="jr__px" style={`--x:${x}%;--y:${y}%;--s:${s}%`} />
+                    ))}
+                  </span>
+                )}
+              </div>
+
+              <div class="jr__body">
+                <span class="jr__tag">{post.category}</span>
+                <h3 class="jr__headline">{post.title}</h3>
+              </div>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .jr {
+    position: relative;
+    padding-block: clamp(3rem, 6vw, 5.5rem);
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+  }
+
+  .jr__title {
+    font-size: clamp(1.875rem, 3.1vw, 3rem);
+    font-weight: 400;
+    line-height: 1.14;
+    letter-spacing: -0.02em;
+  }
+
+  .jr__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 1.7vw, 1.5rem);
+    margin: clamp(2rem, 3.5vw, 3rem) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .jr__card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-surface);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* --- Media ---------------------------------------------------------------
+     overflow:hidden is what contains the hover zoom. */
+  .jr__media {
+    position: relative;
+    aspect-ratio: 7 / 5;
+    overflow: hidden;
+    background: var(--color-line);
+  }
+
+  .jr__media img,
+  .jr__placeholder {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: scale 0.6s var(--ease-out-expo);
+  }
+
+  .jr__placeholder {
+    position: relative;
+    background:
+      linear-gradient(155deg, rgb(255 255 255 / 0.16), transparent 62%),
+      var(--tint);
+  }
+
+  /* The site's pixel motif, so a card without artwork still looks designed */
+  .jr__px {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    width: var(--s);
+    aspect-ratio: 1;
+    background: var(--color-bg-primary);
+  }
+
+  .jr__card:hover .jr__media img,
+  .jr__card:hover .jr__placeholder,
+  .jr__card:focus-visible .jr__media img,
+  .jr__card:focus-visible .jr__placeholder {
+    scale: 1.04;
+  }
+
+  /* --- Body ---------------------------------------------------------------- */
+  .jr__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(1rem, 1.6vw, 1.5rem);
+    padding: clamp(1.25rem, 2vw, 1.75rem);
+  }
+
+  .jr__tag {
+    padding: 0.4375rem 0.875rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+  }
+
+  .jr__headline {
+    font-size: clamp(1.0625rem, 1.45vw, 1.3125rem);
+    font-weight: 400;
+    line-height: 1.32;
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 61.25rem) {
+    .jr__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .jr__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* --- Pre-reveal state ----------------------------------------------------
+     JS-only, so no-JS renders the finished section. journal.ts animates these
+     back once the section scrolls in. */
+  :global(html[data-js='true']) [data-jr-reveal],
+  :global(html[data-js='true']) [data-jr-card] {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) [data-jr-reveal],
+    :global(html[data-js='true']) [data-jr-card] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
