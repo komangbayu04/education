@@ -64,22 +64,27 @@ const {
     </div>
 
     <figure class="project__media" data-project-media>
-      {/* A real anchor, so the project is reachable with a keyboard, by a
-          screen reader and with JS off. src/scripts/workCursor.ts only adds
-          the tile that follows the pointer across it. */}
-      <a class="project__link" href={href} aria-label={`View the ${title} project`} data-work-link>
-        <picture>
-          <source srcset={`${image}.avif`} type="image/avif" />
-          <img src={`${image}.webp`} alt={imageAlt} width={imageWidth} height={imageHeight} decoding="async" />
-        </picture>
-        <span class="project__tile" aria-hidden="true" data-work-tile>{viewLabel}</span>
-      </a>
+      <picture>
+        <source srcset={`${image}.avif`} type="image/avif" />
+        <img src={`${image}.webp`} alt={imageAlt} width={imageWidth} height={imageHeight} decoding="async" />
+      </picture>
     </figure>
 
     <div class="project__marker">
       <Timeline />
     </div>
   </div>
+
+  {/* Covers the whole chapter, not just the artwork: the tile is meant to be
+      available anywhere in the section, and a hover target that only lives on
+      the image leaves it blinking out over the copy.
+
+      A real anchor, so the project is reachable with a keyboard, by a screen
+      reader and with JS off — src/scripts/workCursor.ts only adds the tile
+      that rides the pointer across it. */}
+  <a class="project__link" href={href} aria-label={`View the ${title} project`} data-work-link>
+    <span class="project__tile" aria-hidden="true" data-work-tile>{viewLabel}</span>
+  </a>
 </section>
 
 <style>
@@ -184,13 +189,14 @@ const {
     margin: 0;
   }
 
-  /* Fills the figure so the whole artwork is the hit area, and anchors the
-     tile, which is positioned against it. */
+  /* The whole section is the hit area. Above the copy and the marker so the
+     pointer never leaves it mid-section — neither carries a control of its
+     own, so nothing is being covered up. */
   .project__link {
-    position: relative;
+    position: absolute;
+    inset: 0;
+    z-index: 3;
     display: block;
-    width: 100%;
-    height: 100%;
   }
 
   /* Rides the pointer. translate(-50%, -50%) centres it on the cursor and is

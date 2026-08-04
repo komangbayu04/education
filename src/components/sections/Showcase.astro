@@ -40,20 +40,21 @@ const {
     </div>
 
     <figure class="showcase__media" data-showcase-media>
-      {/* A real anchor — see the matching note in ProjectSection.astro. */}
-      <a class="showcase__link" href={href} aria-label={`View the ${title} project`} data-work-link>
-        <picture>
-          <source srcset={`${image}.avif`} type="image/avif" />
-          <img src={`${image}.webp`} alt={imageAlt} width="1400" height="1139" decoding="async" />
-        </picture>
-        <span class="showcase__tile" aria-hidden="true" data-work-tile>{viewLabel}</span>
-      </a>
+      <picture>
+        <source srcset={`${image}.avif`} type="image/avif" />
+        <img src={`${image}.webp`} alt={imageAlt} width="1400" height="1139" decoding="async" />
+      </picture>
     </figure>
 
     <div class="showcase__marker">
       <Timeline />
     </div>
   </div>
+
+  {/* Covers the whole chapter — see the matching note in ProjectSection.astro. */}
+  <a class="showcase__link" href={href} aria-label={`View the ${title} project`} data-work-link>
+    <span class="showcase__tile" aria-hidden="true" data-work-tile>{viewLabel}</span>
+  </a>
 </section>
 
 <style>
@@ -187,11 +188,12 @@ const {
     margin: 0;
   }
 
+  /* The whole section is the hit area — see ProjectSection.astro. */
   .showcase__link {
-    position: relative;
+    position: absolute;
+    inset: 0;
+    z-index: 3;
     display: block;
-    width: 100%;
-    height: 100%;
   }
 
   /* Rides the pointer — see the matching note in ProjectSection.astro. */

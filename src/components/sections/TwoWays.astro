@@ -482,9 +482,22 @@ const {
        in its place still leaves them looking like one long list. A ground and
        a gap say "two things to choose between" without any rule at all. */
     .two__card {
-      padding: clamp(1.25rem, 4.5vw, 1.75rem);
+      /* Full-bleed, with the container's gutter restored as its own padding.
+         Padded inside the container instead, the card's copy sat indented from
+         the section's — two different left edges on the same screen. This way
+         the panel reaches the screen edges and the text lines up with
+         everything above it. */
+      margin-inline: calc(-1 * var(--section-padding-x));
+      padding: clamp(1.25rem, 4.5vw, 1.75rem) var(--section-padding-x);
       border-left: 0;
       background: var(--color-surface);
+    }
+
+    /* White, not the desktop wash: against --color-surface a translucent white
+       is almost the same value, and the recommended card has to be the one
+       that reads as lifted. */
+    .two__card--highlight {
+      background: #fff;
     }
 
     /* The recommended one keeps its own lighter wash — see .two__card--highlight
