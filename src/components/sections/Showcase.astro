@@ -37,6 +37,11 @@ const {
     <div class="showcase__text" data-chapter-text>
       <h2 class="showcase__title" id="showcase-title" data-showcase-item>{title}</h2>
       <p class="showcase__body" data-showcase-item>{body}</p>
+
+      {/* Visible only where there is no pointer to ride: the tile that
+          follows the cursor can never appear on touch, so the same
+          destination needs a control of its own there. */}
+      <a class="showcase__cta" href={href}>{viewLabel}</a>
     </div>
 
     <figure class="showcase__media" data-showcase-media>
@@ -322,6 +327,11 @@ const {
          and the box is wider than the screen — centring would split that
          overflow across both edges and take a bite out of the left. */
       object-position: left bottom;
+    }
+
+    .showcase__cta {
+      display: inline-flex;
+      margin-top: clamp(0.75rem, 3vw, 1.25rem);
     }
 
     .showcase__marker {

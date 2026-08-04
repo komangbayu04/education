@@ -61,6 +61,11 @@ const {
     <div class="project__text" data-chapter-text>
       <h2 class="project__title" id={`${id}-title`}>{title}</h2>
       <p class="project__body">{body}</p>
+
+      {/* Visible only where there is no pointer to ride: the tile that
+          follows the cursor can never appear on touch, so the same
+          destination needs a control of its own there. */}
+      <a class="project__cta" href={href}>{viewLabel}</a>
     </div>
 
     <figure class="project__media" data-project-media>
@@ -189,6 +194,22 @@ const {
     margin: 0;
   }
 
+  /* Hidden wherever the pointer tile can do the job — see the note on the
+     markup. Shown below the desktop row, where there is no hover. */
+  .project__cta {
+    display: none;
+    align-self: flex-start;
+    padding: 0.8125rem 1.5rem;
+    border-radius: 0.5rem;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
   /* The whole section is the hit area. Above the copy and the marker so the
      pointer never leaves it mid-section — neither carries a control of its
      own, so nothing is being covered up. */
@@ -269,6 +290,11 @@ const {
     .project__text {
       grid-column: 1 / span 6;
       grid-row: 1;
+    }
+
+    .project__cta {
+      display: inline-flex;
+      margin-top: clamp(0.75rem, 3vw, 1.25rem);
     }
 
     .project__marker {

@@ -439,6 +439,9 @@ const {
   @media (max-width: 48rem) {
     .hero__grid {
       grid-template-columns: minmax(0, 1fr);
+      /* headline, artwork, aside — the artwork takes what the other two
+         leave, so this holds on any phone without a fixed image height. */
+      grid-template-rows: auto minmax(0, 1fr) auto;
     }
 
     .hero__title,
@@ -446,18 +449,41 @@ const {
       white-space: normal;
     }
 
+    /* One line, not three stacked words. The lines are spans, so inline is
+       all it takes — plus a real space between them, since the markup has
+       none: they were written as separate block lines. */
+    .hero__line {
+      display: inline;
+    }
+
+    .hero__line:not(:last-child)::after {
+      content: '\00a0';
+    }
+
+    .hero__title {
+      font-size: clamp(1.75rem, 7.6vw, 2.5rem);
+      padding-top: 0;
+    }
+
+    /* Full width and filling its row, rather than sized off its own ratio:
+       on a phone the artwork is the middle of the composition, not an inset. */
     .hero__stage {
-      /* Width-driven on narrow screens — viewport width is the constraint */
-      height: auto;
-      width: 86%;
+      height: 100%;
+      width: 100%;
+      max-width: none;
+      aspect-ratio: auto;
     }
 
     .hero__col--aside {
       justify-content: flex-start;
     }
 
-    .btn {
-      width: 100%;
+    /* Two columns. Four rows of one item each cost height the artwork wants,
+       and the labels are short enough to pair up. */
+    .hero__list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: clamp(1rem, 4vw, 2rem);
     }
   }
 
