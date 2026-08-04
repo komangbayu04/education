@@ -465,53 +465,68 @@ const {
       padding-top: 0;
     }
 
-    /* Full width, and back to the artwork's own ratio: filling the row left
-       the box taller than the collage could ever paint (contain has to keep
-       the whole thing whole), so the surplus showed up as dead space above and
-       below it. Sized to the ratio, the box is the artwork. */
+    /* Taken out of flow so its size stops being the text's business: the
+       artwork can then be as large as the row and the screen allow without
+       moving a single line of copy.
+
+       The box is the media row's full height and bleeds past both gutters to
+       the screen edges; `contain` then paints the collage as large as fits
+       inside it, whichever of the two dimensions runs out first. That is the
+       biggest it can be without cropping — and the crop is what the frame
+       cannot have, since the pixel squares are part of the artwork. */
+    .hero__col--media {
+      position: relative;
+    }
+
     .hero__stage {
-      width: 100%;
+      position: absolute;
+      inset: 0;
+      left: calc(-1 * var(--section-padding-x));
+      right: calc(-1 * var(--section-padding-x));
+      width: auto;
       height: auto;
       max-width: none;
-      align-self: center;
-      aspect-ratio: 1274 / 1394;
+      aspect-ratio: auto;
     }
 
     .hero__col--aside {
       justify-content: flex-start;
     }
 
-    /* One row of four, not a 2 x 2 grid: two rows cost the artwork a band of
-       height it needs to show the whole collage. The type comes down far
-       enough that the longest label still holds its own line. */
+    /* Two columns of two, as the frame has it — four rows of one item each
+       cost height the artwork wants. Column flow, not row flow: the frame
+       fills the left column first (Education Companies over Cohorts) and the
+       right one after it, which row flow would interleave. */
     .hero__list {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, auto));
-      justify-content: space-between;
-      column-gap: 0.5rem;
-      gap: 0.5rem;
+      grid-auto-flow: column;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, auto);
+      column-gap: clamp(1rem, 4vw, 2rem);
     }
 
+    /* Small enough that the longest label — "Education Companies" — still
+       holds one line inside half the container. At body size it wrapped, and
+       a wrapped label pushes its own rule down out of line with its pair. */
     .hero__list-text {
-      font-size: 0.625rem;
-      letter-spacing: 0.02em;
-      white-space: nowrap;
+      font-size: 0.8125rem;
     }
 
-    /* The arrow is wider than the space between two labels at this size, and
-       on touch there is no hover for it to answer anyway. */
+    /* The arrow and its gap take 33 of the 169px a column has here — enough to
+       wrap the longest label on their own. It answers a hover, and there is no
+       hover on a phone, so it goes rather than the label breaking. */
     .hero__list-arrow {
       display: none;
     }
 
     .hero__list-link {
-      padding-block: 0.35rem;
+      gap: 0;
     }
 
-    /* Contain, not cover: at this width the box is no longer the photo's own
-       ratio, and cover was cropping the crown off at both edges. The collage
-       has to arrive whole — the pixel squares along its bottom-right are part
-       of the artwork, not a background. */
+    /* Contain, not cover: the box below is full-bleed and no longer the
+       photo's own ratio, and cover would crop the crown off at both edges. The
+       collage has to arrive whole — the pixel squares along its bottom-right
+       are part of the artwork, not a background. */
     .hero__base img {
       object-fit: contain;
       object-position: center;
