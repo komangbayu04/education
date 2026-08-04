@@ -1,0 +1,236 @@
+---
+/**
+ * Case-study approach — the problem statement, then a bleeding row of images
+ * with one of them featured.
+ *
+ * The statement is a two-column head: a small label in the left column, the
+ * paragraph set against it in the right, the way the frame stacks them.
+ *
+ * The row below deliberately overflows the screen on both sides. Every item
+ * has a fixed viewport-relative width and the row is centred, so the total
+ * spills past both edges by the same amount and the featured card lands dead
+ * centre at every viewport — no scroll position to maintain, no JS. Items with
+ * no `src` render as the frame's grey blocks.
+ */
+
+interface Item {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  src?: string;
+  alt?: string;
+}
+
+interface Props {
+  eyebrow?: string;
+  heading: string;
+  copy?: string;
+  /** Sits at the centre of the row, matted on its own card. */
+  feature: Item & { caption?: string };
+  /** Two go to its left, the rest to its right. */
+  sides: Item[];
+}
+
+const { eyebrow = 'Our approach', heading, copy, feature, sides } = Astro.props;
+
+const left = sides.slice(0, 2);
+const right = sides.slice(2);
+---
+
+<section class="cs-ap" aria-labelledby="cs-ap-label">
+  <div class="cs-ap__head u-container">
+    <p class="cs-ap__eyebrow u-label" id="cs-ap-label">{eyebrow}</p>
+
+    <div class="cs-ap__statement">
+      <h2 class="cs-ap__heading">{heading}</h2>
+      {copy && <p class="cs-ap__copy">{copy}</p>}
+    </div>
+  </div>
+
+  <div class="cs-ap__row">
+    {
+      left.map((item) => (
+        <figure class="cs-ap__side">
+          {item.src ? (
+            <picture>
+              <source srcset={`${item.src}.avif`} type="image/avif" />
+              <img src={`${item.src}.webp`} alt={item.alt ?? ''} loading="lazy" decoding="async" />
+            </picture>
+          ) : (
+            <span class="cs-ap__empty" />
+          )}
+        </figure>
+      ))
+    }
+
+    <figure class="cs-ap__feature">
+      <div class="cs-ap__feature-media">
+        {
+          feature.src ? (
+            <picture>
+              <source srcset={`${feature.src}.avif`} type="image/avif" />
+              <img
+                src={`${feature.src}.webp`}
+                alt={feature.alt ?? ''}
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+          ) : (
+            <span class="cs-ap__empty" />
+          )
+        }
+      </div>
+
+      {feature.caption && <figcaption class="cs-ap__caption">{feature.caption}</figcaption>}
+    </figure>
+
+    {
+      right.map((item) => (
+        <figure class="cs-ap__side">
+          {item.src ? (
+            <picture>
+              <source srcset={`${item.src}.avif`} type="image/avif" />
+              <img src={`${item.src}.webp`} alt={item.alt ?? ''} loading="lazy" decoding="async" />
+            </picture>
+          ) : (
+            <span class="cs-ap__empty" />
+          )}
+        </figure>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .cs-ap {
+    padding-block: clamp(2.5rem, 5.5vw, 4.5rem) clamp(3rem, 6vw, 5.5rem);
+  }
+
+  /* --- Statement -----------------------------------------------------------
+     The label holds a column of its own rather than sitting above the text —
+     that offset is what gives the paragraph its indent in the frame. */
+  .cs-ap__head {
+    display: grid;
+    grid-template-columns: 28% minmax(0, 1fr);
+    gap: clamp(1rem, 2vw, 2rem);
+    align-items: start;
+  }
+
+  .cs-ap__eyebrow {
+    /* Optically level with the first line of the heading beside it. */
+    margin-top: 0.35em;
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-ap__heading {
+    /* In em so the frame's four lines survive the fluid type scale. */
+    max-width: 24em;
+    font-size: clamp(1.375rem, 2.5vw, 2.5rem);
+    line-height: 1.32;
+    letter-spacing: -0.02em;
+  }
+
+  .cs-ap__copy {
+    /* Wide enough to hold the frame's two lines rather than spilling to a
+       third — set in em so it tracks the type. */
+    max-width: 43em;
+    margin-top: clamp(0.875rem, 1.6vw, 1.25rem);
+    font-size: var(--text-caption);
+    line-height: 1.55;
+  }
+
+  /* --- Bleeding row --------------------------------------------------------
+     Centred and wider than the screen on purpose: the overflow is the point,
+     and hiding it here is what keeps the page from scrolling sideways. */
+  .cs-ap__row {
+    --cs-ap-side: 25.4vw;
+    --cs-ap-feature: 32.6vw;
+    --cs-ap-gap: 2.2vw;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cs-ap-gap);
+    margin-top: clamp(2rem, 4.5vw, 3.5rem);
+    overflow: hidden;
+  }
+
+  .cs-ap__side {
+    flex: none;
+    width: var(--cs-ap-side);
+    margin: 0;
+    aspect-ratio: 300 / 360;
+    overflow: hidden;
+  }
+
+  /* --- Feature -------------------------------------------------------------
+     Matted on its own card, which is what lifts it out of the row. */
+  .cs-ap__feature {
+    flex: none;
+    width: var(--cs-ap-feature);
+    margin: 0;
+    padding: 1.3% 1.3% 1.6%;
+    background: var(--color-surface);
+  }
+
+  .cs-ap__feature-media {
+    aspect-ratio: 355 / 387;
+    overflow: hidden;
+  }
+
+  .cs-ap__caption {
+    margin-top: 4%;
+    font-size: var(--text-caption);
+    line-height: 1.5;
+  }
+
+  .cs-ap__side picture,
+  .cs-ap__side img,
+  .cs-ap__feature-media picture,
+  .cs-ap__feature-media img,
+  .cs-ap__empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cs-ap__side img,
+  .cs-ap__feature-media img {
+    object-fit: cover;
+  }
+
+  /* The frame's own placeholder value — lighter than the black blocks used
+     elsewhere on the page, because these sit in a row rather than alone. */
+  .cs-ap__empty {
+    background: #d5d5d5;
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 62rem) {
+    /* Nothing to indent against once the label is on its own line. */
+    .cs-ap__head {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.75rem;
+    }
+
+    .cs-ap__eyebrow {
+      margin-top: 0;
+    }
+
+    .cs-ap__row {
+      --cs-ap-side: 40vw;
+      --cs-ap-feature: 54vw;
+      --cs-ap-gap: 3vw;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .cs-ap__row {
+      --cs-ap-side: 46vw;
+      --cs-ap-feature: 66vw;
+    }
+
+    .cs-ap__caption {
+      font-size: 0.75rem;
+    }
+  }
+</style>

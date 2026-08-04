@@ -1,0 +1,126 @@
+---
+/**
+ * Case-study marquee — the full-bleed black band of tall cards.
+ *
+ * It runs on its own, forever, in CSS. No JS: the strip carries no state, so a
+ * duplicated track and one keyframe do the whole job, and it keeps working on
+ * a page where scripts never load.
+ *
+ * The track is the card list twice over. Translating it by exactly half the
+ * track plus half a gap lands card N+1 where card 1 started, which is what
+ * makes the loop seamless — without the half-gap term the strip jumps by one
+ * gap every cycle.
+ *
+ * Cards with no `src` render as dark blocks, the same convention the other
+ * case-study sections use for artwork that hasn't arrived.
+ */
+
+interface Card {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  src?: string;
+  alt?: string;
+}
+
+interface Props {
+  cards: Card[];
+  /** Seconds for one full pass. Longer = slower. */
+  duration?: number;
+}
+
+const { cards, duration = 46 } = Astro.props;
+
+/* Twice, so the second copy is already on screen when the first runs out. */
+const track = [...cards, ...cards];
+---
+
+<section class="cs-mq" aria-label="Project screens" style={`--cs-mq-duration:${duration}s`}>
+  <ul class="cs-mq__track">
+    {
+      track.map((card, i) => (
+        <li class="cs-mq__item" aria-hidden={i >= cards.length ? 'true' : undefined}>
+          {card.src ? (
+            <picture>
+              <source srcset={`${card.src}.avif`} type="image/avif" />
+              <img src={`${card.src}.webp`} alt={card.alt ?? ''} loading="lazy" decoding="async" />
+            </picture>
+          ) : (
+            <span class="cs-mq__empty" />
+          )}
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .cs-mq {
+    /* Card and gap widths are viewport-relative because the band is full-bleed:
+       there is no container to be a share of. */
+    --cs-mq-card: 22.2vw;
+    --cs-mq-gap: 1.9vw;
+
+    padding-block: clamp(1rem, 2.8vw, 2.125rem);
+    overflow: hidden;
+    background: var(--color-ink);
+  }
+
+  .cs-mq__track {
+    display: flex;
+    gap: var(--cs-mq-gap);
+    /* Shrink-to-fit, so the 50% below is half the real track and not half the
+       viewport. */
+    width: max-content;
+    padding-left: var(--cs-mq-gap);
+    animation: cs-mq-run var(--cs-mq-duration) linear infinite;
+  }
+
+  .cs-mq__item {
+    flex: none;
+    width: var(--cs-mq-card);
+    aspect-ratio: 262 / 637;
+    overflow: hidden;
+  }
+
+  .cs-mq__item picture,
+  .cs-mq__item img,
+  .cs-mq__empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cs-mq__item img {
+    object-fit: cover;
+  }
+
+  /* Lighter than the band, or the placeholder is invisible against it. */
+  .cs-mq__empty {
+    background: #262626;
+  }
+
+  @keyframes cs-mq-run {
+    to {
+      transform: translateX(calc(-50% - var(--cs-mq-gap) / 2));
+    }
+  }
+
+  @media (max-width: 62rem) {
+    .cs-mq {
+      --cs-mq-card: 38vw;
+      --cs-mq-gap: 3vw;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .cs-mq {
+      --cs-mq-card: 52vw;
+    }
+  }
+
+  /* A strip that never stops is exactly what this setting is about. */
+  @media (prefers-reduced-motion: reduce) {
+    .cs-mq__track {
+      animation: none;
+    }
+  }
+</style>
