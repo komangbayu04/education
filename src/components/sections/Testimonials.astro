@@ -822,17 +822,10 @@ const {
       width: min(80vw, 22rem);
     }
 
-    /* Portraits stop hanging outside once the cards are this narrow — there
-       isn't the horizontal room, and the overlap starts eating the copy. */
-    .tm__quote-card--trail {
-      translate: none;
-    }
-
+    /* Same shape as desktop, just smaller: the portrait keeps hanging off the
+       card's corner rather than dropping inside it. Only the sizes come down. */
     .tm__quote-portrait {
-      position: static;
-      width: clamp(5rem, 22vw, 7rem);
-      translate: none !important;
-      margin-top: 1rem;
+      width: clamp(4.5rem, 20vw, 6rem);
     }
 
     .tm__quote-card--lead .tm__quote-who,
