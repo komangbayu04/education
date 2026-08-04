@@ -42,6 +42,72 @@ console.log('MOCK ', JSON.stringify(mockBox));
 // rebuilt as real DOM in Overclock.astro, not baked into the image).
 const overclockBox = { minX: 830, minY: 20, w: 1670, h: 1639 };
 
+/**
+ * Lifts a flat, uniform ground out of an export that was never cut out.
+ *
+ * Overclock's panel is #d6d6d6 while the section it sits in is #e2e2e2 — 12
+ * levels apart, which is exactly enough to read as a grey box parked behind
+ * the tablet. Keying it turns the export into the cutout the other three
+ * device shots already are.
+ *
+ * Flood-filled from the crop's border rather than matched globally, so grey of
+ * the same value *inside* the frame — the screen, the monitor's bezel — is
+ * never touched: it isn't connected to the outside.
+ *
+ * Two thresholds, not one. Anything within `solid` of the key is fully
+ * transparent; between `solid` and `edge` the alpha ramps, which is what keeps
+ * the anti-aliased rim of the tablet from turning into a hard, jagged step.
+ */
+async function keyOutGround(file, box, key, { solid = 8, edge = 30 } = {}) {
+  const { data, info } = await sharp(file)
+    .extract({ left: box.minX, top: box.minY, width: box.w, height: box.h })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { width, height } = info;
+  const dist = (i) =>
+    Math.max(
+      Math.abs(data[i] - key[0]),
+      Math.abs(data[i + 1] - key[1]),
+      Math.abs(data[i + 2] - key[2]),
+    );
+
+  const seen = new Uint8Array(width * height);
+  const stack = [];
+  for (let x = 0; x < width; x++) {
+    stack.push(x, (height - 1) * width + x);
+  }
+  for (let y = 0; y < height; y++) {
+    stack.push(y * width, y * width + width - 1);
+  }
+
+  let cleared = 0;
+  while (stack.length) {
+    const at = stack.pop();
+    if (seen[at]) continue;
+    const i = at * 4;
+    const d = dist(i);
+    if (d > edge) continue; // part of the subject — stop here
+    seen[at] = 1;
+    data[i + 3] = d <= solid ? 0 : Math.round(((d - solid) / (edge - solid)) * 255);
+    if (data[i + 3] === 0) cleared++;
+    const x = at % width;
+    const y = (at / width) | 0;
+    if (x > 0) stack.push(at - 1);
+    if (x < width - 1) stack.push(at + 1);
+    if (y > 0) stack.push(at - width);
+    if (y < height - 1) stack.push(at + width);
+  }
+
+  console.log(
+    `keyed ${file}: ${((cleared / (width * height)) * 100).toFixed(1)}% of the frame is now transparent`,
+  );
+  return sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
+}
+
+const overclockCut = await keyOutGround(`${SRC}/Overclock.png`, overclockBox, [214, 214, 214]);
+
 // image 3.png (Bedford) and image 4.png (CELPIP) are clean transparent
 // cutouts, same as mockup2.png — alphaBBox works directly on both.
 const bedfordBox = await alphaBBox(`${SRC}/image 3.png`);
@@ -53,7 +119,13 @@ console.log('CELPIP ', JSON.stringify(celpipBox));
 const jobs = [
   { src: `${SRC}/image bgg.png`, box: heroBox, name: 'hero-base', maxW: 1600 },
   { src: `${SRC}/mockup2.png`, box: mockBox, name: 'showcase-device', maxW: 1400 },
-  { src: `${SRC}/Overclock.png`, box: overclockBox, name: 'overclock-device', maxW: 1400 },
+  // Already cropped by keyOutGround, so its box is the whole buffer.
+  {
+    src: overclockCut,
+    box: { minX: 0, minY: 0, w: overclockBox.w, h: overclockBox.h },
+    name: 'overclock-device',
+    maxW: 1400,
+  },
   { src: `${SRC}/image 3.png`, box: bedfordBox, name: 'bedford-device', maxW: 1400 },
   { src: `${SRC}/image 4.png`, box: celpipBox, name: 'celpip-device', maxW: 1400 },
 ];
