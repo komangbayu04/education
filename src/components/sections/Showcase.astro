@@ -150,7 +150,14 @@ const {
      empty part of a wider box. */
   .showcase__media {
     position: absolute;
-    right: calc(var(--section-padding-x) + var(--showcase-marker-w) + clamp(0.75rem, 1.4vw, 1.5rem));
+    /* Past the section's right edge, not short of it. The asset's own right
+       boundary is a hard vertical cut through the far hand — the same kind of
+       edge as its flat bottom — so any placement that leaves it on screen
+       reads as a crop no matter how much clear section sits beyond it
+       (measured: 220px of empty ground to its right at 1577px, and it still
+       looked cut). Running it off the edge hands the cropping to the viewport,
+       where it reads as the photograph carrying on. */
+    right: calc(-1 * clamp(1rem, 3vw, 3.5rem));
     /* The cutout's own bottom is a hard horizontal cut where the forearms
        end. Against the edge it reads as a photograph carrying on out of
        frame; anywhere above it, that straight line reads as a crop. */
@@ -166,8 +173,8 @@ const {
        Whichever of the two binds: at a wide, short window the height does and
        this is slack; at 16:10 this does and the artwork gives height back. */
     max-width: calc(
-      100% - var(--section-padding-x) - var(--showcase-body-w) - clamp(1rem, 2vw, 2rem) -
-        (var(--section-padding-x) + var(--showcase-marker-w) + clamp(0.75rem, 1.4vw, 1.5rem))
+      100% - var(--section-padding-x) - var(--showcase-body-w) - clamp(1rem, 2vw, 2rem) +
+        clamp(1rem, 3vw, 3.5rem)
     );
     margin: 0;
   }
@@ -235,22 +242,28 @@ const {
       max-width: none;
       height: 100%;
       min-height: 0;
-    }
-
-    /* Full-bleed, and past the viewport on both sides. The asset is landscape
-       (1400x1139) and a phone column is not, so contained inside the gutters
-       it was width-bound and sat in the bottom of its row with a long empty
-       gap above it. Widening the box past the screen lets the row's height
-       drive the artwork instead; the section's overflow:hidden crops the
-       sides, which is what the reference does too. */
-    .showcase__media {
-      margin-inline: calc(-1 * var(--section-padding-x) - 9vw);
+      /* Full-bleed, and past the viewport on both sides. The asset is
+         landscape (1400x1139) and a phone column is not, so contained inside
+         the gutters it was width-bound and sat in the bottom of its row under
+         a long empty gap. Widening the box past the screen lets the row's
+         height drive the artwork instead; the section's overflow crops the
+         sides. */
+      margin-inline: calc(-1 * var(--section-padding-x) - 3vw);
+      /* Capped and held to the bottom of its row: filling every pixel the copy
+         left over made the artwork the whole section. The bleed keeps the
+         cutout's flat bottom off the section's edge. */
+      max-height: 54svh;
+      align-self: end;
+      margin-bottom: -4svh;
     }
 
     .showcase__media img {
-      /* cover, not contain: the box is now taller than the artwork's ratio
-         wants, and contain would put the gap straight back. */
-      object-fit: cover;
+      /* contain, not cover. cover filled the box by cropping the sides, and
+         with the box now capped that crop cut into the device itself — the
+         same "looks cut off" the bleed exists to avoid. Contained, the whole
+         shot shows; the box is bottom-aligned so the artwork still meets the
+         section's edge. */
+      object-fit: contain;
       height: 100%;
       object-position: bottom center;
     }
@@ -259,6 +272,9 @@ const {
       grid-column: 1 / span 6;
       grid-row: 2;
       align-self: start;
+      /* Its own space above, rather than a bigger row-gap: the gap between the
+         marker and the artwork below should stay tight. */
+      margin-top: clamp(1.25rem, 5vw, 2.5rem);
     }
   }
 
