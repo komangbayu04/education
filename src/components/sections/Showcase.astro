@@ -50,6 +50,11 @@ const {
 
 <style>
   .showcase {
+    /* One knob each for the two things the media has to stay clear of. The
+       marker figure matches .timeline's own max-width — see Timeline.astro. */
+    --showcase-body-w: 41ch;
+    --showcase-marker-w: 9rem;
+
     position: relative;
     display: flex;
     align-items: center;
@@ -117,35 +122,39 @@ const {
   .showcase__body {
     /* Three lines, same measure as the other project sections — this body is
        the same 122 characters as Overclock's. See ProjectSection. */
-    max-width: 41ch;
+    max-width: var(--showcase-body-w);
     font-size: var(--text-body);
     line-height: 1.75;
     color: #1c2333;
   }
 
   /* --- Media -------------------------------------------------------------- */
-  /* Bleeding past the section's right edge and nudged down from centre —
-     pushed further in both directions on request. Taken out of the grid so it
-     can do that independently of the text row (and so the pin interaction in
-     timeline.ts can hold it perfectly still while the text column animates on
-     top of it). */
+  /* Fully in frame and centred in the band between the copy and the marker.
+     It used to hang off the right edge (right: -4rem) and sit low
+     (translate -38%), which clipped 52px of the phone at 1728px while leaving
+     263px of empty section above it. Nothing is cropped now: the box is the
+     band, and object-fit: contain sizes the artwork to whichever of the two
+     runs out first — the band's width or the height cap. */
   .showcase__media {
     position: absolute;
-    right: clamp(-4rem, -3vw, -1.5rem);
-    top: 50%;
-    translate: 0 -38%;
-    width: clamp(20rem, 52vw, 56rem);
-    max-height: 88svh;
+    left: calc(var(--section-padding-x) + var(--showcase-body-w) + clamp(1rem, 2vw, 2rem));
+    right: calc(var(--section-padding-x) + var(--showcase-marker-w) + clamp(1rem, 2vw, 2rem));
+    /* Bottom-anchored and running a little past the edge, like the other three
+       work sections. The cutout's own bottom is a hard horizontal cut where
+       the forearms end; centred vertically, that straight line floats in open
+       section and reads as a crop. Against the edge it reads as a photograph
+       carrying on out of frame, and the section's overflow hides it. */
+    bottom: -4svh;
+    height: 96svh;
     margin: 0;
   }
 
   .showcase__media img {
     display: block;
     width: 100%;
-    height: auto;
-    max-height: 88svh;
+    height: 100%;
     object-fit: contain;
-    object-position: center right;
+    object-position: bottom center;
   }
 
   /* --- Marker --------------------------------------------------------------
