@@ -248,7 +248,13 @@ const {
       margin-bottom: -4svh;
       /* Capped, and held to the bottom of its row: the artwork filling every
          pixel the copy left over made it the whole section. */
-      max-height: 62svh;
+      /* 72svh, and the right bleed above widened to match. The box's bottom is
+         pinned to the section's edge, so height is what moves the artwork's
+         top: raising this lifts it out of the gap under the marker. Both had
+         to grow together — contain paints at min(width, height), so the wider
+         box alone would have kept the old height and the taller cap alone
+         would have been clipped by the old width. */
+      max-height: 72svh;
       align-self: end;
     }
 
@@ -265,7 +271,7 @@ const {
          so all of the overflow is pushed to the right, where the section's
          overflow crops it. */
       margin-inline: calc(-1 * var(--section-padding-x))
-        calc(-1 * var(--section-padding-x) - 40vw);
+        calc(-1 * var(--section-padding-x) - 62vw);
     }
 
     .project__media img {
