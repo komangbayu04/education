@@ -137,10 +137,6 @@ export function initHero(): () => void {
 
   const pixels = scene?.querySelector<HTMLElement>('[data-scene-pixels]');
   const showcase = next?.querySelector<HTMLElement>('.showcase');
-  const showcaseText = next?.querySelector<HTMLElement>('[data-chapter-text]');
-  const overclockText = overclockLayer?.querySelector<HTMLElement>('[data-chapter-text]');
-  const bedfordText = bedfordLayer?.querySelector<HTMLElement>('[data-chapter-text]');
-  const celpipText = celpipLayer?.querySelector<HTMLElement>('[data-chapter-text]');
 
   if (scene && next && overclockLayer && bedfordLayer && celpipLayer && stage) {
     // Desktop only. Below this the hero is content-height rather than exactly
@@ -160,11 +156,16 @@ export function initHero(): () => void {
       // rewrite of the fraction math below.
       const VIEWPORTS = {
         heroToShowcase: 1, // phase A — unchanged absolute timing
-        showcaseExit: 0.6,
+        // The three *Dwell phases used to carry that chapter's text sliding
+        // up and out. With the copy no longer moving they schedule nothing;
+        // they are the scroll a finished chapter holds the screen for before
+        // the next one swaps in. Kept at their old lengths so the pin — and
+        // the document — is exactly as long as it was.
+        showcaseDwell: 0.6,
         overclockArrival: 0.5,
-        overclockExit: 0.5,
+        overclockDwell: 0.5,
         bedfordArrival: 0.5,
-        bedfordExit: 0.5,
+        bedfordDwell: 0.5,
         celpipArrival: 0.5,
         settle: 1,
       } as const;
@@ -180,21 +181,21 @@ export function initHero(): () => void {
         return start;
       };
 
+      // The dwell phases are advanced through, not stored: nothing is
+      // scheduled in them, but the cursor still has to walk past them so every
+      // later phase keeps its position.
       const atHeroToShowcase = at(VIEWPORTS.heroToShowcase);
-      const atShowcaseExit = at(VIEWPORTS.showcaseExit);
+      at(VIEWPORTS.showcaseDwell);
       const atOverclockArrival = at(VIEWPORTS.overclockArrival);
-      const atOverclockExit = at(VIEWPORTS.overclockExit);
+      at(VIEWPORTS.overclockDwell);
       const atBedfordArrival = at(VIEWPORTS.bedfordArrival);
-      const atBedfordExit = at(VIEWPORTS.bedfordExit);
+      at(VIEWPORTS.bedfordDwell);
       const atCelpipArrival = at(VIEWPORTS.celpipArrival);
       // cursor is now at the start of "settle", i.e. 1 - VIEWPORTS.settle/PIN_VIEWPORTS
 
       const durHeroToShowcase = VIEWPORTS.heroToShowcase / PIN_VIEWPORTS;
-      const durShowcaseExit = VIEWPORTS.showcaseExit / PIN_VIEWPORTS;
       const durOverclockArrival = VIEWPORTS.overclockArrival / PIN_VIEWPORTS;
-      const durOverclockExit = VIEWPORTS.overclockExit / PIN_VIEWPORTS;
       const durBedfordArrival = VIEWPORTS.bedfordArrival / PIN_VIEWPORTS;
-      const durBedfordExit = VIEWPORTS.bedfordExit / PIN_VIEWPORTS;
       const durCelpipArrival = VIEWPORTS.celpipArrival / PIN_VIEWPORTS;
 
       // Slot switches once each arrival's crossfade is complete — see the
@@ -325,51 +326,11 @@ export function initHero(): () => void {
         );
       }
 
-      // Showcase's own text rising into view — added on request; every later
-      // section's text does this too (see addArrival below), but Showcase's
-      // entrance predates that pattern and needed adding by hand since it
-      // shares phase A with the pixel reveal rather than getting its own
-      // phase.
-      /**
-       * How far a chapter's text has to travel to sit just past its section's
-       * bottom / top edge — i.e. fully out of frame, clipped by the section's
-       * own overflow, with the copy itself never cut mid-line.
-       *
-       * Measured off offsetTop/offsetHeight rather than getBoundingClientRect
-       * so a tween already running on the element can't feed its own transform
-       * back into the next measurement. Both are passed to GSAP as functions,
-       * so `invalidateOnRefresh` re-reads them after a resize.
-       *
-       * `y` (pixels), never `yPercent`: yPercent is relative to the element's
-       * own height, which is far too short to clear a viewport-tall section,
-       * and the CSS parks this element with a translateY that GSAP would
-       * otherwise read back as a *separate* y and stack on top of.
-       */
-      const GAP = 24;
-      const belowEdge = (text: HTMLElement) => {
-        const section = text.closest('section');
-        const sectionHeight = section?.clientHeight ?? window.innerHeight;
-        return sectionHeight - text.offsetTop + GAP;
-      };
-      const aboveEdge = (text: HTMLElement) => -(text.offsetTop + text.offsetHeight + GAP);
-
-      if (showcaseText) {
-        handover.fromTo(
-          showcaseText,
-          { y: () => belowEdge(showcaseText) },
-          { y: 0, ease: 'power2.out', duration: durHeroToShowcase * 0.25 },
-          atHeroToShowcase + durHeroToShowcase * 0.75,
-        );
-      }
-
-      // --- Showcase's text exits, in place -------------------------------------
-      if (showcaseText) {
-        handover.to(
-          showcaseText,
-          { y: () => aboveEdge(showcaseText), ease: 'none', duration: durShowcaseExit },
-          atShowcaseExit,
-        );
-      }
+      // Chapter text no longer travels (explicit direction: no scroll
+      // animation on the copy). It belongs to its own layer, so the layer's
+      // crossfade carries it in and out — the measuring helpers this used to
+      // need (belowEdge / aboveEdge, and the GAP that kept a line from being
+      // clipped mid-glyph) went with it.
 
       /**
        * Fraction of an arrival phase the image swap gets. The outgoing
@@ -386,13 +347,11 @@ export function initHero(): () => void {
        * One plain-opacity arrival: `arriving` fades 0 → 1 over the opening
        * slice of the phase — the section handover itself stays a crossfade,
        * deliberately not phase A's mechanic and deliberately not a slide.
-       * Only `arrivingText` moves: up from past the section's bottom edge, on
-       * translation alone with no fade of its own, across the back half of
-       * the phase, still well after the swap has settled.
+       * The whole layer swaps, copy included; nothing inside it moves on its
+       * own any more.
        */
       const addArrival = (
         arriving: HTMLElement | null | undefined,
-        arrivingText: HTMLElement | null | undefined,
         start: number,
         duration: number,
       ) => {
@@ -416,33 +375,16 @@ export function initHero(): () => void {
             .set(arriving, { pointerEvents: 'none' }, start)
             .set(arriving, { pointerEvents: 'auto' }, start + fade);
         }
-        if (arrivingText) {
-          handover.fromTo(
-            arrivingText,
-            { y: () => belowEdge(arrivingText) },
-            { y: 0, ease: 'power2.out', duration: duration * 0.5 },
-            start + duration * 0.5,
-          );
-        }
       };
 
-      /** That section's own text travelling up and out past its top edge. */
-      const addExit = (text: HTMLElement | null | undefined, start: number, duration: number) => {
-        if (!text) return;
-        handover.to(text, { y: () => aboveEdge(text), ease: 'none', duration }, start);
-      };
-
-      addArrival(overclockLayer, overclockText, atOverclockArrival, durOverclockArrival);
-      addExit(overclockText, atOverclockExit, durOverclockExit);
-
-      addArrival(bedfordLayer, bedfordText, atBedfordArrival, durBedfordArrival);
-      addExit(bedfordText, atBedfordExit, durBedfordExit);
+      addArrival(overclockLayer, atOverclockArrival, durOverclockArrival);
+      addArrival(bedfordLayer, atBedfordArrival, durBedfordArrival);
 
       // CELPIP is currently last — arrival only, no exit, nothing to hand off
       // to yet. The settle phase after it (implicit: nothing is scheduled
       // there) is what gives the finished page room to rest before the pin —
       // and the document — actually ends.
-      addArrival(celpipLayer, celpipText, atCelpipArrival, durCelpipArrival);
+      addArrival(celpipLayer, atCelpipArrival, durCelpipArrival);
 
       // Runs when the query stops matching, and on mm.revert()
       return () => {

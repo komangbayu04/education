@@ -91,8 +91,8 @@ const {
   }
 
   /* --- Text --------------------------------------------------------------- */
-  /* No mask — the copy travels the full height of the section and is only
-     ever clipped by the section's own edges. See ProjectSection. */
+  /* Static: carried in and out by its own layer's crossfade, never moved by
+     the scroll. See ProjectSection. */
   .showcase__text {
     /* span 5, not 4: matches ProjectSection, and for the same reason — the
        body is set to three lines and at span 4 the column became the limit
@@ -104,9 +104,6 @@ const {
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
-    /* Scrubbed on `y` for the whole pin — promote it once rather than let the
-       compositor re-decide every frame. */
-    will-change: transform;
   }
 
   .showcase__title {
@@ -230,21 +227,4 @@ const {
     }
   }
 
-  /* --- Pre-animation state (only when JS is live, only at the width where
-     hero.ts's pinned handover reveals this text — see there for the matching
-     fromTo(y: below the section's bottom edge → 0), a pure slide with no fade,
-     that plays near the end of phase A once Showcase itself has crossfaded
-     in). Below 1200px this section is normal-flow and no scroll handover ever
-     touches it, so the text must stay visible there. */
-  @media (min-width: 1200px) {
-    :global(html[data-js='true']) .showcase__text {
-      transform: translateY(80svh);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) .showcase__text {
-      transform: none;
-    }
-  }
 </style>

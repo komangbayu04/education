@@ -10,9 +10,9 @@
  * disturb a section nobody asked to change. This exists so chapters 3+ don't
  * each re-declare the same ~150 lines of near-identical CSS.
  *
- * Text entrance/exit and the crossfade between sections are driven entirely
- * by src/scripts/hero.ts against the generic `[data-chapter-section]` /
- * `[data-chapter-text]` hooks — nothing project-specific lives there.
+ * The crossfade between sections is driven entirely by src/scripts/hero.ts
+ * against the generic `[data-chapter-section]` hook — nothing project-specific
+ * lives there. The copy itself no longer animates: the layer swap carries it.
  */
 import Timeline from './Timeline.astro';
 
@@ -95,10 +95,8 @@ const {
   }
 
   /* --- Text ----------------------------------------------------------------
-     No mask of its own: the copy travels the full height of the section, and
-     the only thing that ever clips it is the section's own overflow at the
-     very top and bottom edge. z-index keeps it above the media, which is now
-     centred and wide enough to pass under this column. */
+     Static: it arrives and leaves with its own layer's crossfade and never
+     moves under the scroll. z-index keeps it above the media. */
   .project__text {
     /* span 5, not 4: the body is set to wrap onto three lines (see
        .project__body), and at span 4 the column itself became the limit below
@@ -111,9 +109,6 @@ const {
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
-    /* Scrubbed on `y` for the whole pin — promote it once rather than let the
-       compositor re-decide every frame. */
-    will-change: transform;
   }
 
   .project__title {
@@ -266,24 +261,4 @@ const {
     }
   }
 
-  /* --- Pre-animation state (only when JS is live, only at the width where
-     hero.ts's pinned handover actually reveals this text — see there for the
-     matching fromTo(y: below the section's bottom edge → 0), a pure slide with
-     no fade). Roughly where hero.ts's `belowEdge` will park it a frame later —
-     the exact distance is measured there; this only has to be far enough down
-     that nothing shows before the timeline's first render. Below 1200px this
-     section is normal-flow and no scroll handover ever touches it, so the text
-     must stay visible there — gating this to the same breakpoint as the
-     handover keeps the two in lock-step instead of hard-coding 1200px twice. */
-  @media (min-width: 1200px) {
-    :global(html[data-js='true']) .project__text {
-      transform: translateY(80svh);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) .project__text {
-      transform: none;
-    }
-  }
 </style>
