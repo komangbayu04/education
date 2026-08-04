@@ -512,12 +512,27 @@ const {
       margin-top: 0;
     }
 
+    /* The pills are sized for a desktop row of four; at phone width the same
+       padding and text turn them into stacked slabs. Everything comes down
+       together — text, padding, icon and the gaps — so they read as a compact
+       set of tags rather than four buttons. */
     .two__rituals {
+      gap: 0.5rem;
+      padding-block: clamp(1.25rem, 5vw, 1.75rem);
       padding-inline: 0;
     }
 
     .two__ritual {
-      white-space: normal;
+      gap: 0.4375rem;
+      padding: 0.5rem 0.875rem;
+      font-size: 0.8125rem;
+    }
+
+    /* Icon.astro sets --icon-size inline, so the custom property can't be
+       overridden from here — the rendered box is what has to be re-stated. */
+    .two__ritual :global(.icon) {
+      width: 0.9375rem;
+      height: 0.9375rem;
     }
   }
 
