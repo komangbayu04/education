@@ -33,7 +33,11 @@ interface Featured {
   quote: string;
   photo?: string;
   logo?: string;
+  /** A video file the browser can play inline — mp4/webm, same-origin or CORS
+   *  enabled. Supplying it turns the play mark into a real control. */
   video?: string;
+  /** Frame shown before playback. Falls back to `photo`. */
+  poster?: string;
 }
 
 interface Quote {
@@ -126,8 +130,21 @@ const {
       featured.map((person, i) => (
         <figure class="tm__person" data-tm-person data-open={i === 0 ? '' : undefined}>
           <div class="tm__card">
-            <div class="tm__portrait">
-              {person.photo ? (
+            <div class="tm__portrait" data-tm-media>
+              {person.video ? (
+                /* preload="none" so a card nobody plays costs one poster
+                   image, not a video download. The poster carries the frame
+                   the portrait used to, so nothing looks different until it is
+                   played. */
+                <video
+                  class="tm__video"
+                  src={person.video}
+                  poster={person.poster ?? person.photo}
+                  preload="none"
+                  playsinline
+                  data-tm-video
+                />
+              ) : person.photo ? (
                 <img src={person.photo} alt={`Portrait of ${person.name}`} loading="lazy" decoding="async" />
               ) : (
                 /* PLACEHOLDER — pass `photo` to replace */
@@ -135,11 +152,16 @@ const {
               )}
 
               {person.video ? (
-                <a class="tm__play" href={person.video} aria-label={`Play video testimonial from ${person.name}`}>
+                <button
+                  class="tm__play"
+                  type="button"
+                  data-tm-play
+                  aria-label={`Play video testimonial from ${person.name}`}
+                >
                   <svg viewBox="0 0 12 14" fill="none" aria-hidden="true">
                     <path d="M12 7 0 14V0z" fill="currentColor" />
                   </svg>
-                </a>
+                </button>
               ) : (
                 /* No video URL supplied — decorative only, never a dead control */
                 <span class="tm__play" aria-hidden="true">
@@ -277,11 +299,14 @@ const {
     background: var(--color-line);
   }
 
-  .tm__portrait img {
+  .tm__portrait img,
+  .tm__video {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+
 
   /* Neutral stand-in — deliberately flat, not a fake face */
   .tm__portrait-fallback {
@@ -302,9 +327,27 @@ const {
     width: clamp(2.25rem, 3vw, 2.75rem);
     aspect-ratio: 1;
     translate: -50% -50%;
+    /* <button> resets — this rule is shared with the decorative <span>. */
+    padding: 0;
+    border: 0;
+    font: inherit;
     background: var(--color-bg-primary);
     color: var(--color-ink);
-    transition: scale 0.4s var(--ease-out-expo);
+    transition:
+      scale 0.4s var(--ease-out-expo),
+      opacity 0.3s var(--ease-out-expo);
+  }
+
+  button.tm__play {
+    cursor: pointer;
+  }
+
+  /* Out of the way once playback starts, and out of the tab order with it —
+     the native controls take over from here. */
+  .tm__portrait[data-playing] .tm__play {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
   }
 
   .tm__play svg {
@@ -312,8 +355,8 @@ const {
     margin-left: 2px;
   }
 
-  a.tm__play:hover,
-  a.tm__play:focus-visible {
+  button.tm__play:hover,
+  button.tm__play:focus-visible {
     scale: 1.08;
   }
 

@@ -58,6 +58,72 @@ function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
 }
 
 /**
+ * Featured video — the round play mark starts inline playback.
+ *
+ * Nothing here runs unless a card was given a `video` URL: without one the
+ * component renders a decorative <span> instead of a <button>, and this finds
+ * no controls to wire.
+ *
+ * The <video> ships with preload="none" and no `controls`, so an unplayed card
+ * costs one poster image. Both are turned on at the first click — controls
+ * because from that point the native UI is the right one, and playback because
+ * that is what was asked for.
+ *
+ * Only one plays at a time: starting one pauses the other, which otherwise
+ * leaves two people talking over each other on the same row.
+ */
+function initVideos(section: HTMLElement, cleanups: Array<() => void>): void {
+  const buttons = gsap.utils.toArray<HTMLButtonElement>('[data-tm-play]', section);
+  if (!buttons.length) return;
+
+  const videos = gsap.utils.toArray<HTMLVideoElement>('[data-tm-video]', section);
+  const controller = new AbortController();
+  const { signal } = controller;
+
+  buttons.forEach((button) => {
+    const media = button.closest<HTMLElement>('[data-tm-media]');
+    const video = media?.querySelector<HTMLVideoElement>('[data-tm-video]');
+    if (!media || !video) return;
+
+    button.addEventListener(
+      'click',
+      () => {
+        videos.forEach((other) => {
+          if (other !== video) other.pause();
+        });
+        video.controls = true;
+        media.setAttribute('data-playing', '');
+        // Autoplay policy blocks muted-less playback in some contexts; the
+        // click is the user gesture that satisfies it, but a rejection still
+        // has to leave the card usable rather than stuck with no control.
+        void video.play().catch(() => {
+          video.controls = false;
+          media.removeAttribute('data-playing');
+        });
+      },
+      { signal },
+    );
+
+    // Back to the still and the mark once it finishes, so the card reads the
+    // same on a second visit as it did on the first.
+    video.addEventListener(
+      'ended',
+      () => {
+        video.controls = false;
+        video.currentTime = 0;
+        media.removeAttribute('data-playing');
+      },
+      { signal },
+    );
+  });
+
+  cleanups.push(() => {
+    controller.abort();
+    videos.forEach((v) => v.pause());
+  });
+}
+
+/**
  * Marquee — a native scroller that also drifts on its own.
  *
  * Native `overflow-x: auto` does the heavy lifting, so trackpad, touch and
@@ -263,6 +329,7 @@ export function initTestimonials(): () => void {
   const cleanups: Array<() => void> = [];
 
   initFeature(section, cleanups);
+  initVideos(section, cleanups);
   initMarquee(section, cleanups);
 
   if (prefersReducedMotion()) {
