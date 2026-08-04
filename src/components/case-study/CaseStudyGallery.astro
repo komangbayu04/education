@@ -64,10 +64,16 @@ const slots = ['a', 'b', 'c'] as const;
 
   /* --- Desktop composition -------------------------------------------------
      Every number below is a share of this box, so the whole arrangement scales
-     as one thing. The ratio is the frame's own. */
+     as one thing.
+
+     The tiles are the frame's arrangement at 80% of its scale: at full size
+     they dominated the page and pushed everything after them a screen and a
+     half down. Shrinking sizes without moving the anchors — the square still
+     starts at the left margin, the tall one still ends at the right — keeps
+     the scatter while taking a fifth of the height back. */
   .cs-gal__stage {
     position: relative;
-    aspect-ratio: 1396 / 1098;
+    aspect-ratio: 1396 / 878;
   }
 
   .cs-gal__tile {
@@ -95,23 +101,23 @@ const slots = ['a', 'b', 'c'] as const;
   .cs-gal__tile--a {
     left: 0;
     top: 0;
-    width: 34.1%;
+    width: 27.3%;
     height: 42.8%;
   }
 
   /* Flush to the container's right edge and taller than everything else — it
      is the anchor the other two are scattered around. */
   .cs-gal__tile--b {
-    left: 51.2%;
+    right: 0;
     top: 7.9%;
-    width: 48.8%;
+    width: 39.6%;
     height: 82.4%;
   }
 
   .cs-gal__tile--c {
     left: 11.2%;
     top: 67.5%;
-    width: 34%;
+    width: 27.2%;
     height: 32.5%;
   }
 
@@ -145,6 +151,16 @@ const slots = ['a', 'b', 'c'] as const;
 
     .cs-gal__tile--a {
       aspect-ratio: 476 / 470;
+    }
+
+    /* Stacked, full-width tiles are the same problem as the desktop scatter
+       was: three of them run to several screens on their own. */
+    .cs-gal__tile {
+      width: 82%;
+    }
+
+    .cs-gal__tile--c {
+      align-self: flex-end;
     }
 
     .cs-gal__tile--b {

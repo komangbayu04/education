@@ -11,6 +11,7 @@ import Base from '../../layouts/Base.astro';
 import CaseStudyHero from '../../components/case-study/CaseStudyHero.astro';
 import CaseStudyIntro from '../../components/case-study/CaseStudyIntro.astro';
 import CaseStudyGallery from '../../components/case-study/CaseStudyGallery.astro';
+import CaseStudyOverview from '../../components/case-study/CaseStudyOverview.astro';
 import Footer from '../../components/layout/Footer.astro';
 
 const title = 'A College Counseling Platform';
@@ -41,6 +42,15 @@ const intro =
       single `src` (extensionless, .avif + .webp in public/media) plus its alt.
     */}
     <CaseStudyGallery tiles={[{}, {}, {}]} caption={intro} />
+
+    {/* Same story as the gallery: the two shots are still to come, so both
+        render as the frame's solid blocks. */}
+    <CaseStudyOverview
+      heading="This platform provides a unified workspace for managing every stage of the college admissions journey."
+      caption="From application planning and document management to counselor collaboration and milestone tracking, it helps users stay aligned and informed."
+      wide={{}}
+      side={{}}
+    />
   </div>
 
   <Footer />
