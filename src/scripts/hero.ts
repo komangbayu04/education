@@ -139,13 +139,14 @@ export function initHero(): () => void {
   const showcase = next?.querySelector<HTMLElement>('.showcase');
 
   if (scene && next && overclockLayer && bedfordLayer && celpipLayer && stage) {
-    // Desktop only. Below this the hero is content-height rather than exactly
-    // one viewport, so stacking the layers into a viewport-tall pinned scene
-    // would clip it. matchMedia tears the whole thing down when it stops
-    // matching and rebuilds it when it matches again.
+    // Every width. This used to be desktop-only because the hero and Showcase
+    // were content-height below 1200px and would have been clipped by a
+    // viewport-tall pinned scene; both are one viewport at every width now
+    // (see their own responsive blocks), so the handover runs on phones too.
+    // matchMedia is kept for the teardown it gives on an orientation change.
     const mm = gsap.matchMedia();
 
-    mm.add('(min-width: 1200px)', () => {
+    mm.add('(min-width: 1px)', () => {
       // Switches the layers to absolute stacking. Set from JS so the no-JS and
       // reduced-motion paths keep the sections in normal document flow.
       scene.dataset.sceneMode = 'pinned';
@@ -417,27 +418,9 @@ export function initHero(): () => void {
     // scaled to the hero scrolling past, not to a fixed scroll distance, so it
     // finishes at roughly the same point regardless of how tall the hero is at
     // that width.
-    mm.add('(max-width: 1199px)', () => {
-      const scrollZoom = gsap.fromTo(
-        stage,
-        { scale: 1 },
-        {
-          scale: 1.08,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: hero,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 1,
-          },
-        },
-      );
-
-      return () => {
-        scrollZoom.scrollTrigger?.kill();
-        scrollZoom.kill();
-      };
-    });
+    // (The <1200px branch that used to live here — a small scroll-tied zoom
+    // standing in for the handover — is gone: the handover itself runs at
+    // those widths now, and the two would have fought over the same element.)
 
     cleanups.push(() => mm.revert());
   }

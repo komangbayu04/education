@@ -373,17 +373,22 @@ const {
      1199px, not 75rem: this must not overlap the (min-width: 1200px) gate that
      builds the pinned handover, or at exactly 1200px the hero would be both
      content-height and forced into a viewport-tall pinned scene. */
+  /* Still exactly one viewport below the desktop row: the handover pins this
+     scene at every width now, so anything past 100svh is clipped rather than
+     scrolled to. The media row takes what the title and the aside leave
+     (minmax(0, 1fr) — the 0 minimum is what lets it shrink below the image's
+     intrinsic height), which is what makes this hold on a short phone without
+     a per-device image size. */
   @media (max-width: 1199px) {
     .hero {
-      --hero-pad-top: clamp(1.5rem, 4vw, 3rem);
-      height: auto;
-      padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
+      --hero-pad-top: clamp(1rem, 3vw, 2rem);
+      padding-bottom: clamp(1rem, 3vw, 2rem);
     }
 
     .hero__grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      row-gap: clamp(2rem, 5vw, 4rem);
-      height: auto;
+      grid-template-rows: auto minmax(0, 1fr);
+      row-gap: clamp(1rem, 3vw, 2rem);
     }
 
     .hero__col--title {
@@ -397,11 +402,18 @@ const {
        vertical overlap between them), so that offset has nothing left to
        correct and was only pushing the now width-constrained box partly off
        the left edge of the viewport. Reset both. */
+    /* Height-driven again, but from the row rather than from the section:
+       width follows the photo's own ratio, so it never overflows the column. */
     .hero__stage {
-      height: auto;
-      width: 78%;
+      height: 100%;
+      width: auto;
+      max-width: 78%;
       left: 0;
       top: 0;
+    }
+
+    .hero__col--media {
+      min-height: 0;
     }
   }
 

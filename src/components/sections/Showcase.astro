@@ -192,43 +192,57 @@ const {
 
   /* --- Responsive --------------------------------------------------------- */
   /* 1199px to stay in step with the hero's desktop breakpoint */
+  /* Below the desktop row the section is still exactly one viewport — the
+     handover pins it at every width now, and anything past 100svh would be
+     clipped by the pinned scene rather than scrolled to.
+
+     So the rows are sized rather than stacked: copy and marker take what they
+     need, the media takes whatever is left (1fr, min-height:0 so it can
+     actually shrink below the image's intrinsic height), and object-fit
+     contains the artwork inside that. No fixed image height to re-tune per
+     device — a short phone simply gives the media a shorter row. */
   @media (max-width: 1199px) {
     .showcase {
-      height: auto;
-      padding-block: clamp(3rem, 8vw, 6rem) 0;
-      align-items: start;
+      padding-block: clamp(1.5rem, 4vw, 3rem) 0;
+      align-items: stretch;
     }
 
     .showcase__inner {
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      row-gap: clamp(2rem, 5vw, 3.5rem);
-      height: auto;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      row-gap: clamp(1rem, 3vw, 2rem);
+      height: 100%;
     }
 
     .showcase__text {
       grid-column: 1 / span 6;
+      grid-row: 1;
     }
 
     /* Back into the flow — absolute placement would collide with the text.
-       translate is its own property (not reset by position:static), so it
-       has to be zeroed explicitly or the -50% vertical centring from the
-       desktop rule keeps applying and shifts this out of place. */
+       aspect-ratio and the insets are the desktop rule's and have to be undone
+       explicitly; they are not reset by position:static. */
     .showcase__media {
       position: static;
       grid-column: 1 / span 6;
-      translate: none;
+      grid-row: 2;
+      inset: auto;
+      aspect-ratio: auto;
       width: 100%;
-      max-width: 34rem;
-      max-height: none;
+      max-width: none;
+      height: 100%;
+      min-height: 0;
     }
 
     .showcase__media img {
-      max-height: none;
+      height: 100%;
+      object-position: center;
     }
 
     .showcase__marker {
       grid-column: 6 / span 1;
-      align-self: start;
+      grid-row: 3;
+      align-self: end;
     }
   }
 
