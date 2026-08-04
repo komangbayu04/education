@@ -465,25 +465,56 @@ const {
       padding-top: 0;
     }
 
-    /* Full width and filling its row, rather than sized off its own ratio:
-       on a phone the artwork is the middle of the composition, not an inset. */
+    /* Full width, and back to the artwork's own ratio: filling the row left
+       the box taller than the collage could ever paint (contain has to keep
+       the whole thing whole), so the surplus showed up as dead space above and
+       below it. Sized to the ratio, the box is the artwork. */
     .hero__stage {
-      height: 100%;
       width: 100%;
+      height: auto;
       max-width: none;
-      aspect-ratio: auto;
+      align-self: center;
+      aspect-ratio: 1274 / 1394;
     }
 
     .hero__col--aside {
       justify-content: flex-start;
     }
 
-    /* Two columns. Four rows of one item each cost height the artwork wants,
-       and the labels are short enough to pair up. */
+    /* One row of four, not a 2 x 2 grid: two rows cost the artwork a band of
+       height it needs to show the whole collage. The type comes down far
+       enough that the longest label still holds its own line. */
     .hero__list {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      column-gap: clamp(1rem, 4vw, 2rem);
+      grid-template-columns: repeat(4, minmax(0, auto));
+      justify-content: space-between;
+      column-gap: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .hero__list-text {
+      font-size: 0.625rem;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    /* The arrow is wider than the space between two labels at this size, and
+       on touch there is no hover for it to answer anyway. */
+    .hero__list-arrow {
+      display: none;
+    }
+
+    .hero__list-link {
+      padding-block: 0.35rem;
+    }
+
+    /* Contain, not cover: at this width the box is no longer the photo's own
+       ratio, and cover was cropping the crown off at both edges. The collage
+       has to arrive whole — the pixel squares along its bottom-right are part
+       of the artwork, not a background. */
+    .hero__base img {
+      object-fit: contain;
+      object-position: center;
     }
   }
 
