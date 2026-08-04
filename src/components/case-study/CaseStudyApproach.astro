@@ -6,11 +6,12 @@
  * The statement is a two-column head: a small label in the left column, the
  * paragraph set against it in the right, the way the frame stacks them.
  *
- * The row below deliberately overflows the screen on both sides. Every item
- * has a fixed viewport-relative width and the row is centred, so the total
- * spills past both edges by the same amount and the featured card lands dead
- * centre at every viewport — no scroll position to maintain, no JS. Items with
- * no `src` render as the frame's grey blocks.
+ * The row below is a rail: it drifts sideways on its own, can be dragged, and
+ * loops. The item list is rendered twice so scrollLeft can wrap at the halfway
+ * point in either direction — the drift, the drag and the wrap all live in
+ * src/scripts/caseStudy.ts. It opens with the featured card centred, which is
+ * where the frame has it. Items with no `src` render as the frame's grey
+ * blocks.
  */
 
 interface Item {
@@ -45,58 +46,72 @@ const right = sides.slice(2);
     </div>
   </div>
 
-  <div class="cs-ap__row">
-    {
-      left.map((item) => (
-        <figure class="cs-ap__side">
-          {item.src ? (
-            <picture>
-              <source srcset={`${item.src}.avif`} type="image/avif" />
-              <img src={`${item.src}.webp`} alt={item.alt ?? ''} loading="lazy" decoding="async" />
-            </picture>
-          ) : (
-            <span class="cs-ap__empty" />
-          )}
-        </figure>
-      ))
-    }
+  {/* Rendered twice: the second copy is what the wrap scrolls into, so the
+      loop never shows an edge. Only the first is exposed to assistive tech. */}
+  <div class="cs-ap__rail" data-cs-rail data-lenis-prevent-horizontal>
+    <div class="cs-ap__track" data-cs-track>
+      {
+        [0, 1].map((copy) => (
+          <div class="cs-ap__seg" aria-hidden={copy === 1 ? 'true' : undefined}>
+            {left.map((item) => (
+              <figure class="cs-ap__side">
+                {item.src ? (
+                  <picture>
+                    <source srcset={`${item.src}.avif`} type="image/avif" />
+                    <img
+                      src={`${item.src}.webp`}
+                      alt={item.alt ?? ''}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </picture>
+                ) : (
+                  <span class="cs-ap__empty" />
+                )}
+              </figure>
+            ))}
 
-    <figure class="cs-ap__feature">
-      <div class="cs-ap__feature-media">
-        {
-          feature.src ? (
-            <picture>
-              <source srcset={`${feature.src}.avif`} type="image/avif" />
-              <img
-                src={`${feature.src}.webp`}
-                alt={feature.alt ?? ''}
-                loading="lazy"
-                decoding="async"
-              />
-            </picture>
-          ) : (
-            <span class="cs-ap__empty" />
-          )
-        }
-      </div>
+            <figure class="cs-ap__feature" data-cs-feature={copy === 0 ? '' : undefined}>
+              <div class="cs-ap__feature-media">
+                {feature.src ? (
+                  <picture>
+                    <source srcset={`${feature.src}.avif`} type="image/avif" />
+                    <img
+                      src={`${feature.src}.webp`}
+                      alt={feature.alt ?? ''}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </picture>
+                ) : (
+                  <span class="cs-ap__empty" />
+                )}
+              </div>
 
-      {feature.caption && <figcaption class="cs-ap__caption">{feature.caption}</figcaption>}
-    </figure>
+              {feature.caption && <figcaption class="cs-ap__caption">{feature.caption}</figcaption>}
+            </figure>
 
-    {
-      right.map((item) => (
-        <figure class="cs-ap__side">
-          {item.src ? (
-            <picture>
-              <source srcset={`${item.src}.avif`} type="image/avif" />
-              <img src={`${item.src}.webp`} alt={item.alt ?? ''} loading="lazy" decoding="async" />
-            </picture>
-          ) : (
-            <span class="cs-ap__empty" />
-          )}
-        </figure>
-      ))
-    }
+            {right.map((item) => (
+              <figure class="cs-ap__side">
+                {item.src ? (
+                  <picture>
+                    <source srcset={`${item.src}.avif`} type="image/avif" />
+                    <img
+                      src={`${item.src}.webp`}
+                      alt={item.alt ?? ''}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </picture>
+                ) : (
+                  <span class="cs-ap__empty" />
+                )}
+              </figure>
+            ))}
+          </div>
+        ))
+      }
+    </div>
   </div>
 </section>
 
@@ -138,20 +153,51 @@ const right = sides.slice(2);
     line-height: 1.55;
   }
 
-  /* --- Bleeding row --------------------------------------------------------
-     Centred and wider than the screen on purpose: the overflow is the point,
-     and hiding it here is what keeps the page from scrolling sideways. */
-  .cs-ap__row {
+  /* --- Rail ----------------------------------------------------------------
+     A native horizontal scroller, so trackpad, touch and scrollbar all behave
+     correctly without being reimplemented; the script adds the drift, the
+     mouse drag and the wrap on top. */
+  .cs-ap__rail {
     --cs-ap-side: 25.4vw;
     --cs-ap-feature: 32.6vw;
     --cs-ap-gap: 2.2vw;
 
+    margin-top: clamp(2rem, 4.5vw, 3.5rem);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    cursor: grab;
+  }
+
+  .cs-ap__rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cs-ap__rail[data-dragging] {
+    cursor: grabbing;
+  }
+
+  /* No smooth-scroll here: the drift writes scrollLeft every frame, and a
+     smooth behaviour would fight it. */
+  .cs-ap__track,
+  .cs-ap__seg {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: var(--cs-ap-gap);
-    margin-top: clamp(2rem, 4.5vw, 3.5rem);
-    overflow: hidden;
+    width: max-content;
+  }
+
+  /* The gap between the two copies has to match the one inside them, or the
+     wrap lands a gap short. */
+  .cs-ap__track {
+    padding-inline: var(--cs-ap-gap);
+  }
+
+  .cs-ap__side,
+  .cs-ap__feature {
+    /* Nothing in the rail may be dragged away as an image. */
+    user-select: none;
+    -webkit-user-drag: none;
   }
 
   .cs-ap__side {
@@ -216,7 +262,7 @@ const right = sides.slice(2);
       margin-top: 0;
     }
 
-    .cs-ap__row {
+    .cs-ap__rail {
       --cs-ap-side: 40vw;
       --cs-ap-feature: 54vw;
       --cs-ap-gap: 3vw;
@@ -224,7 +270,7 @@ const right = sides.slice(2);
   }
 
   @media (max-width: 48rem) {
-    .cs-ap__row {
+    .cs-ap__rail {
       --cs-ap-side: 46vw;
       --cs-ap-feature: 66vw;
     }
