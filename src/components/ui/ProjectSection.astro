@@ -191,42 +191,77 @@ const {
   }
 
   /* --- Responsive ---------------------------------------------------------
-     1199px to stay in step with the hero's desktop breakpoint */
+     One viewport at every width, because the handover pins the scene on
+     phones too. Rows rather than a stack: copy and marker take what they
+     need, the media takes the rest (minmax(0, 1fr) — the 0 is what lets it
+     shrink below the image's intrinsic height), so nothing needs re-tuning
+     per device.
+
+     Order is copy, then marker, then artwork. The marker used to sit above
+     the copy here; it belongs between the two, right-aligned, reading as the
+     rule that separates what the chapter says from what it shows. */
   @media (max-width: 1199px) {
     .project {
-      height: auto;
-      padding-block: clamp(3rem, 8vw, 6rem) 0;
-      align-items: start;
+      align-items: stretch;
+      padding-block: clamp(1.25rem, 3.5vw, 2.5rem) 0;
     }
 
     .project__inner {
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      row-gap: clamp(2rem, 5vw, 3.5rem);
-      height: auto;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      row-gap: clamp(0.75rem, 2.5vw, 1.5rem);
+      height: 100%;
     }
 
     .project__text {
       grid-column: 1 / span 6;
-    }
-
-    /* Back into the flow — absolute placement would collide with the text.
-       max-height is its own property and is not reset by position:static, so
-       it has to be undone explicitly. */
-    .project__media {
-      position: static;
-      grid-column: 1 / span 6;
-      width: 100%;
-      max-width: 34rem;
-      max-height: none;
-    }
-
-    .project__media img {
-      max-height: none;
+      grid-row: 1;
     }
 
     .project__marker {
-      grid-column: 6 / span 1;
+      grid-column: 1 / span 6;
+      grid-row: 2;
       align-self: start;
+    }
+
+    /* Back into the flow — absolute placement would collide with the copy.
+       The desktop insets and max-height are their own properties and are not
+       reset by position:static, so they have to be undone explicitly. */
+    .project__media {
+      position: static;
+      grid-column: 1 / span 6;
+      grid-row: 3;
+      inset: auto;
+      /* auto, not 100%: a fixed width pins the box to its grid area and the
+         negative margins below would only shift it sideways. */
+      width: auto;
+      max-width: none;
+      height: 100%;
+      min-height: 0;
+      max-height: none;
+      /* Same bleed as the desktop rule, expressed as a margin now that the
+         box is in flow: the cutout's flat bottom runs off the section's edge
+         instead of ending in open space. */
+      margin-bottom: -4svh;
+    }
+
+    /* Full-bleed, and past the viewport on both sides. The asset is landscape
+       (1400x1139) and a phone column is not, so contained inside the gutters
+       it was width-bound and sat in the bottom of its row with a long empty
+       gap above it. Widening the box past the screen lets the row's height
+       drive the artwork instead; the section's overflow:hidden crops the
+       sides, which is what the reference does too. */
+    .project__media {
+      margin-inline: calc(-1 * var(--section-padding-x) - 9vw);
+    }
+
+    .project__media img {
+      /* cover, not contain: the box is now taller than the artwork's ratio
+         wants, and contain would put the gap straight back. */
+      object-fit: cover;
+      height: 100%;
+      max-height: none;
+      object-position: bottom center;
     }
   }
 
@@ -241,23 +276,8 @@ const {
       grid-column: 1 / -1;
     }
 
-    .project__media {
-      margin-inline: auto;
-    }
-
     .project__body {
       max-width: 38ch;
-    }
-
-    /* Above the copy rather than after the image. It's a "chapter N of 4"
-       indicator, so it belongs before the content it labels — which is where
-       it reads on desktop too, just at the other end of the row. `order`
-       rather than moving it in the DOM: on desktop it belongs last, after the
-       content it annotates. */
-    .project__marker {
-      order: -1;
-      align-self: start;
-      margin-bottom: clamp(0.5rem, 2vw, 1rem);
     }
   }
 

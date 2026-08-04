@@ -209,8 +209,9 @@ const {
 
     .showcase__inner {
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      grid-template-rows: auto minmax(0, 1fr) auto;
-      row-gap: clamp(1rem, 3vw, 2rem);
+      /* copy, marker, artwork — same order as the other three work sections */
+      grid-template-rows: auto auto minmax(0, 1fr);
+      row-gap: clamp(0.75rem, 2.5vw, 1.5rem);
       height: 100%;
     }
 
@@ -225,24 +226,39 @@ const {
     .showcase__media {
       position: static;
       grid-column: 1 / span 6;
-      grid-row: 2;
+      grid-row: 3;
       inset: auto;
       aspect-ratio: auto;
-      width: 100%;
+      /* auto, not 100%: a fixed width pins the box to its grid area and the
+         negative margins below would only shift it sideways. */
+      width: auto;
       max-width: none;
       height: 100%;
       min-height: 0;
     }
 
+    /* Full-bleed, and past the viewport on both sides. The asset is landscape
+       (1400x1139) and a phone column is not, so contained inside the gutters
+       it was width-bound and sat in the bottom of its row with a long empty
+       gap above it. Widening the box past the screen lets the row's height
+       drive the artwork instead; the section's overflow:hidden crops the
+       sides, which is what the reference does too. */
+    .showcase__media {
+      margin-inline: calc(-1 * var(--section-padding-x) - 9vw);
+    }
+
     .showcase__media img {
+      /* cover, not contain: the box is now taller than the artwork's ratio
+         wants, and contain would put the gap straight back. */
+      object-fit: cover;
       height: 100%;
-      object-position: center;
+      object-position: bottom center;
     }
 
     .showcase__marker {
-      grid-column: 6 / span 1;
-      grid-row: 3;
-      align-self: end;
+      grid-column: 1 / span 6;
+      grid-row: 2;
+      align-self: start;
     }
   }
 
@@ -257,19 +273,8 @@ const {
       grid-column: 1 / -1;
     }
 
-    .showcase__media {
-      margin-inline: auto;
-    }
-
     .showcase__body {
       max-width: 38ch;
-    }
-
-    /* Above the copy — see the matching note in ProjectSection.astro. */
-    .showcase__marker {
-      order: -1;
-      align-self: start;
-      margin-bottom: clamp(0.5rem, 2vw, 1rem);
     }
   }
 

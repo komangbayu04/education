@@ -101,56 +101,10 @@ const chapters = Array.from({ length: total }, (_, i) => i + 1);
     will-change: transform;
   }
 
-  /* --- Mobile ---------------------------------------------------------------
-     Laid on its side. A vertical stack of four rules costs height that a phone
-     doesn't have to spare, and a horizontal row is the more familiar shape for
-     a progress indicator at this width.
-
-     timeline.ts detects this orientation from the rendered layout rather than
-     from a breakpoint of its own — it compares the rules' offsetTop — so this
-     media query is the single place the switch is decided. */
-  @media (max-width: 48rem) {
-    .timeline {
-      align-items: flex-start;
-      /* The row is ~130px of rules and gaps; the desktop cap would clip it. */
-      max-width: none;
-      margin-left: 0;
-      /* Reserves the dot's own row. On desktop the dot sits beside the rules
-         and costs no height, but here it sits above them — without this the
-         container would collapse to the rules' 1px and the dot would hang out
-         over whatever happens to be above it, relying on a parent's padding it
-         doesn't control. */
-      padding-top: 1.25rem;
-    }
-
-    .timeline__rules {
-      flex-direction: row;
-      align-items: center;
-      gap: 0.375rem;
-      width: auto;
-    }
-
-    .timeline__rule {
-      /* Fixed widths, not percentages: as a row, a percentage would resolve
-         against the row's own width and every rule would collapse. */
-      width: 1.25rem;
-      transform-origin: left center;
-    }
-
-    .timeline__rule.is-active {
-      width: 2.75rem;
-    }
-
-    /* top:0 rather than bottom:100% — this way the dot sits *inside* the
-       padding reserved above, instead of being pushed out beyond the box. */
-    .timeline__dot {
-      top: 0;
-      right: auto;
-      bottom: auto;
-      left: 0;
-      /* Same half-square correction as on desktop, on the axis this layout
-         actually travels along — here the script writes x, not y. */
-      margin: 0 0 0 -0.375rem;
-    }
-  }
+  /* No horizontal variant any more. The marker used to lie on its side below
+     48rem to save the height a vertical stack costs, but the mobile work
+     sections now place it in its own row beside nothing else, where that
+     height is free — and the stack is what the layout calls for there.
+     timeline.ts reads the orientation from the rendered layout rather than
+     from a breakpoint, so it follows this without being told. */
 </style>
