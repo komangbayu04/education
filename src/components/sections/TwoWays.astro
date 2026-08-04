@@ -495,9 +495,11 @@ const {
 
     /* White, not the desktop wash: against --color-surface a translucent white
        is almost the same value, and the recommended card has to be the one
-       that reads as lifted. */
+       that reads as lifted. Faded out down the card — full white where the
+       name and summary sit, gone by the bottom — so the panel ends by
+       dissolving into the section's ground instead of stopping on an edge. */
     .two__card--highlight {
-      background: #fff;
+      background: linear-gradient(180deg, #fff 0%, rgb(255 255 255 / 0) 100%);
     }
 
     /* The recommended one keeps its own lighter wash — see .two__card--highlight
