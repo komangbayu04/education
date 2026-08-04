@@ -248,11 +248,17 @@ const {
          a long empty gap. Widening the box past the screen lets the row's
          height drive the artwork instead; the section's overflow crops the
          sides. */
-      margin-inline: calc(-1 * var(--section-padding-x) - 3vw);
+      /* Flush to the viewport's left edge and running well past its right.
+         Asymmetric on purpose: the artwork can only get bigger here by growing
+         wider than the screen, and the left is the side that must stay whole —
+         so all of the overflow is pushed to the right, where the section's
+         overflow crops it. */
+      margin-inline: calc(-1 * var(--section-padding-x))
+        calc(-1 * var(--section-padding-x) - 40vw);
       /* Capped and held to the bottom of its row: filling every pixel the copy
          left over made the artwork the whole section. The bleed keeps the
          cutout's flat bottom off the section's edge. */
-      max-height: 54svh;
+      max-height: 62svh;
       align-self: end;
       margin-bottom: -4svh;
     }
@@ -265,7 +271,10 @@ const {
          section's edge. */
       object-fit: contain;
       height: 100%;
-      object-position: bottom center;
+      /* Anchored left, not centred: contained artwork fills the box's width,
+         and the box is wider than the screen — centring would split that
+         overflow across both edges and take a bite out of the left. */
+      object-position: left bottom;
     }
 
     .showcase__marker {

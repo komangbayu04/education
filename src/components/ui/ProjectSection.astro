@@ -248,7 +248,7 @@ const {
       margin-bottom: -4svh;
       /* Capped, and held to the bottom of its row: the artwork filling every
          pixel the copy left over made it the whole section. */
-      max-height: 54svh;
+      max-height: 62svh;
       align-self: end;
     }
 
@@ -259,7 +259,13 @@ const {
        drive the artwork instead; the section's overflow:hidden crops the
        sides, which is what the reference does too. */
     .project__media {
-      margin-inline: calc(-1 * var(--section-padding-x) - 3vw);
+      /* Flush to the viewport's left edge and running well past its right.
+         Asymmetric on purpose: the artwork can only get bigger here by growing
+         wider than the screen, and the left is the side that must stay whole —
+         so all of the overflow is pushed to the right, where the section's
+         overflow crops it. */
+      margin-inline: calc(-1 * var(--section-padding-x))
+        calc(-1 * var(--section-padding-x) - 40vw);
     }
 
     .project__media img {
@@ -271,7 +277,10 @@ const {
       object-fit: contain;
       height: 100%;
       max-height: none;
-      object-position: bottom center;
+      /* Anchored left, not centred: contained artwork fills the box's width,
+         and the box is wider than the screen — centring would split that
+         overflow across both edges and take a bite out of the left. */
+      object-position: left bottom;
     }
   }
 
