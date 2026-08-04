@@ -50,13 +50,34 @@ import Footer from '../components/layout/Footer.astro';
       <Showcase />
     </div>
 
+    {/* Laid in the arriving chapter's own ground colour, tile by tile in
+        random order, just before that chapter swaps in behind it — the same
+        pixel language as the hero handover, scattered rather than spreading
+        from a point. Before the layer in the DOM and on the same z-index, so
+        the layer paints over it once it arrives. */}
+    <div class="scene__grid" data-scene-grid="overclock" style="--grid-bg: var(--color-bg-overclock)" aria-hidden="true"></div>
+
     <div class="scene__layer scene__layer--overclock" data-scene-overclock>
       <Overclock />
     </div>
 
+    {/* Laid in the arriving chapter's own ground colour, tile by tile in
+        random order, just before that chapter swaps in behind it — the same
+        pixel language as the hero handover, scattered rather than spreading
+        from a point. Before the layer in the DOM and on the same z-index, so
+        the layer paints over it once it arrives. */}
+    <div class="scene__grid" data-scene-grid="bedford" style="--grid-bg: var(--color-bg-bedford)" aria-hidden="true"></div>
+
     <div class="scene__layer scene__layer--bedford" data-scene-bedford>
       <Bedford />
     </div>
+
+    {/* Laid in the arriving chapter's own ground colour, tile by tile in
+        random order, just before that chapter swaps in behind it — the same
+        pixel language as the hero handover, scattered rather than spreading
+        from a point. Before the layer in the DOM and on the same z-index, so
+        the layer paints over it once it arrives. */}
+    <div class="scene__grid" data-scene-grid="celpip" style="--grid-bg: var(--color-bg-celpip)" aria-hidden="true"></div>
 
     <div class="scene__layer scene__layer--celpip" data-scene-celpip>
       <Celpip />
@@ -181,8 +202,37 @@ import Footer from '../components/layout/Footer.astro';
   }
 
   /* --- Pixel field (hero → Showcase only) --------------------------------- */
-  .scene__pixels {
+  .scene__pixels,
+  .scene__grid {
     display: none;
+  }
+
+  /* Same geometry as the pixel field above — one grid of square tiles that
+     overspills the viewport so a resize between rebuilds cannot expose a bare
+     edge. Only the colour and the order they arrive in differ. */
+  .scene[data-scene-mode='pinned'] .scene__grid {
+    position: absolute;
+    inset: calc(-1 * var(--px-size, 4rem));
+    display: grid;
+    grid-template-columns: repeat(var(--px-cols, 1), var(--px-size, 4rem));
+    grid-auto-rows: var(--px-size, 4rem);
+    pointer-events: none;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__grid > span {
+    background: var(--grid-bg);
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__grid[data-scene-grid='overclock'] {
+    z-index: 4;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__grid[data-scene-grid='bedford'] {
+    z-index: 5;
+  }
+
+  .scene[data-scene-mode='pinned'] .scene__grid[data-scene-grid='celpip'] {
+    z-index: 6;
   }
 
   .scene[data-scene-mode='pinned'] .scene__pixels {

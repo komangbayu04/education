@@ -210,14 +210,19 @@ export function initHero(): () => void {
        */
       const ARRIVAL_FADE = 0.18;
 
+      /** Where the tile field has finished and the chapter behind it is the
+       *  thing on screen: the 0.72 scatter, plus one tile's own 0.14 pop, plus
+       *  the 0.08 swap. Shared with the marker so it turns over then. */
+      const REVEAL_DONE = 0.94;
+
       // Slot switches the moment its chapter finishes fading in — the marker
       // names the section on screen, so it turns over with the artwork, not at
       // the end of the phase the artwork arrived in. See the docstring for why
       // this is 4 slots covering 5 sections.
       const slotThresholds: Array<[number, number]> = [
-        [atOverclockArrival + durOverclockArrival * ARRIVAL_FADE, 2],
-        [atBedfordArrival + durBedfordArrival * ARRIVAL_FADE, 3],
-        [atCelpipArrival + durCelpipArrival * ARRIVAL_FADE, 4],
+        [atOverclockArrival + durOverclockArrival * REVEAL_DONE, 2],
+        [atBedfordArrival + durBedfordArrival * REVEAL_DONE, 3],
+        [atCelpipArrival + durCelpipArrival * REVEAL_DONE, 4],
       ];
 
       const handover = gsap.timeline({
@@ -351,13 +356,66 @@ export function initHero(): () => void {
        * The whole layer swaps, copy included; nothing inside it moves on its
        * own any more.
        */
+      /**
+       * Lays a field of square tiles in the arriving chapter's own ground
+       * colour, in random order, across the front of its phase — then the
+       * chapter itself swaps in behind the finished field, same colour, no
+       * visible seam. The same pixel language as the hero handover; scattered
+       * rather than spreading from a point, so it reads as a different beat.
+       *
+       * Built here rather than in markup because the count depends on the
+       * viewport, and rebuilt on every matchMedia pass for the same reason.
+       */
+      const addTileReveal = (key: string, start: number, duration: number) => {
+        const grid = scene.querySelector<HTMLElement>(`[data-scene-grid="${key}"]`);
+        if (!grid) return 0;
+
+        const size = Math.max(40, Math.round(window.innerWidth / 14));
+        // +2 on each axis for the one-tile overspill the CSS insets rely on
+        const cols = Math.ceil(window.innerWidth / size) + 2;
+        const rows = Math.ceil(window.innerHeight / size) + 2;
+        grid.style.setProperty('--px-size', `${size}px`);
+        grid.style.setProperty('--px-cols', String(cols));
+
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < cols * rows; i++) frag.appendChild(document.createElement('span'));
+        grid.replaceChildren(frag);
+
+        // 0.72 of the phase for the scatter, leaving the rest for the layer to
+        // take over — the swap has to land while the field still covers
+        // everything, or the outgoing chapter flashes back through.
+        const spread = duration * 0.72;
+        handover.fromTo(
+          Array.from(grid.children) as HTMLElement[],
+          { scale: 0.55, autoAlpha: 0 },
+          {
+            // Slightly over 1 so neighbours overlap instead of meeting on a
+            // fractional pixel boundary and letting the old chapter show
+            // through as a hairline.
+            scale: 1.04,
+            autoAlpha: 1,
+            duration: duration * 0.14,
+            ease: 'power2.out',
+            stagger: { grid: [rows, cols], from: 'random', amount: spread },
+          },
+          start,
+        );
+
+        return spread;
+      };
+
       const addArrival = (
         arriving: HTMLElement | null | undefined,
         start: number,
         duration: number,
+        gridKey?: string,
       ) => {
         if (arriving) {
-          const fade = duration * ARRIVAL_FADE;
+          // With a tile field in front, the layer swaps once the field has
+          // finished covering the screen; without one it is a plain crossfade.
+          const spread = gridKey ? addTileReveal(gridKey, start, duration) : 0;
+          const swapAt = spread ? start + spread + duration * 0.14 : start;
+          const fade = spread ? duration * 0.08 : duration * ARRIVAL_FADE;
           // autoAlpha, not opacity: it parks the layer at visibility:hidden
           // while it is transparent. These layers are full-viewport and
           // permanently promoted (will-change: opacity), so a merely
@@ -367,25 +425,25 @@ export function initHero(): () => void {
             arriving,
             { autoAlpha: 0 },
             { autoAlpha: 1, ease: 'none', duration: fade },
-            start,
+            swapAt,
           );
           // Tied to the swap, not to the end of the phase: the layer is fully
           // opaque from `start + fade` on, and an opaque layer that still
           // refuses clicks is a bug waiting to be filed.
           handover
             .set(arriving, { pointerEvents: 'none' }, start)
-            .set(arriving, { pointerEvents: 'auto' }, start + fade);
+            .set(arriving, { pointerEvents: 'auto' }, swapAt + fade);
         }
       };
 
-      addArrival(overclockLayer, atOverclockArrival, durOverclockArrival);
-      addArrival(bedfordLayer, atBedfordArrival, durBedfordArrival);
+      addArrival(overclockLayer, atOverclockArrival, durOverclockArrival, 'overclock');
+      addArrival(bedfordLayer, atBedfordArrival, durBedfordArrival, 'bedford');
 
       // CELPIP is currently last — arrival only, no exit, nothing to hand off
       // to yet. The settle phase after it (implicit: nothing is scheduled
       // there) is what gives the finished page room to rest before the pin —
       // and the document — actually ends.
-      addArrival(celpipLayer, atCelpipArrival, durCelpipArrival);
+      addArrival(celpipLayer, atCelpipArrival, durCelpipArrival, 'celpip');
 
       /**
        * Pins the timeline's own duration to exactly 1.
