@@ -123,6 +123,80 @@ function initVideos(section: HTMLElement, cleanups: Array<() => void>): void {
   });
 }
 
+/** How long each person holds the spotlight before it moves on. */
+const SPOTLIGHT_INTERVAL = 10_000;
+
+/**
+ * Featured spotlight — the mobile face of the same two people.
+ *
+ * One is shown at a time and the rail of thumbnails chooses between them. It
+ * advances on its own every ten seconds, and the first manual pick stops that
+ * for good: once someone has said which one they want to look at, moving it
+ * out from under them is the wrong answer. There is no restart timer, on
+ * purpose — a rotation that comes back after a pause is the same surprise,
+ * just delayed.
+ */
+function initSpotlight(section: HTMLElement, cleanups: Array<() => void>): void {
+  const spot = section.querySelector<HTMLElement>('[data-tm-spot]');
+  if (!spot) return;
+
+  const panels = gsap.utils.toArray<HTMLElement>('[data-tm-spot-panel]', spot);
+  const copies = gsap.utils.toArray<HTMLElement>('[data-tm-spot-copy]', spot);
+  const picks = gsap.utils.toArray<HTMLButtonElement>('[data-tm-spot-pick]', spot);
+  if (panels.length < 2) return;
+
+  const controller = new AbortController();
+  const { signal } = controller;
+  let index = 0;
+  let timer: number | undefined;
+
+  const show = (next: number) => {
+    index = ((next % panels.length) + panels.length) % panels.length;
+    const mark = (els: HTMLElement[]) =>
+      els.forEach((el, i) => {
+        if (i === index) el.setAttribute('data-active', '');
+        else el.removeAttribute('data-active');
+      });
+    mark(panels);
+    mark(copies);
+    mark(picks);
+    // A video left playing in a panel nobody can see would keep talking.
+    gsap.utils.toArray<HTMLVideoElement>('[data-tm-video]', spot).forEach((v, i) => {
+      if (i !== index) v.pause();
+    });
+  };
+
+  const stop = () => {
+    if (timer !== undefined) window.clearInterval(timer);
+    timer = undefined;
+  };
+
+  if (!prefersReducedMotion()) {
+    timer = window.setInterval(() => show(index + 1), SPOTLIGHT_INTERVAL);
+  }
+
+  picks.forEach((button, i) => {
+    button.addEventListener(
+      'click',
+      () => {
+        stop();
+        show(i);
+      },
+      { signal },
+    );
+  });
+
+  // Starting a video is a choice too — the rotation would cut it off mid-word.
+  gsap.utils.toArray<HTMLElement>('[data-tm-play]', spot).forEach((button) => {
+    button.addEventListener('click', stop, { signal });
+  });
+
+  cleanups.push(() => {
+    stop();
+    controller.abort();
+  });
+}
+
 /**
  * Marquee — a native scroller that also drifts on its own.
  *
@@ -329,6 +403,7 @@ export function initTestimonials(): () => void {
   const cleanups: Array<() => void> = [];
 
   initFeature(section, cleanups);
+  initSpotlight(section, cleanups);
   initVideos(section, cleanups);
   initMarquee(section, cleanups);
 

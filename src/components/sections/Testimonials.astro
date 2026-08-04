@@ -124,6 +124,94 @@ const {
 <section class="tm" aria-labelledby="tm-title" data-tm>
   <h2 class="u-sr-only" id="tm-title">What founders say</h2>
 
+  {/* ================= Featured: spotlight (mobile) =================
+      The accordion needs two cards and an open note side by side; a phone has
+      room for one. So below the breakpoint the same people are shown one at a
+      time, chosen from a rail of thumbnails, with the copy underneath. Same
+      data, different instrument — see the CSS for which one is displayed. */}
+  <div class="tm__spot" data-tm-spot>
+    <div class="tm__spot-stage">
+      {featured.map((person, i) => (
+        <figure class="tm__spot-panel" data-tm-spot-panel data-active={i === 0 ? '' : undefined}>
+          <div class="tm__spot-media">
+            {person.video ? (
+              <video
+                class="tm__video"
+                src={person.video}
+                poster={person.poster ?? person.photo}
+                preload="none"
+                playsinline
+                data-tm-video
+              />
+            ) : person.photo ? (
+              <img src={person.photo} alt={`Portrait of ${person.name}`} loading="lazy" decoding="async" />
+            ) : (
+              <span class="tm__portrait-fallback" aria-hidden="true" />
+            )}
+
+            {person.video ? (
+              <button
+                class="tm__play"
+                type="button"
+                data-tm-play
+                aria-label={`Play video testimonial from ${person.name}`}
+              >
+                <svg viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                  <path d="M12 7 0 14V0z" fill="currentColor" />
+                </svg>
+              </button>
+            ) : (
+              <span class="tm__play" aria-hidden="true">
+                <svg viewBox="0 0 12 14" fill="none">
+                  <path d="M12 7 0 14V0z" fill="currentColor" />
+                </svg>
+              </span>
+            )}
+          </div>
+        </figure>
+      ))}
+
+      <ol class="tm__spot-rail">
+        {featured.map((person, i) => (
+          <li class="tm__spot-slot">
+            <span class="tm__spot-index" aria-hidden="true">/{i + 1}</span>
+            <button
+              class="tm__spot-thumb"
+              type="button"
+              data-tm-spot-pick={i}
+              data-active={i === 0 ? '' : undefined}
+              aria-label={`Show the testimonial from ${person.name}`}
+            >
+              {person.photo ? (
+                <img src={person.photo} alt="" loading="lazy" decoding="async" />
+              ) : (
+                <span class="tm__portrait-fallback" aria-hidden="true" />
+              )}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    {featured.map((person, i) => (
+      <div class="tm__spot-copy" data-tm-spot-copy data-active={i === 0 ? '' : undefined}>
+        <div class="tm__spot-who">
+          <div>
+            <p class="tm__name">{person.name}</p>
+            <p class="tm__role">{person.role}</p>
+          </div>
+          {person.logo ? (
+            <img class="tm__logo-img" src={person.logo} alt={person.company} loading="lazy" decoding="async" />
+          ) : (
+            <span class="tm__logo">{person.company}</span>
+          )}
+        </div>
+        <p class="tm__headline">{person.headline}</p>
+        <blockquote class="tm__quote">{person.quote}</blockquote>
+      </div>
+    ))}
+  </div>
+
   <!-- ================= Featured: hover accordion ================= -->
   <div class="tm__feature u-container" data-tm-feature>
     {
@@ -430,6 +518,126 @@ const {
     margin: auto 0 0;
     font-size: var(--text-body);
     line-height: 1.62;
+  }
+
+  /* ===================== Featured: spotlight (mobile) ===================== */
+  /* Desktop keeps the accordion; this replaces it below 61.25rem, where the
+     accordion has no room. Exactly one of the two is ever displayed. */
+  .tm__spot {
+    display: none;
+  }
+
+  .tm__spot-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(4.5rem, 22vw, 7rem);
+    gap: clamp(0.75rem, 3vw, 1.25rem);
+    align-items: start;
+  }
+
+  /* Every panel occupies the same cell, so switching never re-lays the page
+     out — only which one is visible changes. */
+  .tm__spot-panel {
+    grid-area: 1 / 1;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.45s var(--ease-out-expo),
+      visibility 0.45s;
+  }
+
+  .tm__spot-panel[data-active] {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .tm__spot-media {
+    position: relative;
+    aspect-ratio: 4 / 3.4;
+    overflow: hidden;
+    background: var(--color-line);
+  }
+
+  .tm__spot-media img,
+  .tm__spot-media .tm__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .tm__spot-rail {
+    grid-area: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 2vw, 0.875rem);
+  }
+
+  .tm__spot-index {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--color-ink-secondary);
+  }
+
+  .tm__spot-thumb {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    aspect-ratio: 4 / 3.4;
+    overflow: hidden;
+    background: var(--color-line);
+    cursor: pointer;
+    /* The unselected ones sit back rather than disappear — they are the rest
+       of the list, not disabled controls. */
+    opacity: 0.45;
+    transition: opacity 0.4s var(--ease-out-expo);
+  }
+
+  .tm__spot-thumb[data-active] {
+    opacity: 1;
+  }
+
+  .tm__spot-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Same trick as the panels: one cell, one visible. */
+  .tm__spot-copy {
+    display: none;
+    flex-direction: column;
+    gap: clamp(0.75rem, 3vw, 1.25rem);
+    margin-top: clamp(1rem, 4vw, 1.5rem);
+  }
+
+  .tm__spot-copy[data-active] {
+    display: flex;
+  }
+
+  .tm__spot-who {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .tm__spot-copy .tm__headline {
+    max-width: none;
+  }
+
+  @media (max-width: 61.25rem) {
+    .tm__feature {
+      display: none;
+    }
+
+    .tm__spot {
+      display: block;
+      padding-inline: var(--section-padding-x);
+    }
   }
 
   /* ===================== Marquee ===================== */
