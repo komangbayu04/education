@@ -198,14 +198,25 @@ export function initHero(): () => void {
       const durBedfordArrival = VIEWPORTS.bedfordArrival / PIN_VIEWPORTS;
       const durCelpipArrival = VIEWPORTS.celpipArrival / PIN_VIEWPORTS;
 
-      // Slot switches once each arrival's crossfade is complete — see the
-      // docstring for why this is 4 slots covering 5 sections, and why an
-      // onUpdate threshold sweep replaces the old onLeave/onEnterBack (there
-      // are 3 internal transition points now, not 1 pin boundary).
+      /**
+       * Fraction of an arrival phase the image swap gets. The outgoing
+       * section's layer never fades — the arriving one simply fades in on top
+       * of it — so this fraction *is* the window where both are on screen at
+       * once. At 1 (the whole phase, which is what this used to be) that was
+       * half a viewport of scrolling with two device shots visibly stacked.
+       * Short enough to read as a cut, not so short it strobes on a fast
+       * scroll: the scrub still resolves it over a real moment.
+       */
+      const ARRIVAL_FADE = 0.18;
+
+      // Slot switches the moment its chapter finishes fading in — the marker
+      // names the section on screen, so it turns over with the artwork, not at
+      // the end of the phase the artwork arrived in. See the docstring for why
+      // this is 4 slots covering 5 sections.
       const slotThresholds: Array<[number, number]> = [
-        [atOverclockArrival + durOverclockArrival, 2],
-        [atBedfordArrival + durBedfordArrival, 3],
-        [atCelpipArrival + durCelpipArrival, 4],
+        [atOverclockArrival + durOverclockArrival * ARRIVAL_FADE, 2],
+        [atBedfordArrival + durBedfordArrival * ARRIVAL_FADE, 3],
+        [atCelpipArrival + durCelpipArrival * ARRIVAL_FADE, 4],
       ];
 
       const handover = gsap.timeline({
@@ -333,17 +344,6 @@ export function initHero(): () => void {
       // clipped mid-glyph) went with it.
 
       /**
-       * Fraction of an arrival phase the image swap gets. The outgoing
-       * section's layer never fades — the arriving one simply fades in on top
-       * of it — so this fraction *is* the window where both are on screen at
-       * once. At 1 (the whole phase, which is what this used to be) that was
-       * half a viewport of scrolling with two device shots visibly stacked.
-       * Short enough to read as a cut, not so short it strobes on a fast
-       * scroll: the scrub is 1s, so this still resolves over a real moment.
-       */
-      const ARRIVAL_FADE = 0.18;
-
-      /**
        * One plain-opacity arrival: `arriving` fades 0 → 1 over the opening
        * slice of the phase — the section handover itself stays a crossfade,
        * deliberately not phase A's mechanic and deliberately not a slide.
@@ -385,6 +385,24 @@ export function initHero(): () => void {
       // there) is what gives the finished page room to rest before the pin —
       // and the document — actually ends.
       addArrival(celpipLayer, atCelpipArrival, durCelpipArrival);
+
+      /**
+       * Pins the timeline's own duration to exactly 1.
+       *
+       * Every position above is written as a fraction of the pin, but GSAP
+       * reads them as seconds and the scrub maps the pin's progress onto
+       * `0..duration`. Nothing is scheduled in the settle phase, so the
+       * timeline used to end at its last tween — 0.72 — and every position was
+       * silently stretched by 1/0.72. That is what put the chapter marker a
+       * whole slot ahead of the artwork: the marker reads the scroll directly,
+       * the layers were arriving 38% later than the numbers said. Measured
+       * before this line: Bedford still on screen from progress 0.73 while the
+       * marker had been on slot 4 since 0.81, and CELPIP only finished
+       * arriving at the very last pixel of the pin.
+       *
+       * An empty `set` at 1 costs nothing and makes the two scales the same.
+       */
+      handover.set({}, {}, 1);
 
       // Runs when the query stops matching, and on mm.revert()
       return () => {
