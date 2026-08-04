@@ -219,7 +219,11 @@ import Footer from '../components/layout/Footer.astro';
     pointer-events: none;
   }
 
-  .scene[data-scene-mode='pinned'] .scene__grid > span {
+  /* :global, like .scene__pixel above — these spans are created by hero.ts, so
+     they never carry Astro's scoping attribute and a scoped selector would
+     not match them. Without it the tiles animate exactly as intended and
+     paint nothing, which is precisely how this shipped the first time. */
+  [data-scene-grid] :global(span) {
     background: var(--grid-bg);
   }
 
