@@ -16,6 +16,7 @@ import CaseStudyVideos from '../../components/case-study/CaseStudyVideos.astro';
 import CaseStudyApproach from '../../components/case-study/CaseStudyApproach.astro';
 import CaseStudyExperience from '../../components/case-study/CaseStudyExperience.astro';
 import CaseStudyResult from '../../components/case-study/CaseStudyResult.astro';
+import CaseStudyNext from '../../components/case-study/CaseStudyNext.astro';
 import Footer from '../../components/layout/Footer.astro';
 
 const title = 'A College Counseling Platform';
@@ -125,6 +126,17 @@ const intro =
         { value: '1', label: 'Connected workspace for students and counselors' },
         { value: 'End-to-End', label: 'Supporting every step of the admissions journey.' },
       ]}
+    />
+
+    {/* Hands the reader to the next project. Must stay directly above the
+        footer: its bottom seam is painted in the footer's own colour. */}
+    <CaseStudyNext
+      title="Overclock"
+      copy="An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts."
+      ctaHref="/work/overclock"
+      image="/media/overclock-device"
+      imageAlt="The Overclock site on a tablet"
+      tags={['Accelerator', 'Brand Design', 'Web Design']}
     />
   </div>
 

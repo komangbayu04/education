@@ -1,0 +1,256 @@
+---
+/**
+ * Case-study CTA — the panel that hands the reader to the next project.
+ *
+ * A light panel that dissolves at both edges: white squares scatter down out
+ * of the page above it, and the footer's black rises into it from below. Same
+ * pixel language as the home page's handovers and the founder quote's seam
+ * with the footer, and the same rule applies here — the bottom band is painted
+ * in the footer's own colour, so this section has to stay directly above the
+ * footer or the seam breaks.
+ *
+ * Below the panel's content sits a rule with the project's tags right-aligned
+ * under it, which is what closes the section off before the black.
+ */
+import { pixelField } from '../../lib/pixelField';
+
+interface Props {
+  title: string;
+  copy: string;
+  ctaLabel?: string;
+  ctaHref: string;
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  image?: string;
+  imageAlt?: string;
+  /** Ground the device sits on — the next project's colour, not this page's. */
+  ground?: string;
+  tags?: string[];
+}
+
+const {
+  title,
+  copy,
+  ctaLabel = 'Read case study',
+  ctaHref,
+  image,
+  imageAlt = '',
+  ground = '#2c5c50',
+  tags = [],
+} = Astro.props;
+
+/* Both bands are read as rows, not columns: the density runs down the band,
+   not across it. pixelField indexes its density array by column, so the two
+   axes are swapped again when the cells are placed below. */
+const COLS = 48;
+const top = pixelField(4821, COLS, [0.82, 0.5, 0.26, 0.1]);
+const bottom = pixelField(9134, COLS, [0.1, 0.26, 0.5, 0.78, 0.95]);
+---
+
+<section class="cs-next" aria-labelledby="cs-next-title">
+  {/* Decorative — the seams carry no meaning the copy doesn't already. */}
+  <div class="cs-next__band cs-next__band--top" aria-hidden="true">
+    {top.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+  </div>
+
+  <div class="cs-next__inner u-container">
+    <div class="cs-next__lead">
+      <div class="cs-next__text">
+        <h2 class="cs-next__title" id="cs-next-title">{title}</h2>
+        <p class="cs-next__copy">{copy}</p>
+        <a class="cs-next__cta" href={ctaHref} data-magnetic="0.2">
+          <span class="cs-next__cta-label" data-magnetic-inner>{ctaLabel}</span>
+        </a>
+      </div>
+
+      <figure class="cs-next__media" style={`--next-ground:${ground}`}>
+        {
+          image ? (
+            <picture>
+              <source srcset={`${image}.avif`} type="image/avif" />
+              <img src={`${image}.webp`} alt={imageAlt} loading="lazy" decoding="async" />
+            </picture>
+          ) : (
+            <span class="cs-next__empty" />
+          )
+        }
+      </figure>
+    </div>
+
+    {
+      tags.length > 0 && (
+        <ul class="cs-next__tags">
+          {tags.map((tag) => (
+            <li class="cs-next__tag">{tag}</li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+
+  <div class="cs-next__band cs-next__band--bottom" aria-hidden="true">
+    {bottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+  </div>
+</section>
+
+<style>
+  .cs-next {
+    position: relative;
+    /* Room for the two dissolving bands, which sit over the panel rather than
+       inside the flow. */
+    padding-block: clamp(3.5rem, 8vw, 7rem) clamp(5rem, 11vw, 9.5rem);
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  /* --- Seams ---------------------------------------------------------------
+     Cell size follows the width, so the squares stay the same size relative to
+     everything else the page does with pixels. */
+  .cs-next__band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: repeat(48, 1fr);
+    pointer-events: none;
+  }
+
+  .cs-next__band--top {
+    top: 0;
+    grid-template-rows: repeat(4, 1fr);
+    aspect-ratio: 48 / 4;
+  }
+
+  .cs-next__band--top span {
+    background: var(--color-bg-primary);
+  }
+
+  /* Painted in the footer's ground, which is what makes the two read as one
+     interlocking edge rather than two stacked blocks. */
+  .cs-next__band--bottom {
+    bottom: 0;
+    grid-template-rows: repeat(5, 1fr);
+    aspect-ratio: 48 / 5;
+  }
+
+  .cs-next__band--bottom span {
+    background: var(--color-bg-footer);
+  }
+
+  .cs-next__inner {
+    position: relative;
+  }
+
+  /* --- Content -------------------------------------------------------------- */
+  .cs-next__lead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32.5%;
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: center;
+  }
+
+  .cs-next__title {
+    font-size: clamp(1.75rem, 3.7vw, 3.5rem);
+    letter-spacing: -0.03em;
+  }
+
+  .cs-next__copy {
+    max-width: 30em;
+    margin-top: clamp(0.625rem, 1.2vw, 1rem);
+    font-size: var(--text-caption);
+    line-height: 1.55;
+  }
+
+  /* --- Button --------------------------------------------------------------
+     Square, not a pill: the pills in this section are the tags, and the two
+     must not read as the same control. */
+  .cs-next__cta {
+    display: inline-flex;
+    align-items: center;
+    margin-top: clamp(1.25rem, 2.6vw, 2rem);
+    padding: 0.9rem 1.5rem;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-size: var(--text-caption);
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    transition: background-color 0.3s;
+  }
+
+  .cs-next__cta:hover,
+  .cs-next__cta:focus-visible {
+    background: var(--color-accent-hover);
+  }
+
+  /* --- Media ---------------------------------------------------------------
+     The ground belongs to the project being linked to, not to this page, so it
+     comes in as a prop. The device is deliberately larger than its box: the
+     frame crops it at the top and the right. */
+  .cs-next__media {
+    margin: 0;
+    aspect-ratio: 226 / 136;
+    overflow: hidden;
+    background: var(--next-ground);
+  }
+
+  .cs-next__media picture,
+  .cs-next__empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cs-next__media img {
+    width: 116%;
+    height: 116%;
+    margin: -8% 0 0 -6%;
+    object-fit: contain;
+  }
+
+  .cs-next__empty {
+    background: var(--next-ground);
+  }
+
+  /* --- Tags ----------------------------------------------------------------- */
+  .cs-next__tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: clamp(0.5rem, 1vw, 0.875rem);
+    margin-top: clamp(1.5rem, 3.4vw, 2.75rem);
+    padding-top: clamp(1rem, 1.8vw, 1.5rem);
+    border-top: 1px solid var(--color-line-strong);
+  }
+
+  .cs-next__tag {
+    padding: 0.5rem 1.0625rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: var(--color-bg-primary);
+    font-size: var(--text-caption);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 48rem) {
+    .cs-next__lead {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(1.5rem, 6vw, 2.25rem);
+    }
+
+    .cs-next__tags {
+      justify-content: flex-start;
+    }
+
+    .cs-next__tag {
+      padding: 0.4375rem 0.875rem;
+      font-size: 0.8125rem;
+    }
+
+    /* The column count stays at 48 at every width: each cell's column is baked
+       into its inline style, so a narrower grid would push the right-hand
+       cells into implicit columns and tear the band apart. The squares just
+       get smaller. */
+  }
+</style>
