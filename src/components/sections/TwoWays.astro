@@ -476,17 +476,21 @@ const {
       grid-template-columns: minmax(0, 1fr);
     }
 
-    /* Stacked, the left rule reads as a stray mark against the page edge —
-       a rule between them is what's actually wanted. */
+    /* Stacked, each offer becomes a panel of its own rather than two blocks
+       divided by a rule: the left border that separates them side by side
+       reads as a stray mark against the page edge here, and a horizontal rule
+       in its place still leaves them looking like one long list. A ground and
+       a gap say "two things to choose between" without any rule at all. */
     .two__card {
-      padding-inline: 0;
+      padding: clamp(1.25rem, 4.5vw, 1.75rem);
       border-left: 0;
+      background: var(--color-surface);
     }
 
+    /* The recommended one keeps its own lighter wash — see .two__card--highlight
+       above — so it still reads as the lifted one against these grounds. */
     .two__card + .two__card {
-      margin-top: clamp(1.75rem, 6vw, 2.5rem);
-      padding-top: clamp(1.75rem, 6vw, 2.5rem);
-      border-top: 1px solid var(--color-line);
+      margin-top: clamp(1rem, 3.5vw, 1.5rem);
     }
 
     /* With one card per row there is no second card to line up with, so this

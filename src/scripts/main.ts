@@ -4,6 +4,7 @@ import { initMagnetic } from './magnetic';
 import { initNav } from './nav';
 import { initHero } from './hero';
 import { initTimeline } from './timeline';
+import { initWorkCursor } from './workCursor';
 import { initCredibility } from './credibility';
 import { initTwoWays } from './twoWays';
 import { initTestimonials } from './testimonials';
@@ -27,6 +28,7 @@ function initPage(): void {
       initHero(),
       initMagnetic(),
       initTimeline(),
+      initWorkCursor(),
       initCredibility(),
       initTwoWays(),
       initTestimonials(),

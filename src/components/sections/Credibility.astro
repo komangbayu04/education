@@ -426,6 +426,13 @@ const {
      band this query used to leave the ring switched on. 980px is where it
      first fits. */
   @media (max-width: 61.25rem) {
+    /* Fainter on a phone. The column rules are a background grid on a wide
+       screen; on a narrow one they sit right behind the copy, where the same
+       value reads as ruled paper rather than as structure. */
+    .cred__rules span {
+      opacity: 0.45;
+    }
+
     .cred__stage {
       width: 100%;
       height: auto;

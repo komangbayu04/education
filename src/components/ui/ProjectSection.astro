@@ -26,6 +26,10 @@ interface Props {
   imageWidth: number;
   imageHeight: number;
   background: string;
+  /** Where the artwork links to. Defaults to /work/<id>. */
+  href?: string;
+  /** Text on the tile that rides the pointer across the artwork. */
+  viewLabel?: string;
   /** Line measure for the body. Per project because "three lines" is a count,
    *  not a width: a shorter body needs a narrower measure to reach it. */
   bodyMeasure?: string;
@@ -42,6 +46,8 @@ const {
   imageHeight,
   background,
   bodyMeasure = '41ch',
+  href = `/work/${id}`,
+  viewLabel = 'View work',
 } = Astro.props;
 ---
 
@@ -58,10 +64,16 @@ const {
     </div>
 
     <figure class="project__media" data-project-media>
-      <picture>
-        <source srcset={`${image}.avif`} type="image/avif" />
-        <img src={`${image}.webp`} alt={imageAlt} width={imageWidth} height={imageHeight} decoding="async" />
-      </picture>
+      {/* A real anchor, so the project is reachable with a keyboard, by a
+          screen reader and with JS off. src/scripts/workCursor.ts only adds
+          the tile that follows the pointer across it. */}
+      <a class="project__link" href={href} aria-label={`View the ${title} project`} data-work-link>
+        <picture>
+          <source srcset={`${image}.avif`} type="image/avif" />
+          <img src={`${image}.webp`} alt={imageAlt} width={imageWidth} height={imageHeight} decoding="async" />
+        </picture>
+        <span class="project__tile" aria-hidden="true" data-work-tile>{viewLabel}</span>
+      </a>
     </figure>
 
     <div class="project__marker">
@@ -170,6 +182,41 @@ const {
        nothing — the other one just keeps binding. */
     max-height: 92svh;
     margin: 0;
+  }
+
+  /* Fills the figure so the whole artwork is the hit area, and anchors the
+     tile, which is positioned against it. */
+  .project__link {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Rides the pointer. translate(-50%, -50%) centres it on the cursor and is
+     kept in `translate` rather than `transform`, because GSAP drives x/y
+     through `transform` — two properties, so neither overwrites the other. */
+  .project__tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    padding: 0.625rem 1rem;
+    border-radius: 999px;
+    translate: -50% -50%;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    scale: 0.8;
+    will-change: transform;
   }
 
   .project__media img {

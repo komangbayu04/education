@@ -15,6 +15,8 @@ interface Props {
   body?: string;
   image?: string;
   imageAlt?: string;
+  href?: string;
+  viewLabel?: string;
 }
 
 const {
@@ -23,6 +25,8 @@ const {
     'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.',
   image = '/media/showcase-device',
   imageAlt = 'The platform running on a phone',
+  href = '/work/college-counseling-platform',
+  viewLabel = 'View work',
 } = Astro.props;
 ---
 
@@ -36,10 +40,14 @@ const {
     </div>
 
     <figure class="showcase__media" data-showcase-media>
-      <picture>
-        <source srcset={`${image}.avif`} type="image/avif" />
-        <img src={`${image}.webp`} alt={imageAlt} width="1400" height="1139" decoding="async" />
-      </picture>
+      {/* A real anchor — see the matching note in ProjectSection.astro. */}
+      <a class="showcase__link" href={href} aria-label={`View the ${title} project`} data-work-link>
+        <picture>
+          <source srcset={`${image}.avif`} type="image/avif" />
+          <img src={`${image}.webp`} alt={imageAlt} width="1400" height="1139" decoding="async" />
+        </picture>
+        <span class="showcase__tile" aria-hidden="true" data-work-tile>{viewLabel}</span>
+      </a>
     </figure>
 
     <div class="showcase__marker">
@@ -177,6 +185,37 @@ const {
         clamp(1rem, 3vw, 3.5rem)
     );
     margin: 0;
+  }
+
+  .showcase__link {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Rides the pointer — see the matching note in ProjectSection.astro. */
+  .showcase__tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    padding: 0.625rem 1rem;
+    border-radius: 999px;
+    translate: -50% -50%;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    scale: 0.8;
+    will-change: transform;
   }
 
   .showcase__media img {
