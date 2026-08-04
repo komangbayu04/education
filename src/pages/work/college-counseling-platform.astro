@@ -15,6 +15,7 @@ import CaseStudyOverview from '../../components/case-study/CaseStudyOverview.ast
 import CaseStudyVideos from '../../components/case-study/CaseStudyVideos.astro';
 import CaseStudyApproach from '../../components/case-study/CaseStudyApproach.astro';
 import CaseStudyExperience from '../../components/case-study/CaseStudyExperience.astro';
+import CaseStudyResult from '../../components/case-study/CaseStudyResult.astro';
 import Footer from '../../components/layout/Footer.astro';
 
 const title = 'A College Counseling Platform';
@@ -62,11 +63,28 @@ const intro =
     <CaseStudyApproach
       heading="Navigating the college admissions process often involves scattered information, disconnected communication, and manual tracking across multiple tools."
       copy="The challenge was to create a unified experience that helps students and counselors stay aligned from planning to submission."
-      feature={{
-        caption:
-          'Planning tools designed to help students organize every step of the admissions journey with greater clarity.',
-      }}
-      sides={[{}, {}, {}, {}]}
+      items={[
+        {
+          caption:
+            'A shared college list every party can see, so nobody is working from a stale copy.',
+        },
+        {
+          caption:
+            'Deadlines and requirements collected per school, in the order they come due.',
+        },
+        {
+          caption:
+            'Planning tools designed to help students organize every step of the admissions journey with greater clarity.',
+        },
+        {
+          caption:
+            'Counselor notes sit against the application they belong to, not in a separate thread.',
+        },
+        {
+          caption:
+            'Documents gathered where they will be submitted from, ready when the deadline arrives.',
+        },
+      ]}
     />
 
     {/* One panel per feature, all still placeholders. */}
@@ -98,6 +116,14 @@ const intro =
           description:
             'Essays, transcripts and recommendations gathered against the application they belong to, ready to submit.',
         },
+      ]}
+    />
+
+    <CaseStudyResult
+      rows={[
+        { value: '6', label: 'Core experiences brought together.' },
+        { value: '1', label: 'Connected workspace for students and counselors' },
+        { value: 'End-to-End', label: 'Supporting every step of the admissions journey.' },
       ]}
     />
   </div>

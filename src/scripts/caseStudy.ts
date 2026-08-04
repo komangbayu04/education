@@ -18,8 +18,14 @@ const RESUME_DELAY = 1200;
  * horizontal rail — and the drift pauses only while the rail is actually being
  * moved, never on a resting cursor.
  *
- * It opens with the featured card centred rather than at scrollLeft 0, which
- * is where the frame has it.
+ * There is no fixed feature: whichever item is nearest the centre of the rail
+ * is the one wearing the mat and the caption, so dragging brings the next
+ * shape into the frame instead of carrying the frame away. The switch has a
+ * dead band, because the active item is also the widest one — without it the
+ * width change would move its own centre back under the threshold and the two
+ * neighbours would trade places every frame.
+ *
+ * It opens with the middle item of the first copy centred.
  */
 function initRail(cleanups: Array<() => void>): void {
   const rail = document.querySelector<HTMLElement>('[data-cs-rail]');
@@ -52,15 +58,69 @@ function initRail(cleanups: Array<() => void>): void {
     }
   };
 
-  const centreFeature = () => {
-    const feature = track.querySelector<HTMLElement>('[data-cs-feature]');
-    if (!feature || loopWidth <= 0) return;
-    rail.scrollLeft = feature.offsetLeft - (rail.clientWidth - feature.offsetWidth) / 2;
-    wrap();
-  };
-  centreFeature();
+  const items = gsap.utils.toArray<HTMLElement>('[data-cs-ap-item]', track);
 
-  rail.addEventListener('scroll', wrap, { signal, passive: true });
+  /** Distance the new candidate has to win by before the frame moves. */
+  const DEAD_BAND = 24;
+  let active = -1;
+
+  const syncActive = () => {
+    if (!items.length) return;
+    const mid = rail.scrollLeft + rail.clientWidth / 2;
+
+    let best = 0;
+    let bestDistance = Infinity;
+    items.forEach((item, i) => {
+      const distance = Math.abs(item.offsetLeft + item.offsetWidth / 2 - mid);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = i;
+      }
+    });
+
+    if (best === active) return;
+    if (active >= 0) {
+      const current = items[active];
+      const currentDistance = Math.abs(current.offsetLeft + current.offsetWidth / 2 - mid);
+      if (bestDistance > currentDistance - DEAD_BAND) return;
+    }
+
+    items.forEach((item, i) => {
+      if (i === best) item.setAttribute('data-active', '');
+      else item.removeAttribute('data-active');
+    });
+    active = best;
+  };
+
+  const centreStart = () => {
+    if (!items.length || loopWidth <= 0) return;
+    // Middle of the first copy — the list is rendered twice.
+    const target = items[Math.floor(items.length / 4)];
+
+    // Feature it *before* measuring, with transitions suppressed for one
+    // frame: the active item is the wide one, and measuring it mid-transition
+    // centres the rail on a width it is about to stop having.
+    rail.setAttribute('data-instant', '');
+    items.forEach((item) => {
+      if (item === target) item.setAttribute('data-active', '');
+      else item.removeAttribute('data-active');
+    });
+    active = items.indexOf(target);
+
+    rail.scrollLeft = target.offsetLeft - (rail.clientWidth - target.offsetWidth) / 2;
+    wrap();
+    requestAnimationFrame(() => rail.removeAttribute('data-instant'));
+  };
+  centreStart();
+
+  rail.addEventListener(
+    'scroll',
+    () => {
+      wrap();
+      syncActive();
+    },
+    { signal, passive: true },
+  );
 
   // --- Manual drag ---------------------------------------------------------
   let dragging = false;
@@ -125,7 +185,7 @@ function initRail(cleanups: Array<() => void>): void {
     const before = loopWidth;
     measure();
     // A resize re-lays the track, so the old scroll offset means nothing.
-    if (before !== loopWidth) centreFeature();
+    if (before !== loopWidth) centreStart();
   });
   observer.observe(track);
 
@@ -164,6 +224,7 @@ function initRail(cleanups: Array<() => void>): void {
 
     rail.scrollLeft += (AUTO_SPEED * dt) / 1000;
     wrap();
+    syncActive();
   };
 
   gsap.ticker.add(tick);
