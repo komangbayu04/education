@@ -40,16 +40,33 @@ const {
 
 /* Both bands are read as rows, not columns: the density runs down the band,
    not across it. pixelField indexes its density array by column, so the two
-   axes are swapped again when the cells are placed below. */
-const COLS = 48;
-const top = pixelField(4821, COLS, [0.82, 0.5, 0.26, 0.1]);
-const bottom = pixelField(9134, COLS, [0.1, 0.26, 0.5, 0.78, 0.95]);
+   axes are swapped again when the cells are placed below.
+
+   Two fields per seam, one per breakpoint. A cell's column is baked into its
+   inline style, so a band cannot simply be re-columned in CSS — at 48 across
+   on a phone the squares come out 8px, far finer than the pixel language
+   everywhere else on the site, so the narrow layout gets a field of its own
+   and the other one is switched off. */
+const FIELDS = {
+  wide: { cols: 48, top: [0.82, 0.5, 0.26, 0.1], bottom: [0.1, 0.26, 0.5, 0.78, 0.95] },
+  narrow: { cols: 20, top: [0.8, 0.42, 0.16], bottom: [0.16, 0.45, 0.78, 0.95] },
+};
+
+const bands = {
+  wideTop: pixelField(4821, FIELDS.wide.cols, FIELDS.wide.top),
+  wideBottom: pixelField(9134, FIELDS.wide.cols, FIELDS.wide.bottom),
+  narrowTop: pixelField(2207, FIELDS.narrow.cols, FIELDS.narrow.top),
+  narrowBottom: pixelField(6350, FIELDS.narrow.cols, FIELDS.narrow.bottom),
+};
 ---
 
 <section class="cs-next" aria-labelledby="cs-next-title">
   {/* Decorative — the seams carry no meaning the copy doesn't already. */}
-  <div class="cs-next__band cs-next__band--top" aria-hidden="true">
-    {top.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+  <div class="cs-next__band cs-next__band--top cs-next__band--wide" aria-hidden="true">
+    {bands.wideTop.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+  </div>
+  <div class="cs-next__band cs-next__band--top cs-next__band--narrow" aria-hidden="true">
+    {bands.narrowTop.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
   </div>
 
   <div class="cs-next__inner u-container">
@@ -87,17 +104,26 @@ const bottom = pixelField(9134, COLS, [0.1, 0.26, 0.5, 0.78, 0.95]);
     }
   </div>
 
-  <div class="cs-next__band cs-next__band--bottom" aria-hidden="true">
-    {bottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+  <div class="cs-next__band cs-next__band--bottom cs-next__band--wide" aria-hidden="true">
+    {bands.wideBottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+  </div>
+  <div class="cs-next__band cs-next__band--bottom cs-next__band--narrow" aria-hidden="true">
+    {bands.narrowBottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
   </div>
 </section>
 
 <style>
   .cs-next {
     position: relative;
-    /* Room for the two dissolving bands, which sit over the panel rather than
-       inside the flow. */
-    padding-block: clamp(3.5rem, 8vw, 7rem) clamp(5rem, 11vw, 9.5rem);
+    /* The bands are square cells laid across the full width, so their height
+       is a share of that width and keeps growing with the viewport — a fixed
+       padding here let the bottom band climb over the tags on a wide screen.
+       The percentage term is exactly the band's own height (rows ÷ columns),
+       so the content clears it at every width, and the clamp is the breathing
+       room on top of that. Percentage padding resolves against the containing
+       block's width, which is what makes this work at all. */
+    padding-top: calc(4 / 48 * 100% + clamp(1.25rem, 2.5vw, 2.5rem));
+    padding-bottom: calc(5 / 48 * 100% + clamp(1.5rem, 3vw, 3rem));
     overflow: hidden;
     background: var(--color-surface);
   }
@@ -110,14 +136,31 @@ const bottom = pixelField(9134, COLS, [0.1, 0.26, 0.5, 0.78, 0.95]);
     left: 0;
     right: 0;
     display: grid;
-    grid-template-columns: repeat(48, 1fr);
     pointer-events: none;
+  }
+
+  .cs-next__band--wide {
+    grid-template-columns: repeat(48, 1fr);
+  }
+
+  /* Off by default; the narrow layout below swaps the pair over. */
+  .cs-next__band--narrow {
+    display: none;
+    grid-template-columns: repeat(20, 1fr);
   }
 
   .cs-next__band--top {
     top: 0;
+  }
+
+  .cs-next__band--top.cs-next__band--wide {
     grid-template-rows: repeat(4, 1fr);
     aspect-ratio: 48 / 4;
+  }
+
+  .cs-next__band--top.cs-next__band--narrow {
+    grid-template-rows: repeat(3, 1fr);
+    aspect-ratio: 20 / 3;
   }
 
   .cs-next__band--top span {
@@ -128,8 +171,16 @@ const bottom = pixelField(9134, COLS, [0.1, 0.26, 0.5, 0.78, 0.95]);
      interlocking edge rather than two stacked blocks. */
   .cs-next__band--bottom {
     bottom: 0;
+  }
+
+  .cs-next__band--bottom.cs-next__band--wide {
     grid-template-rows: repeat(5, 1fr);
     aspect-ratio: 48 / 5;
+  }
+
+  .cs-next__band--bottom.cs-next__band--narrow {
+    grid-template-rows: repeat(4, 1fr);
+    aspect-ratio: 20 / 4;
   }
 
   .cs-next__band--bottom span {
@@ -248,9 +299,19 @@ const bottom = pixelField(9134, COLS, [0.1, 0.26, 0.5, 0.78, 0.95]);
       font-size: 0.8125rem;
     }
 
-    /* The column count stays at 48 at every width: each cell's column is baked
-       into its inline style, so a narrower grid would push the right-hand
-       cells into implicit columns and tear the band apart. The squares just
-       get smaller. */
+    /* Coarser bands, and the padding follows their taller share of the width
+       so the tags still clear the black. */
+    .cs-next {
+      padding-top: calc(3 / 20 * 100% + 1.25rem);
+      padding-bottom: calc(4 / 20 * 100% + 1.5rem);
+    }
+
+    .cs-next__band--wide {
+      display: none;
+    }
+
+    .cs-next__band--narrow {
+      display: grid;
+    }
   }
 </style>
