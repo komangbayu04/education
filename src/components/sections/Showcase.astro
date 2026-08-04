@@ -105,7 +105,10 @@ const {
        grid, so track 5 was empty. */
     grid-column: 1 / span 5;
     position: relative;
-    z-index: 1;
+    /* Above the artwork, which now runs under it. Stated rather than left to
+       "the media has no z-index, so the positioned text wins by default" —
+       that is true today and silently reversible by any later rule. */
+    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
@@ -135,17 +138,37 @@ const {
      263px of empty section above it. Nothing is cropped now: the box is the
      band, and object-fit: contain sizes the artwork to whichever of the two
      runs out first — the band's width or the height cap. */
+  /* Anchored to the right and sized off the section's height, not off a band
+     between the copy and the marker. Boxed in by the copy it could only ever
+     be as wide as what was left over, which at 16:10 capped it at 74% of the
+     section's height; the copy now sits *over* it instead (explicit
+     direction), so the artwork is free to run as far left as it needs to.
+
+     aspect-ratio matches the asset exactly, so the box and the artwork are
+     the same rectangle — no letterboxing inside the figure, which is what
+     makes `right` land the artwork itself against the marker rather than the
+     empty part of a wider box. */
   .showcase__media {
     position: absolute;
-    left: calc(var(--section-padding-x) + var(--showcase-body-w) + clamp(1rem, 2vw, 2rem));
-    right: calc(var(--section-padding-x) + var(--showcase-marker-w) + clamp(1rem, 2vw, 2rem));
-    /* Bottom-anchored and running a little past the edge, like the other three
-       work sections. The cutout's own bottom is a hard horizontal cut where
-       the forearms end; centred vertically, that straight line floats in open
-       section and reads as a crop. Against the edge it reads as a photograph
-       carrying on out of frame, and the section's overflow hides it. */
+    right: calc(var(--section-padding-x) + var(--showcase-marker-w) + clamp(0.75rem, 1.4vw, 1.5rem));
+    /* The cutout's own bottom is a hard horizontal cut where the forearms
+       end. Against the edge it reads as a photograph carrying on out of
+       frame; anywhere above it, that straight line reads as a crop. */
     bottom: -4svh;
     height: 96svh;
+    aspect-ratio: 1400 / 1139;
+    width: auto;
+    /* Stops the artwork's left edge at the body copy's, so the paragraph is
+       always read against clean ground. Only the title crosses — it is large
+       and dark enough to hold over the artwork, and at 16:10 the unbounded
+       version put the body straight across the phone's screen.
+
+       Whichever of the two binds: at a wide, short window the height does and
+       this is slack; at 16:10 this does and the artwork gives height back. */
+    max-width: calc(
+      100% - var(--section-padding-x) - var(--showcase-body-w) - clamp(1rem, 2vw, 2rem) -
+        (var(--section-padding-x) + var(--showcase-marker-w) + clamp(0.75rem, 1.4vw, 1.5rem))
+    );
     margin: 0;
   }
 
