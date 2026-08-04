@@ -1,0 +1,44 @@
+---
+/**
+ * Case study — A College Counseling Platform.
+ *
+ * The destination behind the Showcase chapter on the home page: its title,
+ * its "View work" tile and its mobile button all point here. Content lives in
+ * this file rather than a data module — one case study exists so far, and the
+ * page is where a reader of the codebase would look for its copy.
+ */
+import Base from '../../layouts/Base.astro';
+import CaseStudyHero from '../../components/case-study/CaseStudyHero.astro';
+import CaseStudyIntro from '../../components/case-study/CaseStudyIntro.astro';
+import Footer from '../../components/layout/Footer.astro';
+
+const title = 'A College Counseling Platform';
+const summary =
+  'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.';
+const intro =
+  'A modern college counseling platform designed to help students, families, and counselors navigate the university application journey with greater clarity.';
+---
+
+<Base title={`${title} — Tribe`} description={intro}>
+  {/* The nav is overlaid, not stacked — see Nav.astro. On the home page the
+      hero reserves that height itself; here the page has to. */}
+  <div class="cs">
+    <CaseStudyHero
+      title={title}
+      summary={summary}
+      tags={['Admissions software', 'Product', 'Design system']}
+      image="/media/showcase-device"
+      imageAlt="The counseling platform running on a phone"
+    />
+
+    <CaseStudyIntro copy={intro} />
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .cs {
+    padding-top: var(--nav-height);
+  }
+</style>

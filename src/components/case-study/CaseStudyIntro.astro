@@ -1,0 +1,43 @@
+---
+/**
+ * Case-study introduction — the labelled statement under the hero band.
+ *
+ * One eyebrow, one paragraph. The measure is set in em so the three lines the
+ * frame shows survive the fluid type scale instead of reflowing at every
+ * width.
+ */
+
+interface Props {
+  eyebrow?: string;
+  copy: string;
+}
+
+const { eyebrow = 'Introduction', copy } = Astro.props;
+---
+
+<section class="cs-intro u-container" aria-labelledby="cs-intro-label">
+  <p class="cs-intro__eyebrow u-label" id="cs-intro-label">{eyebrow}</p>
+  <p class="cs-intro__copy">{copy}</p>
+</section>
+
+<style>
+  .cs-intro {
+    padding-top: clamp(2.5rem, 5.4vw, 3.875rem);
+    padding-bottom: clamp(3rem, 6vw, 5.5rem);
+  }
+
+  .cs-intro__eyebrow {
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-intro__copy {
+    max-width: 26em;
+    margin-top: clamp(0.75rem, 1.6vw, 1.25rem);
+    font-size: clamp(1.375rem, 3.5vw, 3.25rem);
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+    /* globals.css sets text-wrap: pretty on every <p>; here it pulls words
+       down early and turns the frame's three lines into four. */
+    text-wrap: initial;
+  }
+</style>
