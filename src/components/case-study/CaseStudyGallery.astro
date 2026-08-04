@@ -153,14 +153,11 @@ const slots = ['a', 'b', 'c'] as const;
       aspect-ratio: 476 / 470;
     }
 
-    /* Stacked, full-width tiles are the same problem as the desktop scatter
-       was: three of them run to several screens on their own. */
+    /* Full width: at 82% the tiles read as floating cut-outs against the
+       gutter rather than as artwork the page is built around. The height they
+       cost back is paid for by the tighter gaps. */
     .cs-gal__tile {
-      width: 82%;
-    }
-
-    .cs-gal__tile--c {
-      align-self: flex-end;
+      width: 100%;
     }
 
     .cs-gal__tile--b {

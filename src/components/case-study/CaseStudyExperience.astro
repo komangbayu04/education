@@ -238,7 +238,11 @@ const { eyebrow = 'Core experience', heading, features } = Astro.props;
       padding-inline: var(--section-padding-x);
     }
 
+    /* Stacked, the panel no longer has a right edge to run off — bleeding it
+       here would just leave it as the one image on the page that ignores the
+       gutter. */
     .cs-ex__stage {
+      margin-inline: var(--section-padding-x);
       aspect-ratio: 16 / 11;
     }
   }
