@@ -464,8 +464,8 @@ const {
     .hero__title {
       font-size: clamp(1.75rem, 7.6vw, 2.5rem);
       /* Clear of the nav's rule — at zero the cap height started three pixels
-         under it. */
-      padding-top: 1.25rem;
+         under it — less the 12px it was asked to come up by. */
+      padding-top: 0.5rem;
     }
 
     /* Taken out of flow so its size stops being the text's business: the
@@ -494,6 +494,11 @@ const {
 
     .hero__col--aside {
       justify-content: flex-start;
+      /* 12px down, as paint rather than layout. A margin here changed nothing:
+         the media row above is the 1fr, so it simply gave up 12px and the
+         block landed back where it started. A translate moves it without
+         asking the grid for anything. */
+      transform: translateY(12px);
     }
 
     /* Two columns of two, as the frame has it — four rows of one item each
