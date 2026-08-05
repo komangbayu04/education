@@ -1,73 +1,89 @@
 import { gsap } from './gsap';
 import { prefersReducedMotion } from './utils/device';
 
-/** Pixels per second the approach rail drifts on its own. */
-const AUTO_SPEED = 38;
-/** How long after a manual interaction before the drift picks back up. */
-const RESUME_DELAY = 1200;
+/** How long a shape sits in the frame before the next one steps in. */
+const DWELL = 2600;
+/** Seconds one step takes. */
+const TRAVEL = 0.8;
+/** How long after a manual interaction before the stepping picks back up. */
+const RESUME_DELAY = 1400;
 
 /**
- * Approach rail — a native scroller that also drifts on its own.
+ * Approach rail — shapes that step through a frame that never moves.
  *
- * Same mechanism as the testimonials marquee, for the same reasons: native
- * `overflow-x: auto` gives trackpad, touch and scrollbar correct behaviour for
- * free, the item list is rendered twice so scrollLeft can wrap at the halfway
- * point in either direction, and a ticker adds the drift on top.
+ * The frame is a static element in the markup, centred and owned by nobody.
+ * This only moves the rail underneath it: one step parks the next item exactly
+ * in the frame's well, scales it up to fill it, and writes its caption into
+ * the frame's caption line. Between steps nothing is framed, so the caption
+ * fades out with it.
  *
- * Pointer drag is added by hand — a mouse has no other way to move a
- * horizontal rail — and the drift pauses only while the rail is actually being
- * moved, never on a resting cursor.
+ * Every item occupies the same slot and the size difference is a transform, so
+ * the track's geometry never changes — a scroll target measured once stays
+ * correct, which is what lets the step land on the pixel.
  *
- * There is no fixed feature: whichever item is nearest the centre of the rail
- * is the one wearing the mat and the caption, so dragging brings the next
- * shape into the frame instead of carrying the frame away. The switch has a
- * dead band, because the active item is also the widest one — without it the
- * width change would move its own centre back under the threshold and the two
- * neighbours would trade places every frame.
- *
- * It opens with the middle item of the first copy centred.
+ * Native `overflow-x: auto` does the scrolling, so trackpad, touch and
+ * scrollbar all behave correctly for free; pointer drag is added by hand
+ * because a mouse has no other way to move a horizontal rail. The list is
+ * rendered twice and scrollLeft wraps at the halfway point, so the loop never
+ * shows an edge in either direction. After any manual move the rail settles on
+ * the nearest item rather than stopping between two.
  */
 function initRail(cleanups: Array<() => void>): void {
   const rail = document.querySelector<HTMLElement>('[data-cs-rail]');
   const track = rail?.querySelector<HTMLElement>('[data-cs-track]');
   if (!rail || !track) return;
 
+  const items = gsap.utils.toArray<HTMLElement>('[data-cs-ap-item]', track);
+  if (items.length < 2) return;
+
+  const caption = document.querySelector<HTMLElement>('[data-cs-ap-caption]');
   const controller = new AbortController();
   const { signal } = controller;
+  const reduced = prefersReducedMotion();
 
-  /** Width of one copy of the list — the point scrollLeft wraps at. */
-  let loopWidth = 0;
-  const measure = () => {
-    loopWidth = track.scrollWidth / 2;
+  /** Items in one copy of the list — it is rendered twice. */
+  const per = items.length / 2;
+  /** Width of one copy — the point scrollLeft wraps at. */
+  let loopWidth = track.scrollWidth / 2;
+
+  let index = Math.floor(per / 2);
+  let tween: gsap.core.Tween | null = null;
+  let dwellTimer = 0;
+  let settleTimer = 0;
+  let dragging = false;
+
+  /** scrollLeft that puts item i dead centre. */
+  const targetFor = (i: number) => {
+    const item = items[i];
+    return item.offsetLeft - (rail.clientWidth - item.offsetWidth) / 2;
   };
-  measure();
 
-  // Guard so the wrap, which writes scrollLeft, doesn't recurse through its
-  // own scroll event.
-  let wrapping = false;
-  const wrap = () => {
-    if (wrapping || loopWidth <= 0) return;
-    if (rail.scrollLeft >= loopWidth) {
-      wrapping = true;
-      rail.scrollLeft -= loopWidth;
-      wrapping = false;
-    } else if (rail.scrollLeft <= 0) {
-      wrapping = true;
-      rail.scrollLeft += loopWidth;
-      wrapping = false;
+  const frame = (i: number) => {
+    items.forEach((item, n) => {
+      if (n === i) item.setAttribute('data-active', '');
+      else item.removeAttribute('data-active');
+    });
+
+    if (!caption) return;
+    if (i < 0) {
+      caption.setAttribute('data-empty', '');
+      return;
     }
+    caption.textContent = items[i].dataset.caption ?? '';
+    caption.removeAttribute('data-empty');
   };
 
-  const items = gsap.utils.toArray<HTMLElement>('[data-cs-ap-item]', track);
+  /* Keeping the index inside the first copy is what makes the loop endless:
+     the two copies are identical, so jumping back by one copy's width is
+     invisible. */
+  const rewind = () => {
+    if (index < per || loopWidth <= 0) return;
+    index -= per;
+    rail.scrollLeft -= loopWidth;
+  };
 
-  /** Distance the new candidate has to win by before the frame moves. */
-  const DEAD_BAND = 24;
-  let active = -1;
-
-  const syncActive = () => {
-    if (!items.length) return;
+  const nearest = () => {
     const mid = rail.scrollLeft + rail.clientWidth / 2;
-
     let best = 0;
     let bestDistance = Infinity;
     items.forEach((item, i) => {
@@ -77,53 +93,58 @@ function initRail(cleanups: Array<() => void>): void {
         best = i;
       }
     });
+    return best;
+  };
 
-    if (best === active) return;
-    if (active >= 0) {
-      const current = items[active];
-      const currentDistance = Math.abs(current.offsetLeft + current.offsetWidth / 2 - mid);
-      if (bestDistance > currentDistance - DEAD_BAND) return;
+  const stop = () => {
+    tween?.kill();
+    tween = null;
+    window.clearTimeout(dwellTimer);
+    window.clearTimeout(settleTimer);
+  };
+
+  /** Ease the rail to item i, then hold it there. */
+  const goTo = (i: number, duration = TRAVEL) => {
+    stop();
+    index = i;
+    frame(-1);
+
+    const land = () => {
+      tween = null;
+      rewind();
+      frame(index);
+      if (!reduced) dwellTimer = window.setTimeout(() => goTo(index + 1), DWELL);
+    };
+
+    if (reduced || duration === 0) {
+      rail.scrollLeft = targetFor(index);
+      land();
+      return;
     }
 
-    items.forEach((item, i) => {
-      if (i === best) item.setAttribute('data-active', '');
-      else item.removeAttribute('data-active');
+    tween = gsap.to(rail, {
+      scrollLeft: targetFor(index),
+      duration,
+      ease: 'power2.inOut',
+      onComplete: land,
     });
-    active = best;
   };
 
-  const centreStart = () => {
-    if (!items.length || loopWidth <= 0) return;
-    // Middle of the first copy — the list is rendered twice.
-    const target = items[Math.floor(items.length / 4)];
-
-    // Feature it *before* measuring, with transitions suppressed for one
-    // frame: the active item is the wide one, and measuring it mid-transition
-    // centres the rail on a width it is about to stop having.
-    rail.setAttribute('data-instant', '');
-    items.forEach((item) => {
-      if (item === target) item.setAttribute('data-active', '');
-      else item.removeAttribute('data-active');
-    });
-    active = items.indexOf(target);
-
-    rail.scrollLeft = target.offsetLeft - (rail.clientWidth - target.offsetWidth) / 2;
-    wrap();
-    requestAnimationFrame(() => rail.removeAttribute('data-instant'));
+  /** Called after any manual move: settle on whatever is closest. */
+  const settleSoon = () => {
+    window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(() => {
+      if (dragging) return;
+      goTo(nearest(), 0.45);
+    }, RESUME_DELAY);
   };
-  centreStart();
 
-  rail.addEventListener(
-    'scroll',
-    () => {
-      wrap();
-      syncActive();
-    },
-    { signal, passive: true },
-  );
+  const interrupt = () => {
+    stop();
+    frame(-1);
+  };
 
   // --- Manual drag ---------------------------------------------------------
-  let dragging = false;
   let startX = 0;
   let startScroll = 0;
   let moved = false;
@@ -138,6 +159,7 @@ function initRail(cleanups: Array<() => void>): void {
       startX = event.clientX;
       startScroll = rail.scrollLeft;
       rail.setAttribute('data-dragging', '');
+      interrupt();
     },
     { signal },
   );
@@ -163,6 +185,7 @@ function initRail(cleanups: Array<() => void>): void {
     dragging = false;
     rail.removeAttribute('data-dragging');
     if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+    goTo(nearest(), 0.45);
   };
 
   rail.addEventListener('pointerup', endDrag, { signal });
@@ -180,58 +203,38 @@ function initRail(cleanups: Array<() => void>): void {
     { signal, capture: true },
   );
 
-  // --- Auto drift ----------------------------------------------------------
-  const observer = new ResizeObserver(() => {
-    const before = loopWidth;
-    measure();
-    // A resize re-lays the track, so the old scroll offset means nothing.
-    if (before !== loopWidth) centreStart();
-  });
-  observer.observe(track);
-
-  if (prefersReducedMotion()) {
-    cleanups.push(() => {
-      controller.abort();
-      observer.disconnect();
-    });
-    return;
-  }
-
-  let resumeAt = 0;
-  const hold = () => {
-    resumeAt = performance.now() + RESUME_DELAY;
+  // Touch and sideways wheels move the rail through the native scroller, so
+  // they never reach the drag handlers above. A plain vertical wheel is the
+  // page scrolling past this section, not an attempt to move it.
+  const manual = () => {
+    interrupt();
+    settleSoon();
   };
 
-  // Sideways wheels only: a plain vertical wheel over the rail is the page
-  // scrolling past this section, not an attempt to move it.
   rail.addEventListener(
     'wheel',
     (event: WheelEvent) => {
-      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) hold();
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) manual();
     },
     { signal, passive: true },
   );
-  rail.addEventListener('touchstart', hold, { signal, passive: true });
-  rail.addEventListener('touchmove', hold, { signal, passive: true });
+  rail.addEventListener('touchstart', manual, { signal, passive: true });
+  rail.addEventListener('touchmove', manual, { signal, passive: true });
 
-  let last = performance.now();
-  const tick = () => {
-    const time = performance.now();
-    const dt = Math.min(64, time - last);
-    last = time;
+  // --- Layout --------------------------------------------------------------
+  const observer = new ResizeObserver(() => {
+    const before = loopWidth;
+    loopWidth = track.scrollWidth / 2;
+    // A resize re-lays the track, so the old scroll offset means nothing.
+    if (before !== loopWidth) goTo(index, 0);
+  });
+  observer.observe(track);
 
-    if (dragging || time < resumeAt || loopWidth <= 0) return;
-
-    rail.scrollLeft += (AUTO_SPEED * dt) / 1000;
-    wrap();
-    syncActive();
-  };
-
-  gsap.ticker.add(tick);
+  goTo(index, 0);
 
   cleanups.push(() => {
     controller.abort();
-    gsap.ticker.remove(tick);
+    stop();
     observer.disconnect();
   });
 }
