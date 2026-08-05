@@ -207,7 +207,9 @@ const copies = [0, 1];
     justify-content: space-between;
     gap: 1.5em;
     min-height: 3em;
-    margin-top: 1em;
+    /* The gap the progress line needs: at zero the rule sits on the caption's
+       descenders and reads as a strike-through. */
+    margin: 1em 0 0.7em;
   }
 
   .cs-ap__frame-caption {
@@ -227,6 +229,13 @@ const copies = [0, 1];
     color: var(--color-ink-secondary);
     font-size: 0.6875rem;
     font-variant-numeric: tabular-nums;
+    opacity: 1;
+    transition: opacity 0.3s;
+  }
+
+  /* Goes with the caption: mid-step there is nothing in the frame to number. */
+  .cs-ap__count[data-empty] {
+    opacity: 0;
   }
 
   /* --- Progress ------------------------------------------------------------
@@ -363,9 +372,21 @@ const copies = [0, 1];
   }
 
   @media (max-width: 48rem) {
+    /* Most of the screen: at two thirds the frame was smaller than the shapes
+       queueing beside it, which is backwards. */
     .cs-ap__stage {
-      --cs-ap-slot: 64vw;
-      --cs-ap-pad: 2.2vw;
+      --cs-ap-slot: 78vw;
+      --cs-ap-pad: 2.6vw;
+      --cs-ap-gap: 6vw;
+    }
+
+    /* Stacked, with the counter as a label above: side by side it took a third
+       of an already narrow column and pushed the caption into four lines. */
+    .cs-ap__meta {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      gap: 0.5em;
+      min-height: 0;
     }
 
     .cs-ap__frame-caption {
