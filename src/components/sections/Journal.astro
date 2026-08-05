@@ -10,19 +10,21 @@
  * The whole card is one link, so the click target is the card rather than
  * just the headline.
  *
- * ASSETS: no article images were supplied. `image` is optional on every entry;
- * without one, the card draws a tinted placeholder scattered with the same
- * pixel squares the rest of the site uses, so a missing image still reads as
- * part of the design rather than as a broken slot. Pass `image` and both the
- * tint and the pixels disappear — real artwork is expected to carry that
- * treatment baked in, the way the hero and project shots already do, so
- * overlaying it again in CSS would double it up.
+ * ASSETS: `image` is an extensionless base path, matching the rest of the site
+ * — `tools/prep-images.mjs` writes an .avif and a .webp for every source PNG,
+ * and the <picture> below appends the extension. It stays optional: without
+ * one, the card draws a tinted placeholder scattered with the same pixel
+ * squares the rest of the site uses, so a missing image still reads as part of
+ * the design rather than as a broken slot. With one, both the tint and the
+ * pixels disappear — real artwork carries that treatment baked in, the way the
+ * hero and project shots already do, so overlaying it again would double it up.
  */
 
 interface Post {
   category: string;
   title: string;
   href: string;
+  /** Extensionless, e.g. '/media/journal-1' — see the note above. */
   image?: string;
   imageAlt?: string;
   /** Only used by the placeholder — ignored once a real `image` is passed. */

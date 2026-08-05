@@ -50,12 +50,42 @@ console.log('BEDFORD ', JSON.stringify(bedfordBox));
 const celpipBox = await alphaBBox(`${SRC}/image 4.png`);
 console.log('CELPIP ', JSON.stringify(celpipBox));
 
+/**
+ * Portraits, article art and the founder backdrop. Every one is trimmed by
+ * alphaBBox like the rest — these arrived as PNGs with an alpha channel, and
+ * for the ones that are actually opaque the bounding box just comes back as
+ * the whole canvas, so the same call is correct either way.
+ *
+ * maxW is set from how large each is ever displayed, doubled for retina:
+ * the featured portraits render at ~330px, the rail ones at ~180px, the
+ * journal cards at ~430px, and the backdrop is full-bleed.
+ */
+const extra = [
+  { file: 'ahmed.png', name: 'tm-ahmed', maxW: 760 },
+  { file: 'braden.png', name: 'tm-braden', maxW: 760 },
+  { file: 'Geoffrey Langford.png', name: 'tm-geoffrey', maxW: 460 },
+  { file: 'Wei Sun.png', name: 'tm-wei', maxW: 460 },
+  { file: 'yarik.png', name: 'quote-portrait', maxW: 680 },
+  { file: 'bg 2.png', name: 'quote-bg', maxW: 2000 },
+  { file: 'blog1.png', name: 'journal-1', maxW: 880 },
+  { file: 'blog2.png', name: 'journal-2', maxW: 880 },
+  { file: 'blog3.png', name: 'journal-3', maxW: 880 },
+];
+
+const extraJobs = [];
+for (const { file, name, maxW } of extra) {
+  const box = await alphaBBox(`${SRC}/${file}`);
+  console.log(name.padEnd(16), JSON.stringify(box));
+  extraJobs.push({ src: `${SRC}/${file}`, box, name, maxW });
+}
+
 const jobs = [
   { src: `${SRC}/image bgg.png`, box: heroBox, name: 'hero-base', maxW: 1600 },
   { src: `${SRC}/mockup2.png`, box: mockBox, name: 'showcase-device', maxW: 1400 },
   { src: `${SRC}/Overclock.png`, box: overclockBox, name: 'overclock-device', maxW: 1400 },
   { src: `${SRC}/image 3.png`, box: bedfordBox, name: 'bedford-device', maxW: 1400 },
   { src: `${SRC}/image 4.png`, box: celpipBox, name: 'celpip-device', maxW: 1400 },
+  ...extraJobs,
 ];
 
 for (const { src, box, name, maxW } of jobs) {

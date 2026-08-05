@@ -21,17 +21,19 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  *                                         every later section's text also
  *                                         uses (added on request; it didn't
  *                                         have its own entrance before).
- *              B. Showcase's text leaves  translates up + fades, in place —
- *                                         the device image never moves.
- *              Then Overclock, Bedford and CELPIP each repeat the same two
- *              beats — deliberately NOT phase A's mechanic (explicit
- *              direction: no zoom, no pixels, just opacity):
- *                arrival   plain opacity crossfade (0 → 1, no scale
- *                          anywhere), that section's own text rising into
- *                          view partway through
- *                exit      that section's text scrolls up and fades, in
- *                          place (skipped for CELPIP — it's currently last,
- *                          nothing to hand off to)
+ *              Then Overclock, Bedford and CELPIP each arrive in ONE beat
+ *              apiece — deliberately NOT phase A's mechanic (explicit
+ *              direction: no zoom, no pixels, just opacity). Within that
+ *              single phase the outgoing copy leaves, the next section
+ *              crossfades in and its copy rises, all overlapping — see
+ *              `addTransition`.
+ *
+ *              Those used to be two phases each (an exit, then an arrival),
+ *              which left a stretch of scroll where only the old copy moved
+ *              and the section itself sat still. It read as a pause before
+ *              anything changed, so they were merged: the change now starts
+ *              the moment its phase does.
+ *
  *              Settle — nothing animates; just scroll room to rest on the
  *              finished page before the pin (and the document) ends.
  *
@@ -160,11 +162,8 @@ export function initHero(): () => void {
       // rewrite of the fraction math below.
       const VIEWPORTS = {
         heroToShowcase: 1, // phase A — unchanged absolute timing
-        showcaseExit: 0.6,
         overclockArrival: 0.5,
-        overclockExit: 0.5,
         bedfordArrival: 0.5,
-        bedfordExit: 0.5,
         celpipArrival: 0.5,
         settle: 1,
       } as const;
@@ -181,20 +180,14 @@ export function initHero(): () => void {
       };
 
       const atHeroToShowcase = at(VIEWPORTS.heroToShowcase);
-      const atShowcaseExit = at(VIEWPORTS.showcaseExit);
       const atOverclockArrival = at(VIEWPORTS.overclockArrival);
-      const atOverclockExit = at(VIEWPORTS.overclockExit);
       const atBedfordArrival = at(VIEWPORTS.bedfordArrival);
-      const atBedfordExit = at(VIEWPORTS.bedfordExit);
       const atCelpipArrival = at(VIEWPORTS.celpipArrival);
       // cursor is now at the start of "settle", i.e. 1 - VIEWPORTS.settle/PIN_VIEWPORTS
 
       const durHeroToShowcase = VIEWPORTS.heroToShowcase / PIN_VIEWPORTS;
-      const durShowcaseExit = VIEWPORTS.showcaseExit / PIN_VIEWPORTS;
       const durOverclockArrival = VIEWPORTS.overclockArrival / PIN_VIEWPORTS;
-      const durOverclockExit = VIEWPORTS.overclockExit / PIN_VIEWPORTS;
       const durBedfordArrival = VIEWPORTS.bedfordArrival / PIN_VIEWPORTS;
-      const durBedfordExit = VIEWPORTS.bedfordExit / PIN_VIEWPORTS;
       const durCelpipArrival = VIEWPORTS.celpipArrival / PIN_VIEWPORTS;
 
       // Slot switches once each arrival's crossfade is complete — see the
@@ -320,10 +313,11 @@ export function initHero(): () => void {
       }
 
       // Showcase's own text rising into view — added on request; every later
-      // section's text does this too (see addArrival below), but Showcase's
+      // section's text does this too (see addTransition below), but Showcase's
       // entrance predates that pattern and needed adding by hand since it
       // shares phase A with the pixel reveal rather than getting its own
-      // phase.
+      // phase. Its *exit* is not here: that now belongs to Overclock's
+      // transition, which runs it as the same beat Overclock arrives in.
       /**
        * How far a chapter's text has to travel to sit just past its section's
        * bottom / top edge — i.e. fully out of frame, clipped by the section's
@@ -356,35 +350,47 @@ export function initHero(): () => void {
         );
       }
 
-      // --- Showcase's text exits, in place -------------------------------------
-      if (showcaseText) {
-        handover.to(
-          showcaseText,
-          { y: () => aboveEdge(showcaseText), ease: 'none', duration: durShowcaseExit },
-          atShowcaseExit,
-        );
-      }
-
       /**
-       * One plain-opacity arrival: `arriving` fades 0 → 1 over the whole
-       * phase — the section handover itself stays a crossfade, deliberately
-       * not phase A's mechanic and deliberately not a slide. Only
-       * `arrivingText` moves: up from past the section's bottom edge, on
-       * translation alone with no fade of its own, across the back half of
-       * the phase once the crossfade is mostly settled.
+       * One section changing to the next, as a single continuous beat.
+       *
+       * All three things overlap inside the one phase rather than queueing up
+       * after each other:
+       *   - `outgoingText` leaves through the top over the front 60%
+       *   - `arriving` crossfades 0 → 1 across the whole phase (still a plain
+       *     opacity fade — deliberately not phase A's mechanic, and
+       *     deliberately not a slide)
+       *   - `arrivingText` rises in from past the bottom edge over the back
+       *     half, landing as the crossfade completes
+       *
+       * They used to be two separate phases — the outgoing text got its own
+       * stretch of scroll where nothing else moved, then the next section
+       * started arriving in a stretch after that. That reads as a pause: you
+       * scroll, the copy leaves, and only if you keep scrolling does the
+       * section actually change. Overlapping them means the change starts the
+       * moment the phase does.
        */
-      const addArrival = (
+      const addTransition = (
         arriving: HTMLElement | null | undefined,
         arrivingText: HTMLElement | null | undefined,
+        outgoingText: HTMLElement | null | undefined,
         start: number,
         duration: number,
       ) => {
+        if (outgoingText) {
+          handover.to(
+            outgoingText,
+            { y: () => aboveEdge(outgoingText), ease: 'none', duration: duration * 0.6 },
+            start,
+          );
+        }
+
         if (arriving) {
           handover.fromTo(arriving, { opacity: 0 }, { opacity: 1, ease: 'none', duration }, start);
           handover
             .set(arriving, { pointerEvents: 'none' }, start)
             .set(arriving, { pointerEvents: 'auto' }, start + duration * 0.94);
         }
+
         if (arrivingText) {
           handover.fromTo(
             arrivingText,
@@ -395,23 +401,23 @@ export function initHero(): () => void {
         }
       };
 
-      /** That section's own text travelling up and out past its top edge. */
-      const addExit = (text: HTMLElement | null | undefined, start: number, duration: number) => {
-        if (!text) return;
-        handover.to(text, { y: () => aboveEdge(text), ease: 'none', duration }, start);
-      };
+      // Each section's exit is now folded into the next one's arrival, so the
+      // outgoing copy is on its way out at the same moment the next section is
+      // fading in.
+      addTransition(
+        overclockLayer,
+        overclockText,
+        showcaseText,
+        atOverclockArrival,
+        durOverclockArrival,
+      );
+      addTransition(bedfordLayer, bedfordText, overclockText, atBedfordArrival, durBedfordArrival);
 
-      addArrival(overclockLayer, overclockText, atOverclockArrival, durOverclockArrival);
-      addExit(overclockText, atOverclockExit, durOverclockExit);
-
-      addArrival(bedfordLayer, bedfordText, atBedfordArrival, durBedfordArrival);
-      addExit(bedfordText, atBedfordExit, durBedfordExit);
-
-      // CELPIP is currently last — arrival only, no exit, nothing to hand off
-      // to yet. The settle phase after it (implicit: nothing is scheduled
-      // there) is what gives the finished page room to rest before the pin —
-      // and the document — actually ends.
-      addArrival(celpipLayer, celpipText, atCelpipArrival, durCelpipArrival);
+      // CELPIP is currently last — nothing to hand off to, so no exit follows
+      // it. The settle phase after it (implicit: nothing is scheduled there)
+      // is what gives the finished page room to rest before the pin — and the
+      // document — actually ends.
+      addTransition(celpipLayer, celpipText, bedfordText, atCelpipArrival, durCelpipArrival);
 
       // Runs when the query stops matching, and on mm.revert()
       return () => {
