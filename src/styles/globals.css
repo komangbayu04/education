@@ -100,6 +100,11 @@
 @media (max-width: 48rem) {
   :root {
     --section-padding-x: 1.25rem;
+    /* Taller than the fluid value lands here, because on a phone this band is
+       carrying the whole header: at 3.5rem the logo sat 8px off the top of the
+       screen. Everything that reserves room for the nav reads this, so the
+       hero and the case-study pages follow it on their own. */
+    --nav-height: 4.75rem;
   }
 }
 

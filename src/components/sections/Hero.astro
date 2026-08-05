@@ -462,7 +462,9 @@ const {
 
     .hero__title {
       font-size: clamp(1.75rem, 7.6vw, 2.5rem);
-      padding-top: 0;
+      /* Clear of the nav's rule — at zero the cap height started three pixels
+         under it. */
+      padding-top: 1.25rem;
     }
 
     /* Taken out of flow so its size stops being the text's business: the

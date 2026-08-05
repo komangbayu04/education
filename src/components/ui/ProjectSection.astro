@@ -297,6 +297,14 @@ const {
       margin-top: clamp(0.75rem, 3vw, 1.25rem);
     }
 
+    /* The button above is the control at this width. The cursor tile only ever
+       had a job where there is a cursor to follow, and on a narrow desktop
+       window it was appearing alongside the button — two controls for one
+       destination. */
+    .project__tile {
+      display: none;
+    }
+
     .project__marker {
       grid-column: 1 / span 6;
       grid-row: 2;

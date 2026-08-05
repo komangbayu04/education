@@ -311,6 +311,12 @@ const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
     .nav__toggle {
       display: flex;
     }
+
+    /* The rule belongs to the logo and the burger, not to whatever is under
+       it: 28px below them read as a band of its own. */
+    .nav__inner {
+      padding-bottom: 14px;
+    }
   }
 
   /* Pre-animation state, JS only */
