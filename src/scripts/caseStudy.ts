@@ -37,6 +37,8 @@ function initRail(cleanups: Array<() => void>): void {
   if (items.length < 2) return;
 
   const caption = document.querySelector<HTMLElement>('[data-cs-ap-caption]');
+  const counter = document.querySelector<HTMLElement>('[data-cs-ap-count]');
+  const progress = document.querySelector<HTMLElement>('[data-cs-ap-progress]');
   const controller = new AbortController();
   const { signal } = controller;
   const reduced = prefersReducedMotion();
@@ -48,6 +50,7 @@ function initRail(cleanups: Array<() => void>): void {
 
   let index = Math.floor(per / 2);
   let tween: gsap.core.Tween | null = null;
+  let fill: gsap.core.Tween | null = null;
   let dwellTimer = 0;
   let settleTimer = 0;
   let dragging = false;
@@ -64,13 +67,39 @@ function initRail(cleanups: Array<() => void>): void {
       else item.removeAttribute('data-active');
     });
 
-    if (!caption) return;
     if (i < 0) {
-      caption.setAttribute('data-empty', '');
+      caption?.setAttribute('data-empty', '');
+      counter?.setAttribute('data-empty', '');
       return;
     }
-    caption.textContent = items[i].dataset.caption ?? '';
-    caption.removeAttribute('data-empty');
+
+    if (caption) {
+      caption.textContent = items[i].dataset.caption ?? '';
+      caption.removeAttribute('data-empty');
+    }
+
+    if (counter) {
+      // Both copies of the list are the same five shapes, so the count reads
+      // off the first copy however far the loop has travelled.
+      const pad = (n: number) => String(n).padStart(2, '0');
+      counter.textContent = `${pad((i % per) + 1)} / ${pad(per)}`;
+      counter.removeAttribute('data-empty');
+    }
+  };
+
+  /** Draws the dwell. Restarted on every landing, emptied on every step. */
+  const runProgress = (on: boolean) => {
+    if (!progress) return;
+    fill?.kill();
+    if (!on || reduced) {
+      gsap.set(progress, { scaleX: 0 });
+      return;
+    }
+    fill = gsap.fromTo(
+      progress,
+      { scaleX: 0 },
+      { scaleX: 1, duration: DWELL / 1000, ease: 'none' },
+    );
   };
 
   /* Keeping the index inside the first copy is what makes the loop endless:
@@ -99,6 +128,7 @@ function initRail(cleanups: Array<() => void>): void {
   const stop = () => {
     tween?.kill();
     tween = null;
+    fill?.kill();
     window.clearTimeout(dwellTimer);
     window.clearTimeout(settleTimer);
   };
@@ -108,11 +138,13 @@ function initRail(cleanups: Array<() => void>): void {
     stop();
     index = i;
     frame(-1);
+    runProgress(false);
 
     const land = () => {
       tween = null;
       rewind();
       frame(index);
+      runProgress(true);
       if (!reduced) dwellTimer = window.setTimeout(() => goTo(index + 1), DWELL);
     };
 
@@ -142,6 +174,7 @@ function initRail(cleanups: Array<() => void>): void {
   const interrupt = () => {
     stop();
     frame(-1);
+    runProgress(false);
   };
 
   // --- Manual drag ---------------------------------------------------------

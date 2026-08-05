@@ -7,7 +7,10 @@
  * paragraph set against it in the right, the way the frame stacks them.
  *
  * The frame is its own element, centred and static: it never moves, never
- * scrolls, and belongs to no item. The rail scrolls underneath it, parking one
+ * scrolls, and belongs to no item. It carries a caption, a counter and a
+ * progress line that fills while the shape inside it is being held — the line
+ * is the only thing that tells you the rail is about to move, and it is what
+ * keeps a still frame from reading as a dead one. The rail scrolls underneath it, parking one
  * shape inside it at a time; that shape scales up to fill it and its caption
  * is written into the frame's own caption line. Everything else drifts past at
  * three quarters of the size.
@@ -56,7 +59,17 @@ const copies = [0, 1];
         the stage's height — the rail is laid over its media well. */}
     <div class="cs-ap__frame">
       <div class="cs-ap__frame-well"></div>
-      <p class="cs-ap__frame-caption" data-cs-ap-caption aria-hidden="true"></p>
+
+      <div class="cs-ap__meta" aria-hidden="true">
+        <p class="cs-ap__frame-caption" data-cs-ap-caption></p>
+        <p class="cs-ap__count u-label" data-cs-ap-count></p>
+      </div>
+
+      {/* Fills across the dwell, resets on every step, stops while the rail is
+          being moved by hand. */}
+      <div class="cs-ap__progress" aria-hidden="true">
+        <span data-cs-ap-progress></span>
+      </div>
     </div>
 
     <div class="cs-ap__rail" data-cs-rail data-lenis-prevent-horizontal>
@@ -150,29 +163,68 @@ const copies = [0, 1];
     margin-top: clamp(2rem, 4.5vw, 3.5rem);
   }
 
+  /* A hairline and a very soft lift rather than a border or a shadow on its
+     own: the page is flat by design, and the frame only has to sit a fraction
+     above the shapes travelling behind it. */
   .cs-ap__frame {
     width: calc(var(--cs-ap-slot) + 2 * var(--cs-ap-pad));
     margin-inline: auto;
-    padding: var(--cs-ap-pad);
+    padding: var(--cs-ap-pad) var(--cs-ap-pad) calc(var(--cs-ap-pad) * 0.75);
+    border: 1px solid var(--color-line);
     background: var(--color-surface);
+    box-shadow:
+      0 1px 1px rgb(0 0 0 / 0.02),
+      0 18px 40px -28px rgb(0 0 0 / 0.35);
   }
 
   .cs-ap__frame-well {
     height: var(--cs-ap-well-h);
   }
 
+  /* Caption and counter share a baseline, with the counter holding the right
+     edge — the same pairing the timeline markers use elsewhere. */
+  .cs-ap__meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5em;
+    min-height: 3em;
+    margin-top: 1em;
+  }
+
   .cs-ap__frame-caption {
-    min-height: 2.9em;
-    margin-top: 1.1em;
     font-size: var(--text-caption);
     line-height: 1.5;
     opacity: 1;
     transition: opacity 0.3s;
   }
 
-  /* Nothing is parked in the frame mid-step, so the line goes with it. */
+  /* Nothing is parked in the frame mid-step, so both go with it. */
   .cs-ap__frame-caption[data-empty] {
     opacity: 0;
+  }
+
+  .cs-ap__count {
+    flex: none;
+    color: var(--color-ink-secondary);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- Progress ------------------------------------------------------------
+     The dwell, drawn. Scale on a track that is already full width, so the fill
+     costs no layout and can be driven straight from the timer. */
+  .cs-ap__progress {
+    height: 2px;
+    background: var(--color-line);
+  }
+
+  .cs-ap__progress span {
+    display: block;
+    height: 100%;
+    background: var(--color-ink);
+    transform: scaleX(0);
+    transform-origin: left center;
   }
 
   /* --- Rail ----------------------------------------------------------------
@@ -215,20 +267,27 @@ const copies = [0, 1];
     padding-inline: var(--cs-ap-gap);
   }
 
+  /* Held back so the framed one is the one being looked at. Opacity, not a
+     filter: the shapes are photographs, and a wash reads as a treatment where
+     a fade reads as depth. */
   .cs-ap__item {
     flex: none;
     width: var(--cs-ap-slot);
     margin: 0;
+    opacity: 0.55;
     /* Scale, not width: a width change would move every item after it and
        invalidate the scroll target the step was measured against. */
     transform: scale(var(--cs-ap-shrink));
-    transition: transform 0.45s var(--ease-out-expo);
+    transition:
+      transform 0.45s var(--ease-out-expo),
+      opacity 0.45s;
     /* Nothing in the rail may be dragged away as an image. */
     user-select: none;
     -webkit-user-drag: none;
   }
 
   .cs-ap__item[data-active] {
+    opacity: 1;
     transform: scale(1);
   }
 
@@ -290,6 +349,11 @@ const copies = [0, 1];
   @media (prefers-reduced-motion: reduce) {
     .cs-ap__item {
       transition: none;
+    }
+
+    /* Nothing is counting down, so an empty track would just be a stray rule. */
+    .cs-ap__progress {
+      display: none;
     }
   }
 </style>
