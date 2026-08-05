@@ -443,16 +443,23 @@ const {
       /* headline, artwork, aside — the artwork takes what the other two
          leave, so this holds on any phone without a fixed image height. */
       grid-template-rows: auto minmax(0, 1fr) auto;
-    }
-
-    .hero__title,
-    .hero__line {
-      white-space: normal;
+      /* Tighter than the 4vw the shared rule gives, and the tightening is
+         pure gain for the picture: the hero is exactly one viewport, the
+         other two rows are content-sized, so every pixel taken off the two
+         row gaps lands in the artwork's row. The For block does not move —
+         the total above it is unchanged. */
+      row-gap: 0.625rem;
     }
 
     /* One line, not three stacked words. The lines are spans, so inline is
        all it takes — plus a real space between them, since the markup has
-       none: they were written as separate block lines. */
+       none: they were written as separate block lines.
+
+       They keep the base rule's nowrap. Relaxing it here, which is what this
+       block used to do, let each span break on its own and quietly outranked
+       the nowrap on the title: an inline child's own white-space wins over
+       the inherited one, so the headline went on wrapping to three lines with
+       the property that was supposed to stop it sitting right above it. */
     .hero__line {
       display: inline;
     }
@@ -462,7 +469,15 @@ const {
     }
 
     .hero__title {
-      font-size: clamp(1.75rem, 7.6vw, 2.5rem);
+      /* One line, guaranteed: nowrap decides it, and the size is what makes
+         that safe. Measured rather than guessed — the rendered line is 11.03
+         times the font size, so it exactly fills the gutters at 7.93vw on a
+         320px screen and 8.22vw on a 430px one. 7.7vw sits under the tighter
+         of the two with a few percent to spare, and Space Grotesk itself is
+         about 3% narrower than the fallback this was measured on, so the real
+         face has more room than the number was cut for, not less. */
+      font-size: clamp(1.375rem, 7.7vw, 2.5rem);
+      white-space: nowrap;
       /* Clear of the nav's rule — at zero the cap height started three pixels
          under it — less the 12px it was asked to come up by. */
       padding-top: 0.5rem;
@@ -490,6 +505,20 @@ const {
       height: auto;
       max-width: none;
       aspect-ratio: auto;
+    }
+
+    /* Every pixel this block gives back goes to the artwork, which is the one
+       thing on this screen that is short of room: the hero is exactly one
+       viewport, so the picture's row is whatever the headline and this block
+       leave. The rhythm here is tighter than the 16px the shared rule sets,
+       and the bottom margin is halved — the button still clears the edge. */
+    .hero__aside {
+      gap: 0.625rem;
+      margin-bottom: 12px;
+    }
+
+    .hero__list {
+      row-gap: 0.625rem;
     }
 
     .hero__col--aside {
@@ -548,12 +577,18 @@ const {
        downward only, into the gap above the For list, because upward is where
        the title is. */
     .hero__base {
-      /* The clip surface. Sideways it is 10% wider a side, which is where the
-         crown is allowed to run off. Downward it stops 16px past the stage —
-         the grid's own row gap — so the artwork can never reach the For block
-         under it. The top edge stays exactly on the stage, because the top is
-         the one edge that must not be cut. */
-      inset: 0 -10% -16px;
+      /* The clip surface, and now also the artwork's bounds — see the image
+         rule below.
+
+         Sideways it is 13% wider a side, up from 10%: that widening is the
+         artwork's headroom, and the extra is where the last 5% of growth
+         comes from. The crown is allowed to run off those edges.
+
+         The floor sits inside the stage rather than past it, so the painted
+         collage stops clear of the For block instead of landing on top of it.
+         The top edge stays exactly on the stage, because the top is the one
+         edge that must not be cut. */
+      inset: 0 -13% -6px;
     }
 
     .hero__base img {
@@ -569,7 +604,12 @@ const {
       /* globals caps every image at max-width:100%, which measures against the
          containing block — the widened base — so it has to come off here. */
       max-width: none;
-      height: 112%;
+      /* Exactly the surface, not 112% of it. The overshoot was the overlap:
+         `contain` fits the collage to the box it is given, so a box hanging
+         12% below the stage put the grass 12% of a screen into the For block
+         on every phone wide enough for the height to be the binding
+         dimension. Matched to the surface, the floor above is a floor. */
+      height: 100%;
       object-fit: contain;
       /* Top-anchored: the crown starts exactly at the stage's top edge, so the
          one thing that must never be cut is the one thing guaranteed to be
