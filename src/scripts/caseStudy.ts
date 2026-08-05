@@ -1,4 +1,5 @@
 import { gsap } from './gsap';
+import { initCaseStudyReveal } from './caseStudyReveal';
 import { createFrameGL, type FrameGL } from './frameGL';
 import { prefersReducedMotion } from './utils/device';
 
@@ -437,6 +438,7 @@ export function initCaseStudy(): () => void {
   initRail(cleanups);
   initVideos(cleanups);
   initExperience(cleanups);
+  cleanups.push(initCaseStudyReveal());
 
   return () => cleanups.forEach((fn) => fn());
 }

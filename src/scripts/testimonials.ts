@@ -31,16 +31,50 @@ function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
   const controller = new AbortController();
   const { signal } = controller;
 
-  const open = (index: number) => {
+  /* Index of a card whose video is playing. While one is, hover and focus stop
+     deciding what is open: collapsing a card mid-sentence takes the video with
+     it, and the pointer has to leave the card to reach anything else on the
+     page. It unlocks when the video pauses or ends. */
+  let playing = -1;
+
+  const apply = (index: number) => {
     people.forEach((person, i) => {
       if (i === index) person.setAttribute('data-open', '');
       else person.removeAttribute('data-open');
     });
   };
 
+  const open = (index: number) => {
+    if (playing >= 0) return;
+    apply(index);
+  };
+
   people.forEach((person, i) => {
     person.addEventListener('pointerenter', () => open(i), { signal });
     person.addEventListener('focusin', () => open(i), { signal });
+
+    const video = person.querySelector<HTMLVideoElement>('[data-tm-video]');
+    if (!video) return;
+
+    video.addEventListener(
+      'play',
+      () => {
+        playing = i;
+        apply(i);
+      },
+      { signal },
+    );
+
+    const release = () => {
+      if (playing !== i) return;
+      playing = -1;
+      // Back to whatever the pointer is actually over, or the default.
+      const hovered = people.findIndex((p) => p.matches(':hover'));
+      apply(hovered >= 0 ? hovered : DEFAULT_INDEX);
+    };
+
+    video.addEventListener('pause', release, { signal });
+    video.addEventListener('ended', release, { signal });
   });
 
   feature.addEventListener('pointerleave', () => open(DEFAULT_INDEX), { signal });

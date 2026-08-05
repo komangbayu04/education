@@ -35,7 +35,7 @@ const { tiles, caption } = Astro.props;
 const slots = ['a', 'b', 'c'] as const;
 ---
 
-<section class="cs-gal u-container">
+<section class="cs-gal u-container" data-cs-reveal>
   <div class="cs-gal__stage">
     {
       tiles.map((tile, i) => (

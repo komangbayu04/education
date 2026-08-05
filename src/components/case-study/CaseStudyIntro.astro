@@ -15,7 +15,7 @@ interface Props {
 const { eyebrow = 'Introduction', copy } = Astro.props;
 ---
 
-<section class="cs-intro u-container" aria-labelledby="cs-intro-label">
+<section class="cs-intro u-container" aria-labelledby="cs-intro-label" data-cs-reveal>
   <p class="cs-intro__eyebrow u-label" id="cs-intro-label">{eyebrow}</p>
   <p class="cs-intro__copy">{copy}</p>
 </section>

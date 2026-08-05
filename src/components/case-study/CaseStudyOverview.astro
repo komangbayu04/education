@@ -38,7 +38,7 @@ const { eyebrow = 'Overview', heading, caption, wide, side } = Astro.props;
 const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44, 0.5, 0.54, 0.58, 0.6]);
 ---
 
-<section class="cs-ov u-container" aria-labelledby="cs-ov-label">
+<section class="cs-ov u-container" aria-labelledby="cs-ov-label" data-cs-reveal>
   <div class="cs-ov__pixels" aria-hidden="true">
     {cells.map((cell) => <span style={`grid-column:${cell.col};grid-row:${cell.row}`} />)}
   </div>
