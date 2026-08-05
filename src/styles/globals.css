@@ -104,7 +104,7 @@
        carrying the whole header: at 3.5rem the logo sat 8px off the top of the
        screen. Everything that reserves room for the nav reads this, so the
        hero and the case-study pages follow it on their own. */
-    --nav-height: 4.75rem;
+    --nav-height: 4.25rem;
   }
 }
 

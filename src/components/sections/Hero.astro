@@ -526,12 +526,23 @@ const {
     }
 
     /* Contain, not cover: the box below is full-bleed and no longer the
-       photo's own ratio, and cover would crop the crown off at both edges. The
-       collage has to arrive whole — the pixel squares along its bottom-right
-       are part of the artwork, not a background. */
+       photo's own ratio, and cover would crop the crown off at both edges.
+
+       The box the image is contained in is then blown up 20% past the stage
+       and re-centred with the negative margin. The canopy runs off the screen
+       edges at that size, which is allowed — it is the sky-and-grass rectangle
+       inside the collage that must stay whole, and at 120% that rectangle
+       still lands well inside the viewport. Width and height together, so the
+       ratio is untouched. */
     .hero__base img {
+      width: 120%;
+      /* globals caps every image at max-width:100%, which was clamping the
+         120% straight back to the stage's width. */
+      max-width: none;
+      height: 120%;
+      margin: -10%;
       object-fit: contain;
-      object-position: center;
+      object-position: center bottom;
     }
   }
 
