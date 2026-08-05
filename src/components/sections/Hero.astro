@@ -130,7 +130,8 @@ const {
   /* --- Headline ----------------------------------------------------------- */
   .hero__title {
     font-size: var(--text-display-xl);
-    font-weight: 300;
+    /* Medium. Light read as thin against the artwork below it once that grew. */
+    font-weight: 500;
     line-height: var(--leading-display);
     letter-spacing: -0.025em;
     padding-top: clamp(0.5rem, 1.5vw, 1.75rem);
@@ -534,15 +535,41 @@ const {
        inside the collage that must stay whole, and at 120% that rectangle
        still lands well inside the viewport. Width and height together, so the
        ratio is untouched. */
+    /* The clip surface, not the image, is what grows. .hero__base carries the
+       reveal's clip-path — an inset against its own box — so an image spilling
+       past it is sliced flat, which is what was cutting the crown off under
+       the title. Widening the box by 10% a side and dropping its floor 20%
+       gives the larger artwork somewhere legal to be; the extra height goes
+       downward only, into the gap above the For list, because upward is where
+       the title is. */
+    .hero__base {
+      /* The clip surface. Sideways it is 10% wider a side, which is where the
+         crown is allowed to run off. Downward it stops 16px past the stage —
+         the grid's own row gap — so the artwork can never reach the For block
+         under it. The top edge stays exactly on the stage, because the top is
+         the one edge that must not be cut. */
+      inset: 0 -10% -16px;
+    }
+
     .hero__base img {
-      width: 120%;
-      /* globals caps every image at max-width:100%, which was clamping the
-         120% straight back to the stage's width. */
+      /* Full width of the clip surface, which is already 20% wider than the
+         stage — that widening is the growth, and doubling it here was making
+         the artwork half again as big as asked.
+
+         The height overshoots on purpose: at this width the collage needs 112%
+         of the surface to stay in ratio, and anchored to the top that surplus
+         falls off the bottom, where the collage already ends on a straight
+         edge of grass. */
+      width: 100%;
+      /* globals caps every image at max-width:100%, which measures against the
+         containing block — the widened base — so it has to come off here. */
       max-width: none;
-      height: 120%;
-      margin: -10%;
+      height: 112%;
       object-fit: contain;
-      object-position: center bottom;
+      /* Top-anchored: the crown starts exactly at the stage's top edge, so the
+         one thing that must never be cut is the one thing guaranteed to be
+         inside the box. */
+      object-position: center top;
     }
   }
 
