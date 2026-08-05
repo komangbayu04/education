@@ -324,8 +324,21 @@ const {
     </div>
   </div>
 
-  <div class="tm__progress u-container" aria-hidden="true">
-    {quotes.map(() => <span class="tm__progress-seg" data-tm-seg />)}
+  {/* Real buttons, not decoration: they are the only way to reach a specific
+      quote without dragging the rail there by hand. */}
+  <div class="tm__progress u-container" role="group" aria-label="Quotes">
+    {
+      quotes.map((quote, i) => (
+        <button
+          class="tm__progress-seg"
+          type="button"
+          data-tm-seg
+          aria-label={`Show the quote from ${quote.name}`}
+        >
+          <span class="u-sr-only">{i + 1}</span>
+        </button>
+      ))
+    }
   </div>
 </section>
 
@@ -772,12 +785,26 @@ const {
   }
 
   .tm__progress-seg {
+    position: relative;
     width: 0.875rem;
     height: 0.625rem;
     background: var(--color-line-strong);
+    cursor: pointer;
     transition:
       width 0.45s var(--ease-out-expo),
       background-color 0.45s var(--ease-out-expo);
+  }
+
+  /* A 14 x 10 mark is well under any sane touch target; the hit area is grown
+     around it instead of the mark, which has to stay this size. */
+  .tm__progress-seg::before {
+    content: '';
+    position: absolute;
+    inset: -0.75rem -0.25rem;
+  }
+
+  .tm__progress-seg:hover:not([data-active]) {
+    background: var(--color-ink-muted);
   }
 
   .tm__progress-seg[data-active] {

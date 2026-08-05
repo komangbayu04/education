@@ -460,13 +460,28 @@ const {
       gap: clamp(2.5rem, 6vw, 4rem);
     }
 
-    /* Nothing left to push against once the columns stack, so the big
-       flexible gap has to come out or it strands the CTA. */
+    /* Stacked, the ask belongs after the offer, not between the intro and it:
+       side by side the CTA sat at the foot of its own column, which read as
+       the end of the section — one column down it was landing before the cards
+       and the pills had said anything.
+
+       display:contents dissolves the left column so its two halves become grid
+       items in their own right; only then can the CTA be ordered past the
+       panel, which is a different parent. */
     .two__lead {
-      gap: clamp(2rem, 5vw, 3rem);
+      display: contents;
+    }
+
+    .two__intro {
+      order: 1;
+    }
+
+    .two__panel {
+      order: 2;
     }
 
     .two__cta-block {
+      order: 3;
       margin-top: 0;
     }
   }

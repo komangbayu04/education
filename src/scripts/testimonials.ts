@@ -327,17 +327,45 @@ function initMarquee(section: HTMLElement, cleanups: Array<() => void>): void {
     { signal, capture: true },
   );
 
-  // --- Auto drift ----------------------------------------------------------
-  if (prefersReducedMotion()) {
-    cleanups.push(() => controller.abort());
-    return;
-  }
-
+  // --- Jump to a quote -----------------------------------------------------
+  // The marks under the rail are buttons: pressing one scrolls that quote into
+  // place. Their position is the same ratio syncProgress reads back, so this
+  // is that calculation inverted — and it stays inside the copy the rail is
+  // currently in, so the jump is never a whole loop long.
   let resumeAt = 0;
 
   const hold = () => {
     resumeAt = performance.now() + RESUME_DELAY;
   };
+
+  segments.forEach((segment, i) => {
+    segment.addEventListener(
+      'click',
+      () => {
+        if (loopWidth <= 0 || !segments.length) return;
+        hold();
+        const base = Math.floor(rail.scrollLeft / loopWidth) * loopWidth;
+        gsap.to(rail, {
+          scrollLeft: base + (i / segments.length) * loopWidth,
+          duration: 0.6,
+          ease: 'power2.inOut',
+          overwrite: true,
+          onUpdate: syncProgress,
+          onComplete: () => {
+            wrap();
+            syncProgress();
+          },
+        });
+      },
+      { signal },
+    );
+  });
+
+  // --- Auto drift ----------------------------------------------------------
+  if (prefersReducedMotion()) {
+    cleanups.push(() => controller.abort());
+    return;
+  }
 
   // Sideways wheels only. This listener fires for *every* wheel over the rail,
   // including the plain vertical ones that are just scrolling the page past
