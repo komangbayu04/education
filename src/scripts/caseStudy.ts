@@ -1,4 +1,5 @@
 import { gsap } from './gsap';
+import { createFrameGL, type FrameGL } from './frameGL';
 import { prefersReducedMotion } from './utils/device';
 
 /** How long a shape sits in the frame before the next one steps in. */
@@ -36,6 +37,7 @@ function initRail(cleanups: Array<() => void>): void {
   const items = gsap.utils.toArray<HTMLElement>('[data-cs-ap-item]', track);
   if (items.length < 2) return;
 
+  const well = document.querySelector<HTMLElement>('.cs-ap__frame-well');
   const caption = document.querySelector<HTMLElement>('[data-cs-ap-caption]');
   const counter = document.querySelector<HTMLElement>('[data-cs-ap-count]');
   const progress = document.querySelector<HTMLElement>('[data-cs-ap-progress]');
@@ -51,6 +53,24 @@ function initRail(cleanups: Array<() => void>): void {
   let index = Math.floor(per / 2);
   let tween: gsap.core.Tween | null = null;
   let fill: gsap.core.Tween | null = null;
+
+  /* The framed shape is handed to WebGL while it is parked: the canvas resolves
+     it out of a field of blocks and holds it, and the DOM copy underneath is
+     hidden so the two never double up. Everything in transit stays DOM. Null
+     when the context can't be created — then the DOM copy simply stays
+     visible, which is the same picture without the entrance. */
+  const frameGL: FrameGL | null = well && !reduced ? createFrameGL(well) : null;
+
+  const handToGL = (i: number) => {
+    items.forEach((item) => item.removeAttribute('data-framed'));
+    if (!frameGL) return;
+    if (i < 0) {
+      frameGL.leave();
+      return;
+    }
+    items[i].setAttribute('data-framed', '');
+    frameGL.enter(items[i]);
+  };
   let dwellTimer = 0;
   let settleTimer = 0;
   let dragging = false;
@@ -66,6 +86,8 @@ function initRail(cleanups: Array<() => void>): void {
       if (n === i) item.setAttribute('data-active', '');
       else item.removeAttribute('data-active');
     });
+
+    handToGL(i);
 
     if (i < 0) {
       caption?.setAttribute('data-empty', '');
@@ -263,12 +285,35 @@ function initRail(cleanups: Array<() => void>): void {
   });
   observer.observe(track);
 
+  /* The shapes waiting their turn drift, each on its own beat, so the rail
+     reads as a row of things held rather than a row of things parked. The
+     float writes `y` on the item and the size change writes `transform` on the
+     media inside it — two elements, so GSAP and the CSS transition never fight
+     over the same property. */
+  const floats: gsap.core.Tween[] = [];
+  if (!reduced) {
+    items.forEach((item, i) => {
+      floats.push(
+        gsap.to(item, {
+          y: i % 2 ? 9 : -9,
+          duration: 3.2 + (i % 4) * 0.45,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+          delay: (i % 5) * 0.35,
+        }),
+      );
+    });
+  }
+
   goTo(index, 0);
 
   cleanups.push(() => {
     controller.abort();
     stop();
     observer.disconnect();
+    floats.forEach((f) => f.kill());
+    frameGL?.destroy();
   });
 }
 
