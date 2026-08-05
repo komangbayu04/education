@@ -135,7 +135,7 @@ const {
     <div class="tm__spot-stage">
       {featured.map((person, i) => (
         <figure class="tm__spot-panel" data-tm-spot-panel data-active={i === 0 ? '' : undefined}>
-          <div class="tm__spot-media">
+          <div class="tm__spot-media" data-tm-media>
             {person.video ? (
               <video
                 class="tm__video"
@@ -446,8 +446,10 @@ const {
   }
 
   /* Out of the way once playback starts, and out of the tab order with it —
-     the native controls take over from here. */
-  .tm__portrait[data-playing] .tm__play {
+     the native controls take over from here. Keyed off the media wrapper the
+     script marks, so the accordion portrait and the mobile spotlight panel
+     both answer to it. */
+  [data-tm-media][data-playing] .tm__play {
     opacity: 0;
     pointer-events: none;
     visibility: hidden;

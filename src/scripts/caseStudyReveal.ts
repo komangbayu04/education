@@ -75,8 +75,12 @@ export function initCaseStudyReveal(): () => void {
       scrollTrigger: {
         trigger: section,
         start: 'top bottom',
-        end: 'top 55%',
-        scrub: 0.4,
+        // A section takes about 70% of the viewport's height of scrolling to
+        // clear, up from 45%: the squares were going before they had been
+        // seen. The scrub's own lag is up with it, so a fast flick still
+        // resolves rather than snapping.
+        end: 'top 25%',
+        scrub: 0.7,
       },
     });
 
