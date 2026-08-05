@@ -356,7 +356,11 @@ const {
   .two__card-flag {
     position: absolute;
     top: 34%;
-    left: 42%;
+    /* Anchored to the card's right edge and pushed a fraction of its own type
+       size past it, so the V's outer stroke is always just clipped — a share
+       of the card's width instead would cut a different amount of the mark on
+       every layout, because the mark and the card don't scale together. */
+    right: -0.18em;
     /* Three letters instead of eight, so it can be set far larger for the same
        footprint — it is a mark under the content, not a word to be read. */
     font-size: clamp(4.5rem, 11vw, 9rem);
@@ -364,7 +368,7 @@ const {
     line-height: 1;
     letter-spacing: -0.02em;
     color: var(--color-ink);
-    opacity: 0.055;
+    opacity: 0.035;
     white-space: nowrap;
     pointer-events: none;
     user-select: none;
