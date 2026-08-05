@@ -580,15 +580,21 @@ const {
       /* The clip surface, and now also the artwork's bounds — see the image
          rule below.
 
-         Sideways it is 13% wider a side, up from 10%: that widening is the
-         artwork's headroom, and the extra is where the last 5% of growth
-         comes from. The crown is allowed to run off those edges.
+         Sideways it is 16% wider a side, up from 10%. That widening is the
+         artwork's headroom: the canopy runs off both edges, which is allowed,
+         while the sky-and-grass rectangle inside the collage — the part that
+         must stay whole — is 70.6% of its width and sits slightly left of
+         centre, so at 1.32 screens wide that rectangle still lands about ten
+         pixels inside each edge. It is the binding constraint, not the
+         canopy: past roughly 17% a side the rectangle starts leaving the
+         screen. On a tall phone this is what makes the picture bigger; on a
+         short one the height runs out first and the extra width is unused.
 
          The floor sits inside the stage rather than past it, so the painted
          collage stops clear of the For block instead of landing on top of it.
          The top edge stays exactly on the stage, because the top is the one
          edge that must not be cut. */
-      inset: 0 -13% -6px;
+      inset: 0 -16% -6px;
     }
 
     .hero__base img {
