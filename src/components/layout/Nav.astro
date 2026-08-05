@@ -20,6 +20,11 @@ const links = [
   { label: 'What founders say', href: '/testimonials' },
   { label: 'Blog', href: '/blog' },
 ];
+
+/* The panel's foot. Deliberately not the site footer's link list again — the
+   panel is already that list; what it has no way to reach is the address. */
+const email = 'hello@tribelab.co';
+const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
 ---
 
 <header class="nav" data-nav>
@@ -62,6 +67,12 @@ const links = [
         </li>
       ))}
     </ul>
+
+    <div class="nav__mobile-foot" data-nav-mobile-item>
+      <p class="nav__mobile-label u-label">Start a project</p>
+      <a class="nav__mobile-email" href={`mailto:${email}`}>{email}</a>
+      <p class="nav__mobile-legal">{legal}</p>
+    </div>
   </div>
 </header>
 
@@ -158,29 +169,42 @@ const links = [
 
   /* --- Mobile ------------------------------------------------------------- */
   .nav__toggle {
+    position: relative;
     display: none;
-    flex-direction: column;
-    justify-content: center;
-    gap: 6px;
     width: 2.5rem;
     height: 2.5rem;
     cursor: pointer;
   }
 
+  /* Both lines share one centre and are only ever translated or rotated from
+     it. Stacked in a flex column instead, the closed gap and the rotation had
+     to cancel each other by hand, and the two strokes crossed off-centre —
+     which is the broken X. */
   .nav__toggle-line {
-    display: block;
-    width: 100%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1.5rem;
     height: 1px;
+    margin-left: -0.75rem;
     background: var(--color-ink);
-    transition: transform 0.4s var(--ease-out-expo), opacity 0.3s;
+    transform: translateY(-4px);
+    transition: transform 0.4s var(--ease-out-expo);
   }
 
-  .nav__toggle[aria-expanded='true'] .nav__toggle-line:first-child {
-    transform: translateY(3.5px) rotate(45deg);
+  .nav__toggle-line:last-child {
+    transform: translateY(4px);
+  }
+
+  /* Counted from the end, not the start: the button's first child is the
+     screen-reader label, so :first-child matched no line at all and only one
+     stroke ever rotated — which is the broken X. */
+  .nav__toggle[aria-expanded='true'] .nav__toggle-line:nth-last-child(2) {
+    transform: rotate(45deg);
   }
 
   .nav__toggle[aria-expanded='true'] .nav__toggle-line:last-child {
-    transform: translateY(-3.5px) rotate(-45deg);
+    transform: rotate(-45deg);
   }
 
   /* --- Mobile panel --------------------------------------------------------
@@ -192,8 +216,9 @@ const links = [
     z-index: 90;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: var(--nav-height) var(--section-padding-x) 3rem;
+    /* Under the logo, not floating in the middle of the sheet. */
+    justify-content: flex-start;
+    padding: calc(var(--nav-height) + 1.5rem) var(--section-padding-x) 2.5rem;
     overflow-y: auto;
     /* Transparent until the field lands; the script sets this once it has. */
     background: transparent;
@@ -226,9 +251,35 @@ const links = [
     position: relative;
   }
 
+  /* --- Foot ----------------------------------------------------------------
+     Pushed to the bottom of the sheet whatever the list above it comes to. */
+  .nav__mobile-foot {
+    position: relative;
+    margin-top: auto;
+    padding-top: 2rem;
+  }
+
+  .nav__mobile-label {
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  .nav__mobile-email {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--color-ink-invert);
+    font-size: 1.125rem;
+    border-bottom: 1px solid rgb(255 255 255 / 0.3);
+  }
+
+  .nav__mobile-legal {
+    margin-top: 1.5rem;
+    color: rgb(255 255 255 / 0.4);
+    font-size: 0.75rem;
+  }
+
   .nav__mobile-link {
     display: block;
-    padding-block: 1rem;
+    padding-block: 0.875rem;
     color: var(--color-ink-invert);
     font-size: clamp(1.75rem, 9vw, 3rem);
     letter-spacing: var(--tracking-tight);

@@ -80,16 +80,18 @@ export function initNav(): () => void {
 
     animation = gsap
       .timeline()
+      /* Roughly 0.6s end to end: the row beat and the jitter both come down,
+         because the field is a way in, not the thing being looked at. */
       .to(field, {
         scaleY: 1,
-        duration: 0.42,
+        duration: 0.26,
         ease: 'power2.out',
-        stagger: (i, el) => Number((el as HTMLElement).dataset.row) * 0.045 + Math.random() * 0.14,
+        stagger: (i, el) => Number((el as HTMLElement).dataset.row) * 0.016 + Math.random() * 0.07,
       })
       // Only now: with every cell landed, the panel's own colour can take over
       // and the cells stop mattering.
       .add(() => panel.setAttribute('data-filled', ''))
-      .to(items, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', stagger: 0.06 }, '-=0.15');
+      .to(items, { opacity: 1, y: 0, duration: 0.34, ease: 'power3.out', stagger: 0.04 }, '-=0.22');
   };
 
   const close = () => {
@@ -112,17 +114,17 @@ export function initNav(): () => void {
     panel.removeAttribute('data-filled');
     animation = gsap
       .timeline({ onComplete: done })
-      .to(items, { opacity: 0, y: -10, duration: 0.2, ease: 'power2.in' }, 0)
+      .to(items, { opacity: 0, y: -8, duration: 0.15, ease: 'power2.in' }, 0)
       .to(
         field,
         {
           scaleY: 0,
-          duration: 0.3,
+          duration: 0.22,
           ease: 'power2.in',
           stagger: (i, el) =>
-            Number((el as HTMLElement).dataset.row) * 0.02 + Math.random() * 0.08,
+            Number((el as HTMLElement).dataset.row) * 0.009 + Math.random() * 0.05,
         },
-        0.1,
+        0.06,
       );
   };
 
