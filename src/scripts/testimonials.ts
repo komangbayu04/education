@@ -27,63 +27,101 @@ function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
   const people = gsap.utils.toArray<HTMLElement>('[data-tm-person]', feature);
   if (people.length < 2) return;
 
-  const DEFAULT_INDEX = 0;
   const controller = new AbortController();
   const { signal } = controller;
 
-  /* Index of a card whose video is playing. While one is, hover and focus stop
-     deciding what is open: collapsing a card mid-sentence takes the video with
-     it, and the pointer has to leave the card to reach anything else on the
-     page. It unlocks when the video pauses or ends. */
-  let playing = -1;
+  /* One open note per ROW, not per section. The open note takes its width
+     from the person beside it, so the accordion only ever balances within a
+     row — clearing every other row on hover would collapse rows the pointer
+     is nowhere near, and they would sit there noteless until hovered. */
+  const rowOf = (person: HTMLElement) => person.parentElement;
 
   const apply = (index: number) => {
-    people.forEach((person, i) => {
-      if (i === index) person.setAttribute('data-open', '');
+    const target = people[index];
+    const row = rowOf(target);
+    if (!row) return;
+
+    people.forEach((person) => {
+      if (rowOf(person) !== row) return;
+      if (person === target) person.setAttribute('data-open', '');
       else person.removeAttribute('data-open');
     });
   };
 
-  const open = (index: number) => {
-    if (playing >= 0) return;
-    apply(index);
+  /* Which person a row falls back to. Starts as the first in each row — the
+     state the markup ships in — and moves to whoever was last *chosen* there,
+     by pressing play, pause or the sound. Hover still opens whatever it is
+     over; this is only what the row returns to when the pointer leaves.
+
+     Clicking a control is a stronger signal than passing over a card: it means
+     that person is the one being watched, and their quote has to stay up
+     rather than snap back to a neighbour's the moment the pointer moves. */
+  const chosen = new Map<Element, HTMLElement>();
+
+  const applyDefaults = () => {
+    const seen = new Set<Element>();
+    people.forEach((person) => {
+      const row = rowOf(person);
+      if (!row) return;
+
+      const wanted = chosen.get(row) ?? (seen.has(row) ? null : person);
+      seen.add(row);
+
+      if (wanted === person) person.setAttribute('data-open', '');
+      else person.removeAttribute('data-open');
+    });
   };
 
   people.forEach((person, i) => {
-    person.addEventListener('pointerenter', () => open(i), { signal });
-    person.addEventListener('focusin', () => open(i), { signal });
+    person.addEventListener('pointerenter', () => apply(i), { signal });
+    person.addEventListener('focusin', () => apply(i), { signal });
 
-    const video = person.querySelector<HTMLVideoElement>('[data-tm-video]');
-    if (!video) return;
+    /* Pressing play, pause or the sound makes this the row's active card:
+       opened right away, and stays open once the pointer has gone. Watching
+       someone with their quote hidden is the wrong way round. */
+    person.addEventListener(
+      'click',
+      (event) => {
+        const control = (event.target as HTMLElement).closest('[data-tm-toggle], [data-tm-sound]');
+        if (!control) return;
 
-    video.addEventListener(
-      'play',
-      () => {
-        playing = i;
+        const row = rowOf(person);
+        if (row) chosen.set(row, person);
         apply(i);
       },
       { signal },
     );
 
-    const release = () => {
-      if (playing !== i) return;
-      playing = -1;
-      // Back to whatever the pointer is actually over, or the default.
-      const hovered = people.findIndex((p) => p.matches(':hover'));
-      apply(hovered >= 0 ? hovered : DEFAULT_INDEX);
-    };
+    const video = person.querySelector<HTMLVideoElement>('[data-tm-video]');
+    if (!video) return;
 
-    video.addEventListener('pause', release, { signal });
-    video.addEventListener('ended', release, { signal });
+    /* Turning the sound on makes this the row's active card too — the same
+       thing pressing play does, and for the same reason. It does NOT stop
+       hover from working while it plays: the note closing does not touch the
+       video, and `chosen` brings this card back the moment the pointer
+       leaves. An audible card used to lock the whole row, which meant one
+       press on the sound left every card in it unable to open. */
+    video.addEventListener(
+      'volumechange',
+      () => {
+        if (video.muted) return;
+        const row = rowOf(person);
+        if (row) chosen.set(row, person);
+        apply(i);
+      },
+      { signal },
+    );
   });
 
-  feature.addEventListener('pointerleave', () => open(DEFAULT_INDEX), { signal });
+  const reset = () => applyDefaults();
+
+  feature.addEventListener('pointerleave', reset, { signal });
   feature.addEventListener(
     'focusout',
     (event: FocusEvent) => {
       // Only reset once focus has actually left the whole row, not when it
       // moves between two controls inside it.
-      if (!feature.contains(event.relatedTarget as Node | null)) open(DEFAULT_INDEX);
+      if (!feature.contains(event.relatedTarget as Node | null)) reset();
     },
     { signal },
   );
@@ -92,67 +130,141 @@ function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
 }
 
 /**
- * Featured video — the round play mark starts inline playback.
+ * Featured video — plays itself, silently; this is the switch for the sound.
  *
- * Nothing here runs unless a card was given a `video` URL: without one the
- * component renders a decorative <span> instead of a <button>, and this finds
- * no controls to wire.
+ * The markup autoplays every featured video muted and looping, which is the
+ * only kind of autoplay a browser allows. So the question a control here
+ * answers is no longer "start it" but "let me hear it", and that is all this
+ * does: it unmutes, and hands over the native controls at the same time, since
+ * from the moment someone wants the audio they want to be able to scrub and
+ * pause it too.
  *
- * The <video> ships with preload="none" and no `controls`, so an unplayed card
- * costs one poster image. Both are turned on at the first click — controls
- * because from that point the native UI is the right one, and playback because
- * that is what was asked for.
+ * Only one is ever audible: turning on the sound for one mutes the other,
+ * which otherwise leaves two people talking over each other on the same row.
  *
- * Only one plays at a time: starting one pauses the other, which otherwise
- * leaves two people talking over each other on the same row.
+ * Off-screen videos are paused. Two remote clips decoding for the whole life
+ * of the page is a cost with nothing to show for it while the section is
+ * nowhere near the viewport — and on a phone it is battery. They pick up where
+ * they left off when the section comes back.
  */
 function initVideos(section: HTMLElement, cleanups: Array<() => void>): void {
-  const buttons = gsap.utils.toArray<HTMLButtonElement>('[data-tm-play]', section);
-  if (!buttons.length) return;
-
   const videos = gsap.utils.toArray<HTMLVideoElement>('[data-tm-video]', section);
+  if (!videos.length) return;
+
   const controller = new AbortController();
   const { signal } = controller;
+  const buttons = gsap.utils.toArray<HTMLButtonElement>('[data-tm-sound]', section);
+
+  /* Videos the viewer stopped by hand. The observer below resumes anything
+     that comes back on screen, and without this it would override that
+     decision the first time the section scrolled out and back. */
+  const held = new WeakSet<HTMLVideoElement>();
+
+  gsap.utils.toArray<HTMLButtonElement>('[data-tm-toggle]', section).forEach((button) => {
+    const media = button.closest<HTMLElement>('[data-tm-media]');
+    const video = media?.querySelector<HTMLVideoElement>('[data-tm-video]');
+    if (!media || !video) return;
+
+    /* aria-pressed carries "is playing" and the CSS swaps the mark off it, so
+       the badge always offers the other state. The label is the action. */
+    const sync = () => {
+      const playing = !video.paused;
+      button.setAttribute('aria-pressed', String(playing));
+      button.setAttribute('aria-label', playing ? 'Pause this testimonial' : 'Play this testimonial');
+    };
+
+    button.addEventListener(
+      'click',
+      () => {
+        if (video.paused) {
+          held.delete(video);
+          void video.play().catch(() => {});
+        } else {
+          held.add(video);
+          video.pause();
+        }
+        sync();
+      },
+      { signal },
+    );
+
+    // Covers the native controls, and the observer pausing it off-screen.
+    video.addEventListener('play', sync, { signal });
+    video.addEventListener('pause', sync, { signal });
+    sync();
+  });
 
   buttons.forEach((button) => {
     const media = button.closest<HTMLElement>('[data-tm-media]');
     const video = media?.querySelector<HTMLVideoElement>('[data-tm-video]');
     if (!media || !video) return;
 
+    /* The label is the action, not the state — "Turn on sound" while it is
+       off, "Mute" while it is on. aria-pressed carries the state, and the CSS
+       reads the same attribute to swap the slash for the waves. */
+    const label = button.getAttribute('aria-label') ?? 'Turn on sound';
+
+    const sync = () => {
+      const on = !video.muted;
+      button.setAttribute('aria-pressed', String(on));
+      button.setAttribute('aria-label', on ? 'Mute this testimonial' : label);
+      video.controls = on;
+    };
+
     button.addEventListener(
       'click',
       () => {
-        videos.forEach((other) => {
-          if (other !== video) other.pause();
-        });
-        video.controls = true;
-        media.setAttribute('data-playing', '');
-        // Autoplay policy blocks muted-less playback in some contexts; the
-        // click is the user gesture that satisfies it, but a rejection still
-        // has to leave the card usable rather than stuck with no control.
-        void video.play().catch(() => {
-          video.controls = false;
-          media.removeAttribute('data-playing');
-        });
+        const turningOn = video.muted;
+
+        if (turningOn) {
+          videos.forEach((other) => {
+            if (other !== video) other.muted = true;
+          });
+        }
+
+        video.muted = !turningOn;
+        // The click is the gesture that lets an unmuted video keep playing;
+        // it may be paused — off-screen, or stopped by hand — and asking to
+        // hear something is asking for it to be running.
+        if (turningOn) {
+          held.delete(video);
+          void video.play().catch(() => {});
+        }
+        sync();
       },
       { signal },
     );
 
-    // Back to the still and the mark once it finishes, so the card reads the
-    // same on a second visit as it did on the first.
-    video.addEventListener(
-      'ended',
-      () => {
-        video.controls = false;
-        video.currentTime = 0;
-        media.removeAttribute('data-playing');
-      },
-      { signal },
-    );
+    // Also covers the other button muting this one, and the native controls.
+    video.addEventListener('volumechange', sync, { signal });
+    sync();
   });
+
+  /* The attribute is in the markup, but a video restored from the back/forward
+     cache can come back with the property out of step with it — and an
+     unmuted video is exactly what autoplay is not allowed to be. */
+  videos.forEach((video) => {
+    video.muted = true;
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const video = entry.target as HTMLVideoElement;
+        // Never restarts one the viewer stopped by hand.
+        if (entry.isIntersecting) {
+          if (!held.has(video)) void video.play().catch(() => {});
+        } else video.pause();
+      });
+    },
+    { rootMargin: '200px 0px' },
+  );
+
+  videos.forEach((video) => observer.observe(video));
 
   cleanups.push(() => {
     controller.abort();
+    observer.disconnect();
     videos.forEach((v) => v.pause());
   });
 }
@@ -220,8 +332,9 @@ function initSpotlight(section: HTMLElement, cleanups: Array<() => void>): void 
     );
   });
 
-  // Starting a video is a choice too — the rotation would cut it off mid-word.
-  gsap.utils.toArray<HTMLElement>('[data-tm-play]', spot).forEach((button) => {
+  // Asking to hear one is a choice too — the rotation would cut it off
+  // mid-word.
+  gsap.utils.toArray<HTMLElement>('[data-tm-sound]', spot).forEach((button) => {
     button.addEventListener('click', stop, { signal });
   });
 

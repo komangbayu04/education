@@ -52,7 +52,12 @@
      the quote image above it are painted in this same value — that's what
      makes the two read as one interlocking edge rather than two stacked
      blocks, so they have to stay in sync. */
-  --color-bg-footer: #141414;
+  /* Same cream as --color-bg-twoways — reused rather than restated, so the
+     two stay in step if the palette's warm neutral ever moves. Was #141414;
+     FounderQuote's dissolve band reads this token too (see its docstring on
+     the seam between the two sections), so the switch to a light footer
+     carried through there automatically — nothing to change in that file. */
+  --color-bg-footer: var(--color-bg-twoways);
 
   /* Type families */
   --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -87,8 +92,16 @@
   --section-padding-y: clamp(3rem, 6vw, 6rem);
   --section-padding-x: clamp(1.25rem, 3.4vw, 4rem);
   --content-max-width: 1920px;
-  /* Total nav band height, including the 28px gap above the rule */
-  --nav-height: clamp(3.5rem, 5.5vw, 7rem);
+  /* Total nav band height: 16px above the wordmark, 16px below it, and the
+     wordmark itself — whose height follows from its own 113 × 47 ratio and the
+     width Nav.astro gives it. Derived rather than picked, so the band cannot
+     drift out of step with what is in it, and everything that reserves room
+     for the header (the hero, the case-study pages) shrinks with it.
+
+     It used to be a fluid clamp reaching 7rem, which on a wide screen was a
+     band roughly twice the height of anything standing in it. */
+  --nav-gap: 16px;
+  --nav-height: calc(2 * var(--nav-gap) + clamp(4.75rem, 6vw, 7.0625rem) * 47 / 113);
 }
 
 /* Mobile gutter is a flat 20px, not fluid. The clamp above already floors at
@@ -100,11 +113,10 @@
 @media (max-width: 48rem) {
   :root {
     --section-padding-x: 1.25rem;
-    /* Taller than the fluid value lands here, because on a phone this band is
-       carrying the whole header: at 3.5rem the logo sat 8px off the top of the
-       screen. Everything that reserves room for the nav reads this, so the
-       hero and the case-study pages follow it on their own. */
-    --nav-height: 4.25rem;
+    /* On a phone the band carries the whole header, so it keeps a little more
+       air above and below than the flat 16px a desktop gets. The height itself
+       still follows the wordmark — only the gap changes. */
+    --nav-gap: 20px;
   }
 }
 

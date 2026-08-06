@@ -1,20 +1,34 @@
 ---
 /**
  * ProjectSection — the shared layout behind Overclock, Bedford and CELPIP
- * (chapters 3, 4, 5): title + body on the left, a device shot stacked into
- * the bottom-right corner and bleeding past both edges, and the shared
- * <Timeline /> chapter marker at the right.
+ * (chapters 3, 4, 5): a category badge, title + body, and a row of tags on
+ * the left (top-to-bottom, pushed to the section's own edges — see
+ * .project__text), a device shot stacked into the bottom-right corner and
+ * bleeding past both edges.
+ *
+ * The <Timeline /> chapter marker is opt-in (`showMarker`, default true) —
+ * Overclock turns it off, matching the reference frame it was redone
+ * against, which has no marker in it. Bedford and CELPIP are currently out
+ * of the scene and untouched, so they keep the old default.
  *
  * Showcase (chapter 2) is NOT built on this — it has its own gradient ground
  * and texture overlay that predate this component, and there was no reason to
- * disturb a section nobody asked to change. This exists so chapters 3+ don't
- * each re-declare the same ~150 lines of near-identical CSS.
+ * disturb a section nobody asked to change. It does mirror this component's
+ * badge/copy/tags structure and spacing by hand, so the two read as one
+ * language rather than as two designs — see the docstring there for why it
+ * isn't just built on this.
  *
  * The crossfade between sections is driven entirely by src/scripts/hero.ts
  * against the generic `[data-chapter-section]` hook — nothing project-specific
  * lives there. The copy itself no longer animates: the layer swap carries it.
  */
 import Timeline from './Timeline.astro';
+import Icon, { type IconName } from './Icon.astro';
+
+interface Tag {
+  label: string;
+  icon?: IconName;
+}
 
 interface Props {
   id: string;
@@ -26,6 +40,12 @@ interface Props {
   imageWidth: number;
   imageHeight: number;
   background: string;
+  badgeLabel?: string;
+  badgeIcon?: IconName;
+  tags?: Tag[];
+  /** Off for Overclock — see the docstring above. On by default so Bedford and
+   *  CELPIP, currently untouched, keep rendering the marker they always have. */
+  showMarker?: boolean;
   /** Where the artwork links to. Defaults to /work/<id>. */
   href?: string;
   /** Text on the tile that rides the pointer across the artwork. */
@@ -45,9 +65,13 @@ const {
   imageWidth,
   imageHeight,
   background,
+  badgeLabel = 'The Team',
+  badgeIcon = 'multi-user',
+  tags = [],
+  showMarker = true,
   bodyMeasure = '41ch',
   href = `/work/${id}`,
-  viewLabel = 'View work',
+  viewLabel = 'View case study',
 } = Astro.props;
 ---
 
@@ -59,13 +83,34 @@ const {
 >
   <div class="project__inner u-container">
     <div class="project__text" data-chapter-text>
-      <h2 class="project__title" id={`${id}-title`}>{title}</h2>
-      <p class="project__body">{body}</p>
+      <span class="project__badge">
+        <Icon name={badgeIcon} size="0.9375rem" />
+        {badgeLabel}
+      </span>
 
-      {/* Visible only where there is no pointer to ride: the tile that
-          follows the cursor can never appear on touch, so the same
-          destination needs a control of its own there. */}
-      <a class="project__cta" href={href}>{viewLabel}</a>
+      {/* Title, body and the mobile-only CTA travel together — the badge
+          above and the tags below are what space-between pushes to the
+          section's own top and bottom edges; see .project__text. */}
+      <div class="project__copy">
+        <h2 class="project__title" id={`${id}-title`}>{title}</h2>
+        <p class="project__body">{body}</p>
+
+        {/* Visible only where there is no pointer to ride: the tile that
+            follows the cursor can never appear on touch, so the same
+            destination needs a control of its own there. */}
+        <a class="project__cta" href={href}>{viewLabel}</a>
+      </div>
+
+      {tags.length > 0 && (
+        <ul class="project__tags">
+          {tags.map((tag) => (
+            <li class="project__tag">
+              {tag.icon && <Icon name={tag.icon} size="0.875rem" />}
+              {tag.label}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
 
     <figure class="project__media" data-project-media>
@@ -75,9 +120,11 @@ const {
       </picture>
     </figure>
 
-    <div class="project__marker">
-      <Timeline />
-    </div>
+    {showMarker && (
+      <div class="project__marker">
+        <Timeline />
+      </div>
+    )}
   </div>
 
   {/* Covers the whole chapter, not just the artwork: the tile is meant to be
@@ -108,6 +155,15 @@ const {
     position: relative;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
+    /* The implicit row is otherwise auto-sized to the tallest item's content —
+       height: 100% on the container does not change that, since a grid row's
+       own track size is independent of the container's. Without this,
+       .project__text's `align-self: stretch` had a content-sized row to
+       stretch into, not the section, and its badge/tags space-between
+       collapsed to a ~30px gap instead of reaching the section's edges.
+       Explicit 100% makes the row itself the full height, which is what
+       "stretch" needed to mean something. */
+    grid-template-rows: 100%;
     align-items: center;
     gap: clamp(1.5rem, 3vw, 3rem);
     width: 100%;
@@ -130,7 +186,46 @@ const {
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: clamp(1rem, 1.6vw, 1.5rem);
+    /* Stretched to the section's own full height (overriding
+       .project__inner's align-items: center, which only centred a
+       content-sized box) and then space-between across badge / copy / tags,
+       so the badge sits near the section's top edge and the tags near its
+       bottom. Same mechanic as Showcase.astro's .showcase__text — see there
+       for the numbers this was measured against. `gap` still applies as a
+       floor under `justify-content`, so nothing can collide if the section is
+       ever shorter than the content — e.g. when `tags` is empty and there are
+       only two groups instead of three. */
+    align-self: stretch;
+    height: 100%;
+    justify-content: space-between;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    padding-block: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  /* Same values as Showcase.astro's .showcase__badge — kept in sync by hand
+     rather than by sharing a class, since the two components don't share a
+     stylesheet, but the "Team" badge has to read as one design wherever it
+     appears. color: var(--color-ink) rather than Showcase's specific navy:
+     this component's background changes per chapter (grey here, peach for
+     Bedford, mint for CELPIP), so the badge needs a colour that reads dark on
+     any of them rather than one tuned to a single ground. */
+  .project__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    align-self: flex-start;
+    padding: 0.4375rem 0.75rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.6);
+    color: var(--color-ink);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .project__copy {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.2vw, 1.25rem);
   }
 
   .project__title {
@@ -150,6 +245,28 @@ const {
     font-size: var(--text-body);
     line-height: 1.75;
     color: var(--color-ink-secondary);
+  }
+
+  /* Same values as Showcase.astro's .showcase__tags / .showcase__tag. */
+  .project__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .project__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 999px;
+    border: 1px solid rgb(10 10 10 / 0.16);
+    background: rgb(255 255 255 / 0.4);
+    color: var(--color-ink);
+    font-size: 0.8125rem;
   }
 
   /* --- Media -------------------------------------------------------------- */

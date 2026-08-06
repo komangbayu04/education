@@ -5,9 +5,11 @@ import { prefersReducedMotion } from './utils/device';
  * Credibility (chapter 6) — a single one-shot reveal, fired the first time the
  * section scrolls into view.
  *
- * Explicitly NOT scrubbed and NOT pinned: the handover from CELPIP into this
- * section is plain document scroll, so nothing here may hold the scrollbar or
- * play backwards. `once: true` means the timeline runs to its end and the
+ * Explicitly NOT scrubbed and NOT pinned: the handover out of the scene into
+ * this section is plain document scroll, so nothing here may hold the
+ * scrollbar or play backwards. The scene's exit field lands in this section's
+ * own ground colour, so by the time the pin releases the join is already
+ * covered — this reveal is what happens next, not part of that handover. `once: true` means the timeline runs to its end and the
  * trigger kills itself; scrolling back up leaves the section finished.
  *
  * Order: frame draws (column rules, then the axis through the centre), the
@@ -51,8 +53,19 @@ export function initCredibility(): () => void {
     defaults: { ease: 'power3.out' },
     scrollTrigger: {
       trigger: section,
-      start: 'top 72%',
+      /* Normally: a little before the section reaches the middle of the
+         screen, so the reveal is already under way as it arrives.
+         When the scene above is pinned, this section is pulled up underneath
+         it (`data-scene-pulled` — see hero.ts) and is covered until the pin
+         lets go. Measured against the viewport it would then be 28% of the way
+         up the screen while nobody can see it, and `once: true` means it would
+         be spent by the time the scene lifts: the section would appear already
+         finished. Its top reaching the top of the viewport IS the moment it
+         becomes visible, so that is where the reveal starts instead. */
+      start: () =>
+        document.querySelector('[data-scene-pulled]') ? 'top top' : 'top 72%',
       once: true,
+      invalidateOnRefresh: true,
     },
     onComplete: () => gsap.set(settled, { clearProps: 'transform' }),
   });

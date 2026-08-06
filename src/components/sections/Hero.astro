@@ -9,29 +9,54 @@
  * Motion lives in src/scripts/hero.ts, hooked on data-hero-* attributes.
  */
 interface Props {
+  /** Broken by hand, not by wrapping — the three lines are the composition. */
   lines?: string[];
-  forLabel?: string;
-  audiences?: string[];
+  body?: string;
+  primaryLabel?: string;
+  primaryHref?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  /** The muted line in the bottom-right corner, broken by hand as above. */
+  asideLines?: string[];
 }
 
 const {
-  lines = ['We', 'Design', 'Credibility'],
-  forLabel = 'For',
-  audiences = ['Education Companies', 'Cohorts', 'Platforms', 'and Credentials'],
+  lines = ['We design for', 'the learning', 'economy.'],
+  body =
+    'We help companies that teach, certify, and run the learning economy close the gap between product and brand, with a design team on your side from day one.',
+  primaryLabel = 'Book a call',
+  primaryHref = '/contact',
   ctaLabel = 'See the work',
   ctaHref = '/work',
+  asideLines = ['We', 'design', 'credibility.'],
 } = Astro.props;
 ---
 
 <section class="hero" data-hero data-chapter-section="1" aria-labelledby="hero-title">
   <div class="hero__grid u-container">
-    <!-- Left: display headline -->
+    <!-- Left: display headline at the top, the pitch and the two ways in at
+         the bottom. The gap between them is the column, not a margin — see
+         .hero__lede's margin-top: auto. -->
     <div class="hero__col hero__col--title">
       <h1 class="hero__title" id="hero-title" data-hero-title>
         {lines.map((line) => <span class="hero__line">{line}</span>)}
       </h1>
+
+      <div class="hero__lede">
+        <p class="hero__body" data-hero-aside-item>{body}</p>
+
+        <div class="hero__actions" data-hero-aside-item>
+          <a class="btn" href={primaryHref} data-magnetic="0.2">
+            <span class="btn__fill" aria-hidden="true"></span>
+            <span class="btn__label" data-magnetic-inner>{primaryLabel}</span>
+          </a>
+
+          <a class="btn btn--ghost" href={ctaHref} data-magnetic="0.2">
+            <span class="btn__fill" aria-hidden="true"></span>
+            <span class="btn__label" data-magnetic-inner>{ctaLabel}</span>
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- Centre: the hero image -->
@@ -61,34 +86,13 @@ const {
       </figure>
     </div>
 
-    <!-- Right: audience list + CTA, flush to the bottom edge -->
+    <!-- Right: the same words the studio is known by, in the corner and in the
+         page's own quiet grey — a signature rather than a second heading, so
+         it carries no heading level and is right-aligned into the edge. -->
     <div class="hero__col hero__col--aside">
-      <div class="hero__aside" data-hero-aside>
-        <p class="hero__for" data-hero-aside-item>{forLabel}</p>
-
-        <ul class="hero__list">
-          {audiences.map((item) => (
-            <li class="hero__list-item" data-hero-aside-item>
-              <a class="hero__list-link" href={ctaHref}>
-                <span class="hero__list-text">{item}</span>
-                <span class="hero__list-arrow" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" fill="none">
-                    <path d="M3 13 13 3M6 3h7v7" stroke="currentColor" stroke-width="1.4" />
-                  </svg>
-                </span>
-              </a>
-              <span class="hero__list-rule" aria-hidden="true"></span>
-            </li>
-          ))}
-        </ul>
-
-        <div class="hero__cta-wrap" data-hero-aside-item>
-          <a class="btn" href={ctaHref} data-magnetic="0.2">
-            <span class="btn__fill" aria-hidden="true"></span>
-            <span class="btn__label" data-magnetic-inner>{ctaLabel}</span>
-          </a>
-        </div>
-      </div>
+      <p class="hero__aside" data-hero-aside data-hero-aside-item>
+        {asideLines.map((line) => <span class="hero__aside-line">{line}</span>)}
+      </p>
     </div>
   </div>
 </section>
@@ -96,6 +100,7 @@ const {
 <style>
   .hero {
     --hero-pad-top: clamp(1.5rem, 2.6vw, 3rem);
+
 
     position: relative;
     /* Exactly one viewport. The scroll scene depends on this: a scene shorter
@@ -129,7 +134,24 @@ const {
 
   /* --- Headline ----------------------------------------------------------- */
   .hero__title {
-    font-size: var(--text-display-xl);
+    /* Sized so the longest line — "We design for" — fits its column at every
+       width, because it may not wrap and it may not be cut.
+
+       Both of those are load-bearing: the three lines are broken by hand, so
+       `white-space: nowrap` is what keeps the composition, and hero.ts splits
+       this into masked lines for the intro, which means every line sits in an
+       overflow:hidden box. A line wider than the column is therefore silently
+       sliced — which is exactly what was happening to "for" at the old
+       clamp(2.75rem, 5vw, 6.5rem): at 1280px that line came to 355px inside a
+       354px column.
+
+       The title column is one 1fr of `1fr 1.08fr 1fr` inside the container, so
+       it is close to 0.273 × the viewport, and this face sets that line at
+       6.3 × its font size — measured, not guessed. That puts the ceiling at
+       about 4.3vw; 4vw leaves a tenth of the column spare at every width, and
+       the 5.125rem cap is the same slack once the container stops growing at
+       1920. */
+    font-size: clamp(2.25rem, 4vw, 5.125rem);
     /* Regular, at both widths. */
     font-weight: 400;
     line-height: var(--leading-display);
@@ -140,6 +162,31 @@ const {
   .hero__line {
     display: block;
     white-space: nowrap;
+  }
+
+  /* --- Lede ----------------------------------------------------------------
+     The pitch and the two ways in, pushed to the foot of the column by the
+     auto margin rather than by a fixed offset — so the space between it and
+     the headline is whatever the viewport has left, at any height. */
+  .hero__lede {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 1.6vw, 1.5rem);
+    margin-top: auto;
+    margin-bottom: clamp(1.5rem, 3vw, 2.75rem);
+  }
+
+  .hero__body {
+    max-width: 34ch;
+    font-size: clamp(0.8125rem, 0.95vw, 0.9375rem);
+    line-height: 1.62;
+    text-wrap: pretty;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
 
   /* --- Media -------------------------------------------------------------- */
@@ -177,8 +224,20 @@ const {
     height: 113.4%;
     width: auto;
     aspect-ratio: 1274 / 1394;
-    margin: 0 auto;
-    left: -4.75rem;
+    /* No `margin: 0 auto`. In a flex column, auto side margins take over the
+       cross-axis placement from `align-items: center` — and when the item is
+       wider than the column, as this one is, there is no free space for them
+       to absorb, so they resolve to zero and the artwork lands against the
+       column's left edge instead of its centre. Measured that way it sat 96px
+       off centre. Letting the parent's `align-items: center` do the work
+       overflows evenly on both sides, which is what centred means here. */
+    margin: 0;
+    /* Centred in its column — no horizontal nudge at all. The old -4.75rem was
+       tuned against a headline that was one word per line and never reached
+       across; once the headline grew, that offset was what put the canopy over
+       it. The fix is the type fitting its own column (see .hero__title), not
+       the artwork dodging out of the way. */
+    left: 0;
     top: -1.5rem;
     /* Pointer parallax is applied here. */
     will-change: transform;
@@ -206,109 +265,36 @@ const {
     object-fit: cover;
   }
 
-  /* --- Aside -------------------------------------------------------------- */
+  /* --- Aside ---------------------------------------------------------------
+     The studio's own line, set into the bottom-right corner. Quiet on purpose:
+     it is the same weight and family as the headline but in the page's grey,
+     so it reads as a mark the page is signed with rather than as a second
+     thing being announced. */
   .hero__col--aside {
     justify-content: flex-end;
+    align-items: flex-end;
   }
 
   .hero__aside {
     display: flex;
     flex-direction: column;
-    /* Flat 16px, not the fluid clamp the rest of the site uses — a deliberate
-       request for a tighter, fixed rhythm here rather than one that grows on
-       larger viewports. */
-    gap: 16px;
-    /* 24px clear of the bottom edge — was flush. Margin, not padding: the
-       parent (.hero__col--aside) is justify-content: flex-end, which aligns
-       this box's margin edge to the column's end — padding just grows the box
-       upward and stays flush, margin actually opens a gap. */
-    margin-bottom: 24px;
-  }
-
-  .hero__for {
-    font-size: 16px;
+    /* Slightly under the headline: it answers the headline, it does not
+       compete with it. */
+    font-size: clamp(1.75rem, 3.4vw, 3.25rem);
     font-weight: 400;
+    line-height: 1.06;
+    letter-spacing: -0.025em;
+    text-align: right;
+    color: var(--color-line-strong);
+    margin-bottom: clamp(1.5rem, 3vw, 2.75rem);
   }
 
-  .hero__list {
-    display: flex;
-    flex-direction: column;
-    /* The explicit 16px row-to-row spacing. Kept separate from the link's own
-       padding-block below rather than folded into it, so this number is the
-       one true source of the gap instead of being derived from doubling a
-       padding value. */
-    gap: 16px;
-  }
-
-  .hero__list-item {
-    position: relative;
-  }
-
-  .hero__list-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    /* Click-target padding only, not spacing — .hero__list's gap owns that now */
-    padding-block: 0.375rem;
-    font-size: 16px;
-    font-weight: 400;
-    transition: color 0.4s var(--ease-out-expo);
-  }
-
-  .hero__list-text {
+  .hero__aside-line {
     display: block;
-    transition: transform 0.5s var(--ease-out-expo);
+    white-space: nowrap;
   }
 
-  .hero__list-arrow {
-    display: grid;
-    place-items: center;
-    width: 1.125rem;
-    opacity: 0;
-    transform: translate(-0.5rem, 0.35rem);
-    transition:
-      opacity 0.4s var(--ease-out-expo),
-      transform 0.5s var(--ease-out-expo);
-  }
-
-  .hero__list-link:hover .hero__list-text,
-  .hero__list-link:focus-visible .hero__list-text {
-    transform: translateX(0.5rem);
-  }
-
-  .hero__list-link:hover .hero__list-arrow,
-  .hero__list-link:focus-visible .hero__list-arrow {
-    opacity: 1;
-    transform: translate(0, 0);
-  }
-
-  .hero__list-rule {
-    display: block;
-    height: 1px;
-    background: var(--color-line);
-    transform-origin: left center;
-  }
-
-  .hero__list-rule::after {
-    content: '';
-    display: block;
-    height: 1px;
-    background: var(--color-ink);
-    transform: scaleX(0);
-    transform-origin: left center;
-    transition: transform 0.6s var(--ease-out-expo);
-  }
-
-  .hero__list-item:hover .hero__list-rule::after {
-    transform: scaleX(1);
-  }
-
-  /* --- Button --------------------------------------------------------------- */
-  .hero__cta-wrap {
-    margin-top: clamp(0.5rem, 1.2vw, 1.25rem);
-  }
-
+  /* --- Buttons ------------------------------------------------------------- */
   .btn {
     position: relative;
     display: inline-flex;
@@ -327,6 +313,15 @@ const {
     will-change: transform;
   }
 
+  /* The second way in: the same button with its two grounds swapped, so the
+     pair reads as one primary and one secondary rather than as two designs.
+     Its hover therefore fills rather than empties — see below. */
+  .btn--ghost {
+    background: transparent;
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+
   .btn__fill {
     position: absolute;
     inset: 0;
@@ -334,6 +329,10 @@ const {
     transform: scaleY(0);
     transform-origin: bottom center;
     transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .btn--ghost .btn__fill {
+    background: var(--color-ink);
   }
 
   .btn__label {
@@ -356,14 +355,16 @@ const {
     color: var(--color-ink);
   }
 
+  /* Inverted from the rule above, because this button starts inverted. */
+  .btn--ghost:hover .btn__label,
+  .btn--ghost:focus-visible .btn__label {
+    color: var(--color-ink-invert);
+  }
+
   /* --- Pre-animation state (only when JS is live) ------------------------- */
   :global(html[data-js='true']) .hero__title,
   :global(html[data-js='true']) [data-hero-aside-item] {
     opacity: 0;
-  }
-
-  :global(html[data-js='true']) .hero__list-rule {
-    transform: scaleX(0);
   }
 
   :global(html[data-js='true']) .hero__base {
@@ -432,7 +433,6 @@ const {
      extra" and the base can be retuned without re-deriving this. */
   @media (min-width: 1600px) {
     .hero__stage {
-      left: calc(-4.75rem - 20px);
       top: calc(-1.5rem - 16px);
     }
   }
@@ -509,16 +509,19 @@ const {
 
     /* Every pixel this block gives back goes to the artwork, which is the one
        thing on this screen that is short of room: the hero is exactly one
-       viewport, so the picture's row is whatever the headline and this block
-       leave. The rhythm here is tighter than the 16px the shared rule sets,
-       and the bottom margin is halved — the button still clears the edge. */
-    .hero__aside {
-      gap: 0.625rem;
+       viewport, so the picture's row is whatever the headline and these two
+       blocks leave. */
+    .hero__lede {
+      gap: 0.75rem;
       margin-bottom: 12px;
     }
 
-    .hero__list {
-      row-gap: 0.625rem;
+    .hero__aside {
+      /* Under the headline in size here, not beside it: on a phone the two
+         are stacked and a signature as large as the thing it signs reads as a
+         second headline. */
+      font-size: clamp(1.5rem, 8vw, 2.25rem);
+      margin-bottom: 12px;
     }
 
     .hero__col--aside {
@@ -528,36 +531,6 @@ const {
          block landed back where it started. A translate moves it without
          asking the grid for anything. */
       transform: translateY(12px);
-    }
-
-    /* Two columns of two, as the frame has it — four rows of one item each
-       cost height the artwork wants. Column flow, not row flow: the frame
-       fills the left column first (Education Companies over Cohorts) and the
-       right one after it, which row flow would interleave. */
-    .hero__list {
-      display: grid;
-      grid-auto-flow: column;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-rows: repeat(2, auto);
-      column-gap: clamp(1rem, 4vw, 2rem);
-    }
-
-    /* Small enough that the longest label — "Education Companies" — still
-       holds one line inside half the container. At body size it wrapped, and
-       a wrapped label pushes its own rule down out of line with its pair. */
-    .hero__list-text {
-      font-size: 0.8125rem;
-    }
-
-    /* The arrow and its gap take 33 of the 169px a column has here — enough to
-       wrap the longest label on their own. It answers a hover, and there is no
-       hover on a phone, so it goes rather than the label breaking. */
-    .hero__list-arrow {
-      display: none;
-    }
-
-    .hero__list-link {
-      gap: 0;
     }
 
     /* Contain, not cover: the box below is full-bleed and no longer the
@@ -628,10 +601,6 @@ const {
     :global(html[data-js='true']) .hero__title,
     :global(html[data-js='true']) [data-hero-aside-item] {
       opacity: 1;
-    }
-
-    :global(html[data-js='true']) .hero__list-rule {
-      transform: scaleX(1);
     }
 
     :global(html[data-js='true']) .hero__base {

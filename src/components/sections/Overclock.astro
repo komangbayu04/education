@@ -2,12 +2,22 @@
 /**
  * Overclock — chapter 3. Layout lives in ../ui/ProjectSection.astro, shared
  * with Bedford and CELPIP.
+ *
+ * `showMarker={false}`: the reference frame this section was redone against
+ * has no chapter marker in it — see ProjectSection's docstring.
  */
 import ProjectSection from '../ui/ProjectSection.astro';
+import type { IconName } from '../ui/Icon.astro';
+
+interface Tag {
+  label: string;
+  icon?: IconName;
+}
 
 interface Props {
   title?: string;
   body?: string;
+  tags?: Tag[];
   image?: string;
   imageAlt?: string;
 }
@@ -15,7 +25,12 @@ interface Props {
 const {
   title = 'Overclock',
   body =
-    'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.',
+    'An AI capability partner for enterprise teams, delivering ten-week accelerator cohorts, workflow-based corporate training, and embedded technical consulting.',
+  tags = [
+    { label: 'Branding Design' },
+    { label: 'Web Design & Development' },
+    { label: 'Program Materials' },
+  ],
   image = '/media/overclock-device',
   imageAlt = 'Overclock running on a tablet',
 } = Astro.props;
@@ -26,9 +41,11 @@ const {
   chapter={3}
   title={title}
   body={body}
+  tags={tags}
   image={image}
   imageAlt={imageAlt}
   imageWidth={1400}
   imageHeight={1374}
   background="var(--color-bg-overclock)"
+  showMarker={false}
 />

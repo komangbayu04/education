@@ -29,7 +29,7 @@ interface Props {
 
 const {
   wordmark = 'Tribe Designworks',
-  tagline = 'Built on what we build for you.',
+  tagline = 'We design credibility.',
   links = [
     { label: 'Work', href: '/work' },
     { label: 'How we work', href: '/how-we-work' },
@@ -82,7 +82,7 @@ const {
 <style>
   .ft {
     background: var(--color-bg-footer);
-    color: var(--color-ink-invert);
+    color: var(--color-ink);
   }
 
   .ft__inner {
@@ -105,7 +105,7 @@ const {
     padding-left: 0.15em;
     font-size: var(--text-body);
     line-height: 1.5;
-    color: rgb(255 255 255 / 0.82);
+    color: var(--color-ink-secondary);
   }
 
   /* --- Columns -------------------------------------------------------------
@@ -118,7 +118,7 @@ const {
     gap: clamp(2rem, 6vw, 7rem);
     margin-top: clamp(1.75rem, 3.5vw, 3rem);
     padding-top: clamp(1.75rem, 3.5vw, 3rem);
-    border-top: 1px solid rgb(255 255 255 / 0.16);
+    border-top: 1px solid var(--color-line);
   }
 
   .ft__nav ul {
@@ -155,8 +155,11 @@ const {
   }
 
   /* --- CTA -----------------------------------------------------------------
-     The inverse of the CTAs elsewhere on the page — light on dark — so the
-     fill sweeps to the footer's own background rather than to white. */
+     Same shape and hover mechanic as every other CTA on the page (see
+     Hero.astro's .btn) — dark fill, white label, a light fill sweeping up on
+     hover. The footer used to run the inverse of that (light on dark) because
+     its ground was dark; now that the ground is the page's own cream, this
+     button is the ordinary one, not a special case. */
   .ft__cta {
     position: relative;
     display: inline-flex;
@@ -166,8 +169,8 @@ const {
     padding: 0.8125rem 1.75rem;
     border-radius: 0.5rem;
     overflow: hidden;
-    background: var(--color-bg-primary);
-    color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
     font-family: var(--font-display);
     font-size: 0.75rem;
     font-weight: 500;
@@ -180,7 +183,7 @@ const {
   .ft__cta-fill {
     position: absolute;
     inset: 0;
-    background: var(--color-bg-footer);
+    background: var(--color-bg-primary);
     transform: scaleY(0);
     transform-origin: bottom center;
     transition: transform 0.55s var(--ease-out-expo);
@@ -193,7 +196,7 @@ const {
 
   .ft__cta:hover,
   .ft__cta:focus-visible {
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.5);
+    box-shadow: inset 0 0 0 1px var(--color-ink);
   }
 
   .ft__cta:hover .ft__cta-fill,
@@ -203,18 +206,18 @@ const {
 
   .ft__cta:hover .ft__cta-label,
   .ft__cta:focus-visible .ft__cta-label {
-    color: var(--color-ink-invert);
+    color: var(--color-ink);
   }
 
   /* --- Legal --------------------------------------------------------------- */
   .ft__legal {
     margin-top: clamp(1.75rem, 3.5vw, 3rem);
     padding-top: clamp(1.25rem, 2.4vw, 2rem);
-    border-top: 1px solid rgb(255 255 255 / 0.16);
+    border-top: 1px solid var(--color-line);
     font-size: 0.8125rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: rgb(255 255 255 / 0.72);
+    color: var(--color-ink-muted);
   }
 
   /* --- Responsive ---------------------------------------------------------- */

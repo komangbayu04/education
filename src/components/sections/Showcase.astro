@@ -3,16 +3,31 @@
  * Showcase — chapter 2 of the site (`data-chapter-section="2"`), the section
  * the hero transitions into.
  *
- * Soft blue ground, project title and blurb on the left, device shot stacked
- * into the bottom-right corner (bleeding past both edges), and the shared
- * <Timeline /> chapter marker at the right — see src/scripts/timeline.ts for
- * how that stays in sync with Overclock's copy of the same component.
+ * Soft blue ground, a category badge and project title and blurb on the left,
+ * device shot stacked into the bottom-right corner (bleeding past both
+ * edges).
+ *
+ * The <Timeline /> chapter marker is imported but not rendered — the
+ * reference frame this section was redone against has no marker in it,
+ * across all three project sections that used to share one. Left in place
+ * rather than deleted: reinstating it, here or in Overclock, is uncommenting
+ * one block rather than re-adding a whole component and re-wiring
+ * timeline.ts's expectation of finding it.
  */
 import Timeline from '../ui/Timeline.astro';
+import Icon, { type IconName } from '../ui/Icon.astro';
+
+interface Tag {
+  label: string;
+  icon?: IconName;
+}
 
 interface Props {
+  badgeLabel?: string;
+  badgeIcon?: IconName;
   title?: string;
   body?: string;
+  tags?: Tag[];
   image?: string;
   imageAlt?: string;
   href?: string;
@@ -20,13 +35,25 @@ interface Props {
 }
 
 const {
-  title = 'A College Counseling Platform',
+  badgeLabel = 'The Team',
+  badgeIcon = 'multi-user',
+  title = 'Nerd Apply',
+  /* `<strong>` around the two figures — set:html rather than plain text, so
+     the emphasis renders as markup instead of literal asterisks. Both numbers
+     are the ones the reference frame itself calls out; nothing here is a
+     placeholder. */
   body =
-    'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.',
+    'A privacy-first admissions data platform for college counselors, built on <strong>500,000+</strong> de-identified real applications across <strong>1,000+</strong> colleges.',
+  tags = [
+    { label: 'Design system' },
+    { label: 'Product Design' },
+    { label: 'Web Design' },
+    { label: 'Branding Design' },
+  ],
   image = '/media/showcase-device',
-  imageAlt = 'The platform running on a phone',
+  imageAlt = 'The Nerd Apply platform running on a phone',
   href = '/work/college-counseling-platform',
-  viewLabel = 'View work',
+  viewLabel = 'View case study',
 } = Astro.props;
 ---
 
@@ -35,13 +62,33 @@ const {
 
   <div class="showcase__inner u-container">
     <div class="showcase__text" data-chapter-text>
-      <h2 class="showcase__title" id="showcase-title" data-showcase-item>{title}</h2>
-      <p class="showcase__body" data-showcase-item>{body}</p>
+      <span class="showcase__badge" data-showcase-item>
+        <Icon name={badgeIcon} size="0.9375rem" />
+        {badgeLabel}
+      </span>
 
-      {/* Visible only where there is no pointer to ride: the tile that
-          follows the cursor can never appear on touch, so the same
-          destination needs a control of its own there. */}
-      <a class="showcase__cta" href={href}>{viewLabel}</a>
+      {/* Title, body and the mobile-only CTA travel together as one group —
+          the badge above and the tags below are what space-between pushes to
+          the section's own top and bottom edges; this group is what's left in
+          the middle. */}
+      <div class="showcase__copy">
+        <h2 class="showcase__title" id="showcase-title" data-showcase-item>{title}</h2>
+        <p class="showcase__body" data-showcase-item set:html={body} />
+
+        {/* Visible only where there is no pointer to ride: the tile that
+            follows the cursor can never appear on touch, so the same
+            destination needs a control of its own there. */}
+        <a class="showcase__cta" href={href}>{viewLabel}</a>
+      </div>
+
+      <ul class="showcase__tags" data-showcase-item>
+        {tags.map((tag) => (
+          <li class="showcase__tag">
+            {tag.icon && <Icon name={tag.icon} size="0.875rem" />}
+            {tag.label}
+          </li>
+        ))}
+      </ul>
     </div>
 
     <figure class="showcase__media" data-showcase-media>
@@ -51,9 +98,7 @@ const {
       </picture>
     </figure>
 
-    <div class="showcase__marker">
-      <Timeline />
-    </div>
+    {/* Marker intentionally not rendered here — see the docstring above. */}
   </div>
 
   {/* Covers the whole chapter — see the matching note in ProjectSection.astro. */}
@@ -101,6 +146,15 @@ const {
     position: relative;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
+    /* The implicit row is otherwise auto-sized to the tallest item's content —
+       height: 100% on the container does not change that, since a grid row's
+       own track size is independent of the container's. Without this,
+       .showcase__text's `align-self: stretch` had a content-sized row to
+       stretch into, not the section, and its badge/tags space-between
+       collapsed to a ~30px gap instead of reaching the section's edges.
+       Explicit 100% makes the row itself the full height, which is what
+       "stretch" needed to mean something. */
+    grid-template-rows: 100%;
     align-items: center;
     gap: clamp(1.5rem, 3vw, 3rem);
     width: 100%;
@@ -125,7 +179,39 @@ const {
     z-index: 2;
     display: flex;
     flex-direction: column;
-    gap: clamp(1rem, 1.6vw, 1.5rem);
+    /* Stretched to the section's own full height (overriding
+       .showcase__inner's align-items: center, which only centred a
+       content-sized box) and then space-between across the three groups —
+       badge, copy, tags — so the badge sits near the section's top edge and
+       the tags near its bottom, with the copy free-floating in whatever is
+       left. `gap` still applies as a floor under `justify-content` in flexbox,
+       so nothing can collide if the section is ever shorter than the content. */
+    align-self: stretch;
+    height: 100%;
+    justify-content: space-between;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    padding-block: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .showcase__copy {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.2vw, 1.25rem);
+  }
+
+  /* Small pill naming the project's category — sits above the title, on its
+     own translucent chip so it reads as a label rather than as copy. */
+  .showcase__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    align-self: flex-start;
+    padding: 0.4375rem 0.75rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.6);
+    color: #0d1b33;
+    font-size: 0.75rem;
+    font-weight: 500;
   }
 
   .showcase__title {
@@ -143,6 +229,35 @@ const {
     font-size: var(--text-body);
     line-height: 1.75;
     color: #1c2333;
+  }
+
+  .showcase__body :global(strong) {
+    font-weight: 700;
+    font-style: italic;
+  }
+
+  /* --- Tags ------------------------------------------------------------------
+     What the project involved, as a row of pills rather than prose — the same
+     "label, not sentence" language as the badge above. */
+  .showcase__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .showcase__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 999px;
+    border: 1px solid rgb(13 27 51 / 0.16);
+    background: rgb(255 255 255 / 0.4);
+    color: #0d1b33;
+    font-size: 0.8125rem;
   }
 
   /* --- Media -------------------------------------------------------------- */
@@ -250,9 +365,10 @@ const {
   }
 
   /* --- Marker --------------------------------------------------------------
-     Grid placement only — the marker's own shape and its active/inactive
-     styling live in <Timeline /> (src/components/ui/Timeline.astro), shared
-     with Overclock so the two stay visually identical. */
+     Dead code, kept rather than deleted: <Timeline /> is imported but no
+     longer rendered above (see the component docstring), so nothing in the
+     markup carries this class any more. Left in place so reinstating the
+     marker is uncommenting rather than re-deriving this rule. */
   .showcase__marker {
     grid-column: 11 / span 2;
     position: relative;

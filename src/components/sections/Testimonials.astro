@@ -79,6 +79,26 @@ const {
       quote:
         '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
     },
+    {
+      name: 'Wei Sun',
+      role: 'Founder, EMOD',
+      company: 'EMOD',
+      photo: '/media/portrait-wei-sun.webp',
+      video: 'https://framerusercontent.com/assets/KpOMySA3GroAMs2O9J0C6uMhKkc.mp4',
+      headline: 'This is top-tier design.',
+      quote:
+        '"I\'ve worked with some incredibly talented designers at a very high level, from senior to staff, and honestly, your design work is right up there at the same level."',
+    },
+    {
+      name: 'Geoffrey Langford',
+      role: 'Sr. Product Manager, Studeo',
+      company: 'Studeo',
+      photo: '/media/portrait-geoffrey.webp',
+      video: 'https://framerusercontent.com/assets/Xhyv0KqZjfypMH4uE3Lso4dIZM.mp4',
+      headline: 'Absolutely great working with Tribe.',
+      quote:
+        '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
+    },
   ],
   quotes = [
     {
@@ -121,6 +141,30 @@ const {
     },
   ],
 } = Astro.props;
+
+/* One speaker, drawn once and used by both faces of this section. The slash
+   and the waves are both in the markup and CSS shows one or the other off
+   `aria-pressed`, so the icon answers to the button's own state rather than
+   needing the script to redraw it. */
+const soundIcon = `<svg viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+  <path d="M9 3.4 5.2 6.6H2.9v6.8h2.3L9 16.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+  <g class="tm__sound-wave" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+    <path d="M12.6 7.6a3.4 3.4 0 0 1 0 4.8" />
+    <path d="M15 5.2a6.8 6.8 0 0 1 0 9.6" />
+  </g>
+  <g class="tm__sound-slash" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+    <path d="M13.4 8.4 17 12" />
+    <path d="M17 8.4 13.4 12" />
+  </g>
+</svg>`;
+
+/* The featured people, two to a row — see the markup for why rows are real
+   elements rather than a wrapping flex container. */
+const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
+  if (i % 2 === 0) acc.push([person]);
+  else acc[acc.length - 1].push(person);
+  return acc;
+}, []);
 ---
 
 <section class="tm" aria-labelledby="tm-title" data-tm>
@@ -137,11 +181,15 @@ const {
         <figure class="tm__spot-panel" data-tm-spot-panel data-active={i === 0 ? '' : undefined}>
           <div class="tm__spot-media" data-tm-media>
             {person.video ? (
+              /* Same treatment as the accordion card above — see there. */
               <video
                 class="tm__video"
                 src={person.video}
                 poster={person.poster ?? person.photo}
-                preload="none"
+                preload="metadata"
+                autoplay
+                muted
+                loop
                 playsinline
                 data-tm-video
               />
@@ -152,19 +200,36 @@ const {
             )}
 
             {person.video ? (
-              <button
-                class="tm__play"
-                type="button"
-                data-tm-play
-                aria-label={`Play video testimonial from ${person.name}`}
-              >
-                <svg viewBox="0 0 12 14" fill="none" aria-hidden="true">
-                  <path d="M12 7 0 14V0z" fill="currentColor" />
-                </svg>
-              </button>
+              <Fragment>
+                {/* Same pair as the accordion card — see there. */}
+                <button
+                  class="tm__toggle"
+                  type="button"
+                  data-tm-toggle
+                  aria-pressed="true"
+                  aria-label={`Pause ${person.name}'s testimonial`}
+                >
+                  <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                    <path d="M12 7 0 14V0z" fill="currentColor" />
+                  </svg>
+                  <svg class="tm__toggle-pause" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                    <path d="M1 0h3v14H1zM8 0h3v14H8z" fill="currentColor" />
+                  </svg>
+                </button>
+
+                <button
+                  class="tm__sound"
+                  type="button"
+                  data-tm-sound
+                  aria-pressed="false"
+                  aria-label={`Turn on sound for ${person.name}'s testimonial`}
+                >
+                  <Fragment set:html={soundIcon} />
+                </button>
+              </Fragment>
             ) : (
-              <span class="tm__play" aria-hidden="true">
-                <svg viewBox="0 0 12 14" fill="none">
+              <span class="tm__toggle" aria-hidden="true">
+                <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none">
                   <path d="M12 7 0 14V0z" fill="currentColor" />
                 </svg>
               </span>
@@ -214,23 +279,37 @@ const {
     ))}
   </div>
 
-  <!-- ================= Featured: hover accordion ================= -->
+  <!-- ================= Featured: hover accordion =================
+       Two to a row. The accordion's whole trick is that the open note takes
+       its width from the person beside it, so a row is the unit it works in —
+       hence real row elements rather than one wrapping flex container. Each
+       row runs its own accordion: one note open in it at a time, defaulting to
+       the first person in that row. -->
   <div class="tm__feature u-container" data-tm-feature>
     {
-      featured.map((person, i) => (
+      rows.map((row) => (
+        <div class="tm__row" data-tm-row>
+          {row.map((person, i) => (
         <figure class="tm__person" data-tm-person data-open={i === 0 ? '' : undefined}>
           <div class="tm__card">
             <div class="tm__portrait" data-tm-media>
               {person.video ? (
-                /* preload="none" so a card nobody plays costs one poster
-                   image, not a video download. The poster carries the frame
-                   the portrait used to, so nothing looks different until it is
-                   played. */
+                /* Plays by itself, silently, on a loop — the card is a moving
+                   portrait rather than something waiting to be started.
+                   `muted` is not a style choice: every browser blocks
+                   autoplay with sound, so without it nothing would play at
+                   all. Sound is one press of the control below away.
+
+                   The poster still carries the first frame, so a slow
+                   connection sees the portrait rather than a black box. */
                 <video
                   class="tm__video"
                   src={person.video}
                   poster={person.poster ?? person.photo}
-                  preload="none"
+                  preload="metadata"
+                  autoplay
+                  muted
+                  loop
                   playsinline
                   data-tm-video
                 />
@@ -242,20 +321,39 @@ const {
               )}
 
               {person.video ? (
-                <button
-                  class="tm__play"
-                  type="button"
-                  data-tm-play
-                  aria-label={`Play video testimonial from ${person.name}`}
-                >
-                  <svg viewBox="0 0 12 14" fill="none" aria-hidden="true">
-                    <path d="M12 7 0 14V0z" fill="currentColor" />
-                  </svg>
-                </button>
+                <Fragment>
+                  {/* Two controls, because there are two things to decide.
+                      The badge stops and starts the picture; the small mark
+                      below it decides whether you hear it. */}
+                  <button
+                    class="tm__toggle"
+                    type="button"
+                    data-tm-toggle
+                    aria-pressed="true"
+                    aria-label={`Pause ${person.name}'s testimonial`}
+                  >
+                    <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                      <path d="M12 7 0 14V0z" fill="currentColor" />
+                    </svg>
+                    <svg class="tm__toggle-pause" viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                      <path d="M1 0h3v14H1zM8 0h3v14H8z" fill="currentColor" />
+                    </svg>
+                  </button>
+
+                  <button
+                    class="tm__sound"
+                    type="button"
+                    data-tm-sound
+                    aria-pressed="false"
+                    aria-label={`Turn on sound for ${person.name}'s testimonial`}
+                  >
+                    <Fragment set:html={soundIcon} />
+                  </button>
+                </Fragment>
               ) : (
                 /* No video URL supplied — decorative only, never a dead control */
-                <span class="tm__play" aria-hidden="true">
-                  <svg viewBox="0 0 12 14" fill="none">
+                <span class="tm__toggle" aria-hidden="true">
+                  <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none">
                     <path d="M12 7 0 14V0z" fill="currentColor" />
                   </svg>
                 </span>
@@ -283,65 +381,12 @@ const {
             </div>
           </div>
         </figure>
+          ))}
+        </div>
       ))
     }
   </div>
 
-  <!-- ================= Marquee: auto + manual ================= -->
-  {/* Horizontal only. Plain data-lenis-prevent bowed Lenis out of *every*
-      gesture over this rail, vertical included — so a wheel here left the
-      page's smooth scroll untouched while the browser scrolled the document
-      natively underneath it, and the two fought until the page read as stuck.
-      Lenis picks this attribute by the gesture's own dominant axis (see its
-      onVirtualScroll), so a sideways swipe still belongs to the rail while a
-      normal downward wheel goes back to scrolling the page. */}
-  <div class="tm__rail" data-tm-rail data-lenis-prevent-horizontal>
-    <div class="tm__track" data-tm-track>
-      {[0, 1].map((copy) =>
-        quotes.map((q) => (
-          <figure
-            class:list={['tm__quote-card', `tm__quote-card--${q.variant ?? 'lead'}`]}
-            aria-hidden={copy === 1 ? 'true' : undefined}
-          >
-            <div class="tm__quote-body">
-              <figcaption class="tm__quote-who">
-                <p class="tm__name">{q.name}</p>
-                <p class="tm__role">{q.role}</p>
-              </figcaption>
-
-              <p class="tm__quote-headline">{q.headline}</p>
-              <blockquote class="tm__quote-text">{q.quote}</blockquote>
-            </div>
-
-            <div class="tm__quote-portrait">
-              {q.photo ? (
-                <img src={q.photo} alt={`Portrait of ${q.name}`} loading="lazy" decoding="async" />
-              ) : (
-                <span class="tm__portrait-fallback" aria-hidden="true" />
-              )}
-            </div>
-          </figure>
-        )),
-      )}
-    </div>
-  </div>
-
-  {/* Real buttons, not decoration: they are the only way to reach a specific
-      quote without dragging the rail there by hand. */}
-  <div class="tm__progress u-container" role="group" aria-label="Quotes">
-    {
-      quotes.map((quote, i) => (
-        <button
-          class="tm__progress-seg"
-          type="button"
-          data-tm-seg
-          aria-label={`Show the quote from ${quote.name}`}
-        >
-          <span class="u-sr-only">{i + 1}</span>
-        </button>
-      ))
-    }
-  </div>
 </section>
 
 <style>
@@ -359,6 +404,15 @@ const {
 
   /* ===================== Featured ===================== */
   .tm__feature {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  /* The accordion's unit. Two people share a row's width, and the open note
+     takes its width from the other one — which only works if "the other one"
+     is a fixed set. */
+  .tm__row {
     display: flex;
     gap: clamp(1rem, 2vw, 1.75rem);
     align-items: stretch;
@@ -421,7 +475,10 @@ const {
       var(--color-line);
   }
 
-  .tm__play {
+  /* Play/pause. The badge in the middle of the portrait, as it always was —
+     the difference is that it now reports the state it is in rather than
+     always offering to start something already running. */
+  .tm__toggle {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -436,32 +493,107 @@ const {
     font: inherit;
     background: var(--color-bg-primary);
     color: var(--color-ink);
+    /* Out of the way until asked for: the card is a moving portrait, and a
+       control parked over the face is the first thing you see instead of the
+       person. */
+    opacity: 0;
     transition:
       scale 0.4s var(--ease-out-expo),
       opacity 0.3s var(--ease-out-expo);
   }
 
-  button.tm__play {
+  /* Hover is the only thing that brings it up. Playing or paused makes no
+     difference: a card that is not being pointed at shows the person, not a
+     button.
+
+     `:focus-visible` on the button itself, NOT `:focus-within` on the card.
+     A mouse click leaves the button focused, so focus-within kept the badge up
+     on whatever card was last pressed long after the pointer had gone — which
+     is exactly the "it stays visible once you press play" case. focus-visible
+     ignores that click and only answers to keyboard focus, which is the case
+     it was there for. */
+  .tm__person:hover .tm__toggle,
+  .tm__spot-panel:hover .tm__toggle,
+  .tm__toggle:focus-visible {
+    opacity: 1;
+  }
+
+  /* No hover to reveal it with. */
+  @media (hover: none) {
+    .tm__toggle {
+      opacity: 1;
+    }
+  }
+
+  button.tm__toggle {
     cursor: pointer;
   }
 
-  /* Out of the way once playback starts, and out of the tab order with it —
-     the native controls take over from here. Keyed off the media wrapper the
-     script marks, so the accordion portrait and the mobile spotlight panel
-     both answer to it. */
-  [data-tm-media][data-playing] .tm__play {
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
+  .tm__toggle svg {
+    grid-area: 1 / 1;
+    width: 0.6875rem;
   }
 
-  .tm__play svg {
-    width: 0.6875rem;
+  .tm__toggle-play {
     margin-left: 2px;
   }
 
-  button.tm__play:hover,
-  button.tm__play:focus-visible {
+  /* aria-pressed carries "is playing", so the mark is the one you would press
+     for the other state. The decorative <span> has no attribute at all and
+     keeps the play mark. */
+  .tm__toggle[aria-pressed='true'] .tm__toggle-play,
+  .tm__toggle[aria-pressed='false'] .tm__toggle-pause {
+    display: none;
+  }
+
+  button.tm__toggle:hover,
+  button.tm__toggle:focus-visible {
+    scale: 1.08;
+  }
+
+  /* Sound switch. Bottom-left, and deliberately smaller than the badge above:
+     it is the secondary of the two decisions, and at the badge's size the two
+     competed. */
+  .tm__sound {
+    position: absolute;
+    bottom: 0.625rem;
+    left: 0.625rem;
+    display: grid;
+    place-items: center;
+    width: clamp(1.5rem, 2vw, 1.75rem);
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    transition:
+      scale 0.4s var(--ease-out-expo),
+      opacity 0.3s var(--ease-out-expo);
+  }
+
+  /* :global — the icon arrives through set:html, so it carries no scoping
+     attribute and a plain descendant selector matches none of it. Without
+     this the svg simply filled the button. */
+  .tm__sound :global(svg) {
+    width: 0.75rem;
+    height: auto;
+  }
+
+  /* Muted is the resting state, so the slash is what shows until the button
+     is pressed. */
+  .tm__sound[aria-pressed='false'] :global(.tm__sound-wave),
+  .tm__sound:not([aria-pressed]) :global(.tm__sound-wave) {
+    display: none;
+  }
+
+  .tm__sound[aria-pressed='true'] :global(.tm__sound-slash) {
+    display: none;
+  }
+
+  button.tm__sound:hover,
+  button.tm__sound:focus-visible {
     scale: 1.08;
   }
 

@@ -10,6 +10,12 @@
  * The whole card is one link, so the click target is the card rather than
  * just the headline.
  *
+ * The three defaults are the current featured posts on tribedesignworks.com,
+ * and `href` points at the live article rather than at a route this site does
+ * not serve yet. The artwork is unchanged and deliberately generic — it is
+ * this site's own, not the post's, so a card carries the headline it links to
+ * without claiming to show it.
+ *
  * ASSETS: no article images were supplied. `image` is optional on every entry;
  * without one, the card draws a tinted placeholder scattered with the same
  * pixel squares the rest of the site uses, so a missing image still reads as
@@ -38,25 +44,25 @@ const {
   title = 'From the Journal',
   posts = [
     {
-      category: 'Branding',
-      title: 'Why Strong Branding Starts Before the First Logo',
-      href: '/journal/branding-before-the-first-logo',
+      category: 'Website Design and Development',
+      title: 'Website Redesign for Fast-Moving Startups: Process, SEO, Cost & Checklist',
+      href: 'https://tribedesignworks.com/blog/website-redesign',
       image: '/media/journal-1.webp',
       imageAlt: 'Branding work in progress',
       tint: '#b8431f',
     },
     {
-      category: 'Web Design',
-      title: '5 Website Design Trends That Actually Improve User Experience',
-      href: '/journal/website-design-trends',
+      category: 'Design Process',
+      title: 'Startup Design Process: A Guide for Founders Who Need to Move Fast',
+      href: 'https://tribedesignworks.com/blog/startup-design-process',
       image: '/media/journal-2.webp',
       imageAlt: 'A website design in progress',
       tint: '#4a7fc1',
     },
     {
-      category: 'UX Strategy',
-      title: 'How Strategic UX Decisions Turn More Visitors into Customers',
-      href: '/journal/strategic-ux-decisions',
+      category: 'Marketing Design',
+      title: 'Marketing & Design: How to Make Every Asset Work (Harder)',
+      href: 'https://tribedesignworks.com/blog/marketing-design',
       image: '/media/journal-3.webp',
       imageAlt: 'A UX flow being mapped out',
       tint: '#3f6ea8',

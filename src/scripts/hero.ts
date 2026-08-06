@@ -8,7 +8,7 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  * Intro    — photo clips open from the bottom, headline lines unmask, aside
  *            rows fade up and their rules draw in.
  * Handover — the scene pins once (so nothing in it ever scrolls away on its
- *            own) for every transition across all five sections, all sharing
+ *            own) for every transition across all three sections, all sharing
  *            that one pin:
  *
  *              A. hero → Showcase        THE bespoke transition: pixel reveal
@@ -16,33 +16,39 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  *                                         photo pushes in, Showcase crossfades
  *                                         in late underneath the tiles. Kept
  *                                         exactly as originally tuned.
- *                 Showcase's own text     rises into view near the end of A —
- *                                         same "enters from below" language
- *                                         every later section's text also
- *                                         uses (added on request; it didn't
- *                                         have its own entrance before).
- *              B. Showcase's text leaves  translates up + fades, in place —
- *                                         the device image never moves.
- *              Then Overclock, Bedford and CELPIP each repeat the same two
- *              beats — deliberately NOT phase A's mechanic (explicit
- *              direction: no zoom, no pixels, just opacity):
- *                arrival   plain opacity crossfade (0 → 1, no scale
- *                          anywhere), that section's own text rising into
- *                          view partway through
- *                exit      that section's text scrolls up and fades, in
- *                          place (skipped for CELPIP — it's currently last,
- *                          nothing to hand off to)
- *              Settle — nothing animates; just scroll room to rest on the
- *              finished page before the pin (and the document) ends.
+ *              B. Showcase holds          nothing is scheduled; scroll room
+ *                                         for a finished chapter.
+ *              C. Showcase → Overclock    the same pixel language, scattered
+ *                                         rather than spreading from a point:
+ *                                         a field of tiles in Overclock's own
+ *                                         ground colour lands in random order,
+ *                                         then the layer swaps in behind the
+ *                                         finished field, same colour, no seam.
+ *              D. Overclock holds
+ *              The pin ends there, on Overclock.
+ *              E. Overclock → the page    the same field again, in the ground
+ *                                         colour of the section below the
+ *                                         scene — but on its own trigger,
+ *                                         outside the pin, running across the
+ *                                         viewport of scroll the scene takes
+ *                                         to leave. Overclock dissolves as it
+ *                                         goes, with Credibility already
+ *                                         rising into view behind it.
  *
- *            Chapter marker: 4 slots, NOT 5 — hero and Showcase share slot 1
- *            (an earlier explicit direction), so slot 2 = Overclock, slot 3 =
- *            Bedford, slot 4 = CELPIP. See Timeline.astro's docstring for why
- *            this doesn't line up 1:1 with each section's own
- *            `data-chapter-section` index. Switching slots requires an
- *            `onUpdate` threshold check (not a single onLeave/onEnterBack)
- *            because there are now three *internal* transition points inside
- *            one continuous pin, not just one pin boundary — `setActiveChapter`
+ *            Nothing is scheduled inside the pin after the last chapter, and
+ *            nothing can be: a pinned scene cannot show the section under it,
+ *            so any phase there is scroll that produces no movement.
+ *
+ *            Bedford and CELPIP were chapters here until their case studies
+ *            were ready; see index.astro for what putting them back involves.
+ *
+ *            Chapter marker: 2 slots, NOT 3 — hero and Showcase share slot 1
+ *            (an earlier explicit direction), so slot 2 = Overclock. See
+ *            Timeline.astro's docstring for why this doesn't line up 1:1 with
+ *            each section's own `data-chapter-section` index. Switching slots
+ *            requires an `onUpdate` threshold check (not a single
+ *            onLeave/onEnterBack) because the transition points are *internal*
+ *            to one continuous pin, not pin boundaries — `setActiveChapter`
  *            no-ops once already on the target slot, so re-evaluating this on
  *            every scroll tick is cheap.
  *
@@ -132,13 +138,18 @@ export function initHero(): () => void {
   const scene = document.querySelector<HTMLElement>('[data-scene]');
   const next = scene?.querySelector<HTMLElement>('[data-scene-next]');
   const overclockLayer = scene?.querySelector<HTMLElement>('[data-scene-overclock]');
-  const bedfordLayer = scene?.querySelector<HTMLElement>('[data-scene-bedford]');
-  const celpipLayer = scene?.querySelector<HTMLElement>('[data-scene-celpip]');
 
   const pixels = scene?.querySelector<HTMLElement>('[data-scene-pixels]');
   const showcase = next?.querySelector<HTMLElement>('.showcase');
 
-  if (scene && next && overclockLayer && bedfordLayer && celpipLayer && stage) {
+  /* The zero-height marker sitting between the scene and the page (see
+     index.astro). Queried by attribute, not as the scene's next sibling:
+     pinning wraps the scene in a spacer, and from inside that wrapper it has
+     no siblings — a sibling lookup returns null on any run where the pin
+     already exists, and then the exit field gets built and never animated. */
+  const afterScene = document.querySelector<HTMLElement>('[data-scene-after]');
+
+  if (scene && next && overclockLayer && stage) {
     // Every width. This used to be desktop-only because the hero and Showcase
     // were content-height below 1200px and would have been clipped by a
     // viewport-tall pinned scene; both are one viewport at every width now
@@ -151,24 +162,44 @@ export function initHero(): () => void {
       // reduced-motion paths keep the sections in normal document flow.
       scene.dataset.sceneMode = 'pinned';
 
+      /* Pulls everything below the scene up by exactly the scene's own height,
+         so the section after it sits where the scene does rather than a screen
+         further down. The pin's spacer is (scene height + pin distance), which
+         is why the pin used to release onto a whole viewport of scene that
+         still had to be scrolled past. With this, the pin ending and the next
+         section being fully in frame are the same scroll position.
+
+         JS-only, and paired with the scene being hidden at that moment — the
+         two overlap in the document from here on, and only one may be seen. */
+      afterScene?.setAttribute('data-scene-pulled', '');
+
       // Every phase's length, in viewports, in playback order. Kept as one
       // flat list (rather than named constants per phase) specifically so
       // adding a 6th section later is "add two more numbers here", not a
       // rewrite of the fraction math below.
       const VIEWPORTS = {
         heroToShowcase: 1, // phase A — unchanged absolute timing
-        // The three *Dwell phases used to carry that chapter's text sliding
-        // up and out. With the copy no longer moving they schedule nothing;
-        // they are the scroll a finished chapter holds the screen for before
-        // the next one swaps in. Kept at their old lengths so the pin — and
-        // the document — is exactly as long as it was.
+        // The *Dwell phases used to carry that chapter's text sliding up and
+        // out. With the copy no longer moving they schedule nothing; they are
+        // the scroll a finished chapter holds the screen for before the next
+        // one swaps in.
         showcaseDwell: 0.6,
         overclockArrival: 0.5,
         overclockDwell: 0.5,
-        bedfordArrival: 0.5,
-        bedfordDwell: 0.5,
-        celpipArrival: 0.5,
-        settle: 1,
+        /* The way out, and it belongs in here: Overclock has to hold still
+           while the field lands on it, the same way every other chapter does.
+           Run outside the pin instead, the field scattered over a section that
+           was already sliding away — two things moving at once.
+
+           What used to make this phase unusable was the viewport of scroll
+           that followed it: the scene is a full screen tall, so the pin
+           releasing still left that screen — by then flat colour — to be
+           scrolled past before anything new arrived. That viewport is gone
+           now; the section below is pulled up over it (`data-scene-pulled`)
+           and the scene is hidden the moment the pin lets go, so the field
+           finishing and the next section being fully on screen are the same
+           moment. */
+        exitReveal: 0.5,
       } as const;
 
       const PIN_VIEWPORTS = Object.values(VIEWPORTS).reduce((a, b) => a + b, 0);
@@ -189,15 +220,12 @@ export function initHero(): () => void {
       at(VIEWPORTS.showcaseDwell);
       const atOverclockArrival = at(VIEWPORTS.overclockArrival);
       at(VIEWPORTS.overclockDwell);
-      const atBedfordArrival = at(VIEWPORTS.bedfordArrival);
-      at(VIEWPORTS.bedfordDwell);
-      const atCelpipArrival = at(VIEWPORTS.celpipArrival);
-      // cursor is now at the start of "settle", i.e. 1 - VIEWPORTS.settle/PIN_VIEWPORTS
+      const atExitReveal = at(VIEWPORTS.exitReveal);
+      // cursor is now at the end of the pin: the exit reveal is the last phase
 
       const durHeroToShowcase = VIEWPORTS.heroToShowcase / PIN_VIEWPORTS;
       const durOverclockArrival = VIEWPORTS.overclockArrival / PIN_VIEWPORTS;
-      const durBedfordArrival = VIEWPORTS.bedfordArrival / PIN_VIEWPORTS;
-      const durCelpipArrival = VIEWPORTS.celpipArrival / PIN_VIEWPORTS;
+      const durExitReveal = VIEWPORTS.exitReveal / PIN_VIEWPORTS;
 
       /**
        * Fraction of an arrival phase the image swap gets. The outgoing
@@ -221,8 +249,6 @@ export function initHero(): () => void {
       // this is 4 slots covering 5 sections.
       const slotThresholds: Array<[number, number]> = [
         [atOverclockArrival + durOverclockArrival * REVEAL_DONE, 2],
-        [atBedfordArrival + durBedfordArrival * REVEAL_DONE, 3],
-        [atCelpipArrival + durCelpipArrival * REVEAL_DONE, 4],
       ];
 
       const handover = gsap.timeline({
@@ -241,6 +267,14 @@ export function initHero(): () => void {
              own without re-damping what Lenis has already damped. */
           scrub: 0.3,
           invalidateOnRefresh: true,
+          /* The scene has nothing left to show once the exit field has covered
+             it, and it is a full screen tall — so it is hidden the instant the
+             pin lets go, and the section pulled up underneath it (see
+             `data-scene-pulled`) is what the scroll continues on. The field
+             was already painted in that section's own colour, so there is
+             nothing to see in the swap. */
+          onLeave: () => scene.setAttribute('data-scene-done', ''),
+          onEnterBack: () => scene.removeAttribute('data-scene-done'),
           onUpdate: (self) => {
             let slot = 1;
             for (const [threshold, num] of slotThresholds) {
@@ -366,7 +400,12 @@ export function initHero(): () => void {
        * Built here rather than in markup because the count depends on the
        * viewport, and rebuilt on every matchMedia pass for the same reason.
        */
-      const addTileReveal = (key: string, start: number, duration: number) => {
+      const addTileReveal = (
+        key: string,
+        start: number,
+        duration: number,
+        tl: gsap.core.Timeline = handover,
+      ) => {
         const grid = scene.querySelector<HTMLElement>(`[data-scene-grid="${key}"]`);
         if (!grid) return 0;
 
@@ -385,7 +424,7 @@ export function initHero(): () => void {
         // take over — the swap has to land while the field still covers
         // everything, or the outgoing chapter flashes back through.
         const spread = duration * 0.72;
-        handover.fromTo(
+        tl.fromTo(
           Array.from(grid.children) as HTMLElement[],
           { scale: 0.55, autoAlpha: 0 },
           {
@@ -437,27 +476,58 @@ export function initHero(): () => void {
       };
 
       addArrival(overclockLayer, atOverclockArrival, durOverclockArrival, 'overclock');
-      addArrival(bedfordLayer, atBedfordArrival, durBedfordArrival, 'bedford');
 
-      // CELPIP is currently last — arrival only, no exit, nothing to hand off
-      // to yet. The settle phase after it (implicit: nothing is scheduled
-      // there) is what gives the finished page room to rest before the pin —
-      // and the document — actually ends.
-      addArrival(celpipLayer, atCelpipArrival, durCelpipArrival, 'celpip');
+      /* --- The way out ------------------------------------------------------
+         Same mechanic as the way between chapters, and in the same timeline:
+         Overclock holds still while the field lands on it, exactly as every
+         chapter before it did. Run on a trigger of its own, outside the pin,
+         the field scattered over a section that was already sliding out of
+         frame — the section moving and the effect playing at once.
+
+         No `addArrival`: the field is not covering for a layer about to swap
+         in. It is the last thing the scene paints, and once it has, the pin is
+         over and the scene is hidden — see the trigger's onLeave, and the pull
+         that puts the next section exactly where the scene was. */
+      addTileReveal('exit', atExitReveal, durExitReveal);
+
+      /** Where in the exit phase the scene starts giving way to what is under
+       *  it. Just past halfway: late enough that the field reads as a field
+       *  first, early enough that the next section is arriving well before the
+       *  pin lets go rather than at the instant it does. */
+      const EXIT_DISSOLVE_AT = 0.55;
+
+      /* And then the scene itself goes. The field alone only got as far as a
+         screen of flat colour: the next section was already in position
+         underneath, and nothing let it through until the pin released. Fading
+         the scene out is what lets it through — the tiles dissolve along with
+         everything they were covering, and what is behind them is the section
+         that was there all along.
+
+         Started once the scatter is essentially done, so the two read as one
+         movement: Overclock breaks up into tiles, the tiles thin out, the next
+         section is what is left. It is scrubbed like everything else here, so
+         scrolling back up brings the scene straight back. */
+      handover.to(
+        scene,
+        {
+          autoAlpha: 0,
+          ease: 'none',
+          duration: durExitReveal * (1 - EXIT_DISSOLVE_AT),
+        },
+        atExitReveal + durExitReveal * EXIT_DISSOLVE_AT,
+      );
 
       /**
        * Pins the timeline's own duration to exactly 1.
        *
        * Every position above is written as a fraction of the pin, but GSAP
        * reads them as seconds and the scrub maps the pin's progress onto
-       * `0..duration`. Nothing is scheduled in the settle phase, so the
-       * timeline used to end at its last tween — 0.72 — and every position was
-       * silently stretched by 1/0.72. That is what put the chapter marker a
-       * whole slot ahead of the artwork: the marker reads the scroll directly,
-       * the layers were arriving 38% later than the numbers said. Measured
-       * before this line: Bedford still on screen from progress 0.73 while the
-       * marker had been on slot 4 since 0.81, and CELPIP only finished
-       * arriving at the very last pixel of the pin.
+       * `0..duration`. The last tween ends well short of 1 — Overclock's dwell
+       * schedules nothing — so without this the timeline would end at its last
+       * tween and every position would be silently stretched to fill the pin.
+       * That is what once put the chapter marker a whole slot ahead of the
+       * artwork: the marker reads the scroll directly, the layers were
+       * arriving 38% later than the numbers said.
        *
        * An empty `set` at 1 costs nothing and makes the two scales the same.
        */
@@ -467,6 +537,8 @@ export function initHero(): () => void {
       return () => {
         pixels?.replaceChildren();
         delete scene.dataset.sceneMode;
+        scene.removeAttribute('data-scene-done');
+        afterScene?.removeAttribute('data-scene-pulled');
       };
     });
 

@@ -1,17 +1,21 @@
 ---
 /**
  * Timeline — the small chapter marker repeated in each project section
- * (Showcase, Overclock, Bedford, CELPIP).
+ * (Showcase, Overclock).
  *
- * Its 4 slots do NOT map 1:1 onto the 5 sections in the DOM. Hero and
+ * Its 2 slots do NOT map 1:1 onto the 3 sections in the DOM. Hero and
  * Showcase deliberately share slot 1 — an explicit, earlier direction was
  * that the marker should still read "1" for all of hero → Showcase, only
  * advancing once Showcase has genuinely been left behind. So the mapping is:
  *   slot 1 = hero + Showcase   slot 2 = Overclock
- *   slot 3 = Bedford           slot 4 = CELPIP
- * Each section's own `data-chapter-section` attribute (1–5, one per section,
+ * Each section's own `data-chapter-section` attribute (one per section,
  * matching document order) is a separate, purely descriptive index — nothing
  * reads its value; don't assume it lines up with the marker's slot number.
+ *
+ * `total` is the count of ready chapters, not of components that exist:
+ * Bedford and CELPIP are out of the scene until their case studies are
+ * written, and a marker counting to 4 would promise two chapters the scroll
+ * never reaches.
  *
  * Every instance on the page shows the same thing: which slot is currently
  * "arrived at". `src/scripts/timeline.ts` exports the `setActiveChapter()`
@@ -29,7 +33,7 @@ interface Props {
   total?: number;
 }
 
-const { total = 4 } = Astro.props;
+const { total = 2 } = Astro.props;
 const chapters = Array.from({ length: total }, (_, i) => i + 1);
 ---
 
