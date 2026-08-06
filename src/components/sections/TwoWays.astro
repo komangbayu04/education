@@ -26,6 +26,10 @@ interface Offer {
   summary: string;
   forItems: string[];
   length: string;
+  /** Marks the recommended option: a soft ground plus the large faint word
+   *  below. A flag on the data, not a hard-coded index, so which card is
+   *  singled out is decided where the offers are. */
+  highlight?: boolean;
 }
 
 interface Ritual {
@@ -42,6 +46,8 @@ interface Props {
   ctaCopy?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  /** The word set behind the highlighted card. */
+  highlightLabel?: string;
 }
 
 const {
@@ -61,6 +67,7 @@ const {
       summary: 'Your design function, year-round, across every surface.',
       forItems: ['Brand', 'Website', 'Product Design', 'Marketing'],
       length: 'Ongoing, month to month',
+      highlight: true,
     },
   ],
   rituals = [
@@ -73,6 +80,7 @@ const {
   ctaCopy = "Tell us what's coming and we'll tell you which way fits.",
   ctaLabel = 'Talk to us',
   ctaHref = '/contact',
+  highlightLabel = 'FAV',
 } = Astro.props;
 ---
 
@@ -100,7 +108,19 @@ const {
       <div class="two__cards">
         {
           offers.map((offer) => (
-            <article class="two__card" data-two-card>
+            <article
+              class:list={['two__card', { 'two__card--highlight': offer.highlight }]}
+              data-two-card
+            >
+              {offer.highlight && (
+                /* First in the DOM so every sibling below paints over it —
+                   they are all position:relative, and equal z-index falls back
+                   to document order. Decorative: it is clipped by the card, so
+                   there is no whole word for a screen reader to read out. */
+                <span class="two__card-flag" aria-hidden="true">
+                  {highlightLabel}
+                </span>
+              )}
               <h3 class="two__card-name">
                 {offer.name}
                 <Icon name={offer.icon} size="1.375rem" />
@@ -294,11 +314,64 @@ const {
   }
 
   .two__card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: clamp(0.75rem, 1.2vw, 1.125rem);
-    padding: 0 clamp(1.25rem, 2.2vw, 2rem) clamp(1.75rem, 3vw, 2.5rem);
+    /* Top padding on both, not just the highlighted one — the ground needs
+       room above the heading, and the two cards have to stay on the same
+       baseline. */
+    padding: clamp(1.25rem, 2.2vw, 1.75rem) clamp(1.25rem, 2.2vw, 2rem)
+      clamp(1.75rem, 3vw, 2.5rem);
     border-left: 1px solid var(--color-line);
+  }
+
+  /* The recommended card. A wash rather than a border or a colour: the panel
+     is already ruled by the card borders, and anything stronger would read as
+     a different component instead of the same one, emphasised. */
+  .two__card--highlight {
+    overflow: hidden;
+    /* Left to right, following the reading direction and the card's own long
+       axis — down the card the wash fought the rules that cross it. */
+    background: linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.85),
+      rgb(255 255 255 / 0.35) 62%,
+      rgb(255 255 255 / 0.15)
+    );
+  }
+
+  /* Lifts the real content over the mark below. Excluding the mark by name
+     rather than relying on source order: both selectors carry the same
+     specificity once Astro scopes them, and a bare `> *` was winning over
+     .two__card-flag's own `position: absolute` — which put the mark back in
+     flow and pushed the whole card down by its line box. */
+  .two__card--highlight > *:not(.two__card-flag) {
+    position: relative;
+  }
+
+  /* Set large and very faint, and deliberately running off the card's right
+     edge — the card's own overflow does the cropping, so it reads as a mark
+     laid under the content rather than a label sitting in it. */
+  .two__card-flag {
+    position: absolute;
+    top: 34%;
+    /* Anchored to the card's right edge and pushed a fraction of its own type
+       size past it, so the V's outer stroke is always just clipped — a share
+       of the card's width instead would cut a different amount of the mark on
+       every layout, because the mark and the card don't scale together. */
+    right: -0.18em;
+    /* Three letters instead of eight, so it can be set far larger for the same
+       footprint — it is a mark under the content, not a word to be read. */
+    font-size: clamp(4.5rem, 11vw, 9rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+    opacity: 0.035;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
   }
 
   .two__card-name {
@@ -395,13 +468,28 @@ const {
       gap: clamp(2.5rem, 6vw, 4rem);
     }
 
-    /* Nothing left to push against once the columns stack, so the big
-       flexible gap has to come out or it strands the CTA. */
+    /* Stacked, the ask belongs after the offer, not between the intro and it:
+       side by side the CTA sat at the foot of its own column, which read as
+       the end of the section — one column down it was landing before the cards
+       and the pills had said anything.
+
+       display:contents dissolves the left column so its two halves become grid
+       items in their own right; only then can the CTA be ordered past the
+       panel, which is a different parent. */
     .two__lead {
-      gap: clamp(2rem, 5vw, 3rem);
+      display: contents;
+    }
+
+    .two__intro {
+      order: 1;
+    }
+
+    .two__panel {
+      order: 2;
     }
 
     .two__cta-block {
+      order: 3;
       margin-top: 0;
     }
   }
@@ -411,17 +499,36 @@ const {
       grid-template-columns: minmax(0, 1fr);
     }
 
-    /* Stacked, the left rule reads as a stray mark against the page edge —
-       a rule between them is what's actually wanted. */
+    /* Stacked, each offer becomes a panel of its own rather than two blocks
+       divided by a rule: the left border that separates them side by side
+       reads as a stray mark against the page edge here, and a horizontal rule
+       in its place still leaves them looking like one long list. A ground and
+       a gap say "two things to choose between" without any rule at all. */
     .two__card {
-      padding-inline: 0;
+      /* Full-bleed, with the container's gutter restored as its own padding.
+         Padded inside the container instead, the card's copy sat indented from
+         the section's — two different left edges on the same screen. This way
+         the panel reaches the screen edges and the text lines up with
+         everything above it. */
+      margin-inline: calc(-1 * var(--section-padding-x));
+      padding: clamp(1.25rem, 4.5vw, 1.75rem) var(--section-padding-x);
       border-left: 0;
+      background: var(--color-surface);
     }
 
+    /* White, not the desktop wash: against --color-surface a translucent white
+       is almost the same value, and the recommended card has to be the one
+       that reads as lifted. Faded out down the card — full white where the
+       name and summary sit, gone by the bottom — so the panel ends by
+       dissolving into the section's ground instead of stopping on an edge. */
+    .two__card--highlight {
+      background: linear-gradient(90deg, #fff 0%, rgb(255 255 255 / 0) 100%);
+    }
+
+    /* The recommended one keeps its own lighter wash — see .two__card--highlight
+       above — so it still reads as the lifted one against these grounds. */
     .two__card + .two__card {
-      margin-top: clamp(1.75rem, 6vw, 2.5rem);
-      padding-top: clamp(1.75rem, 6vw, 2.5rem);
-      border-top: 1px solid var(--color-line);
+      margin-top: clamp(1rem, 3.5vw, 1.5rem);
     }
 
     /* With one card per row there is no second card to line up with, so this
@@ -430,12 +537,27 @@ const {
       margin-top: 0;
     }
 
+    /* The pills are sized for a desktop row of four; at phone width the same
+       padding and text turn them into stacked slabs. Everything comes down
+       together — text, padding, icon and the gaps — so they read as a compact
+       set of tags rather than four buttons. */
     .two__rituals {
+      gap: 0.5rem;
+      padding-block: clamp(1.25rem, 5vw, 1.75rem);
       padding-inline: 0;
     }
 
     .two__ritual {
-      white-space: normal;
+      gap: 0.4375rem;
+      padding: 0.5rem 0.875rem;
+      font-size: 0.8125rem;
+    }
+
+    /* Icon.astro sets --icon-size inline, so the custom property can't be
+       overridden from here — the rendered box is what has to be re-stated. */
+    .two__ritual :global(.icon) {
+      width: 0.9375rem;
+      height: 0.9375rem;
     }
   }
 

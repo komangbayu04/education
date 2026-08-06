@@ -1,0 +1,180 @@
+---
+/**
+ * Case-study gallery — the scattered image mosaic under the introduction.
+ *
+ * Three tiles that deliberately don't line up: a square at the left margin, a
+ * tall one filling the right half and overlapping the square's row, and a
+ * landscape one stepped in from the left below them. A caption sits under the
+ * first tile.
+ *
+ * Desktop places them absolutely, in percentages, inside a stage with a fixed
+ * aspect ratio. That is the only way to keep a composition like this: the
+ * tiles overlap each other's rows and columns, so no grid track can describe
+ * them without pinning both axes anyway — and percentages of a ratio-sized box
+ * hold the frame's proportions at every width. Below 62rem the stage is
+ * abandoned and the tiles simply stack.
+ *
+ * A tile with no `src` renders as a solid black block, which is what the frame
+ * shows for artwork that hasn't been supplied yet — the slot is real, only the
+ * asset is missing.
+ */
+
+interface Tile {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  src?: string;
+  alt?: string;
+}
+
+interface Props {
+  /** Exactly three, in frame order: square, tall, landscape. */
+  tiles: [Tile, Tile, Tile];
+  caption?: string;
+}
+
+const { tiles, caption } = Astro.props;
+const slots = ['a', 'b', 'c'] as const;
+---
+
+<section class="cs-gal u-container" data-cs-reveal>
+  <div class="cs-gal__stage">
+    {
+      tiles.map((tile, i) => (
+        <figure class={`cs-gal__tile cs-gal__tile--${slots[i]}`}>
+          {tile.src ? (
+            <picture>
+              <source srcset={`${tile.src}.avif`} type="image/avif" />
+              <img src={`${tile.src}.webp`} alt={tile.alt ?? ''} loading="lazy" decoding="async" />
+            </picture>
+          ) : (
+            <span class="cs-gal__empty" aria-hidden="true" />
+          )}
+        </figure>
+      ))
+    }
+
+    {caption && <p class="cs-gal__caption">{caption}</p>}
+  </div>
+</section>
+
+<style>
+  .cs-gal {
+    padding-top: clamp(1.5rem, 3vw, 2.75rem);
+    padding-bottom: clamp(3rem, 6vw, 5.5rem);
+  }
+
+  /* --- Desktop composition -------------------------------------------------
+     Every number below is a share of this box, so the whole arrangement scales
+     as one thing.
+
+     The tiles are the frame's arrangement at 80% of its scale: at full size
+     they dominated the page and pushed everything after them a screen and a
+     half down. Shrinking sizes without moving the anchors — the square still
+     starts at the left margin, the tall one still ends at the right — keeps
+     the scatter while taking a fifth of the height back. */
+  .cs-gal__stage {
+    position: relative;
+    aspect-ratio: 1396 / 878;
+  }
+
+  .cs-gal__tile {
+    position: absolute;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .cs-gal__tile picture,
+  .cs-gal__tile img,
+  .cs-gal__empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cs-gal__tile img {
+    object-fit: cover;
+  }
+
+  .cs-gal__empty {
+    background: var(--color-ink);
+  }
+
+  .cs-gal__tile--a {
+    left: 0;
+    top: 0;
+    width: 27.3%;
+    height: 42.8%;
+  }
+
+  /* Flush to the container's right edge and taller than everything else — it
+     is the anchor the other two are scattered around. */
+  .cs-gal__tile--b {
+    right: 0;
+    top: 7.9%;
+    width: 39.6%;
+    height: 82.4%;
+  }
+
+  .cs-gal__tile--c {
+    left: 11.2%;
+    top: 67.5%;
+    width: 27.2%;
+    height: 32.5%;
+  }
+
+  .cs-gal__caption {
+    position: absolute;
+    left: 0;
+    top: 47.5%;
+    width: 33%;
+    font-size: var(--text-body);
+    line-height: 1.55;
+  }
+
+  /* --- Stacked -------------------------------------------------------------
+     The scatter needs two dimensions to read as one; at tablet width and below
+     there aren't two to spare, so the tiles become a plain sequence and keep
+     only their own proportions. */
+  @media (max-width: 62rem) {
+    .cs-gal__stage {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(1.25rem, 4vw, 2rem);
+      aspect-ratio: auto;
+    }
+
+    .cs-gal__tile,
+    .cs-gal__caption {
+      position: static;
+      width: 100%;
+      height: auto;
+    }
+
+    .cs-gal__tile--a {
+      aspect-ratio: 476 / 470;
+    }
+
+    /* Full width: at 82% the tiles read as floating cut-outs against the
+       gutter rather than as artwork the page is built around. The height they
+       cost back is paid for by the tighter gaps. */
+    .cs-gal__tile {
+      width: 100%;
+    }
+
+    .cs-gal__tile--b {
+      /* Second in the frame, but it is the one image with room to breathe here,
+         so it keeps its place rather than being demoted. */
+      order: 3;
+      aspect-ratio: 681 / 905;
+    }
+
+    .cs-gal__tile--c {
+      order: 4;
+      aspect-ratio: 475 / 357;
+    }
+
+    .cs-gal__caption {
+      order: 2;
+      max-width: 34em;
+    }
+  }
+</style>

@@ -23,17 +23,38 @@ interface Node {
   /** % of the stage box, from its top edge */
   y: number;
   side: 'left' | 'right' | 'top';
+  /** Mobile fan: % of the diagram box, from its left edge */
+  mx: number;
+  /** Mobile fan: % of the diagram box, from its top edge */
+  my: number;
+  /** Mobile fan: which hub the node hangs off — above the box, or below it */
+  mSide: 'up' | 'down';
 }
 
 const nodes: Node[] = [
-  { label: 'Website', x: 1.5, y: 38, side: 'left' },
-  { label: 'One-pagers', x: 98.5, y: 38, side: 'right' },
-  { label: 'Landing pages', x: -14.3, y: 64.1, side: 'left' },
-  { label: 'Social presence', x: 114.3, y: 64.1, side: 'right' },
-  { label: 'Product Design', x: 11.7, y: 82.1, side: 'left' },
-  { label: 'Ads', x: 88.3, y: 82.1, side: 'right' },
-  { label: 'Pitch Deck', x: 50, y: 100, side: 'top' },
+  { label: 'Website', x: 1.5, y: 38, side: 'left', mx: 12.3, my: 69.3, mSide: 'down' },
+  { label: 'One-pagers', x: 98.5, y: 38, side: 'right', mx: 19.7, my: 11.2, mSide: 'up' },
+  { label: 'Landing pages', x: -14.3, y: 64.1, side: 'left', mx: 22.2, my: 90.7, mSide: 'down' },
+  { label: 'Social presence', x: 114.3, y: 64.1, side: 'right', mx: 77.8, my: 11.2, mSide: 'up' },
+  { label: 'Product Design', x: 11.7, y: 82.1, side: 'left', mx: 76, my: 90.7, mSide: 'down' },
+  { label: 'Ads', x: 88.3, y: 82.1, side: 'right', mx: 48.3, my: 7.8, mSide: 'up' },
+  { label: 'Pitch Deck', x: 50, y: 100, side: 'top', mx: 80.6, my: 69.3, mSide: 'down' },
 ];
+
+/**
+ * Mobile fan wires — everything converges on the credibility box: the three
+ * upstream nodes into its top edge, the four downstream ones out of its
+ * bottom edge. Same 0–100 coordinate space as the node positions above, so
+ * the <svg> viewBox and the CSS percentages stay in step.
+ */
+const box = { x: 48.6, top: 27.3, bottom: 48.8 };
+
+const wires = nodes.map((node) => ({
+  x1: box.x,
+  y1: node.mSide === 'up' ? box.top : box.bottom,
+  x2: node.mx,
+  y2: node.my,
+}));
 
 interface Props {
   title?: string;
@@ -71,20 +92,54 @@ const {
         </p>
       </div>
 
-      <p class="cred__core" data-cred-reveal="core">Your credibility</p>
+      {/* `display: contents` above 61.25rem — the wrapper only becomes a box
+          for the mobile fan, so the desktop ring is untouched by it. */}
+      <div class="cred__diagram">
+        {/* Stretched with inset:0 on mobile rather than left to inherit the
+            fan's aspect-ratio height directly. The box's own top/height are
+            percentages, and resolving those against an aspect-ratio-derived
+            height is not something every mobile engine agrees on — some drop
+            the box ~50px off its wires. Stretching a layer first gives the
+            percentages a definite height to bite on, which is exactly why the
+            nodes and the wires (both inset:0) already land correctly. */}
+        <div class="cred__core-layer">
+          <p class="cred__core" data-cred-reveal="core">
+            <span class="cred__core-label">Your credibility</span>
+            <span class="cred__skyline" aria-hidden="true"><i></i><i></i><i></i></span>
+          </p>
+        </div>
 
-      <ul class="cred__nodes">
-        {nodes.map((node) => (
-          <li
-            class={`cred__node cred__node--${node.side}`}
-            style={`--node-x:${node.x}%;--node-y:${node.y}%`}
-            data-cred-node
-          >
-            <span class="cred__node-label">{node.label}</span>
-            <span class="cred__node-dot" aria-hidden="true"></span>
-          </li>
-        ))}
-      </ul>
+        <ul class="cred__nodes">
+          {nodes.map((node) => (
+            <li
+              class={`cred__node cred__node--${node.side} cred__node--m-${node.mSide}`}
+              style={`--node-x:${node.x}%;--node-y:${node.y}%;--node-mx:${node.mx}%;--node-my:${node.my}%`}
+              data-cred-node
+            >
+              <span class="cred__node-label">{node.label}</span>
+              <span class="cred__node-dot" aria-hidden="true"></span>
+            </li>
+          ))}
+        </ul>
+
+        <svg
+          class="cred__wires"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          data-cred-reveal="wires"
+        >
+          {wires.map((wire) => (
+            <line
+              x1={wire.x1}
+              y1={wire.y1}
+              x2={wire.x2}
+              y2={wire.y2}
+              vector-effect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+      </div>
     </div>
 
     <div class="cred__outro">
@@ -204,6 +259,18 @@ const {
     line-height: 1.62;
     text-align: center;
     text-wrap: pretty;
+  }
+
+  /* Transparent on desktop: the ring's centre is a plain label. Only the
+     mobile fan turns it into the filled box from the reference. */
+  .cred__diagram,
+  .cred__core-layer {
+    display: contents;
+  }
+
+  .cred__wires,
+  .cred__skyline {
+    display: none;
   }
 
   .cred__core {
@@ -347,7 +414,9 @@ const {
   }
 
   /* Below this the ring can't hold seven labels without collisions, so it
-     unrolls into a plain list and the circle stops being load-bearing.
+     is replaced by the fan from the reference: three upstream nodes wired
+     into the top of a filled credibility box, four downstream ones out of
+     its bottom. Same seven nodes, same reading — just unrolled vertically.
 
      61.25rem (980px), not 48rem: the two outer nodes sit 14.3% past the stage
      and their labels ("Landing pages", "Social presence") run on from there
@@ -357,6 +426,13 @@ const {
      band this query used to leave the ring switched on. 980px is where it
      first fits. */
   @media (max-width: 61.25rem) {
+    /* Fainter on a phone. The column rules are a background grid on a wide
+       screen; on a narrow one they sit right behind the copy, where the same
+       value reads as ruled paper rather than as structure. */
+    .cred__rules span {
+      opacity: 0.45;
+    }
+
     .cred__stage {
       width: 100%;
       height: auto;
@@ -369,37 +445,113 @@ const {
       display: none;
     }
 
-    .cred__intro,
-    .cred__core {
+    .cred__intro {
       position: static;
       width: auto;
       padding: 0;
       transform: none;
     }
 
+    /* The fan's coordinate space. Capped and centred so it stays phone-sized
+       on a tablet instead of stretching to a full-width, very tall diagram. */
+    .cred__diagram {
+      position: relative;
+      display: block;
+      width: 100%;
+      max-width: 22rem;
+      margin: clamp(1.5rem, 6vw, 2.5rem) auto 0;
+      aspect-ratio: 325 / 420;
+    }
+
+    .cred__nodes,
+    .cred__wires,
+    .cred__core-layer {
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    .cred__wires {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      fill: none;
+      stroke: var(--color-ink);
+      stroke-width: 1;
+    }
+
+    /* Filled box at the centre of the fan, wired top and bottom. */
     .cred__core {
-      margin-top: clamp(1.5rem, 6vw, 2.5rem);
+      top: 27.3%;
+      left: 48.6%;
+      width: 32.9%;
+      height: 21.5%;
+      padding: 0;
+      background: var(--color-ink);
+      color: var(--color-ink-invert);
+      font-size: clamp(0.6875rem, 3vw, 0.875rem);
+      letter-spacing: 0;
+      white-space: normal;
+      transform: translateX(-50%);
+    }
+
+    .cred__core-label {
+      position: absolute;
+      top: 12%;
+      left: 8%;
+      right: 8%;
+      line-height: 1.25;
       text-align: center;
     }
 
-    .cred__nodes {
-      position: static;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.875rem 1.5rem;
-      margin-top: clamp(1.5rem, 6vw, 2.5rem);
+    .cred__skyline {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 7%;
+      height: 30%;
     }
 
-    .cred__node,
-    .cred__node--left,
-    .cred__node--right,
-    .cred__node--top {
-      position: static;
-      flex-direction: row;
-      gap: 0.625rem;
-      padding: 0;
-      transform: none;
-      white-space: normal;
+    .cred__skyline i {
+      width: 13%;
+      background: var(--color-bg-primary);
+    }
+
+    .cred__skyline i:nth-child(1) {
+      height: 55%;
+    }
+    .cred__skyline i:nth-child(2) {
+      height: 100%;
+    }
+    .cred__skyline i:nth-child(3) {
+      height: 72%;
+    }
+
+    /* Nodes sit on their own point in the fan, label stacked away from the
+       box: above the point up top, below it underneath. */
+    .cred__node {
+      top: var(--node-my);
+      left: var(--node-mx);
+      align-items: center;
+      gap: 0.5rem;
+      padding-inline: 0.25rem;
+      font-size: clamp(0.6875rem, 3vw, 0.8125rem);
+      text-align: center;
+    }
+
+    .cred__node--m-up {
+      flex-direction: column;
+      transform: translate(-50%, calc(-100% + 0.375rem));
+    }
+
+    .cred__node--m-down {
+      flex-direction: column-reverse;
+      transform: translate(-50%, -0.375rem);
     }
   }
 

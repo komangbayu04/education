@@ -1,0 +1,410 @@
+---
+/**
+ * Case-study approach — the problem statement, then a rail of shapes that step
+ * through a fixed frame.
+ *
+ * The statement is a two-column head: a small label in the left column, the
+ * paragraph set against it in the right, the way the frame stacks them.
+ *
+ * The frame is its own element, centred and static: it never moves, never
+ * scrolls, and belongs to no item. It carries a caption, a counter and a
+ * progress line that fills while the shape inside it is being held — the line
+ * is the only thing that tells you the rail is about to move, and it is what
+ * keeps a still frame from reading as a dead one. The rail scrolls underneath it, parking one
+ * shape inside it at a time; that shape scales up to fill it and its caption
+ * is written into the frame's own caption line. Everything else drifts past at
+ * three quarters of the size.
+ *
+ * Every item occupies the same slot width, and the size difference is a
+ * transform rather than a width — transforms don't affect layout, so the
+ * track's geometry never changes and the scroll targets stay exactly where
+ * they were measured. Items with no `src` render as the frame's grey blocks.
+ *
+ * The stepping, the drag and the loop live in src/scripts/caseStudy.ts.
+ */
+
+interface Item {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  src?: string;
+  alt?: string;
+  /** Written into the frame while this item is the one inside it. */
+  caption?: string;
+}
+
+interface Props {
+  eyebrow?: string;
+  heading: string;
+  copy?: string;
+  items: Item[];
+}
+
+const { eyebrow = 'Our approach', heading, copy, items } = Astro.props;
+
+/* Twice, so the second copy is already on screen when the first runs out. */
+const copies = [0, 1];
+---
+
+<section class="cs-ap" aria-labelledby="cs-ap-label" data-cs-reveal>
+  <div class="cs-ap__head u-container">
+    <p class="cs-ap__eyebrow u-label" id="cs-ap-label">{eyebrow}</p>
+
+    <div class="cs-ap__statement">
+      <h2 class="cs-ap__heading">{heading}</h2>
+      {copy && <p class="cs-ap__copy">{copy}</p>}
+    </div>
+  </div>
+
+  <div class="cs-ap__stage">
+    {/* The frame. In normal flow, centred, and the only thing here that sets
+        the stage's height — the rail is laid over its media well. */}
+    <div class="cs-ap__frame">
+      <div class="cs-ap__frame-well"></div>
+
+      <div class="cs-ap__meta" aria-hidden="true">
+        <p class="cs-ap__frame-caption" data-cs-ap-caption></p>
+        <p class="cs-ap__count u-label" data-cs-ap-count></p>
+      </div>
+
+      {/* Fills across the dwell, resets on every step, stops while the rail is
+          being moved by hand. */}
+      <div class="cs-ap__progress" aria-hidden="true">
+        <span data-cs-ap-progress></span>
+      </div>
+    </div>
+
+    <div class="cs-ap__rail" data-cs-rail data-lenis-prevent-horizontal>
+      <div class="cs-ap__track" data-cs-track>
+        {
+          copies.map((copy) => (
+            <div class="cs-ap__seg" aria-hidden={copy === 1 ? 'true' : undefined}>
+              {items.map((item) => (
+                <figure class="cs-ap__item" data-cs-ap-item data-caption={item.caption}>
+                  <div class="cs-ap__media">
+                    {item.src ? (
+                      <picture>
+                        <source srcset={`${item.src}.avif`} type="image/avif" />
+                        <img
+                          src={`${item.src}.webp`}
+                          alt={item.alt ?? ''}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </picture>
+                    ) : (
+                      <span class="cs-ap__empty" />
+                    )}
+                  </div>
+
+                  {/* The visible caption lives in the frame; this one keeps the
+                      pairing readable to assistive tech, which never sees the
+                      frame at all. */}
+                  {item.caption && <figcaption class="u-sr-only">{item.caption}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cs-ap {
+    padding-block: clamp(2.5rem, 5.5vw, 4.5rem) clamp(3rem, 6vw, 5.5rem);
+  }
+
+  /* --- Statement -----------------------------------------------------------
+     The label holds a column of its own rather than sitting above the text —
+     that offset is what gives the paragraph its indent in the frame. */
+  .cs-ap__head {
+    display: grid;
+    grid-template-columns: 28% minmax(0, 1fr);
+    gap: clamp(1rem, 2vw, 2rem);
+    align-items: start;
+  }
+
+  .cs-ap__eyebrow {
+    /* Optically level with the first line of the heading beside it. */
+    margin-top: 0.35em;
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-ap__heading {
+    /* In em so the frame's four lines survive the fluid type scale. */
+    max-width: 24em;
+    font-size: clamp(1.375rem, 2.5vw, 2.5rem);
+    line-height: 1.32;
+    letter-spacing: -0.02em;
+  }
+
+  .cs-ap__copy {
+    /* Wide enough to hold the frame's two lines rather than spilling to a
+       third — set in em so it tracks the type. */
+    max-width: 43em;
+    margin-top: clamp(0.875rem, 1.6vw, 1.25rem);
+    font-size: var(--text-caption);
+    line-height: 1.55;
+  }
+
+  /* --- Stage ---------------------------------------------------------------
+     One slot width for every item. The framed one is shown at full size and
+     the rest at --cs-ap-shrink of it, applied as a transform so the layout
+     underneath never changes. */
+  .cs-ap__stage {
+    --cs-ap-slot: 31.7vw;
+    --cs-ap-pad: 0.9vw;
+    --cs-ap-gap: 3vw;
+    --cs-ap-shrink: 0.78;
+    /* 300 : 360 is the shape's ratio — the well's height follows from it. */
+    --cs-ap-well-h: calc(var(--cs-ap-slot) * 1.2);
+
+    position: relative;
+    margin-top: clamp(2rem, 4.5vw, 3.5rem);
+  }
+
+  /* A hairline and a very soft lift rather than a border or a shadow on its
+     own: the page is flat by design, and the frame only has to sit a fraction
+     above the shapes travelling behind it. */
+  .cs-ap__frame {
+    width: calc(var(--cs-ap-slot) + 2 * var(--cs-ap-pad));
+    margin-inline: auto;
+    padding: var(--cs-ap-pad) var(--cs-ap-pad) calc(var(--cs-ap-pad) * 0.75);
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    box-shadow:
+      0 1px 1px rgb(0 0 0 / 0.02),
+      0 18px 40px -28px rgb(0 0 0 / 0.35);
+  }
+
+  /* Positioned so the WebGL canvas can fill it. The canvas is created by
+     src/scripts/frameGL.ts, so the rule reaching it has to be :global. */
+  .cs-ap__frame-well {
+    position: relative;
+    height: var(--cs-ap-well-h);
+  }
+
+  .cs-ap__frame-well :global(.cs-ap__gl) {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+
+  .cs-ap__frame-well :global(.cs-ap__gl[data-on]) {
+    opacity: 1;
+  }
+
+  /* Caption and counter share a baseline, with the counter holding the right
+     edge — the same pairing the timeline markers use elsewhere. */
+  .cs-ap__meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5em;
+    min-height: 3em;
+    /* The gap the progress line needs: at zero the rule sits on the caption's
+       descenders and reads as a strike-through. */
+    margin: 1em 0 0.7em;
+  }
+
+  .cs-ap__frame-caption {
+    font-size: var(--text-caption);
+    line-height: 1.5;
+    opacity: 1;
+    transition: opacity 0.3s;
+  }
+
+  /* Nothing is parked in the frame mid-step, so both go with it. */
+  .cs-ap__frame-caption[data-empty] {
+    opacity: 0;
+  }
+
+  .cs-ap__count {
+    flex: none;
+    color: var(--color-ink-secondary);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 1;
+    transition: opacity 0.3s;
+  }
+
+  /* Goes with the caption: mid-step there is nothing in the frame to number. */
+  .cs-ap__count[data-empty] {
+    opacity: 0;
+  }
+
+  /* --- Progress ------------------------------------------------------------
+     The dwell, drawn. Scale on a track that is already full width, so the fill
+     costs no layout and can be driven straight from the timer. */
+  .cs-ap__progress {
+    height: 2px;
+    background: var(--color-line);
+  }
+
+  .cs-ap__progress span {
+    display: block;
+    height: 100%;
+    background: var(--color-ink);
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  /* --- Rail ----------------------------------------------------------------
+     Laid over the frame's well, full width. A native horizontal scroller, so
+     trackpad, touch and scrollbar behave correctly without being
+     reimplemented; the script adds the stepping, the mouse drag and the wrap. */
+  .cs-ap__rail {
+    position: absolute;
+    top: var(--cs-ap-pad);
+    left: 0;
+    right: 0;
+    height: var(--cs-ap-well-h);
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    cursor: grab;
+  }
+
+  .cs-ap__rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cs-ap__rail[data-dragging] {
+    cursor: grabbing;
+  }
+
+  .cs-ap__track,
+  .cs-ap__seg {
+    display: flex;
+    align-items: center;
+    gap: var(--cs-ap-gap);
+    height: 100%;
+    width: max-content;
+  }
+
+  /* The gap between the two copies has to match the one inside them, or the
+     wrap lands a gap short. */
+  .cs-ap__track {
+    padding-inline: var(--cs-ap-gap);
+  }
+
+  /* Held back so the framed one is the one being looked at. Opacity, not a
+     filter: the shapes are photographs, and a wash reads as a treatment where
+     a fade reads as depth. */
+  /* The item itself carries only opacity and the drift GSAP writes to it — the
+     size lives on the media inside, so the script's `y` and the CSS scale are
+     never the same property on the same element. */
+  .cs-ap__item {
+    flex: none;
+    width: var(--cs-ap-slot);
+    margin: 0;
+    opacity: 0.55;
+    transition: opacity 0.45s;
+    /* Nothing in the rail may be dragged away as an image. */
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .cs-ap__item[data-active] {
+    opacity: 1;
+  }
+
+  .cs-ap__media {
+    aspect-ratio: 300 / 360;
+    overflow: hidden;
+    /* Scale, not width: a width change would move every item after it and
+       invalidate the scroll target the step was measured against. */
+    transform: scale(var(--cs-ap-shrink));
+    transition: transform 0.45s var(--ease-out-expo);
+  }
+
+  .cs-ap__item[data-active] .cs-ap__media {
+    transform: scale(1);
+  }
+
+  /* Handed to the canvas: the shape is being painted in the frame's well, so
+     the DOM copy underneath stands down rather than showing through it. */
+  .cs-ap__item[data-framed] .cs-ap__media {
+    visibility: hidden;
+  }
+
+  .cs-ap__media picture,
+  .cs-ap__media img,
+  .cs-ap__empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cs-ap__media img {
+    object-fit: cover;
+  }
+
+  /* The frame's own placeholder value — lighter than the black blocks used
+     elsewhere on the page, because these sit in a row rather than alone. */
+  .cs-ap__empty {
+    background: #d5d5d5;
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 62rem) {
+    /* Nothing to indent against once the label is on its own line. */
+    .cs-ap__head {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.75rem;
+    }
+
+    .cs-ap__eyebrow {
+      margin-top: 0;
+    }
+
+    .cs-ap__stage {
+      --cs-ap-slot: 52vw;
+      --cs-ap-pad: 1.6vw;
+      --cs-ap-gap: 5vw;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    /* Most of the screen: at two thirds the frame was smaller than the shapes
+       queueing beside it, which is backwards. */
+    .cs-ap__stage {
+      --cs-ap-slot: 78vw;
+      --cs-ap-pad: 2.6vw;
+      --cs-ap-gap: 6vw;
+    }
+
+    /* Stacked, with the counter as a label above: side by side it took a third
+       of an already narrow column and pushed the caption into four lines. */
+    .cs-ap__meta {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      gap: 0.5em;
+      min-height: 0;
+    }
+
+    .cs-ap__frame-caption {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* The step is the motion; without it the rail is a plain scroller and the
+     frame simply holds whatever is nearest. */
+  @media (prefers-reduced-motion: reduce) {
+    .cs-ap__item,
+    .cs-ap__media {
+      transition: none;
+    }
+
+    /* Nothing is counting down, so an empty track would just be a stray rule. */
+    .cs-ap__progress {
+      display: none;
+    }
+  }
+</style>

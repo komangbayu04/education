@@ -1,0 +1,195 @@
+---
+/**
+ * Case-study overview — labelled statement, then two pieces of artwork that
+ * don't share a baseline.
+ *
+ * The left column carries the wide shot with its caption underneath; the right
+ * one is a taller image that starts lower and finishes lower, so the pair
+ * reads as staggered rather than as a two-up. That offset is a percentage of
+ * the row's width, which is what keeps it proportional at every viewport
+ * instead of drifting as a fixed pixel value would.
+ *
+ * A faint pixel field bleeds off the top-right corner — the same build-time
+ * helper the hero band uses, at a fraction of its contrast.
+ *
+ * Tiles with no `src` render as solid blocks, as the frame shows them.
+ */
+import { pixelField } from '../../lib/pixelField';
+
+interface Tile {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  src?: string;
+  alt?: string;
+}
+
+interface Props {
+  eyebrow?: string;
+  heading: string;
+  caption?: string;
+  /** In frame order: the wide shot, then the tall one. */
+  wide: Tile;
+  side: Tile;
+}
+
+const { eyebrow = 'Overview', heading, caption, wide, side } = Astro.props;
+
+/* Densest at the right edge, where it runs off the corner. Read right to left,
+   so the array is reversed against the CSS column order below. */
+const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44, 0.5, 0.54, 0.58, 0.6]);
+---
+
+<section class="cs-ov u-container" aria-labelledby="cs-ov-label" data-cs-reveal>
+  <div class="cs-ov__pixels" aria-hidden="true">
+    {cells.map((cell) => <span style={`grid-column:${cell.col};grid-row:${cell.row}`} />)}
+  </div>
+
+  <p class="cs-ov__eyebrow u-label" id="cs-ov-label">{eyebrow}</p>
+  <h2 class="cs-ov__heading">{heading}</h2>
+
+  <div class="cs-ov__grid">
+    <div class="cs-ov__main">
+      <figure class="cs-ov__media cs-ov__media--wide">
+        {
+          wide.src ? (
+            <picture>
+              <source srcset={`${wide.src}.avif`} type="image/avif" />
+              <img src={`${wide.src}.webp`} alt={wide.alt ?? ''} loading="lazy" decoding="async" />
+            </picture>
+          ) : (
+            <span class="cs-ov__empty" />
+          )
+        }
+      </figure>
+
+      {caption && <p class="cs-ov__caption">{caption}</p>}
+    </div>
+
+    <figure class="cs-ov__media cs-ov__media--side">
+      {
+        side.src ? (
+          <picture>
+            <source srcset={`${side.src}.avif`} type="image/avif" />
+            <img src={`${side.src}.webp`} alt={side.alt ?? ''} loading="lazy" decoding="async" />
+          </picture>
+        ) : (
+          <span class="cs-ov__empty" />
+        )
+      }
+    </figure>
+  </div>
+</section>
+
+<style>
+  .cs-ov {
+    position: relative;
+    padding-block: clamp(2.5rem, 5vw, 4.5rem);
+    /* The pixel field bleeds past the gutter to the screen edge. */
+    overflow: hidden;
+  }
+
+  /* --- Pixel field ---------------------------------------------------------
+     Decorative and deliberately near-invisible: it gives the empty top-right
+     corner some texture without competing with the statement beside it. */
+  .cs-ov__pixels {
+    position: absolute;
+    top: 0;
+    /* Cancels the container's own gutter, so the field reaches the screen. */
+    right: calc(-1 * var(--section-padding-x));
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    width: 32%;
+    aspect-ratio: 12 / 9;
+    pointer-events: none;
+  }
+
+  .cs-ov__pixels span {
+    background: rgb(0 0 0 / 0.035);
+  }
+
+  /* --- Statement ----------------------------------------------------------- */
+  .cs-ov__eyebrow {
+    position: relative;
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-ov__heading {
+    position: relative;
+    /* In em so the frame's three lines survive the fluid type scale. */
+    max-width: 22em;
+    margin-top: clamp(0.625rem, 1.4vw, 1.125rem);
+    font-size: clamp(1.375rem, 2.5vw, 2.5rem);
+    line-height: 1.32;
+    letter-spacing: -0.02em;
+  }
+
+  /* --- Artwork -------------------------------------------------------------
+     Two columns at the frame's own proportions, with the right one dropped by
+     a share of the row's width. */
+  .cs-ov__grid {
+    display: grid;
+    grid-template-columns: 55.8% minmax(0, 1fr);
+    gap: 3.5%;
+    align-items: start;
+    margin-top: clamp(2rem, 4.5vw, 3.75rem);
+  }
+
+  .cs-ov__media {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .cs-ov__media--wide {
+    aspect-ratio: 805 / 537;
+  }
+
+  .cs-ov__media--side {
+    /* Percentage margins resolve against the grid's width, so the stagger
+       stays proportional instead of collapsing at narrow widths. */
+    margin-top: 7.3%;
+    aspect-ratio: 587 / 630;
+  }
+
+  .cs-ov__media picture,
+  .cs-ov__media img,
+  .cs-ov__empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cs-ov__media img {
+    object-fit: cover;
+  }
+
+  .cs-ov__empty {
+    background: var(--color-ink);
+  }
+
+  .cs-ov__caption {
+    max-width: 28em;
+    margin-top: clamp(2rem, 5vw, 4.75rem);
+    line-height: 1.55;
+  }
+
+  /* --- Stacked -------------------------------------------------------------- */
+  @media (max-width: 62rem) {
+    .cs-ov__grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(1.5rem, 5vw, 2.5rem);
+    }
+
+    /* Nothing left to stagger against once they're stacked. */
+    .cs-ov__media--side {
+      margin-top: 0;
+    }
+
+    .cs-ov__caption {
+      margin-top: clamp(1.25rem, 4vw, 2rem);
+    }
+
+    .cs-ov__pixels {
+      width: 46%;
+    }
+  }
+</style>

@@ -1,0 +1,150 @@
+---
+/**
+ * Case study — A College Counseling Platform.
+ *
+ * The destination behind the Showcase chapter on the home page: its title,
+ * its "View work" tile and its mobile button all point here. Content lives in
+ * this file rather than a data module — one case study exists so far, and the
+ * page is where a reader of the codebase would look for its copy.
+ */
+import Base from '../../layouts/Base.astro';
+import CaseStudyHero from '../../components/case-study/CaseStudyHero.astro';
+import CaseStudyIntro from '../../components/case-study/CaseStudyIntro.astro';
+import CaseStudyGallery from '../../components/case-study/CaseStudyGallery.astro';
+import CaseStudyOverview from '../../components/case-study/CaseStudyOverview.astro';
+import CaseStudyVideos from '../../components/case-study/CaseStudyVideos.astro';
+import CaseStudyApproach from '../../components/case-study/CaseStudyApproach.astro';
+import CaseStudyExperience from '../../components/case-study/CaseStudyExperience.astro';
+import CaseStudyResult from '../../components/case-study/CaseStudyResult.astro';
+import CaseStudyNext from '../../components/case-study/CaseStudyNext.astro';
+import Footer from '../../components/layout/Footer.astro';
+
+const title = 'A College Counseling Platform';
+const summary =
+  'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.';
+const intro =
+  'A modern college counseling platform designed to help students, families, and counselors navigate the university application journey with greater clarity.';
+---
+
+<Base title={`${title} — Tribe`} description={intro}>
+  {/* The nav is overlaid, not stacked — see Nav.astro. On the home page the
+      hero reserves that height itself; here the page has to. */}
+  <div class="cs">
+    <CaseStudyHero
+      title={title}
+      summary={summary}
+      tags={['Admissions software', 'Product', 'Design system']}
+      image="/media/showcase-device"
+      imageAlt="The counseling platform running on a phone"
+    />
+
+    <CaseStudyIntro copy={intro} />
+
+    {/*
+      Three slots, in the frame's order: square, tall, landscape. None of the
+      artwork exists in the repo yet — the counselor badge included — so all
+      three render as the black blocks the frame itself shows. Adding one is a
+      single `src` (extensionless, .avif + .webp in public/media) plus its alt.
+    */}
+    <CaseStudyGallery tiles={[{}, {}, {}]} caption={intro} />
+
+    {/* Same story as the gallery: the two shots are still to come, so both
+        render as the frame's solid blocks. */}
+    <CaseStudyOverview
+      heading="This platform provides a unified workspace for managing every stage of the college admissions journey."
+      caption="From application planning and document management to counselor collaboration and milestone tracking, it helps users stay aligned and informed."
+      wide={{}}
+      side={{}}
+    />
+
+    {/* Four players. No `video` URLs yet, so they render as plain blocks with
+        no play control — the footage is still to come. */}
+    <CaseStudyVideos clips={[{}, {}, {}, {}]} />
+
+    <CaseStudyApproach
+      heading="Navigating the college admissions process often involves scattered information, disconnected communication, and manual tracking across multiple tools."
+      copy="The challenge was to create a unified experience that helps students and counselors stay aligned from planning to submission."
+      items={[
+        {
+          caption:
+            'A shared college list every party can see, so nobody is working from a stale copy.',
+        },
+        {
+          caption:
+            'Deadlines and requirements collected per school, in the order they come due.',
+        },
+        {
+          caption:
+            'Planning tools designed to help students organize every step of the admissions journey with greater clarity.',
+        },
+        {
+          caption:
+            'Counselor notes sit against the application they belong to, not in a separate thread.',
+        },
+        {
+          caption:
+            'Documents gathered where they will be submitted from, ready when the deadline arrives.',
+        },
+      ]}
+    />
+
+    {/* One panel per feature, all still placeholders. */}
+    <CaseStudyExperience
+      heading="The platform brings together every essential step of the college admissions process into one connected experience, making it easier to plan, collaborate, and track progress from start to finish."
+      features={[
+        {
+          name: 'Personalized Dashboard',
+          description:
+            'A centralized overview of applications, deadlines, upcoming tasks, and recent activity to help users stay focused on their priorities.',
+        },
+        {
+          name: 'College Planning',
+          description:
+            'Build and compare a college list, track requirements for each school, and keep every decision in one place.',
+        },
+        {
+          name: 'Progress Tracking',
+          description:
+            'See how far along each application is at a glance, with milestones that make the next step obvious.',
+        },
+        {
+          name: 'Counselor Workspace',
+          description:
+            'Shared context for counselors and students, so feedback and updates never live in a separate thread.',
+        },
+        {
+          name: 'Document Management',
+          description:
+            'Essays, transcripts and recommendations gathered against the application they belong to, ready to submit.',
+        },
+      ]}
+    />
+
+    <CaseStudyResult
+      rows={[
+        { value: '6', label: 'Core experiences brought together.' },
+        { value: '1', label: 'Connected workspace for students and counselors' },
+        { value: 'End-to-End', label: 'Supporting every step of the admissions journey.' },
+      ]}
+    />
+
+    {/* Hands the reader to the next project. Must stay directly above the
+        footer: its bottom seam is painted in the footer's own colour. */}
+    <CaseStudyNext
+      title="Overclock"
+      copy="An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts."
+      ctaHref="/work/overclock"
+      image="/media/overclock-device"
+      imageAlt="The Overclock site on a tablet"
+      tags={['Accelerator', 'Brand Design', 'Web Design']}
+    />
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .cs {
+    padding-top: var(--nav-height);
+  }
+</style>

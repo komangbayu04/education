@@ -20,6 +20,11 @@ const links = [
   { label: 'What founders say', href: '/testimonials' },
   { label: 'Blog', href: '/blog' },
 ];
+
+/* The panel's foot. Deliberately not the site footer's link list again — the
+   panel is already that list; what it has no way to reach is the address. */
+const email = 'hello@tribelab.co';
+const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
 ---
 
 <header class="nav" data-nav>
@@ -49,13 +54,25 @@ const links = [
   <div class="nav__rule" aria-hidden="true"></div>
 
   <div class="nav__mobile" id="nav-mobile" data-nav-mobile hidden>
-    <ul>
+    {/* The black ground arrives as a field of blocks falling top to bottom —
+        built by src/scripts/nav.ts, which needs the viewport to know how many.
+        Once the field is complete the panel takes the colour itself, so no
+        seam between cells can show for the rest of the time it is open. */}
+    <div class="nav__blocks" aria-hidden="true" data-nav-blocks></div>
+
+    <ul class="nav__mobile-list">
       {links.map((link) => (
-        <li>
+        <li data-nav-mobile-item>
           <a class="nav__mobile-link" href={link.href}>{link.label}</a>
         </li>
       ))}
     </ul>
+
+    <div class="nav__mobile-foot" data-nav-mobile-item>
+      <p class="nav__mobile-label u-label">Start a project</p>
+      <a class="nav__mobile-email" href={`mailto:${email}`}>{email}</a>
+      <p class="nav__mobile-legal">{legal}</p>
+    </div>
   </div>
 </header>
 
@@ -72,6 +89,11 @@ const links = [
   }
 
   .nav__inner {
+    /* Above the mobile panel, which is a child of this header: without a
+       stacking order of its own the panel painted over the toggle and there
+       was no way left to close it. */
+    position: relative;
+    z-index: 95;
     display: flex;
     /* Bottom-aligned so the 28px below reads as the real gap to the rule */
     align-items: flex-end;
@@ -147,45 +169,138 @@ const links = [
 
   /* --- Mobile ------------------------------------------------------------- */
   .nav__toggle {
+    position: relative;
     display: none;
-    flex-direction: column;
-    justify-content: center;
-    gap: 6px;
     width: 2.5rem;
     height: 2.5rem;
     cursor: pointer;
   }
 
+  /* Both lines share one centre and are only ever translated or rotated from
+     it. Stacked in a flex column instead, the closed gap and the rotation had
+     to cancel each other by hand, and the two strokes crossed off-centre —
+     which is the broken X. */
   .nav__toggle-line {
-    display: block;
-    width: 100%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1.5rem;
     height: 1px;
+    margin-left: -0.75rem;
     background: var(--color-ink);
-    transition: transform 0.4s var(--ease-out-expo), opacity 0.3s;
+    transform: translateY(-4px);
+    transition: transform 0.4s var(--ease-out-expo);
   }
 
-  .nav__toggle[aria-expanded='true'] .nav__toggle-line:first-child {
-    transform: translateY(3.5px) rotate(45deg);
+  .nav__toggle-line:last-child {
+    transform: translateY(4px);
+  }
+
+  /* Counted from the end, not the start: the button's first child is the
+     screen-reader label, so :first-child matched no line at all and only one
+     stroke ever rotated — which is the broken X. */
+  .nav__toggle[aria-expanded='true'] .nav__toggle-line:nth-last-child(2) {
+    transform: rotate(45deg);
   }
 
   .nav__toggle[aria-expanded='true'] .nav__toggle-line:last-child {
-    transform: translateY(-3.5px) rotate(-45deg);
+    transform: rotate(-45deg);
   }
 
+  /* --- Mobile panel --------------------------------------------------------
+     Fixed and full screen. It used to be a block in the header's flow with no
+     ground of its own, which is why the page read straight through it. */
   .nav__mobile {
-    padding: 1.5rem var(--section-padding-x) 2rem;
-    border-bottom: 1px solid var(--color-line);
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    /* Under the logo, not floating in the middle of the sheet. */
+    justify-content: flex-start;
+    padding: calc(var(--nav-height) + 1.5rem) var(--section-padding-x) 2.5rem;
+    overflow-y: auto;
+    /* Transparent until the field lands; the script sets this once it has. */
+    background: transparent;
+  }
+
+  .nav__mobile[data-filled] {
+    background: var(--color-bg-invert);
   }
 
   .nav__mobile[hidden] {
     display: none;
   }
 
+  .nav__blocks {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    pointer-events: none;
+  }
+
+  /* The cells are built by the script, so they carry no scoping attribute and
+     a plain selector would match none of them. */
+  .nav__blocks :global(span) {
+    background: var(--color-bg-invert);
+    transform: scaleY(0);
+    transform-origin: top center;
+  }
+
+  .nav__mobile-list {
+    position: relative;
+  }
+
+  /* --- Foot ----------------------------------------------------------------
+     Pushed to the bottom of the sheet whatever the list above it comes to. */
+  .nav__mobile-foot {
+    position: relative;
+    margin-top: auto;
+    padding-top: 2rem;
+  }
+
+  .nav__mobile-label {
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  .nav__mobile-email {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--color-ink-invert);
+    font-size: 1.125rem;
+    border-bottom: 1px solid rgb(255 255 255 / 0.3);
+  }
+
+  .nav__mobile-legal {
+    margin-top: 1.5rem;
+    color: rgb(255 255 255 / 0.4);
+    font-size: 0.75rem;
+  }
+
   .nav__mobile-link {
     display: block;
-    padding-block: 0.75rem;
-    font-size: var(--text-h3);
-    border-bottom: 1px solid var(--color-line);
+    padding-block: 0.875rem;
+    color: var(--color-ink-invert);
+    font-size: clamp(1.75rem, 9vw, 3rem);
+    letter-spacing: var(--tracking-tight);
+    line-height: 1.1;
+    border-bottom: 1px solid rgb(255 255 255 / 0.18);
+  }
+
+  /* The header sits above the panel — its toggle has to stay reachable — so
+     its own marks invert while the panel is black behind them. */
+  :global(html[data-nav-open]) .nav__logo,
+  :global(html[data-nav-open]) .nav__toggle-line {
+    color: var(--color-ink-invert);
+    background-color: var(--color-ink-invert);
+  }
+
+  :global(html[data-nav-open]) .nav__logo {
+    background-color: transparent;
+  }
+
+  :global(html[data-nav-open]) .nav__rule {
+    background: rgb(255 255 255 / 0.18);
   }
 
   @media (max-width: 62rem) {
@@ -195,6 +310,12 @@ const links = [
 
     .nav__toggle {
       display: flex;
+    }
+
+    /* The rule belongs to the logo and the burger, not to whatever is under
+       it: 28px below them read as a band of its own. */
+    .nav__inner {
+      padding-bottom: 14px;
     }
   }
 

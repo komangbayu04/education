@@ -1,0 +1,227 @@
+---
+/**
+ * Case-study hero — the top of a /work/<project> page.
+ *
+ * Three parts, in the order the frame has them:
+ *   1. an indented head (title, rule, blurb + tag pills) that starts a quarter
+ *      of the way across, so the page opens off-axis against the nav's
+ *      full-width rule;
+ *   2. a full-bleed band carrying the project's device shot;
+ *   3. nothing else — the introduction is its own component below.
+ *
+ * The band's pixel field comes from the shared build-time helper in
+ * src/lib/pixelField.ts — big cells, densest at the left edge, thinning out to
+ * nothing before they reach the device, so it reads as the same chunky pixel
+ * language as the home page's handovers.
+ */
+
+import { pixelField } from '../../lib/pixelField';
+
+interface Props {
+  title: string;
+  summary: string;
+  tags?: string[];
+  /** Extensionless — .avif and .webp are both requested from it. */
+  image: string;
+  imageAlt: string;
+}
+
+const { title, summary, tags = [], image, imageAlt } = Astro.props;
+
+/* Rows of the cell grid. The 22 columns are declared in the CSS below, where
+   the grid actually lives — at the reference width that puts each square at
+   roughly 52px, the size the frame shows. */
+const ROWS = 12;
+/* Per-column odds of a square, left edge first. Runs out well before the
+   device so nothing ever lands on top of it. */
+const DENSITY = [0.5, 0.34, 0.3, 0.2, 0.14, 0.09, 0.05];
+
+const cells = pixelField(20260804, ROWS, DENSITY);
+---
+
+<section class="cs-hero">
+  <div class="cs-hero__head u-container">
+    <div class="cs-hero__head-inner">
+      <h1 class="cs-hero__title">{title}</h1>
+
+      <div class="cs-hero__meta">
+        <p class="cs-hero__summary">{summary}</p>
+
+        {
+          tags.length > 0 && (
+            <ul class="cs-hero__tags">
+              {tags.map((tag) => (
+                <li class="cs-hero__tag">{tag}</li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+    </div>
+  </div>
+
+  <figure class="cs-hero__band">
+    {/* Decorative: the squares carry no meaning the copy doesn't already. */}
+    <div class="cs-hero__pixels" aria-hidden="true">
+      {
+        cells.map((cell) => <span style={`grid-column:${cell.col};grid-row:${cell.row}`} />)
+      }
+    </div>
+
+    <picture>
+      <source srcset={`${image}.avif`} type="image/avif" />
+      <img
+        class="cs-hero__device"
+        src={`${image}.webp`}
+        alt={imageAlt}
+        width="1400"
+        height="1139"
+        fetchpriority="high"
+        decoding="async"
+      />
+    </picture>
+  </figure>
+</section>
+
+<style>
+  .cs-hero {
+    /* How far across the head starts. The frame has the title beginning a
+       little over a quarter in, against a nav rule that runs the full width. */
+    --cs-indent: 26%;
+
+    padding-top: clamp(1.5rem, 3.4vw, 2.75rem);
+  }
+
+  .cs-hero__head-inner {
+    margin-left: var(--cs-indent);
+  }
+
+  /* --- Title ---------------------------------------------------------------
+     The rule under it belongs to the title, not to the row below: that way it
+     can never drift out of alignment with the text it underlines. */
+  .cs-hero__title {
+    padding-bottom: clamp(1rem, 2.6vw, 2.25rem);
+    border-bottom: 1px solid var(--color-line);
+    /* Sized to sit on one line inside the indented column at desktop widths —
+       that single line running the full width of the rule under it is what the
+       frame is doing. */
+    font-size: clamp(1.875rem, 4.65vw, 4.25rem);
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+  }
+
+  /* --- Blurb and tags ------------------------------------------------------ */
+  .cs-hero__meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: clamp(1.5rem, 4vw, 4rem);
+    padding-top: clamp(0.75rem, 1.4vw, 1rem);
+  }
+
+  .cs-hero__summary {
+    /* In em, so the measure holds its three lines as the type scales. */
+    max-width: 26em;
+    font-size: var(--text-caption);
+    line-height: 1.55;
+  }
+
+  .cs-hero__tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: clamp(0.5rem, 1vw, 0.875rem);
+  }
+
+  .cs-hero__tag {
+    padding: 0.5rem 1.0625rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: var(--color-bg-primary);
+    font-size: var(--text-caption);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* --- Band ----------------------------------------------------------------
+     Full-bleed: it breaks out of .u-container's gutter to both screen edges.
+     Sized by ratio rather than height so the device keeps its proportions at
+     every width. */
+  .cs-hero__band {
+    position: relative;
+    margin: clamp(2rem, 4.5vw, 3.25rem) 0 0;
+    aspect-ratio: 1154 / 620;
+    overflow: hidden;
+    background: linear-gradient(105deg, #d3d3d3 0%, #dcdcdc 58%, #d6d6d6 100%);
+  }
+
+  .cs-hero__pixels {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(22, 1fr);
+    grid-template-rows: repeat(12, 1fr);
+  }
+
+  .cs-hero__pixels span {
+    background: #fff;
+  }
+
+  /* Bottom-flush and slightly right of centre, the way the frame has it — the
+     hands are cropped at the asset's bottom edge, so anything else leaves them
+     floating. width:auto is what lets the height drive the size.
+
+     Height, not width, because the band is ratio-sized: this keeps the same
+     amount of air above the device at every viewport. It stops short of the
+     band's full height so the device sits in the grey field rather than
+     filling it — the frame has it noticeably smaller than the band. */
+  .cs-hero__device {
+    position: absolute;
+    bottom: 0;
+    left: 57%;
+    width: auto;
+    height: 82%;
+    transform: translateX(-50%);
+    object-fit: contain;
+  }
+
+  /* --- Responsive ---------------------------------------------------------- */
+  @media (max-width: 62rem) {
+    .cs-hero {
+      --cs-indent: 12%;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    /* Nothing to sit beside the head at this width, so the indent only steals
+       measure from the title. */
+    .cs-hero {
+      --cs-indent: 0%;
+    }
+
+    .cs-hero__meta {
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .cs-hero__tags {
+      justify-content: flex-start;
+    }
+
+    .cs-hero__tag {
+      padding: 0.4375rem 0.875rem;
+      font-size: 0.8125rem;
+    }
+
+    /* Squarer, so the device still reads at phone width — at the desktop
+       ratio it would come down to a sliver. */
+    .cs-hero__band {
+      aspect-ratio: 1 / 1;
+    }
+
+    .cs-hero__device {
+      left: 54%;
+      height: 88%;
+    }
+  }
+</style>

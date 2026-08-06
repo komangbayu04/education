@@ -130,7 +130,8 @@ const {
   /* --- Headline ----------------------------------------------------------- */
   .hero__title {
     font-size: var(--text-display-xl);
-    font-weight: 300;
+    /* Regular, at both widths. */
+    font-weight: 400;
     line-height: var(--leading-display);
     letter-spacing: -0.025em;
     padding-top: clamp(0.5rem, 1.5vw, 1.75rem);
@@ -373,17 +374,22 @@ const {
      1199px, not 75rem: this must not overlap the (min-width: 1200px) gate that
      builds the pinned handover, or at exactly 1200px the hero would be both
      content-height and forced into a viewport-tall pinned scene. */
+  /* Still exactly one viewport below the desktop row: the handover pins this
+     scene at every width now, so anything past 100svh is clipped rather than
+     scrolled to. The media row takes what the title and the aside leave
+     (minmax(0, 1fr) — the 0 minimum is what lets it shrink below the image's
+     intrinsic height), which is what makes this hold on a short phone without
+     a per-device image size. */
   @media (max-width: 1199px) {
     .hero {
-      --hero-pad-top: clamp(1.5rem, 4vw, 3rem);
-      height: auto;
-      padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
+      --hero-pad-top: clamp(1rem, 3vw, 2rem);
+      padding-bottom: clamp(1rem, 3vw, 2rem);
     }
 
     .hero__grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      row-gap: clamp(2rem, 5vw, 4rem);
-      height: auto;
+      grid-template-rows: auto minmax(0, 1fr);
+      row-gap: clamp(1rem, 3vw, 2rem);
     }
 
     .hero__col--title {
@@ -397,36 +403,224 @@ const {
        vertical overlap between them), so that offset has nothing left to
        correct and was only pushing the now width-constrained box partly off
        the left edge of the viewport. Reset both. */
+    /* Height-driven again, but from the row rather than from the section:
+       width follows the photo's own ratio, so it never overflows the column. */
     .hero__stage {
-      height: auto;
-      width: 78%;
+      height: 100%;
+      width: auto;
+      max-width: 78%;
       left: 0;
       top: 0;
+    }
+
+    .hero__col--media {
+      min-height: 0;
+    }
+  }
+
+  /* Large-desktop nudge — 20px further left, 16px further up, on top of the
+     base offset above. Only here: on smaller screens the current placement is
+     correct and must not move.
+
+     1600px is the gate because it separates the 16" MacBook from every
+     smaller Mac: the 16" reports 1728px at its default scaling (and 2056px on
+     "More Space"), while the 14" reports 1512px and the 13"/Air 1440-1470px —
+     all of which stay on the base offset.
+
+     Expressed as calc() against the base values rather than as new absolute
+     numbers, so the two nudges stay legible as "base, plus this screen's
+     extra" and the base can be retuned without re-deriving this. */
+  @media (min-width: 1600px) {
+    .hero__stage {
+      left: calc(-4.75rem - 20px);
+      top: calc(-1.5rem - 16px);
     }
   }
 
   @media (max-width: 48rem) {
     .hero__grid {
       grid-template-columns: minmax(0, 1fr);
+      /* headline, artwork, aside — the artwork takes what the other two
+         leave, so this holds on any phone without a fixed image height. */
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      /* Tighter than the 4vw the shared rule gives, and the tightening is
+         pure gain for the picture: the hero is exactly one viewport, the
+         other two rows are content-sized, so every pixel taken off the two
+         row gaps lands in the artwork's row. The For block does not move —
+         the total above it is unchanged. */
+      row-gap: 0.625rem;
     }
 
-    .hero__title,
+    /* One line, not three stacked words. The lines are spans, so inline is
+       all it takes — plus a real space between them, since the markup has
+       none: they were written as separate block lines.
+
+       They keep the base rule's nowrap. Relaxing it here, which is what this
+       block used to do, let each span break on its own and quietly outranked
+       the nowrap on the title: an inline child's own white-space wins over
+       the inherited one, so the headline went on wrapping to three lines with
+       the property that was supposed to stop it sitting right above it. */
     .hero__line {
-      white-space: normal;
+      display: inline;
+    }
+
+    .hero__line:not(:last-child)::after {
+      content: '\00a0';
+    }
+
+    .hero__title {
+      /* One line, guaranteed: nowrap decides it, and the size is what makes
+         that safe. Measured rather than guessed — the rendered line is 11.03
+         times the font size, so it exactly fills the gutters at 7.93vw on a
+         320px screen and 8.22vw on a 430px one. 7.7vw sits under the tighter
+         of the two with a few percent to spare, and Space Grotesk itself is
+         about 3% narrower than the fallback this was measured on, so the real
+         face has more room than the number was cut for, not less. */
+      font-size: clamp(1.375rem, 7.7vw, 2.5rem);
+      white-space: nowrap;
+      /* Clear of the nav's rule — at zero the cap height started three pixels
+         under it — less the 12px it was asked to come up by. */
+      padding-top: 0.5rem;
+    }
+
+    /* Taken out of flow so its size stops being the text's business: the
+       artwork can then be as large as the row and the screen allow without
+       moving a single line of copy.
+
+       The box is the media row's full height and bleeds past both gutters to
+       the screen edges; `contain` then paints the collage as large as fits
+       inside it, whichever of the two dimensions runs out first. That is the
+       biggest it can be without cropping — and the crop is what the frame
+       cannot have, since the pixel squares are part of the artwork. */
+    .hero__col--media {
+      position: relative;
     }
 
     .hero__stage {
-      /* Width-driven on narrow screens — viewport width is the constraint */
+      position: absolute;
+      inset: 0;
+      left: calc(-1 * var(--section-padding-x));
+      right: calc(-1 * var(--section-padding-x));
+      width: auto;
       height: auto;
-      width: 86%;
+      max-width: none;
+      aspect-ratio: auto;
+    }
+
+    /* Every pixel this block gives back goes to the artwork, which is the one
+       thing on this screen that is short of room: the hero is exactly one
+       viewport, so the picture's row is whatever the headline and this block
+       leave. The rhythm here is tighter than the 16px the shared rule sets,
+       and the bottom margin is halved — the button still clears the edge. */
+    .hero__aside {
+      gap: 0.625rem;
+      margin-bottom: 12px;
+    }
+
+    .hero__list {
+      row-gap: 0.625rem;
     }
 
     .hero__col--aside {
       justify-content: flex-start;
+      /* 12px down, as paint rather than layout. A margin here changed nothing:
+         the media row above is the 1fr, so it simply gave up 12px and the
+         block landed back where it started. A translate moves it without
+         asking the grid for anything. */
+      transform: translateY(12px);
     }
 
-    .btn {
+    /* Two columns of two, as the frame has it — four rows of one item each
+       cost height the artwork wants. Column flow, not row flow: the frame
+       fills the left column first (Education Companies over Cohorts) and the
+       right one after it, which row flow would interleave. */
+    .hero__list {
+      display: grid;
+      grid-auto-flow: column;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, auto);
+      column-gap: clamp(1rem, 4vw, 2rem);
+    }
+
+    /* Small enough that the longest label — "Education Companies" — still
+       holds one line inside half the container. At body size it wrapped, and
+       a wrapped label pushes its own rule down out of line with its pair. */
+    .hero__list-text {
+      font-size: 0.8125rem;
+    }
+
+    /* The arrow and its gap take 33 of the 169px a column has here — enough to
+       wrap the longest label on their own. It answers a hover, and there is no
+       hover on a phone, so it goes rather than the label breaking. */
+    .hero__list-arrow {
+      display: none;
+    }
+
+    .hero__list-link {
+      gap: 0;
+    }
+
+    /* Contain, not cover: the box below is full-bleed and no longer the
+       photo's own ratio, and cover would crop the crown off at both edges.
+
+       The box the image is contained in is then blown up 20% past the stage
+       and re-centred with the negative margin. The canopy runs off the screen
+       edges at that size, which is allowed — it is the sky-and-grass rectangle
+       inside the collage that must stay whole, and at 120% that rectangle
+       still lands well inside the viewport. Width and height together, so the
+       ratio is untouched. */
+    /* The clip surface, not the image, is what grows. .hero__base carries the
+       reveal's clip-path — an inset against its own box — so an image spilling
+       past it is sliced flat, which is what was cutting the crown off under
+       the title. Widening the box by 10% a side and dropping its floor 20%
+       gives the larger artwork somewhere legal to be; the extra height goes
+       downward only, into the gap above the For list, because upward is where
+       the title is. */
+    .hero__base {
+      /* The clip surface, and now also the artwork's bounds — see the image
+         rule below.
+
+         Sideways it is 16% wider a side, up from 10%. That widening is the
+         artwork's headroom: the canopy runs off both edges, which is allowed,
+         while the sky-and-grass rectangle inside the collage — the part that
+         must stay whole — is 70.6% of its width and sits slightly left of
+         centre, so at 1.32 screens wide that rectangle still lands about ten
+         pixels inside each edge. It is the binding constraint, not the
+         canopy: past roughly 17% a side the rectangle starts leaving the
+         screen. On a tall phone this is what makes the picture bigger; on a
+         short one the height runs out first and the extra width is unused.
+
+         The floor sits inside the stage rather than past it, so the painted
+         collage stops clear of the For block instead of landing on top of it.
+         The top edge stays exactly on the stage, because the top is the one
+         edge that must not be cut. */
+      inset: 0 -16% -6px;
+    }
+
+    .hero__base img {
+      /* Full width of the clip surface, which is already 20% wider than the
+         stage — that widening is the growth, and doubling it here was making
+         the artwork half again as big as asked.
+
+         The height overshoots on purpose: at this width the collage needs 112%
+         of the surface to stay in ratio, and anchored to the top that surplus
+         falls off the bottom, where the collage already ends on a straight
+         edge of grass. */
       width: 100%;
+      /* globals caps every image at max-width:100%, which measures against the
+         containing block — the widened base — so it has to come off here. */
+      max-width: none;
+      /* Exactly the surface, not 112% of it. The overshoot was the overlap:
+         `contain` fits the collage to the box it is given, so a box hanging
+         12% below the stage put the grass 12% of a screen into the For block
+         on every phone wide enough for the height to be the binding
+         dimension. Matched to the surface, the floor above is a floor. */
+      height: 100%;
+      object-fit: contain;
+      /* Top-anchored: the crown starts exactly at the stage's top edge, so the
+         one thing that must never be cut is the one thing guaranteed to be
+         inside the box. */
+      object-position: center top;
     }
   }
 

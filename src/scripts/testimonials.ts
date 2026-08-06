@@ -31,16 +31,50 @@ function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
   const controller = new AbortController();
   const { signal } = controller;
 
-  const open = (index: number) => {
+  /* Index of a card whose video is playing. While one is, hover and focus stop
+     deciding what is open: collapsing a card mid-sentence takes the video with
+     it, and the pointer has to leave the card to reach anything else on the
+     page. It unlocks when the video pauses or ends. */
+  let playing = -1;
+
+  const apply = (index: number) => {
     people.forEach((person, i) => {
       if (i === index) person.setAttribute('data-open', '');
       else person.removeAttribute('data-open');
     });
   };
 
+  const open = (index: number) => {
+    if (playing >= 0) return;
+    apply(index);
+  };
+
   people.forEach((person, i) => {
     person.addEventListener('pointerenter', () => open(i), { signal });
     person.addEventListener('focusin', () => open(i), { signal });
+
+    const video = person.querySelector<HTMLVideoElement>('[data-tm-video]');
+    if (!video) return;
+
+    video.addEventListener(
+      'play',
+      () => {
+        playing = i;
+        apply(i);
+      },
+      { signal },
+    );
+
+    const release = () => {
+      if (playing !== i) return;
+      playing = -1;
+      // Back to whatever the pointer is actually over, or the default.
+      const hovered = people.findIndex((p) => p.matches(':hover'));
+      apply(hovered >= 0 ? hovered : DEFAULT_INDEX);
+    };
+
+    video.addEventListener('pause', release, { signal });
+    video.addEventListener('ended', release, { signal });
   });
 
   feature.addEventListener('pointerleave', () => open(DEFAULT_INDEX), { signal });
@@ -58,14 +92,156 @@ function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
 }
 
 /**
+ * Featured video — the round play mark starts inline playback.
+ *
+ * Nothing here runs unless a card was given a `video` URL: without one the
+ * component renders a decorative <span> instead of a <button>, and this finds
+ * no controls to wire.
+ *
+ * The <video> ships with preload="none" and no `controls`, so an unplayed card
+ * costs one poster image. Both are turned on at the first click — controls
+ * because from that point the native UI is the right one, and playback because
+ * that is what was asked for.
+ *
+ * Only one plays at a time: starting one pauses the other, which otherwise
+ * leaves two people talking over each other on the same row.
+ */
+function initVideos(section: HTMLElement, cleanups: Array<() => void>): void {
+  const buttons = gsap.utils.toArray<HTMLButtonElement>('[data-tm-play]', section);
+  if (!buttons.length) return;
+
+  const videos = gsap.utils.toArray<HTMLVideoElement>('[data-tm-video]', section);
+  const controller = new AbortController();
+  const { signal } = controller;
+
+  buttons.forEach((button) => {
+    const media = button.closest<HTMLElement>('[data-tm-media]');
+    const video = media?.querySelector<HTMLVideoElement>('[data-tm-video]');
+    if (!media || !video) return;
+
+    button.addEventListener(
+      'click',
+      () => {
+        videos.forEach((other) => {
+          if (other !== video) other.pause();
+        });
+        video.controls = true;
+        media.setAttribute('data-playing', '');
+        // Autoplay policy blocks muted-less playback in some contexts; the
+        // click is the user gesture that satisfies it, but a rejection still
+        // has to leave the card usable rather than stuck with no control.
+        void video.play().catch(() => {
+          video.controls = false;
+          media.removeAttribute('data-playing');
+        });
+      },
+      { signal },
+    );
+
+    // Back to the still and the mark once it finishes, so the card reads the
+    // same on a second visit as it did on the first.
+    video.addEventListener(
+      'ended',
+      () => {
+        video.controls = false;
+        video.currentTime = 0;
+        media.removeAttribute('data-playing');
+      },
+      { signal },
+    );
+  });
+
+  cleanups.push(() => {
+    controller.abort();
+    videos.forEach((v) => v.pause());
+  });
+}
+
+/** How long each person holds the spotlight before it moves on. */
+const SPOTLIGHT_INTERVAL = 10_000;
+
+/**
+ * Featured spotlight — the mobile face of the same two people.
+ *
+ * One is shown at a time and the rail of thumbnails chooses between them. It
+ * advances on its own every ten seconds, and the first manual pick stops that
+ * for good: once someone has said which one they want to look at, moving it
+ * out from under them is the wrong answer. There is no restart timer, on
+ * purpose — a rotation that comes back after a pause is the same surprise,
+ * just delayed.
+ */
+function initSpotlight(section: HTMLElement, cleanups: Array<() => void>): void {
+  const spot = section.querySelector<HTMLElement>('[data-tm-spot]');
+  if (!spot) return;
+
+  const panels = gsap.utils.toArray<HTMLElement>('[data-tm-spot-panel]', spot);
+  const copies = gsap.utils.toArray<HTMLElement>('[data-tm-spot-copy]', spot);
+  const picks = gsap.utils.toArray<HTMLButtonElement>('[data-tm-spot-pick]', spot);
+  if (panels.length < 2) return;
+
+  const controller = new AbortController();
+  const { signal } = controller;
+  let index = 0;
+  let timer: number | undefined;
+
+  const show = (next: number) => {
+    index = ((next % panels.length) + panels.length) % panels.length;
+    const mark = (els: HTMLElement[]) =>
+      els.forEach((el, i) => {
+        if (i === index) el.setAttribute('data-active', '');
+        else el.removeAttribute('data-active');
+      });
+    mark(panels);
+    mark(copies);
+    mark(picks);
+    // A video left playing in a panel nobody can see would keep talking.
+    gsap.utils.toArray<HTMLVideoElement>('[data-tm-video]', spot).forEach((v, i) => {
+      if (i !== index) v.pause();
+    });
+  };
+
+  const stop = () => {
+    if (timer !== undefined) window.clearInterval(timer);
+    timer = undefined;
+  };
+
+  if (!prefersReducedMotion()) {
+    timer = window.setInterval(() => show(index + 1), SPOTLIGHT_INTERVAL);
+  }
+
+  picks.forEach((button, i) => {
+    button.addEventListener(
+      'click',
+      () => {
+        stop();
+        show(i);
+      },
+      { signal },
+    );
+  });
+
+  // Starting a video is a choice too — the rotation would cut it off mid-word.
+  gsap.utils.toArray<HTMLElement>('[data-tm-play]', spot).forEach((button) => {
+    button.addEventListener('click', stop, { signal });
+  });
+
+  cleanups.push(() => {
+    stop();
+    controller.abort();
+  });
+}
+
+/**
  * Marquee — a native scroller that also drifts on its own.
  *
  * Native `overflow-x: auto` does the heavy lifting, so trackpad, touch and
  * scrollbar all work for free and correctly. On top of that:
  *   - the card list is rendered twice, and scrollLeft wraps at the halfway
  *     point, so the loop is seamless in both directions
- *   - a ticker callback adds the drift, paused whenever the pointer is over
- *     the rail or the user is dragging, and resumed a beat after they stop
+ *   - a ticker callback adds the drift, paused only while the user is actually
+ *     moving the rail — dragging it, or scrolling it sideways — and resumed a
+ *     beat after they stop. Hovering does NOT pause it (explicit direction):
+ *     the rail keeps travelling under a resting cursor.
  *   - pointer drag is added by hand, because a mouse otherwise has no way to
  *     scroll a horizontal rail
  *
@@ -185,22 +361,58 @@ function initMarquee(section: HTMLElement, cleanups: Array<() => void>): void {
     { signal, capture: true },
   );
 
-  // --- Auto drift ----------------------------------------------------------
-  if (prefersReducedMotion()) {
-    cleanups.push(() => controller.abort());
-    return;
-  }
-
-  let hovering = false;
+  // --- Jump to a quote -----------------------------------------------------
+  // The marks under the rail are buttons: pressing one scrolls that quote into
+  // place. Their position is the same ratio syncProgress reads back, so this
+  // is that calculation inverted — and it stays inside the copy the rail is
+  // currently in, so the jump is never a whole loop long.
   let resumeAt = 0;
 
   const hold = () => {
     resumeAt = performance.now() + RESUME_DELAY;
   };
 
-  rail.addEventListener('pointerenter', () => { hovering = true; }, { signal });
-  rail.addEventListener('pointerleave', () => { hovering = false; hold(); }, { signal });
-  rail.addEventListener('wheel', hold, { signal, passive: true });
+  segments.forEach((segment, i) => {
+    segment.addEventListener(
+      'click',
+      () => {
+        if (loopWidth <= 0 || !segments.length) return;
+        hold();
+        const base = Math.floor(rail.scrollLeft / loopWidth) * loopWidth;
+        gsap.to(rail, {
+          scrollLeft: base + (i / segments.length) * loopWidth,
+          duration: 0.6,
+          ease: 'power2.inOut',
+          overwrite: true,
+          onUpdate: syncProgress,
+          onComplete: () => {
+            wrap();
+            syncProgress();
+          },
+        });
+      },
+      { signal },
+    );
+  });
+
+  // --- Auto drift ----------------------------------------------------------
+  if (prefersReducedMotion()) {
+    cleanups.push(() => controller.abort());
+    return;
+  }
+
+  // Sideways wheels only. This listener fires for *every* wheel over the rail,
+  // including the plain vertical ones that are just scrolling the page past
+  // this section — holding on those stopped the marquee for as long as the
+  // cursor happened to rest here, which is the same complaint as the hover
+  // pause, arriving by a different route.
+  rail.addEventListener(
+    'wheel',
+    (event: WheelEvent) => {
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) hold();
+    },
+    { signal, passive: true },
+  );
   rail.addEventListener('touchstart', hold, { signal, passive: true });
   rail.addEventListener('touchmove', hold, { signal, passive: true });
 
@@ -209,7 +421,7 @@ function initMarquee(section: HTMLElement, cleanups: Array<() => void>): void {
     const dt = Math.min(64, time - last);
     last = time;
 
-    if (hovering || dragging || time < resumeAt || loopWidth <= 0) return;
+    if (dragging || time < resumeAt || loopWidth <= 0) return;
 
     rail.scrollLeft += (AUTO_SPEED * dt) / 1000;
     wrap();
@@ -253,6 +465,8 @@ export function initTestimonials(): () => void {
   const cleanups: Array<() => void> = [];
 
   initFeature(section, cleanups);
+  initSpotlight(section, cleanups);
+  initVideos(section, cleanups);
   initMarquee(section, cleanups);
 
   if (prefersReducedMotion()) {

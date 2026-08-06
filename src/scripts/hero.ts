@@ -21,19 +21,17 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  *                                         every later section's text also
  *                                         uses (added on request; it didn't
  *                                         have its own entrance before).
- *              Then Overclock, Bedford and CELPIP each arrive in ONE beat
- *              apiece — deliberately NOT phase A's mechanic (explicit
- *              direction: no zoom, no pixels, just opacity). Within that
- *              single phase the outgoing copy leaves, the next section
- *              crossfades in and its copy rises, all overlapping — see
- *              `addTransition`.
- *
- *              Those used to be two phases each (an exit, then an arrival),
- *              which left a stretch of scroll where only the old copy moved
- *              and the section itself sat still. It read as a pause before
- *              anything changed, so they were merged: the change now starts
- *              the moment its phase does.
- *
+ *              B. Showcase's text leaves  translates up + fades, in place —
+ *                                         the device image never moves.
+ *              Then Overclock, Bedford and CELPIP each repeat the same two
+ *              beats — deliberately NOT phase A's mechanic (explicit
+ *              direction: no zoom, no pixels, just opacity):
+ *                arrival   plain opacity crossfade (0 → 1, no scale
+ *                          anywhere), that section's own text rising into
+ *                          view partway through
+ *                exit      that section's text scrolls up and fades, in
+ *                          place (skipped for CELPIP — it's currently last,
+ *                          nothing to hand off to)
  *              Settle — nothing animates; just scroll room to rest on the
  *              finished page before the pin (and the document) ends.
  *
@@ -139,19 +137,16 @@ export function initHero(): () => void {
 
   const pixels = scene?.querySelector<HTMLElement>('[data-scene-pixels]');
   const showcase = next?.querySelector<HTMLElement>('.showcase');
-  const showcaseText = next?.querySelector<HTMLElement>('[data-chapter-text]');
-  const overclockText = overclockLayer?.querySelector<HTMLElement>('[data-chapter-text]');
-  const bedfordText = bedfordLayer?.querySelector<HTMLElement>('[data-chapter-text]');
-  const celpipText = celpipLayer?.querySelector<HTMLElement>('[data-chapter-text]');
 
   if (scene && next && overclockLayer && bedfordLayer && celpipLayer && stage) {
-    // Desktop only. Below this the hero is content-height rather than exactly
-    // one viewport, so stacking the layers into a viewport-tall pinned scene
-    // would clip it. matchMedia tears the whole thing down when it stops
-    // matching and rebuilds it when it matches again.
+    // Every width. This used to be desktop-only because the hero and Showcase
+    // were content-height below 1200px and would have been clipped by a
+    // viewport-tall pinned scene; both are one viewport at every width now
+    // (see their own responsive blocks), so the handover runs on phones too.
+    // matchMedia is kept for the teardown it gives on an orientation change.
     const mm = gsap.matchMedia();
 
-    mm.add('(min-width: 1200px)', () => {
+    mm.add('(min-width: 1px)', () => {
       // Switches the layers to absolute stacking. Set from JS so the no-JS and
       // reduced-motion paths keep the sections in normal document flow.
       scene.dataset.sceneMode = 'pinned';
@@ -162,8 +157,16 @@ export function initHero(): () => void {
       // rewrite of the fraction math below.
       const VIEWPORTS = {
         heroToShowcase: 1, // phase A — unchanged absolute timing
+        // The three *Dwell phases used to carry that chapter's text sliding
+        // up and out. With the copy no longer moving they schedule nothing;
+        // they are the scroll a finished chapter holds the screen for before
+        // the next one swaps in. Kept at their old lengths so the pin — and
+        // the document — is exactly as long as it was.
+        showcaseDwell: 0.6,
         overclockArrival: 0.5,
+        overclockDwell: 0.5,
         bedfordArrival: 0.5,
+        bedfordDwell: 0.5,
         celpipArrival: 0.5,
         settle: 1,
       } as const;
@@ -179,9 +182,15 @@ export function initHero(): () => void {
         return start;
       };
 
+      // The dwell phases are advanced through, not stored: nothing is
+      // scheduled in them, but the cursor still has to walk past them so every
+      // later phase keeps its position.
       const atHeroToShowcase = at(VIEWPORTS.heroToShowcase);
+      at(VIEWPORTS.showcaseDwell);
       const atOverclockArrival = at(VIEWPORTS.overclockArrival);
+      at(VIEWPORTS.overclockDwell);
       const atBedfordArrival = at(VIEWPORTS.bedfordArrival);
+      at(VIEWPORTS.bedfordDwell);
       const atCelpipArrival = at(VIEWPORTS.celpipArrival);
       // cursor is now at the start of "settle", i.e. 1 - VIEWPORTS.settle/PIN_VIEWPORTS
 
@@ -190,14 +199,30 @@ export function initHero(): () => void {
       const durBedfordArrival = VIEWPORTS.bedfordArrival / PIN_VIEWPORTS;
       const durCelpipArrival = VIEWPORTS.celpipArrival / PIN_VIEWPORTS;
 
-      // Slot switches once each arrival's crossfade is complete — see the
-      // docstring for why this is 4 slots covering 5 sections, and why an
-      // onUpdate threshold sweep replaces the old onLeave/onEnterBack (there
-      // are 3 internal transition points now, not 1 pin boundary).
+      /**
+       * Fraction of an arrival phase the image swap gets. The outgoing
+       * section's layer never fades — the arriving one simply fades in on top
+       * of it — so this fraction *is* the window where both are on screen at
+       * once. At 1 (the whole phase, which is what this used to be) that was
+       * half a viewport of scrolling with two device shots visibly stacked.
+       * Short enough to read as a cut, not so short it strobes on a fast
+       * scroll: the scrub still resolves it over a real moment.
+       */
+      const ARRIVAL_FADE = 0.18;
+
+      /** Where the tile field has finished and the chapter behind it is the
+       *  thing on screen: the 0.72 scatter, plus one tile's own 0.14 pop, plus
+       *  the 0.08 swap. Shared with the marker so it turns over then. */
+      const REVEAL_DONE = 0.94;
+
+      // Slot switches the moment its chapter finishes fading in — the marker
+      // names the section on screen, so it turns over with the artwork, not at
+      // the end of the phase the artwork arrived in. See the docstring for why
+      // this is 4 slots covering 5 sections.
       const slotThresholds: Array<[number, number]> = [
-        [atOverclockArrival + durOverclockArrival, 2],
-        [atBedfordArrival + durBedfordArrival, 3],
-        [atCelpipArrival + durCelpipArrival, 4],
+        [atOverclockArrival + durOverclockArrival * REVEAL_DONE, 2],
+        [atBedfordArrival + durBedfordArrival * REVEAL_DONE, 3],
+        [atCelpipArrival + durCelpipArrival * REVEAL_DONE, 4],
       ];
 
       const handover = gsap.timeline({
@@ -208,7 +233,13 @@ export function initHero(): () => void {
           end: () => `+=${window.innerHeight * PIN_VIEWPORTS}`,
           pin: true,
           anticipatePin: 1,
-          scrub: 1,
+          /* 0.3, not 1. Lenis already eases the scroll position itself (see
+             scroll.ts, duration 1.2), so a second full second of catch-up here
+             put two smoothing stages in series: measured, the scene took just
+             over a second to finish reacting to a single flick, which reads as
+             lag rather than smoothness. This keeps a little smoothing of its
+             own without re-damping what Lenis has already damped. */
+          scrub: 0.3,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             let slot = 1;
@@ -278,8 +309,8 @@ export function initHero(): () => void {
         // invisible.
         handover.fromTo(
           next,
-          { opacity: 0 },
-          { opacity: 1, duration: durHeroToShowcase * 0.28 },
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: durHeroToShowcase * 0.28 },
           atHeroToShowcase + durHeroToShowcase * 0.66,
         );
 
@@ -312,112 +343,125 @@ export function initHero(): () => void {
         );
       }
 
-      // Showcase's own text rising into view — added on request; every later
-      // section's text does this too (see addTransition below), but Showcase's
-      // entrance predates that pattern and needed adding by hand since it
-      // shares phase A with the pixel reveal rather than getting its own
-      // phase. Its *exit* is not here: that now belongs to Overclock's
-      // transition, which runs it as the same beat Overclock arrives in.
-      /**
-       * How far a chapter's text has to travel to sit just past its section's
-       * bottom / top edge — i.e. fully out of frame, clipped by the section's
-       * own overflow, with the copy itself never cut mid-line.
-       *
-       * Measured off offsetTop/offsetHeight rather than getBoundingClientRect
-       * so a tween already running on the element can't feed its own transform
-       * back into the next measurement. Both are passed to GSAP as functions,
-       * so `invalidateOnRefresh` re-reads them after a resize.
-       *
-       * `y` (pixels), never `yPercent`: yPercent is relative to the element's
-       * own height, which is far too short to clear a viewport-tall section,
-       * and the CSS parks this element with a translateY that GSAP would
-       * otherwise read back as a *separate* y and stack on top of.
-       */
-      const GAP = 24;
-      const belowEdge = (text: HTMLElement) => {
-        const section = text.closest('section');
-        const sectionHeight = section?.clientHeight ?? window.innerHeight;
-        return sectionHeight - text.offsetTop + GAP;
-      };
-      const aboveEdge = (text: HTMLElement) => -(text.offsetTop + text.offsetHeight + GAP);
+      // Chapter text no longer travels (explicit direction: no scroll
+      // animation on the copy). It belongs to its own layer, so the layer's
+      // crossfade carries it in and out — the measuring helpers this used to
+      // need (belowEdge / aboveEdge, and the GAP that kept a line from being
+      // clipped mid-glyph) went with it.
 
-      if (showcaseText) {
+      /**
+       * One plain-opacity arrival: `arriving` fades 0 → 1 over the opening
+       * slice of the phase — the section handover itself stays a crossfade,
+       * deliberately not phase A's mechanic and deliberately not a slide.
+       * The whole layer swaps, copy included; nothing inside it moves on its
+       * own any more.
+       */
+      /**
+       * Lays a field of square tiles in the arriving chapter's own ground
+       * colour, in random order, across the front of its phase — then the
+       * chapter itself swaps in behind the finished field, same colour, no
+       * visible seam. The same pixel language as the hero handover; scattered
+       * rather than spreading from a point, so it reads as a different beat.
+       *
+       * Built here rather than in markup because the count depends on the
+       * viewport, and rebuilt on every matchMedia pass for the same reason.
+       */
+      const addTileReveal = (key: string, start: number, duration: number) => {
+        const grid = scene.querySelector<HTMLElement>(`[data-scene-grid="${key}"]`);
+        if (!grid) return 0;
+
+        const size = Math.max(40, Math.round(window.innerWidth / 14));
+        // +2 on each axis for the one-tile overspill the CSS insets rely on
+        const cols = Math.ceil(window.innerWidth / size) + 2;
+        const rows = Math.ceil(window.innerHeight / size) + 2;
+        grid.style.setProperty('--px-size', `${size}px`);
+        grid.style.setProperty('--px-cols', String(cols));
+
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < cols * rows; i++) frag.appendChild(document.createElement('span'));
+        grid.replaceChildren(frag);
+
+        // 0.72 of the phase for the scatter, leaving the rest for the layer to
+        // take over — the swap has to land while the field still covers
+        // everything, or the outgoing chapter flashes back through.
+        const spread = duration * 0.72;
         handover.fromTo(
-          showcaseText,
-          { y: () => belowEdge(showcaseText) },
-          { y: 0, ease: 'power2.out', duration: durHeroToShowcase * 0.25 },
-          atHeroToShowcase + durHeroToShowcase * 0.75,
+          Array.from(grid.children) as HTMLElement[],
+          { scale: 0.55, autoAlpha: 0 },
+          {
+            // Slightly over 1 so neighbours overlap instead of meeting on a
+            // fractional pixel boundary and letting the old chapter show
+            // through as a hairline.
+            scale: 1.04,
+            autoAlpha: 1,
+            duration: duration * 0.14,
+            ease: 'power2.out',
+            stagger: { grid: [rows, cols], from: 'random', amount: spread },
+          },
+          start,
         );
-      }
 
-      /**
-       * One section changing to the next, as a single continuous beat.
-       *
-       * All three things overlap inside the one phase rather than queueing up
-       * after each other:
-       *   - `outgoingText` leaves through the top over the front 60%
-       *   - `arriving` crossfades 0 → 1 across the whole phase (still a plain
-       *     opacity fade — deliberately not phase A's mechanic, and
-       *     deliberately not a slide)
-       *   - `arrivingText` rises in from past the bottom edge over the back
-       *     half, landing as the crossfade completes
-       *
-       * They used to be two separate phases — the outgoing text got its own
-       * stretch of scroll where nothing else moved, then the next section
-       * started arriving in a stretch after that. That reads as a pause: you
-       * scroll, the copy leaves, and only if you keep scrolling does the
-       * section actually change. Overlapping them means the change starts the
-       * moment the phase does.
-       */
-      const addTransition = (
+        return spread;
+      };
+
+      const addArrival = (
         arriving: HTMLElement | null | undefined,
-        arrivingText: HTMLElement | null | undefined,
-        outgoingText: HTMLElement | null | undefined,
         start: number,
         duration: number,
+        gridKey?: string,
       ) => {
-        if (outgoingText) {
-          handover.to(
-            outgoingText,
-            { y: () => aboveEdge(outgoingText), ease: 'none', duration: duration * 0.6 },
-            start,
-          );
-        }
-
         if (arriving) {
-          handover.fromTo(arriving, { opacity: 0 }, { opacity: 1, ease: 'none', duration }, start);
+          // With a tile field in front, the layer swaps once the field has
+          // finished covering the screen; without one it is a plain crossfade.
+          const spread = gridKey ? addTileReveal(gridKey, start, duration) : 0;
+          const swapAt = spread ? start + spread + duration * 0.14 : start;
+          const fade = spread ? duration * 0.08 : duration * ARRIVAL_FADE;
+          // autoAlpha, not opacity: it parks the layer at visibility:hidden
+          // while it is transparent. These layers are full-viewport and
+          // permanently promoted (will-change: opacity), so a merely
+          // transparent one still costs a composited surface on every frame of
+          // the scrub — four of them, for most of the pin.
+          handover.fromTo(
+            arriving,
+            { autoAlpha: 0 },
+            { autoAlpha: 1, ease: 'none', duration: fade },
+            swapAt,
+          );
+          // Tied to the swap, not to the end of the phase: the layer is fully
+          // opaque from `start + fade` on, and an opaque layer that still
+          // refuses clicks is a bug waiting to be filed.
           handover
             .set(arriving, { pointerEvents: 'none' }, start)
-            .set(arriving, { pointerEvents: 'auto' }, start + duration * 0.94);
-        }
-
-        if (arrivingText) {
-          handover.fromTo(
-            arrivingText,
-            { y: () => belowEdge(arrivingText) },
-            { y: 0, ease: 'power2.out', duration: duration * 0.5 },
-            start + duration * 0.5,
-          );
+            .set(arriving, { pointerEvents: 'auto' }, swapAt + fade);
         }
       };
 
-      // Each section's exit is now folded into the next one's arrival, so the
-      // outgoing copy is on its way out at the same moment the next section is
-      // fading in.
-      addTransition(
-        overclockLayer,
-        overclockText,
-        showcaseText,
-        atOverclockArrival,
-        durOverclockArrival,
-      );
-      addTransition(bedfordLayer, bedfordText, overclockText, atBedfordArrival, durBedfordArrival);
+      addArrival(overclockLayer, atOverclockArrival, durOverclockArrival, 'overclock');
+      addArrival(bedfordLayer, atBedfordArrival, durBedfordArrival, 'bedford');
 
-      // CELPIP is currently last — nothing to hand off to, so no exit follows
-      // it. The settle phase after it (implicit: nothing is scheduled there)
-      // is what gives the finished page room to rest before the pin — and the
-      // document — actually ends.
-      addTransition(celpipLayer, celpipText, bedfordText, atCelpipArrival, durCelpipArrival);
+      // CELPIP is currently last — arrival only, no exit, nothing to hand off
+      // to yet. The settle phase after it (implicit: nothing is scheduled
+      // there) is what gives the finished page room to rest before the pin —
+      // and the document — actually ends.
+      addArrival(celpipLayer, atCelpipArrival, durCelpipArrival, 'celpip');
+
+      /**
+       * Pins the timeline's own duration to exactly 1.
+       *
+       * Every position above is written as a fraction of the pin, but GSAP
+       * reads them as seconds and the scrub maps the pin's progress onto
+       * `0..duration`. Nothing is scheduled in the settle phase, so the
+       * timeline used to end at its last tween — 0.72 — and every position was
+       * silently stretched by 1/0.72. That is what put the chapter marker a
+       * whole slot ahead of the artwork: the marker reads the scroll directly,
+       * the layers were arriving 38% later than the numbers said. Measured
+       * before this line: Bedford still on screen from progress 0.73 while the
+       * marker had been on slot 4 since 0.81, and CELPIP only finished
+       * arriving at the very last pixel of the pin.
+       *
+       * An empty `set` at 1 costs nothing and makes the two scales the same.
+       */
+      handover.set({}, {}, 1);
 
       // Runs when the query stops matching, and on mm.revert()
       return () => {
@@ -432,27 +476,9 @@ export function initHero(): () => void {
     // scaled to the hero scrolling past, not to a fixed scroll distance, so it
     // finishes at roughly the same point regardless of how tall the hero is at
     // that width.
-    mm.add('(max-width: 1199px)', () => {
-      const scrollZoom = gsap.fromTo(
-        stage,
-        { scale: 1 },
-        {
-          scale: 1.08,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: hero,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 1,
-          },
-        },
-      );
-
-      return () => {
-        scrollZoom.scrollTrigger?.kill();
-        scrollZoom.kill();
-      };
-    });
+    // (The <1200px branch that used to live here — a small scroll-tied zoom
+    // standing in for the handover — is gone: the handover itself runs at
+    // those widths now, and the two would have fought over the same element.)
 
     cleanups.push(() => mm.revert());
   }

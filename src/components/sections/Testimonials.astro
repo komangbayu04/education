@@ -33,7 +33,11 @@ interface Featured {
   quote: string;
   photo?: string;
   logo?: string;
+  /** A video file the browser can play inline — mp4/webm, same-origin or CORS
+   *  enabled. Supplying it turns the play mark into a real control. */
   video?: string;
+  /** Frame shown before playback. Falls back to `photo`. */
+  poster?: string;
 }
 
 interface Quote {
@@ -59,6 +63,8 @@ const {
       name: 'Ahmed F. Haque',
       role: 'Founder, Overclock',
       company: 'Overclock',
+      photo: '/media/portrait-ahmed.webp',
+      video: 'https://framerusercontent.com/assets/ILZGTX3cqunlS3P895UeRWpIIM.mp4',
       headline: 'Design stopped being something we had to think about all the time.',
       quote:
         '"Speed to production was a huge difference... the fear is that you\'re going to get into this psychology experiment for three months and come out with a concept, but nothing that actually helps you move the business forward. That wasn\'t the experience I had with Tribe."',
@@ -67,6 +73,8 @@ const {
       name: 'Braden Weissman',
       role: 'Co-Founder, NerdApply',
       company: 'NerdApply',
+      photo: '/media/portrait-braden.webp',
+      video: 'https://framerusercontent.com/assets/2ISOfafB7v8BKAWqxuBoY16FiM.mp4',
       headline: 'They shipped faster than our own team could have.',
       quote:
         '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
@@ -76,6 +84,7 @@ const {
     {
       name: 'Geoffrey Langford',
       role: 'Sr. Product Manager, Studeo',
+      photo: '/media/portrait-geoffrey.webp',
       headline: 'Absolutely great working with Tribe.',
       quote:
         '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
@@ -84,6 +93,7 @@ const {
     {
       name: 'Wei Sun',
       role: 'Founder, EMOD',
+      photo: '/media/portrait-wei-sun.webp',
       headline: 'This is top-tier design.',
       quote:
         '"I\'ve worked with some incredibly talented designers at a very high level, from senior to staff, and honestly, your design work is right up there at the same level."',
@@ -92,6 +102,8 @@ const {
     {
       name: 'Nova',
       role: 'Vice President, CELPIP',
+      // Placeholder: no portrait of their own in image/ yet.
+      photo: '/media/portrait-ahmed.webp',
       headline: 'Absolutely great working with Tribe.',
       quote:
         '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
@@ -100,6 +112,8 @@ const {
     {
       name: 'Marta Reyes',
       role: 'Head of Growth, Kinfolk',
+      // Placeholder: no portrait of their own in image/ yet.
+      photo: '/media/portrait-braden.webp',
       headline: 'It felt like one team, not two.',
       quote:
         '"Every handoff was already anticipated. We stopped writing briefs halfway through the engagement because they were reading the roadmap better than we were."',
@@ -112,14 +126,115 @@ const {
 <section class="tm" aria-labelledby="tm-title" data-tm>
   <h2 class="u-sr-only" id="tm-title">What founders say</h2>
 
+  {/* ================= Featured: spotlight (mobile) =================
+      The accordion needs two cards and an open note side by side; a phone has
+      room for one. So below the breakpoint the same people are shown one at a
+      time, chosen from a rail of thumbnails, with the copy underneath. Same
+      data, different instrument — see the CSS for which one is displayed. */}
+  <div class="tm__spot" data-tm-spot>
+    <div class="tm__spot-stage">
+      {featured.map((person, i) => (
+        <figure class="tm__spot-panel" data-tm-spot-panel data-active={i === 0 ? '' : undefined}>
+          <div class="tm__spot-media" data-tm-media>
+            {person.video ? (
+              <video
+                class="tm__video"
+                src={person.video}
+                poster={person.poster ?? person.photo}
+                preload="none"
+                playsinline
+                data-tm-video
+              />
+            ) : person.photo ? (
+              <img src={person.photo} alt={`Portrait of ${person.name}`} loading="lazy" decoding="async" />
+            ) : (
+              <span class="tm__portrait-fallback" aria-hidden="true" />
+            )}
+
+            {person.video ? (
+              <button
+                class="tm__play"
+                type="button"
+                data-tm-play
+                aria-label={`Play video testimonial from ${person.name}`}
+              >
+                <svg viewBox="0 0 12 14" fill="none" aria-hidden="true">
+                  <path d="M12 7 0 14V0z" fill="currentColor" />
+                </svg>
+              </button>
+            ) : (
+              <span class="tm__play" aria-hidden="true">
+                <svg viewBox="0 0 12 14" fill="none">
+                  <path d="M12 7 0 14V0z" fill="currentColor" />
+                </svg>
+              </span>
+            )}
+          </div>
+        </figure>
+      ))}
+
+      <ol class="tm__spot-rail">
+        {featured.map((person, i) => (
+          <li class="tm__spot-slot">
+            <span class="tm__spot-index" aria-hidden="true">/{i + 1}</span>
+            <button
+              class="tm__spot-thumb"
+              type="button"
+              data-tm-spot-pick={i}
+              data-active={i === 0 ? '' : undefined}
+              aria-label={`Show the testimonial from ${person.name}`}
+            >
+              {person.photo ? (
+                <img src={person.photo} alt="" loading="lazy" decoding="async" />
+              ) : (
+                <span class="tm__portrait-fallback" aria-hidden="true" />
+              )}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    {featured.map((person, i) => (
+      <div class="tm__spot-copy" data-tm-spot-copy data-active={i === 0 ? '' : undefined}>
+        <div class="tm__spot-who">
+          <div>
+            <p class="tm__name">{person.name}</p>
+            <p class="tm__role">{person.role}</p>
+          </div>
+          {person.logo ? (
+            <img class="tm__logo-img" src={person.logo} alt={person.company} loading="lazy" decoding="async" />
+          ) : (
+            <span class="tm__logo">{person.company}</span>
+          )}
+        </div>
+        <p class="tm__headline">{person.headline}</p>
+        <blockquote class="tm__quote">{person.quote}</blockquote>
+      </div>
+    ))}
+  </div>
+
   <!-- ================= Featured: hover accordion ================= -->
   <div class="tm__feature u-container" data-tm-feature>
     {
       featured.map((person, i) => (
         <figure class="tm__person" data-tm-person data-open={i === 0 ? '' : undefined}>
           <div class="tm__card">
-            <div class="tm__portrait">
-              {person.photo ? (
+            <div class="tm__portrait" data-tm-media>
+              {person.video ? (
+                /* preload="none" so a card nobody plays costs one poster
+                   image, not a video download. The poster carries the frame
+                   the portrait used to, so nothing looks different until it is
+                   played. */
+                <video
+                  class="tm__video"
+                  src={person.video}
+                  poster={person.poster ?? person.photo}
+                  preload="none"
+                  playsinline
+                  data-tm-video
+                />
+              ) : person.photo ? (
                 <img src={person.photo} alt={`Portrait of ${person.name}`} loading="lazy" decoding="async" />
               ) : (
                 /* PLACEHOLDER — pass `photo` to replace */
@@ -127,11 +242,16 @@ const {
               )}
 
               {person.video ? (
-                <a class="tm__play" href={person.video} aria-label={`Play video testimonial from ${person.name}`}>
+                <button
+                  class="tm__play"
+                  type="button"
+                  data-tm-play
+                  aria-label={`Play video testimonial from ${person.name}`}
+                >
                   <svg viewBox="0 0 12 14" fill="none" aria-hidden="true">
                     <path d="M12 7 0 14V0z" fill="currentColor" />
                   </svg>
-                </a>
+                </button>
               ) : (
                 /* No video URL supplied — decorative only, never a dead control */
                 <span class="tm__play" aria-hidden="true">
@@ -168,9 +288,14 @@ const {
   </div>
 
   <!-- ================= Marquee: auto + manual ================= -->
-  {/* data-lenis-prevent keeps the page's smooth-scroll wrapper from
-      swallowing wheel events that belong to this rail */}
-  <div class="tm__rail" data-tm-rail data-lenis-prevent>
+  {/* Horizontal only. Plain data-lenis-prevent bowed Lenis out of *every*
+      gesture over this rail, vertical included — so a wheel here left the
+      page's smooth scroll untouched while the browser scrolled the document
+      natively underneath it, and the two fought until the page read as stuck.
+      Lenis picks this attribute by the gesture's own dominant axis (see its
+      onVirtualScroll), so a sideways swipe still belongs to the rail while a
+      normal downward wheel goes back to scrolling the page. */}
+  <div class="tm__rail" data-tm-rail data-lenis-prevent-horizontal>
     <div class="tm__track" data-tm-track>
       {[0, 1].map((copy) =>
         quotes.map((q) => (
@@ -201,8 +326,21 @@ const {
     </div>
   </div>
 
-  <div class="tm__progress u-container" aria-hidden="true">
-    {quotes.map(() => <span class="tm__progress-seg" data-tm-seg />)}
+  {/* Real buttons, not decoration: they are the only way to reach a specific
+      quote without dragging the rail there by hand. */}
+  <div class="tm__progress u-container" role="group" aria-label="Quotes">
+    {
+      quotes.map((quote, i) => (
+        <button
+          class="tm__progress-seg"
+          type="button"
+          data-tm-seg
+          aria-label={`Show the quote from ${quote.name}`}
+        >
+          <span class="u-sr-only">{i + 1}</span>
+        </button>
+      ))
+    }
   </div>
 </section>
 
@@ -226,13 +364,26 @@ const {
     align-items: stretch;
   }
 
-  /* Card + note are one surface, so they share the background */
+  /* Card + note are one surface, so they share the background.
+     The open person carries the note's width as its own flex-basis, and both
+     people grow equally from there — so whatever is left over splits evenly
+     and the two *cards* come out the same width no matter which note is open.
+     That is what keeps the portraits the same size (they were 75px apart in
+     height, since .tm__portrait takes its height from its own width via
+     aspect-ratio) and what stops the row resizing mid-transition: the two
+     bases move by equal and opposite amounts on the same easing, so their sum
+     — and therefore the space the cards share — never changes. */
   .tm__person {
     display: flex;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
     margin: 0;
     background: var(--color-bg-twoways);
+    transition: flex-basis 0.55s var(--ease-out-expo);
+  }
+
+  .tm__person[data-open] {
+    flex-basis: var(--tm-note-w);
   }
 
   .tm__card {
@@ -251,11 +402,14 @@ const {
     background: var(--color-line);
   }
 
-  .tm__portrait img {
+  .tm__portrait img,
+  .tm__video {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+
 
   /* Neutral stand-in — deliberately flat, not a fake face */
   .tm__portrait-fallback {
@@ -276,9 +430,29 @@ const {
     width: clamp(2.25rem, 3vw, 2.75rem);
     aspect-ratio: 1;
     translate: -50% -50%;
+    /* <button> resets — this rule is shared with the decorative <span>. */
+    padding: 0;
+    border: 0;
+    font: inherit;
     background: var(--color-bg-primary);
     color: var(--color-ink);
-    transition: scale 0.4s var(--ease-out-expo);
+    transition:
+      scale 0.4s var(--ease-out-expo),
+      opacity 0.3s var(--ease-out-expo);
+  }
+
+  button.tm__play {
+    cursor: pointer;
+  }
+
+  /* Out of the way once playback starts, and out of the tab order with it —
+     the native controls take over from here. Keyed off the media wrapper the
+     script marks, so the accordion portrait and the mobile spotlight panel
+     both answer to it. */
+  [data-tm-media][data-playing] .tm__play {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
   }
 
   .tm__play svg {
@@ -286,8 +460,8 @@ const {
     margin-left: 2px;
   }
 
-  a.tm__play:hover,
-  a.tm__play:focus-visible {
+  button.tm__play:hover,
+  button.tm__play:focus-visible {
     scale: 1.08;
   }
 
@@ -361,6 +535,143 @@ const {
     margin: auto 0 0;
     font-size: var(--text-body);
     line-height: 1.62;
+  }
+
+  /* ===================== Featured: spotlight (mobile) ===================== */
+  /* Desktop keeps the accordion; this replaces it below 61.25rem, where the
+     accordion has no room. Exactly one of the two is ever displayed. */
+  .tm__spot {
+    display: none;
+  }
+
+  /* Proportions read off the reference: the rail is 24% of the block and the
+     gap between it and the portrait 1.3%, both as fractions rather than fixed
+     widths so the whole thing scales with the screen. */
+  .tm__spot-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24%;
+    gap: 1.3%;
+    align-items: start;
+  }
+
+  /* Every panel occupies the same cell, so switching never re-lays the page
+     out — only which one is visible changes. */
+  .tm__spot-panel {
+    grid-area: 1 / 1;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.45s var(--ease-out-expo),
+      visibility 0.45s;
+  }
+
+  .tm__spot-panel[data-active] {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Portrait, not landscape — 230 : 284 off the reference. */
+  .tm__spot-media {
+    position: relative;
+    aspect-ratio: 230 / 284;
+    overflow: hidden;
+    background: var(--color-line);
+  }
+
+  .tm__spot-media img,
+  .tm__spot-media .tm__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .tm__spot-rail {
+    grid-area: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 2vw, 0.875rem);
+  }
+
+  .tm__spot-index {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--color-ink-secondary);
+  }
+
+  .tm__spot-thumb {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    aspect-ratio: 74 / 81;
+    overflow: hidden;
+    background: var(--color-line);
+    cursor: pointer;
+    /* The unselected ones sit back rather than disappear — they are the rest
+       of the list, not disabled controls. */
+    opacity: 0.45;
+    transition: opacity 0.4s var(--ease-out-expo);
+  }
+
+  .tm__spot-thumb[data-active] {
+    opacity: 1;
+  }
+
+  .tm__spot-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Same trick as the panels: one cell, one visible. */
+  .tm__spot-copy {
+    display: none;
+    flex-direction: column;
+    /* Wider steps than the desktop card: the reference gives the name block,
+       the headline and the quote real air between them. */
+    gap: clamp(1.25rem, 5vw, 2rem);
+    margin-top: clamp(1rem, 4vw, 1.5rem);
+  }
+
+  .tm__spot-copy[data-active] {
+    display: flex;
+  }
+
+  .tm__spot-who {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .tm__spot-copy .tm__headline {
+    max-width: none;
+    font-size: clamp(1.25rem, 5.4vw, 1.75rem);
+    line-height: 1.22;
+  }
+
+  .tm__spot-copy .tm__quote {
+    margin: 0;
+  }
+
+  .tm__spot-copy .tm__name {
+    font-size: clamp(1rem, 4.4vw, 1.25rem);
+    font-weight: 600;
+  }
+
+  @media (max-width: 61.25rem) {
+    .tm__feature {
+      display: none;
+    }
+
+    .tm__spot {
+      display: block;
+      padding-inline: var(--section-padding-x);
+    }
   }
 
   /* ===================== Marquee ===================== */
@@ -478,12 +789,26 @@ const {
   }
 
   .tm__progress-seg {
+    position: relative;
     width: 0.875rem;
     height: 0.625rem;
     background: var(--color-line-strong);
+    cursor: pointer;
     transition:
       width 0.45s var(--ease-out-expo),
       background-color 0.45s var(--ease-out-expo);
+  }
+
+  /* A 14 x 10 mark is well under any sane touch target; the hit area is grown
+     around it instead of the mark, which has to stay this size. */
+  .tm__progress-seg::before {
+    content: '';
+    position: absolute;
+    inset: -0.75rem -0.25rem;
+  }
+
+  .tm__progress-seg:hover:not([data-active]) {
+    background: var(--color-ink-muted);
   }
 
   .tm__progress-seg[data-active] {
@@ -506,7 +831,9 @@ const {
     /* Static, so the transition never runs and nothing depends on hover —
        which does not exist on the devices this width mostly means. */
     .tm__note,
-    .tm__person[data-open] .tm__note {
+    .tm__person[data-open] .tm__note,
+    .tm__person,
+    .tm__person[data-open] {
       flex-basis: auto;
       transition: none;
     }
@@ -526,17 +853,10 @@ const {
       width: min(80vw, 22rem);
     }
 
-    /* Portraits stop hanging outside once the cards are this narrow — there
-       isn't the horizontal room, and the overlap starts eating the copy. */
-    .tm__quote-card--trail {
-      translate: none;
-    }
-
+    /* Same shape as desktop, just smaller: the portrait keeps hanging off the
+       card's corner rather than dropping inside it. Only the sizes come down. */
     .tm__quote-portrait {
-      position: static;
-      width: clamp(5rem, 22vw, 7rem);
-      translate: none !important;
-      margin-top: 1rem;
+      width: clamp(4.5rem, 20vw, 6rem);
     }
 
     .tm__quote-card--lead .tm__quote-who,

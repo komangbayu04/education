@@ -10,9 +10,9 @@
  * disturb a section nobody asked to change. This exists so chapters 3+ don't
  * each re-declare the same ~150 lines of near-identical CSS.
  *
- * Text entrance/exit and the crossfade between sections are driven entirely
- * by src/scripts/hero.ts against the generic `[data-chapter-section]` /
- * `[data-chapter-text]` hooks — nothing project-specific lives there.
+ * The crossfade between sections is driven entirely by src/scripts/hero.ts
+ * against the generic `[data-chapter-section]` hook — nothing project-specific
+ * lives there. The copy itself no longer animates: the layer swap carries it.
  */
 import Timeline from './Timeline.astro';
 
@@ -26,7 +26,13 @@ interface Props {
   imageWidth: number;
   imageHeight: number;
   background: string;
-  mediaMaxWidth?: string;
+  /** Where the artwork links to. Defaults to /work/<id>. */
+  href?: string;
+  /** Text on the tile that rides the pointer across the artwork. */
+  viewLabel?: string;
+  /** Line measure for the body. Per project because "three lines" is a count,
+   *  not a width: a shorter body needs a narrower measure to reach it. */
+  bodyMeasure?: string;
 }
 
 const {
@@ -39,7 +45,9 @@ const {
   imageWidth,
   imageHeight,
   background,
-  mediaMaxWidth = 'clamp(20rem, 56vw, 60rem)',
+  bodyMeasure = '41ch',
+  href = `/work/${id}`,
+  viewLabel = 'View work',
 } = Astro.props;
 ---
 
@@ -47,12 +55,17 @@ const {
   class="project"
   aria-labelledby={`${id}-title`}
   data-chapter-section={chapter}
-  style={`--project-bg:${background};--project-media-w:${mediaMaxWidth}`}
+  style={`--project-bg:${background};--project-body-w:${bodyMeasure}`}
 >
   <div class="project__inner u-container">
     <div class="project__text" data-chapter-text>
       <h2 class="project__title" id={`${id}-title`}>{title}</h2>
       <p class="project__body">{body}</p>
+
+      {/* Visible only where there is no pointer to ride: the tile that
+          follows the cursor can never appear on touch, so the same
+          destination needs a control of its own there. */}
+      <a class="project__cta" href={href}>{viewLabel}</a>
     </div>
 
     <figure class="project__media" data-project-media>
@@ -66,6 +79,17 @@ const {
       <Timeline />
     </div>
   </div>
+
+  {/* Covers the whole chapter, not just the artwork: the tile is meant to be
+      available anywhere in the section, and a hover target that only lives on
+      the image leaves it blinking out over the copy.
+
+      A real anchor, so the project is reachable with a keyboard, by a screen
+      reader and with JS off — src/scripts/workCursor.ts only adds the tile
+      that rides the pointer across it. */}
+  <a class="project__link" href={href} aria-label={`View the ${title} project`} data-work-link>
+    <span class="project__tile" aria-hidden="true" data-work-tile>{viewLabel}</span>
+  </a>
 </section>
 
 <style>
@@ -93,12 +117,15 @@ const {
   }
 
   /* --- Text ----------------------------------------------------------------
-     No mask of its own: the copy travels the full height of the section, and
-     the only thing that ever clips it is the section's own overflow at the
-     very top and bottom edge. z-index keeps it above the media, which is now
-     centred and wide enough to pass under this column. */
+     Static: it arrives and leaves with its own layer's crossfade and never
+     moves under the scroll. z-index keeps it above the media. */
   .project__text {
-    grid-column: 1 / span 4;
+    /* span 5, not 4: the body is set to wrap onto three lines (see
+       .project__body), and at span 4 the column itself became the limit below
+       ~1450px and pushed it to four. Track 5 was empty — the media is placed
+       out of the grid — so this widens the text's room without moving
+       anything else. */
+    grid-column: 1 / span 5;
     position: relative;
     z-index: 1;
     display: flex;
@@ -114,32 +141,116 @@ const {
   }
 
   .project__body {
-    max-width: 24ch;
+    /* Three lines for every project. The default measure (41ch) is set by the
+       two longest bodies — Overclock and Bedford, 122 characters each. CELPIP
+       is only 93 and still fits on two lines there, so it passes a narrower
+       measure of its own: three lines is a line count, and a shorter
+       paragraph has to be set narrower to reach the same one. */
+    max-width: var(--project-body-w);
     font-size: var(--text-body);
     line-height: 1.75;
     color: var(--color-ink-secondary);
   }
 
   /* --- Media -------------------------------------------------------------- */
-  /* Horizontally centred and sitting flush on the section's bottom edge. Taken
-     out of the grid so it can be anchored to the section rather than to the
-     text row. max-height keeps a tall shot from running off the top of the
-     section once it's this wide — object-fit holds it against the bottom. */
+  /* Occupies the band right of the text column and sits on the section's
+     bottom edge. Taken out of the grid so it can be anchored to the section
+     rather than to the text row. max-height keeps a tall shot from running off
+     the top of the section — object-fit holds it against the bottom, and
+     centres it inside the band. */
   .project__media {
     position: absolute;
-    left: 50%;
-    bottom: 0;
-    translate: -50% 0;
-    width: var(--project-media-w);
-    max-height: 76svh;
+    /* Confined to the band between the copy and the marker, so neither can
+       ever be read over the artwork. Centred, the image ran under the text by
+       as much as 227px at 1200px — measured against its *painted* extent
+       (object-fit: contain leaves transparent margins, so the element box
+       overstates it) and against the copy's real glyph extent.
+
+       The left edge follows the body's own measure, not the text column's
+       5/12: the body is capped well inside that column, so a grid fraction
+       either wasted artwork (at 1728px) or still collided (a fixed 3.5/12 was
+       88px into the copy at 1200px, because the measure is a fixed ch while
+       the column is a percentage). `ch` resolves the same here as it does on
+       .project__body — both inherit the same font-size — so this tracks the
+       measure exactly, including CELPIP's narrower one.
+
+       .project__inner is the padding box of .u-container, hence subtracting
+       the two paddings to get the grid's own width before taking a fraction
+       of it. */
+    left: calc(var(--section-padding-x) + var(--project-body-w) + clamp(1rem, 2vw, 2rem));
+    /* And stops before the marker's two tracks (11–12), which it otherwise
+       ran under — the chapter rules ended up drawn across the device screen. */
+    right: calc(var(--section-padding-x) + (100% - 2 * var(--section-padding-x)) * 2 / 12);
+    width: auto;
+    /* Runs past the bottom edge instead of stopping on it. Flush at 0 the
+       shot read as cropped — the wrists ended exactly on the section's edge,
+       which looks like a mistake rather than a photograph continuing out of
+       frame. The section's own overflow:hidden does the clipping. */
+    bottom: -4svh;
+    /* Both caps had to grow together. `object-fit: contain` paints at
+       min(width-cap, height-cap), so raising only one of them changes
+       nothing — the other one just keeps binding. */
+    max-height: 92svh;
     margin: 0;
+  }
+
+  /* Hidden wherever the pointer tile can do the job — see the note on the
+     markup. Shown below the desktop row, where there is no hover. */
+  .project__cta {
+    display: none;
+    align-self: flex-start;
+    padding: 0.8125rem 1.5rem;
+    border-radius: 0.5rem;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* The whole section is the hit area. Above the copy and the marker so the
+     pointer never leaves it mid-section — neither carries a control of its
+     own, so nothing is being covered up. */
+  .project__link {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: block;
+  }
+
+  /* Rides the pointer. translate(-50%, -50%) centres it on the cursor and is
+     kept in `translate` rather than `transform`, because GSAP drives x/y
+     through `transform` — two properties, so neither overwrites the other. */
+  .project__tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    padding: 0.625rem 1rem;
+    border-radius: 999px;
+    translate: -50% -50%;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    scale: 0.8;
+    will-change: transform;
   }
 
   .project__media img {
     display: block;
     width: 100%;
     height: auto;
-    max-height: 76svh;
+    max-height: 92svh;
     object-fit: contain;
     object-position: bottom center;
   }
@@ -154,43 +265,115 @@ const {
   }
 
   /* --- Responsive ---------------------------------------------------------
-     1199px to stay in step with the hero's desktop breakpoint */
+     One viewport at every width, because the handover pins the scene on
+     phones too. Rows rather than a stack: copy and marker take what they
+     need, the media takes the rest (minmax(0, 1fr) — the 0 is what lets it
+     shrink below the image's intrinsic height), so nothing needs re-tuning
+     per device.
+
+     Order is copy, then marker, then artwork. The marker used to sit above
+     the copy here; it belongs between the two, right-aligned, reading as the
+     rule that separates what the chapter says from what it shows. */
   @media (max-width: 1199px) {
     .project {
-      height: auto;
-      padding-block: clamp(3rem, 8vw, 6rem) 0;
-      align-items: start;
+      align-items: stretch;
+      padding-block: clamp(1.25rem, 3.5vw, 2.5rem) 0;
     }
 
     .project__inner {
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      row-gap: clamp(2rem, 5vw, 3.5rem);
-      height: auto;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      row-gap: clamp(0.75rem, 2.5vw, 1.5rem);
+      height: 100%;
     }
 
     .project__text {
       grid-column: 1 / span 6;
+      grid-row: 1;
     }
 
-    /* Back into the flow — absolute placement would collide with the text.
-       translate/max-height are their own properties and are not reset by
-       position:static, so both have to be undone explicitly. */
-    .project__media {
-      position: static;
-      grid-column: 1 / span 6;
-      translate: none;
-      width: 100%;
-      max-width: 34rem;
-      max-height: none;
+    .project__cta {
+      display: inline-flex;
+      margin-top: clamp(0.75rem, 3vw, 1.25rem);
     }
 
-    .project__media img {
-      max-height: none;
+    /* The button above is the control at this width. The cursor tile only ever
+       had a job where there is a cursor to follow, and on a narrow desktop
+       window it was appearing alongside the button — two controls for one
+       destination. */
+    .project__tile {
+      display: none;
     }
 
     .project__marker {
-      grid-column: 6 / span 1;
+      grid-column: 1 / span 6;
+      grid-row: 2;
       align-self: start;
+      /* Its own space above, rather than a bigger row-gap: the gap between the
+         marker and the artwork below should stay tight. */
+      margin-top: clamp(1.25rem, 5vw, 2.5rem);
+    }
+
+    /* Back into the flow — absolute placement would collide with the copy.
+       The desktop insets and max-height are their own properties and are not
+       reset by position:static, so they have to be undone explicitly. */
+    .project__media {
+      position: static;
+      grid-column: 1 / span 6;
+      grid-row: 3;
+      inset: auto;
+      /* auto, not 100%: a fixed width pins the box to its grid area and the
+         negative margins below would only shift it sideways. */
+      width: auto;
+      max-width: none;
+      height: 100%;
+      min-height: 0;
+      max-height: none;
+      /* Same bleed as the desktop rule, expressed as a margin now that the
+         box is in flow: the cutout's flat bottom runs off the section's edge
+         instead of ending in open space. */
+      margin-bottom: -4svh;
+      /* Capped, and held to the bottom of its row: the artwork filling every
+         pixel the copy left over made it the whole section. */
+      /* 72svh, and the right bleed above widened to match. The box's bottom is
+         pinned to the section's edge, so height is what moves the artwork's
+         top: raising this lifts it out of the gap under the marker. Both had
+         to grow together — contain paints at min(width, height), so the wider
+         box alone would have kept the old height and the taller cap alone
+         would have been clipped by the old width. */
+      max-height: 72svh;
+      align-self: end;
+    }
+
+    /* Full-bleed, and past the viewport on both sides. The asset is landscape
+       (1400x1139) and a phone column is not, so contained inside the gutters
+       it was width-bound and sat in the bottom of its row with a long empty
+       gap above it. Widening the box past the screen lets the row's height
+       drive the artwork instead; the section's overflow:hidden crops the
+       sides, which is what the reference does too. */
+    .project__media {
+      /* Flush to the viewport's left edge and running well past its right.
+         Asymmetric on purpose: the artwork can only get bigger here by growing
+         wider than the screen, and the left is the side that must stay whole —
+         so all of the overflow is pushed to the right, where the section's
+         overflow crops it. */
+      margin-inline: calc(-1 * var(--section-padding-x))
+        calc(-1 * var(--section-padding-x) - 62vw);
+    }
+
+    .project__media img {
+      /* contain, not cover. cover filled the box by cropping the sides, and
+         with the box now capped that crop cut into the device itself — the
+         same "looks cut off" the bleed exists to avoid. Contained, the whole
+         shot shows; the box is bottom-aligned so the artwork still meets the
+         section's edge. */
+      object-fit: contain;
+      height: 100%;
+      max-height: none;
+      /* Anchored left, not centred: contained artwork fills the box's width,
+         and the box is wider than the screen — centring would split that
+         overflow across both edges and take a bite out of the left. */
+      object-position: left bottom;
     }
   }
 
@@ -205,44 +388,9 @@ const {
       grid-column: 1 / -1;
     }
 
-    .project__media {
-      margin-inline: auto;
-    }
-
     .project__body {
       max-width: 38ch;
     }
-
-    /* Above the copy rather than after the image. It's a "chapter N of 4"
-       indicator, so it belongs before the content it labels — which is where
-       it reads on desktop too, just at the other end of the row. `order`
-       rather than moving it in the DOM: on desktop it belongs last, after the
-       content it annotates. */
-    .project__marker {
-      order: -1;
-      align-self: start;
-      margin-bottom: clamp(0.5rem, 2vw, 1rem);
-    }
   }
 
-  /* --- Pre-animation state (only when JS is live, only at the width where
-     hero.ts's pinned handover actually reveals this text — see there for the
-     matching fromTo(y: below the section's bottom edge → 0), a pure slide with
-     no fade). Roughly where hero.ts's `belowEdge` will park it a frame later —
-     the exact distance is measured there; this only has to be far enough down
-     that nothing shows before the timeline's first render. Below 1200px this
-     section is normal-flow and no scroll handover ever touches it, so the text
-     must stay visible there — gating this to the same breakpoint as the
-     handover keeps the two in lock-step instead of hard-coding 1200px twice. */
-  @media (min-width: 1200px) {
-    :global(html[data-js='true']) .project__text {
-      transform: translateY(80svh);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) .project__text {
-      transform: none;
-    }
-  }
 </style>

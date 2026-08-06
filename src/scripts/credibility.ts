@@ -30,6 +30,23 @@ export function initCredibility(): () => void {
   const nodes = gsap.utils.toArray<HTMLElement>('[data-cred-node]', section);
   const pick = (name: string) => section.querySelector<HTMLElement>(`[data-cred-reveal="${name}"]`);
 
+  /**
+   * Everything animated with `y` here is also positioned by CSS that changes
+   * across the 61.25rem breakpoint — .cred__intro and .cred__core carry a
+   * centring translate on the ring layout and none (or a different one) on the
+   * mobile fan. GSAP writes its result as an inline `transform`, and an inline
+   * style outranks any media query, so the desktop translate stayed clamped on
+   * after the viewport narrowed: the intro sat half its own width to the left,
+   * off the screen (measured: glyphs starting at -155px in a 390px viewport).
+   *
+   * Clearing the transform once the reveal has finished hands positioning back
+   * to CSS, which is the only thing that knows about the breakpoint. Only the
+   * transform, and only these elements: their pre-reveal CSS sets opacity
+   * alone, so nothing is undone by this. The rules, axis and circle are left
+   * out on purpose — their pre-reveal state *is* a transform, and clearing it
+   * would put them straight back to hidden.
+   */
+  const settled: HTMLElement[] = [];
   const tl = gsap.timeline({
     defaults: { ease: 'power3.out' },
     scrollTrigger: {
@@ -37,9 +54,11 @@ export function initCredibility(): () => void {
       start: 'top 72%',
       once: true,
     },
+    onComplete: () => gsap.set(settled, { clearProps: 'transform' }),
   });
 
   const title = pick('title');
+  if (title) settled.push(title);
   if (title) tl.fromTo(title, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.9 }, 0);
 
   if (rules.length) {
@@ -61,10 +80,17 @@ export function initCredibility(): () => void {
     tl.fromTo(circle, { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 1.1 }, 0.3);
   }
 
+  // Mobile fan only — display:none above 61.25rem, where the ring's circle
+  // and axis do this job instead. Fading it is harmless there.
+  const wires = pick('wires');
+  if (wires) tl.fromTo(wires, { opacity: 0 }, { opacity: 1, duration: 0.9 }, 0.3);
+
   const intro = pick('intro');
+  if (intro) settled.push(intro);
   if (intro) tl.fromTo(intro, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.8 }, 0.55);
 
   const core = pick('core');
+  if (core) settled.push(core);
   if (core) tl.fromTo(core, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.7 }, 0.65);
 
   if (nodes.length) {
@@ -75,9 +101,11 @@ export function initCredibility(): () => void {
   }
 
   const outro = pick('outro');
+  if (outro) settled.push(outro);
   if (outro) tl.fromTo(outro, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, 1.05);
 
   const cta = pick('cta');
+  if (cta) settled.push(cta);
   if (cta) tl.fromTo(cta, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, 1.15);
 
   return () => {
