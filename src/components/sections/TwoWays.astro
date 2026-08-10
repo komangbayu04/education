@@ -7,17 +7,20 @@
  * (explicit direction). The only motion is a one-shot reveal when the section
  * first enters the viewport, in src/scripts/twoWays.ts.
  *
- * Layout is two columns. The left one is a flex column with the CTA block
- * pushed to its bottom, so the two ends of the copy anchor to the top and
- * bottom of the section the way the reference frame has them. The right one
- * is the two offer cards over a row of working-rhythm pills.
+ * Layout is two columns, divided by a rule that runs the section's height.
+ *   left   the pitch, then what both models include, then a disclosure with
+ *          the full list of deliverables — the one thing here long enough to
+ *          be worth folding away, and a <details> so it works with no JS.
+ *   right  the two offer cards, the line about how they tend to run together,
+ *          and the ask, on its own dark ground at the foot of the column.
  *
  * The rules between things are borders on the content, not free-standing
- * elements: each card owns the vertical rule to its left, and the pill block
- * owns the horizontal rules above and below it. That way they can never drift
- * out of alignment with what they're separating.
+ * elements: the panel owns the vertical rule to its left, the second card owns
+ * the one between the pair, and the disclosure owns the one above it. That way
+ * they can never drift out of alignment with what they're separating.
  */
 import Icon, { type IconName } from '../ui/Icon.astro';
+import { pixelField } from '../../lib/pixelField';
 
 interface Offer {
   /** Rendered as-is — the frame has these in caps, so the copy carries it */
@@ -32,7 +35,7 @@ interface Offer {
   highlight?: boolean;
 }
 
-interface Ritual {
+interface Included {
   label: string;
   icon: IconName;
 }
@@ -40,8 +43,13 @@ interface Ritual {
 interface Props {
   title?: string;
   intro?: string;
+  includedTitle?: string;
+  included?: Included[];
+  detailsTitle?: string;
+  detailsCopy?: string;
   offers?: Offer[];
-  rituals?: Ritual[];
+  /** The line under the cards, about how one becomes the other. */
+  note?: string;
   ctaTitle?: string;
   ctaCopy?: string;
   ctaLabel?: string;
@@ -52,12 +60,28 @@ interface Props {
 
 const {
   title = 'Two ways in',
-  intro = 'Pushes have a way of becoming partnerships. Most of ours did.',
+  intro = "Pick based on what you're facing: a specific deadline, or a backlog of design work.",
+  includedTitle = 'Both models include',
+  /* Icons are the closest matches in src/assets/icons — the frame draws six
+     bespoke marks and there are seven glyphs in the set, so these are mapped
+     by meaning rather than traced. `phone` is the one left unused: the calls
+     row leads on Figma, which the set does have. */
+  included = [
+    { label: 'A senior team assigned to your account, not a rotating pool', icon: 'multi-user' },
+    { label: 'Art direction from the founder on every deliverable', icon: 'rocket' },
+    { label: 'Brand, web, product, and marketing under one team', icon: 'check-circle' },
+    { label: 'Weekly calls and async reviews in Figma', icon: 'figma' },
+    { label: 'Slack access to the people doing the work', icon: 'slack' },
+    { label: 'Daily updates and momentum', icon: 'spinner' },
+  ],
+  detailsTitle = "What's actually included?",
+  detailsCopy =
+    'Brand identity and systems, websites and landing pages, product and UI design, design systems, pitch decks and investor materials, one-pagers and sales collateral, marketing and ad creative, social templates, email design, presentation and program materials, illustration and iconography, and front-end build when the work calls for it.',
   offers = [
     {
       name: 'THE PUSH',
       icon: 'rocket',
-      summary: 'A concentrated engagement around a moment that matters.',
+      summary: 'One push, one deadline, everything the moment requires.',
       forItems: ['A Launch', 'A Rebrand', 'A Fundraise'],
       length: 'Fixed. 4 weeks and up',
     },
@@ -70,18 +94,25 @@ const {
       highlight: true,
     },
   ],
-  rituals = [
-    { label: 'Weekly Calls', icon: 'phone' },
-    { label: 'Async reviews in Figma', icon: 'figma' },
-    { label: 'Slack in between', icon: 'slack' },
-    { label: 'Daily momentum and updates', icon: 'spinner' },
-  ],
+  note = 'Pushes have a way of becoming partnerships. Most of ours did.',
   ctaTitle = 'Ready to get going?',
   ctaCopy = "Tell us what's coming and we'll tell you which way fits.",
   ctaLabel = 'Talk to us',
   ctaHref = '/contact',
   highlightLabel = 'FAV',
 } = Astro.props;
+
+/* The ask sits on the section's one dark ground, and both its edges dissolve
+   into the page rather than ending on a straight line — the same pixel
+   language as the chapter handovers and the founder quote's seam.
+   `pixelField` indexes its density array by column, so the two axes are
+   swapped again when the cells are placed: the density runs *down* each band,
+   not across it. Seeded, so a deploy cannot silently reshuffle the artwork. */
+const BAND_COLS = 28;
+const bands = {
+  top: pixelField(70414, BAND_COLS, [0.85, 0.55, 0.3, 0.12]),
+  bottom: pixelField(31882, BAND_COLS, [0.12, 0.3, 0.55, 0.85]),
+};
 ---
 
 <section class="two" aria-labelledby="two-title" data-two>
@@ -94,14 +125,38 @@ const {
         <p class="two__intro-copy" data-two-reveal="intro">{intro}</p>
       </div>
 
-      <div class="two__cta-block">
-        <h3 class="two__cta-title" data-two-reveal="cta-title">{ctaTitle}</h3>
-        <p class="two__cta-copy" data-two-reveal="cta-copy">{ctaCopy}</p>
-        <a class="two__cta" href={ctaHref} data-magnetic="0.2" data-two-reveal="cta">
-          <span class="two__cta-fill" aria-hidden="true"></span>
-          <span class="two__cta-label" data-magnetic-inner>{ctaLabel}</span>
-        </a>
+      <div class="two__include">
+        <h3 class="two__include-title" data-two-reveal="included-title">{includedTitle}</h3>
+
+        <ul class="two__include-list">
+          {
+            included.map((item) => (
+              <li class="two__include-item" data-two-ritual>
+                <Icon name={item.icon} size="1.125rem" />
+                {item.label}
+              </li>
+            ))
+          }
+        </ul>
       </div>
+
+      {/* <details>, not a JS accordion: it is a disclosure and nothing else,
+          so the platform's own one is open to keyboard and screen readers for
+          free and still works with the script disabled. `open` because the
+          frame shows it expanded — the fold is there for people who don't need
+          the list, not to hide it by default. */}
+      <details class="two__details" data-two-reveal="details" open>
+        <summary class="two__details-summary">
+          {detailsTitle}
+          <span class="two__details-mark" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="none">
+              <path d="M3 6.5 8 11l5-4.5" stroke="currentColor" stroke-width="1.4" />
+            </svg>
+          </span>
+        </summary>
+
+        <p class="two__details-copy">{detailsCopy}</p>
+      </details>
     </div>
 
     <div class="two__panel">
@@ -151,16 +206,29 @@ const {
         }
       </div>
 
-      <ul class="two__rituals">
-        {
-          rituals.map((ritual) => (
-            <li class="two__ritual" data-two-ritual>
-              <Icon name={ritual.icon} size="1.125rem" />
-              {ritual.label}
-            </li>
-          ))
-        }
-      </ul>
+      <p class="two__note" data-two-reveal="note">{note}</p>
+
+      <div class="two__cta-block">
+        {/* Decorative — the seams carry no meaning the copy doesn't already. */}
+        <div class="two__band two__band--top" aria-hidden="true">
+          {bands.top.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+        </div>
+
+        <div class="two__cta-content">
+          <h3 class="two__cta-title" data-two-reveal="cta-title">{ctaTitle}</h3>
+          <p class="two__cta-copy" data-two-reveal="cta-copy">{ctaCopy}</p>
+          <a class="two__cta" href={ctaHref} data-magnetic="0.2" data-two-reveal="cta">
+            <span class="two__cta-fill" aria-hidden="true"></span>
+            <span class="two__cta-label" data-magnetic-inner>{ctaLabel}</span>
+          </a>
+        </div>
+
+        <div class="two__band two__band--bottom" aria-hidden="true">
+          {bands.bottom.map((cell) => (
+            <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />
+          ))}
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -202,12 +270,12 @@ const {
   }
 
   /* --- Left column ---------------------------------------------------------
-     The CTA block is pushed to the bottom so the column's two ends anchor to
+     The disclosure is pushed to the bottom so the column's two ends anchor to
      the section's, matching the frame. */
   .two__lead {
     display: flex;
     flex-direction: column;
-    gap: clamp(3rem, 8vw, 7rem);
+    gap: clamp(1.75rem, 3.5vw, 2.75rem);
   }
 
   .two__intro {
@@ -229,88 +297,119 @@ const {
     line-height: 1.6;
   }
 
-  .two__cta-block {
+  /* --- What both models include -------------------------------------------- */
+  .two__include {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: clamp(0.625rem, 1vw, 0.875rem);
-    margin-top: auto;
+    gap: clamp(0.875rem, 1.6vw, 1.25rem);
   }
 
-  .two__cta-title {
-    font-size: clamp(1.375rem, 2.1vw, 1.875rem);
+  .two__include-title {
+    font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
     font-weight: 400;
     line-height: 1.2;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.01em;
   }
 
-  .two__cta-copy {
-    max-width: 38ch;
-    font-size: var(--text-body);
-    line-height: 1.6;
+  .two__include-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 0.9vw, 0.75rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* align-items: start, not center: three of these wrap to two lines at some
+     widths, and centred the icon then floats against the middle of the block
+     instead of sitting with the first line it belongs to. */
+  .two__include-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6875rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
     color: var(--color-ink-secondary);
   }
 
-  /* Same shape as the hero's and Credibility's CTA */
-  .two__cta {
-    position: relative;
-    display: inline-flex;
+  /* The icon's own box is set inline by Icon.astro, so nudging it onto the
+     first line's optical centre has to happen here. */
+  .two__include-item :global(.icon) {
+    flex: none;
+    margin-top: 0.0625rem;
+  }
+
+  /* --- Disclosure -----------------------------------------------------------
+     Pushed to the foot of the column, and ruled off above so it reads as the
+     column's closing block rather than as a fourth thing in the stack. */
+  .two__details {
+    margin-top: auto;
+    padding-top: clamp(1.25rem, 2.2vw, 1.75rem);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .two__details-summary {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    margin-top: clamp(0.75rem, 1.4vw, 1.25rem);
-    padding: 0.8125rem 1.75rem;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    background: var(--color-ink);
-    color: var(--color-ink-invert);
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    will-change: transform;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: clamp(1rem, 1.8vw, 1.5rem);
+    border-bottom: 1px solid var(--color-line);
+    font-size: clamp(1rem, 1.3vw, 1.125rem);
+    line-height: 1.3;
+    cursor: pointer;
+    /* The default marker is a triangle in the text flow; the mark below is the
+       one this design uses, and it has to be able to sit at the row's end. */
+    list-style: none;
   }
 
-  .two__cta-fill {
-    position: absolute;
-    inset: 0;
-    background: var(--color-bg-twoways);
-    transform: scaleY(0);
-    transform-origin: bottom center;
-    transition: transform 0.55s var(--ease-out-expo);
+  .two__details-summary::-webkit-details-marker {
+    display: none;
   }
 
-  .two__cta-label {
-    position: relative;
-    transition: color 0.4s var(--ease-out-expo);
-  }
-
-  .two__cta:hover,
-  .two__cta:focus-visible {
-    box-shadow: inset 0 0 0 1px var(--color-ink);
-  }
-
-  .two__cta:hover .two__cta-fill,
-  .two__cta:focus-visible .two__cta-fill {
-    transform: scaleY(1);
-  }
-
-  .two__cta:hover .two__cta-label,
-  .two__cta:focus-visible .two__cta-label {
+  .two__details-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
     color: var(--color-ink);
+    transition: rotate 0.4s var(--ease-out-expo);
   }
 
-  /* --- Right panel --------------------------------------------------------- */
+  .two__details-mark svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Points down when there is more to open, up when there is not. */
+  .two__details[open] .two__details-mark {
+    rotate: 180deg;
+  }
+
+  .two__details-copy {
+    padding-top: clamp(1rem, 1.8vw, 1.5rem);
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--color-ink-secondary);
+  }
+
+  /* --- Right panel ---------------------------------------------------------
+     Owns the rule that divides the two columns. The cards used to each carry a
+     left border, which put a stray rule down the panel's outer edge as well as
+     between the pair; the outer one belongs to the column, not to a card. */
   .two__panel {
     display: flex;
     flex-direction: column;
+    padding-left: clamp(1.25rem, 2.2vw, 2rem);
+    border-left: 1px solid var(--color-line);
   }
 
   .two__cards {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    /* No gap: each card's own left border is the separator, so a gap would
-       just push the rules away from what they divide. */
+    /* No gap: the second card's own left border is the separator, so a gap
+       would just push the rule away from what it divides. */
   }
 
   .two__card {
@@ -323,7 +422,17 @@ const {
        baseline. */
     padding: clamp(1.25rem, 2.2vw, 1.75rem) clamp(1.25rem, 2.2vw, 2rem)
       clamp(1.75rem, 3vw, 2.5rem);
+  }
+
+  /* Only between the pair — see .two__panel. */
+  .two__card + .two__card {
     border-left: 1px solid var(--color-line);
+  }
+
+  /* The first card's copy lines up with the panel's own left edge; its padding
+     would otherwise indent it away from the rule the column is hung on. */
+  .two__card:first-child {
+    padding-left: 0;
   }
 
   /* The recommended card. A wash rather than a border or a colour: the panel
@@ -404,9 +513,15 @@ const {
     margin-top: auto;
   }
 
+  /* Small caps, as the frame sets them — these name what follows rather than
+     saying anything themselves, so they sit below the copy in weight. */
   .two__card-label {
-    font-size: var(--text-body);
+    font-size: 0.6875rem;
+    font-weight: 500;
     line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
   }
 
   .two__card-list {
@@ -432,33 +547,129 @@ const {
     color: var(--color-ink-secondary);
   }
 
-  /* --- Rituals -------------------------------------------------------------
-     Left to wrap on its own: at the reference width that lands 3-then-1,
-     which is what the frame shows, and it stays sane at every other width
-     without a hand-set grid fighting the content. */
-  .two__rituals {
-    display: flex;
-    flex-wrap: wrap;
-    gap: clamp(0.625rem, 1vw, 0.875rem);
-    margin: 0;
-    padding-block: clamp(1.5rem, 2.6vw, 2.25rem);
-    padding-inline: clamp(1.25rem, 2.2vw, 2rem);
+  /* --- The line between the offer and the ask ------------------------------ */
+  .two__note {
+    padding: clamp(1.25rem, 2.2vw, 1.75rem) clamp(1.25rem, 2.2vw, 2rem)
+      clamp(1.25rem, 2.2vw, 1.75rem) 0;
     border-top: 1px solid var(--color-line);
-    border-bottom: 1px solid var(--color-line);
-    list-style: none;
+    font-size: var(--text-body);
+    line-height: 1.6;
+    color: var(--color-ink-secondary);
   }
 
-  .two__ritual {
+  /* --- The ask -------------------------------------------------------------
+     The section's one dark ground, at the foot of the panel. Pulled left over
+     the panel's padding so it starts on the column rule rather than inside it
+     — the block is the end of the column, not another item within it. */
+  .two__cta-block {
+    position: relative;
+    margin-top: auto;
+    margin-left: calc(-1 * clamp(1.25rem, 2.2vw, 2rem));
+    background: var(--color-bg-invert);
+    color: var(--color-ink-invert);
+    /* Contains the two bands, which overspill their own edges by design. */
+    overflow: hidden;
+  }
+
+  .two__cta-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(0.625rem, 1vw, 0.875rem);
+    /* Clear of both bands: they are four cells deep, and copy running into
+       them reads as a rendering fault rather than as a dissolve. */
+    padding: clamp(2.75rem, 5vw, 4rem) clamp(1.5rem, 2.6vw, 2.5rem);
+  }
+
+  .two__cta-title {
+    font-size: clamp(1.375rem, 2.1vw, 1.875rem);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+  }
+
+  .two__cta-copy {
+    max-width: 38ch;
+    font-size: var(--text-body);
+    line-height: 1.6;
+    color: rgb(255 255 255 / 0.72);
+  }
+
+  /* --- Bands ---------------------------------------------------------------
+     Square cells in the section's own ground colour, scattered densest at the
+     block's edge and thinning inward — so the dark ends by dissolving into the
+     page rather than on a straight line. aspect-ratio on the cells is what
+     keeps them square: the rows size themselves to one column's width. */
+  .two__band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: repeat(28, 1fr);
+    pointer-events: none;
+  }
+
+  .two__band span {
+    aspect-ratio: 1;
+    background: var(--color-bg-twoways);
+  }
+
+  .two__band--top {
+    top: 0;
+  }
+
+  .two__band--bottom {
+    bottom: 0;
+  }
+
+  /* Same shape as the hero's and Credibility's CTA, inverted for this ground:
+     the fill sweeps to the block's own black rather than to the page. */
+  .two__cta {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.625rem;
-    padding: 0.75rem 1.375rem;
-    border: 1px solid var(--color-line-strong);
-    border-radius: 999px;
+    justify-content: center;
+    margin-top: clamp(0.75rem, 1.4vw, 1.25rem);
+    padding: 0.8125rem 1.75rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
     background: var(--color-bg-primary);
-    font-size: var(--text-body);
-    line-height: 1.2;
-    white-space: nowrap;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    will-change: transform;
+  }
+
+  .two__cta-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-invert);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .two__cta-label {
+    position: relative;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .two__cta:hover,
+  .two__cta:focus-visible {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.5);
+  }
+
+  .two__cta:hover .two__cta-fill,
+  .two__cta:focus-visible .two__cta-fill {
+    transform: scaleY(1);
+  }
+
+  .two__cta:hover .two__cta-label,
+  .two__cta:focus-visible .two__cta-label {
+    color: var(--color-ink-invert);
   }
 
   /* --- Responsive ---------------------------------------------------------- */
@@ -468,13 +679,33 @@ const {
       gap: clamp(2.5rem, 6vw, 4rem);
     }
 
+    /* One column down, the rule the panel carries has nothing to its left to
+       divide — it reads as a stray mark against the page edge. */
+    .two__panel {
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    .two__card:first-child {
+      padding-left: clamp(1.25rem, 2.2vw, 2rem);
+    }
+
+    .two__note {
+      padding-inline: clamp(1.25rem, 2.2vw, 2rem);
+    }
+
+    .two__cta-block {
+      margin-left: 0;
+    }
+
     /* Stacked, the ask belongs after the offer, not between the intro and it:
        side by side the CTA sat at the foot of its own column, which read as
        the end of the section — one column down it was landing before the cards
-       and the pills had said anything.
+       had said anything. The disclosure follows it, since it is reference
+       material rather than part of the pitch.
 
-       display:contents dissolves the left column so its two halves become grid
-       items in their own right; only then can the CTA be ordered past the
+       display:contents dissolves the left column so its parts become grid
+       items in their own right; only then can they be ordered around the
        panel, which is a different parent. */
     .two__lead {
       display: contents;
@@ -484,12 +715,16 @@ const {
       order: 1;
     }
 
-    .two__panel {
+    .two__include {
       order: 2;
     }
 
-    .two__cta-block {
+    .two__panel {
       order: 3;
+    }
+
+    .two__details {
+      order: 4;
       margin-top: 0;
     }
   }
@@ -500,10 +735,10 @@ const {
     }
 
     /* Stacked, each offer becomes a panel of its own rather than two blocks
-       divided by a rule: the left border that separates them side by side
-       reads as a stray mark against the page edge here, and a horizontal rule
-       in its place still leaves them looking like one long list. A ground and
-       a gap say "two things to choose between" without any rule at all. */
+       divided by a rule: the rule that separates them side by side reads as a
+       stray mark against the page edge here, and a horizontal one in its place
+       still leaves them looking like one long list. A ground and a gap say
+       "two things to choose between" without any rule at all. */
     .two__card {
       /* Full-bleed, with the container's gutter restored as its own padding.
          Padded inside the container instead, the card's copy sat indented from
@@ -512,23 +747,24 @@ const {
          everything above it. */
       margin-inline: calc(-1 * var(--section-padding-x));
       padding: clamp(1.25rem, 4.5vw, 1.75rem) var(--section-padding-x);
-      border-left: 0;
       background: var(--color-surface);
+    }
+
+    .two__card + .two__card {
+      border-left: 0;
+      margin-top: clamp(1rem, 3.5vw, 1.5rem);
+    }
+
+    .two__card:first-child {
+      padding-left: var(--section-padding-x);
     }
 
     /* White, not the desktop wash: against --color-surface a translucent white
        is almost the same value, and the recommended card has to be the one
-       that reads as lifted. Faded out down the card — full white where the
-       name and summary sit, gone by the bottom — so the panel ends by
+       that reads as lifted. Faded out across the card so the panel ends by
        dissolving into the section's ground instead of stopping on an edge. */
     .two__card--highlight {
       background: linear-gradient(90deg, #fff 0%, rgb(255 255 255 / 0) 100%);
-    }
-
-    /* The recommended one keeps its own lighter wash — see .two__card--highlight
-       above — so it still reads as the lifted one against these grounds. */
-    .two__card + .two__card {
-      margin-top: clamp(1rem, 3.5vw, 1.5rem);
     }
 
     /* With one card per row there is no second card to line up with, so this
@@ -537,27 +773,18 @@ const {
       margin-top: 0;
     }
 
-    /* The pills are sized for a desktop row of four; at phone width the same
-       padding and text turn them into stacked slabs. Everything comes down
-       together — text, padding, icon and the gaps — so they read as a compact
-       set of tags rather than four buttons. */
-    .two__rituals {
-      gap: 0.5rem;
-      padding-block: clamp(1.25rem, 5vw, 1.75rem);
+    .two__note {
       padding-inline: 0;
     }
 
-    .two__ritual {
-      gap: 0.4375rem;
-      padding: 0.5rem 0.875rem;
-      font-size: 0.8125rem;
+    /* Full-bleed like the cards above it, so the one dark block on the page
+       reaches both screen edges rather than sitting in a cream frame. */
+    .two__cta-block {
+      margin-inline: calc(-1 * var(--section-padding-x));
     }
 
-    /* Icon.astro sets --icon-size inline, so the custom property can't be
-       overridden from here — the rendered box is what has to be re-stated. */
-    .two__ritual :global(.icon) {
-      width: 0.9375rem;
-      height: 0.9375rem;
+    .two__cta-content {
+      padding-inline: var(--section-padding-x);
     }
   }
 
