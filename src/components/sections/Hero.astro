@@ -2,45 +2,90 @@
 /**
  * Hero — first viewport.
  *
- * One pre-composited image: the tree canopy and the rectangular ground photo
- * (with its white pixel squares baked in) arrive as a single asset — no
- * separate cutout, so no runtime registration math between two layers.
+ * The artwork is a looping video (public/media/hero-video.*), not a still. It
+ * replaces the pre-composited canopy/ground photo that used to sit here, so the
+ * stage is landscape now rather than portrait — see .hero__stage.
+ *
+ * It plays itself: autoplay + muted + playsinline is the only combination every
+ * browser lets start without a gesture, and the source is encoded without an
+ * audio track so `muted` is a statement of fact rather than a mute button.
+ * `loop` is what makes it continuous.
  *
  * Motion lives in src/scripts/hero.ts, hooked on data-hero-* attributes.
  */
 interface Props {
   /** Broken by hand, not by wrapping — the three lines are the composition. */
   lines?: string[];
+  /** The quiet line under the headline, naming who the work is for. */
+  tagline?: string;
   body?: string;
   primaryLabel?: string;
   primaryHref?: string;
   ctaLabel?: string;
   ctaHref?: string;
-  /** The muted line in the bottom-right corner, broken by hand as above. */
-  asideLines?: string[];
 }
 
 const {
-  lines = ['We design for', 'the learning', 'economy.'],
+  lines = ['We', 'Design', 'Credibility'],
+  tagline = 'For learner economy',
   body =
     'We help companies that teach, certify, and run the learning economy close the gap between product and brand, with a design team on your side from day one.',
   primaryLabel = 'Book a call',
   primaryHref = '/contact',
   ctaLabel = 'See the work',
   ctaHref = '/work',
-  asideLines = ['We', 'design', 'credibility.'],
 } = Astro.props;
 ---
 
 <section class="hero" data-hero data-chapter-section="1" aria-labelledby="hero-title">
+  <div class="hero__texture" aria-hidden="true"></div>
+
+  {/* The artwork is the section's ground, not a column in it: the composition
+      is baked into the video — the tree on the left, clear white on the right
+      exactly where the copy sits — so the frame only reads correctly when the
+      video is the whole viewport. It used to be boxed into the left column,
+      which cropped that composition down to half the width it was cut for. */}
+  <figure class="hero__stage" data-hero-stage>
+    {/*
+      Nested on purpose. .hero__stage carries the scroll-driven scale (it
+      has to — pointer parallax also translates it). Hover needs its own
+      scale, on its own element, or the two tweens would fight over the
+      same property on the same target.
+    */}
+    <div class="hero__zoom" data-hero-zoom>
+      <div class="hero__base" data-hero-base>
+        <video
+          class="hero__video"
+          data-hero-video
+          width="1920"
+          height="1102"
+          autoplay
+          loop
+          muted
+          playsinline
+          preload="auto"
+          poster="/media/hero-video-poster.webp"
+          aria-label="Showreel of the studio's work"
+        >
+          <source src="/media/hero-video.webm" type="video/webm" />
+          <source src="/media/hero-video.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </div>
+  </figure>
+
   <div class="hero__grid u-container">
-    <!-- Left: display headline at the top, the pitch and the two ways in at
-         the bottom. The gap between them is the column, not a margin — see
-         .hero__lede's margin-top: auto. -->
-    <div class="hero__col hero__col--title">
-      <h1 class="hero__title" id="hero-title" data-hero-title>
-        {lines.map((line) => <span class="hero__line">{line}</span>)}
-      </h1>
+    <!-- The headline and who it is for at the top, the pitch and the two ways
+         in at the bottom. The gap between them is the column, not a margin —
+         see .hero__lede's margin-top: auto. -->
+    <div class="hero__col hero__col--text">
+      <div class="hero__head">
+        <h1 class="hero__title" id="hero-title" data-hero-title>
+          {lines.map((line) => <span class="hero__line">{line}</span>)}
+        </h1>
+
+        <p class="hero__tagline" data-hero-aside-item>{tagline}</p>
+      </div>
 
       <div class="hero__lede">
         <p class="hero__body" data-hero-aside-item>{body}</p>
@@ -57,42 +102,6 @@ const {
           </a>
         </div>
       </div>
-    </div>
-
-    <!-- Centre: the hero image -->
-    <div class="hero__col hero__col--media">
-      <figure class="hero__stage" data-hero-stage>
-        {/*
-          Nested on purpose. .hero__stage carries the scroll-driven scale (it
-          has to — pointer parallax also translates it). Hover needs its own
-          scale, on its own element, or the two tweens would fight over the
-          same property on the same target.
-        */}
-        <div class="hero__zoom" data-hero-zoom>
-          <div class="hero__base" data-hero-base>
-            <picture>
-              <source srcset="/media/hero-base.avif" type="image/avif" />
-              <img
-                src="/media/hero-base.webp"
-                alt="A person reading beneath a large tree"
-                width="1274"
-                height="1394"
-                fetchpriority="high"
-                decoding="async"
-              />
-            </picture>
-          </div>
-        </div>
-      </figure>
-    </div>
-
-    <!-- Right: the same words the studio is known by, in the corner and in the
-         page's own quiet grey — a signature rather than a second heading, so
-         it carries no heading level and is right-aligned into the edge. -->
-    <div class="hero__col hero__col--aside">
-      <p class="hero__aside" data-hero-aside data-hero-aside-item>
-        {asideLines.map((line) => <span class="hero__aside-line">{line}</span>)}
-      </p>
     </div>
   </div>
 </section>
@@ -111,12 +120,34 @@ const {
     padding-block: calc(var(--nav-height) + var(--hero-pad-top)) 0;
   }
 
+  /* Faint pixel field behind the copy, masked so it only ever sits on the
+     right-hand side — the same technique as .showcase__texture and
+     .two__texture, so the three read as one motif rather than three. */
+  .hero__texture {
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(90deg, rgb(0 0 0 / 0.018) 0 3.5rem, transparent 3.5rem 7rem),
+      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.018) 0 3.5rem, transparent 3.5rem 7rem);
+    mask-image: radial-gradient(46% 52% at 82% 44%, #000 0%, transparent 74%);
+    pointer-events: none;
+  }
+
+  /* One column, on the right. The artwork is no longer a column beside it —
+     it is the section's ground — so the grid's only job is to hold the copy
+     where the video leaves room for it. The empty first track is that room:
+     it is what keeps the copy off the tree at every width, and it is sized in
+     the same 1.55 : 1 proportion the two columns used to share. */
   .hero__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
     gap: clamp(1.5rem, 4vw, 5.5rem);
     align-items: stretch;
     height: 100%;
+  }
+
+  .hero__col--text {
+    grid-column: 2;
   }
 
   .hero__col {
@@ -125,34 +156,35 @@ const {
     min-width: 0;
   }
 
-  /* Type sits above the artwork — the canopy reaches into both side columns. */
-  .hero__col--title,
-  .hero__col--aside {
+  /* Type sits above the artwork — the canopy reaches into the copy's column. */
+  .hero__col--text {
     position: relative;
     z-index: 2;
   }
 
-  /* --- Headline ----------------------------------------------------------- */
+  /* --- Headline -----------------------------------------------------------
+     Sized so the longest line — "Credibility" — fits its column at every
+     width, because it may not wrap and it may not be cut.
+
+     Both of those are load-bearing: the three lines are broken by hand, so
+     `white-space: nowrap` is what keeps the composition, and hero.ts splits
+     this into masked lines for the intro, which means every line sits in an
+     overflow:hidden box. A line wider than the column is therefore silently
+     sliced rather than wrapped — which is what the old headline was doing to
+     "for" before it was resized.
+
+     The copy column is the 1fr of `1.55fr 1fr` inside the container, and this
+     face sets "Credibility" at about 4.7 × its font size. 5vw leaves roughly
+     a third of the column spare at every width, and the 6rem cap is the same
+     slack once the container stops growing at 1920. */
+  .hero__head {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 0.9vw, 0.75rem);
+  }
+
   .hero__title {
-    /* Sized so the longest line — "We design for" — fits its column at every
-       width, because it may not wrap and it may not be cut.
-
-       Both of those are load-bearing: the three lines are broken by hand, so
-       `white-space: nowrap` is what keeps the composition, and hero.ts splits
-       this into masked lines for the intro, which means every line sits in an
-       overflow:hidden box. A line wider than the column is therefore silently
-       sliced — which is exactly what was happening to "for" at the old
-       clamp(2.75rem, 5vw, 6.5rem): at 1280px that line came to 355px inside a
-       354px column.
-
-       The title column is one 1fr of `1fr 1.08fr 1fr` inside the container, so
-       it is close to 0.273 × the viewport, and this face sets that line at
-       6.3 × its font size — measured, not guessed. That puts the ceiling at
-       about 4.3vw; 4vw leaves a tenth of the column spare at every width, and
-       the 5.125rem cap is the same slack once the container stops growing at
-       1920. */
-    font-size: clamp(2.25rem, 4vw, 5.125rem);
-    /* Regular, at both widths. */
+    font-size: clamp(2.25rem, 5vw, 6rem);
     font-weight: 400;
     line-height: var(--leading-display);
     letter-spacing: -0.025em;
@@ -162,6 +194,15 @@ const {
   .hero__line {
     display: block;
     white-space: nowrap;
+  }
+
+  /* Who the work is for, under the claim. Quiet on purpose — it qualifies the
+     headline rather than adding to it, so it sits in the page's grey at body
+     size instead of competing at display size. */
+  .hero__tagline {
+    font-size: clamp(0.9375rem, 1.15vw, 1.125rem);
+    line-height: 1.4;
+    color: var(--color-ink-muted);
   }
 
   /* --- Lede ----------------------------------------------------------------
@@ -189,56 +230,17 @@ const {
     gap: 0.75rem;
   }
 
-  /* --- Media -------------------------------------------------------------- */
-  .hero__col--media {
-    /* Centred, not bottom-flush: this asset's aspect ratio is much wider than
-       the old two-layer composition, so at full height and pinned to the
-       bottom it read as bottom-heavy and crowded the neighbouring columns.
-       Centring gives it breathing room on every side instead of one hand-tuned
-       offset trying to fix both a horizontal and a vertical complaint at once. */
-    justify-content: center;
-    align-items: center;
-    z-index: 1;
-  }
-
+  /* --- Media ---------------------------------------------------------------
+     The section's ground, covering the whole viewport behind everything else.
+     It used to be a column in the grid, which cropped a composition cut for
+     the full frame down to half the width. */
   .hero__stage {
-    position: relative;
-    /* Height-driven — width follows from the photo's own 1274 : 1394 ratio, so
-       it is never cropped.
-
-       113.4% and this left/top pair are the sum of several explicit, exact
-       requests (30% then +5% enlargement; +24px then +12px right; +16px up),
-       applied as given rather than silently re-tuned. Flagged, not hidden: at
-       83% height this box was measured to stay clear of the real glyph extent
-       of "Credibility" and the aside's leftmost word (via
-       Range.getBoundingClientRect, not layout boxes — a `display:block` line's
-       box is full column width regardless of how long the word actually is).
-       Each enlargement since has grown both dimensions together (aspect-ratio
-       is locked) and given some of that clearance back — see the project
-       history for exactly how much, at each step.
-
-       left/top are a static visual nudge, not layout: the box still occupies
-       its original space for other elements, only the paint moves —
-       independent of the GSAP tweens on this element, which all write to
-       `transform`, a different property. */
-    height: 113.4%;
-    width: auto;
-    aspect-ratio: 1274 / 1394;
-    /* No `margin: 0 auto`. In a flex column, auto side margins take over the
-       cross-axis placement from `align-items: center` — and when the item is
-       wider than the column, as this one is, there is no free space for them
-       to absorb, so they resolve to zero and the artwork lands against the
-       column's left edge instead of its centre. Measured that way it sat 96px
-       off centre. Letting the parent's `align-items: center` do the work
-       overflows evenly on both sides, which is what centred means here. */
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
     margin: 0;
-    /* Centred in its column — no horizontal nudge at all. The old -4.75rem was
-       tuned against a headline that was one word per line and never reached
-       across; once the headline grew, that offset was what put the canopy over
-       it. The fix is the type fitting its own column (see .hero__title), not
-       the artwork dodging out of the way. */
-    left: 0;
-    top: -1.5rem;
     /* Pointer parallax is applied here. */
     will-change: transform;
   }
@@ -259,39 +261,21 @@ const {
     inset: 0;
   }
 
-  .hero__base img {
+  /* contain, not cover, even as a full-bleed background — and the page's own
+     white is what makes that read as full-bleed anyway.
+
+     The frame is composed: the tree sits in the left half, the birds near the
+     top, the pixel squares along the bottom, and the right half is the clear
+     space the copy is set in. `cover` crops whichever axis overflows — at
+     1848x900 that is 160px off the top and bottom, which takes the crown and
+     the squares with it. Contained, nothing is ever cut; the letterbox is
+     white against a white page, so there is nothing to see at its edges. */
+  .hero__video {
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-  }
-
-  /* --- Aside ---------------------------------------------------------------
-     The studio's own line, set into the bottom-right corner. Quiet on purpose:
-     it is the same weight and family as the headline but in the page's grey,
-     so it reads as a mark the page is signed with rather than as a second
-     thing being announced. */
-  .hero__col--aside {
-    justify-content: flex-end;
-    align-items: flex-end;
-  }
-
-  .hero__aside {
-    display: flex;
-    flex-direction: column;
-    /* Slightly under the headline: it answers the headline, it does not
-       compete with it. */
-    font-size: clamp(1.75rem, 3.4vw, 3.25rem);
-    font-weight: 400;
-    line-height: 1.06;
-    letter-spacing: -0.025em;
-    text-align: right;
-    color: var(--color-line-strong);
-    margin-bottom: clamp(1.5rem, 3vw, 2.75rem);
-  }
-
-  .hero__aside-line {
-    display: block;
-    white-space: nowrap;
+    object-fit: contain;
+    background: transparent;
   }
 
   /* --- Buttons ------------------------------------------------------------- */
@@ -387,69 +371,27 @@ const {
       padding-bottom: clamp(1rem, 3vw, 2rem);
     }
 
+    /* One column: the reserved track that keeps the copy clear of the tree is
+       a desktop concern. Here the video is contained against a much taller
+       viewport, so it sits as a band across the middle with clear page above
+       and below it, and the copy has the full width. */
     .hero__grid {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr);
-      row-gap: clamp(1rem, 3vw, 2rem);
+      grid-template-columns: minmax(0, 1fr);
+      align-content: space-between;
     }
 
-    .hero__col--title {
-      grid-column: 1 / -1;
+    .hero__col--text {
+      grid-column: 1;
     }
 
-    /* The row no longer has a definite height, so drive the stage from width.
-       The left/top nudge on the base rule is tuned for the ≥1200px row, where
-       the image sits between two columns of real text it has to clear; below
-       this, title is its own full-width row above media+aside (confirmed zero
-       vertical overlap between them), so that offset has nothing left to
-       correct and was only pushing the now width-constrained box partly off
-       the left edge of the viewport. Reset both. */
-    /* Height-driven again, but from the row rather than from the section:
-       width follows the photo's own ratio, so it never overflows the column. */
-    .hero__stage {
-      height: 100%;
-      width: auto;
-      max-width: 78%;
-      left: 0;
-      top: 0;
-    }
-
-    .hero__col--media {
-      min-height: 0;
-    }
-  }
-
-  /* Large-desktop nudge — 20px further left, 16px further up, on top of the
-     base offset above. Only here: on smaller screens the current placement is
-     correct and must not move.
-
-     1600px is the gate because it separates the 16" MacBook from every
-     smaller Mac: the 16" reports 1728px at its default scaling (and 2056px on
-     "More Space"), while the 14" reports 1512px and the 13"/Air 1440-1470px —
-     all of which stay on the base offset.
-
-     Expressed as calc() against the base values rather than as new absolute
-     numbers, so the two nudges stay legible as "base, plus this screen's
-     extra" and the base can be retuned without re-deriving this. */
-  @media (min-width: 1600px) {
-    .hero__stage {
-      top: calc(-1.5rem - 16px);
+    /* Pinned to the foot of the column on the desktop row; here the column is
+       the section, and the auto margin still does the work. */
+    .hero__lede {
+      margin-top: auto;
     }
   }
 
   @media (max-width: 48rem) {
-    .hero__grid {
-      grid-template-columns: minmax(0, 1fr);
-      /* headline, artwork, aside — the artwork takes what the other two
-         leave, so this holds on any phone without a fixed image height. */
-      grid-template-rows: auto minmax(0, 1fr) auto;
-      /* Tighter than the 4vw the shared rule gives, and the tightening is
-         pure gain for the picture: the hero is exactly one viewport, the
-         other two rows are content-sized, so every pixel taken off the two
-         row gaps lands in the artwork's row. The For block does not move —
-         the total above it is unchanged. */
-      row-gap: 0.625rem;
-    }
 
     /* One line, not three stacked words. The lines are spans, so inline is
        all it takes — plus a real space between them, since the markup has
@@ -470,42 +412,33 @@ const {
 
     .hero__title {
       /* One line, guaranteed: nowrap decides it, and the size is what makes
-         that safe. Measured rather than guessed — the rendered line is 11.03
-         times the font size, so it exactly fills the gutters at 7.93vw on a
-         320px screen and 8.22vw on a 430px one. 7.7vw sits under the tighter
-         of the two with a few percent to spare, and Space Grotesk itself is
-         about 3% narrower than the fallback this was measured on, so the real
-         face has more room than the number was cut for, not less. */
+         that safe — a line wider than its column is silently sliced here
+         rather than wrapped, because hero.ts masks each one for the intro.
+
+         Measured rather than guessed: "We Design Credibility" sets at 9.66
+         times its font size on one line, so 7.7vw leaves 17% of the gutters
+         spare at 390px and 15% at 320px.
+
+         Measure it with a detached probe, not a Range over this element —
+         SplitText replaces the contents with block-level line divs, so a
+         Range returns the column's width whatever the type is doing, which
+         reads as "exactly full" at every size. */
       font-size: clamp(1.375rem, 7.7vw, 2.5rem);
       white-space: nowrap;
-      /* Clear of the nav's rule — at zero the cap height started three pixels
-         under it — less the 12px it was asked to come up by. */
       padding-top: 0.5rem;
     }
 
-    /* Taken out of flow so its size stops being the text's business: the
-       artwork can then be as large as the row and the screen allow without
-       moving a single line of copy.
+    /* Bled past both gutters to the screen edges — the widest the frame can be
+       on a phone, and width is the dimension that decides its size now that the
+       artwork is landscape.
 
-       The box is the media row's full height and bleeds past both gutters to
-       the screen edges; `contain` then paints the collage as large as fits
-       inside it, whichever of the two dimensions runs out first. That is the
-       biggest it can be without cropping — and the crop is what the frame
-       cannot have, since the pixel squares are part of the artwork. */
-    .hero__col--media {
-      position: relative;
-    }
-
-    .hero__stage {
-      position: absolute;
-      inset: 0;
-      left: calc(-1 * var(--section-padding-x));
-      right: calc(-1 * var(--section-padding-x));
-      width: auto;
-      height: auto;
-      max-width: none;
-      aspect-ratio: auto;
-    }
+       In flow, unlike the collage this replaces: that one was taken out of flow
+       so it could be as tall as the row allowed, which a 864 : 496 frame never
+       is. Keeping it in flow keeps its box exactly the video's own ratio, which
+       is what makes the reveal's clip-path open on the picture rather than on
+       empty letterbox. */
+    /* Nothing to bleed out to: the stage is absolutely positioned against the
+       section itself now, so it is already edge to edge at every width. */
 
     /* Every pixel this block gives back goes to the artwork, which is the one
        thing on this screen that is short of room: the hero is exactly one
@@ -516,85 +449,6 @@ const {
       margin-bottom: 12px;
     }
 
-    .hero__aside {
-      /* Under the headline in size here, not beside it: on a phone the two
-         are stacked and a signature as large as the thing it signs reads as a
-         second headline. */
-      font-size: clamp(1.5rem, 8vw, 2.25rem);
-      margin-bottom: 12px;
-    }
-
-    .hero__col--aside {
-      justify-content: flex-start;
-      /* 12px down, as paint rather than layout. A margin here changed nothing:
-         the media row above is the 1fr, so it simply gave up 12px and the
-         block landed back where it started. A translate moves it without
-         asking the grid for anything. */
-      transform: translateY(12px);
-    }
-
-    /* Contain, not cover: the box below is full-bleed and no longer the
-       photo's own ratio, and cover would crop the crown off at both edges.
-
-       The box the image is contained in is then blown up 20% past the stage
-       and re-centred with the negative margin. The canopy runs off the screen
-       edges at that size, which is allowed — it is the sky-and-grass rectangle
-       inside the collage that must stay whole, and at 120% that rectangle
-       still lands well inside the viewport. Width and height together, so the
-       ratio is untouched. */
-    /* The clip surface, not the image, is what grows. .hero__base carries the
-       reveal's clip-path — an inset against its own box — so an image spilling
-       past it is sliced flat, which is what was cutting the crown off under
-       the title. Widening the box by 10% a side and dropping its floor 20%
-       gives the larger artwork somewhere legal to be; the extra height goes
-       downward only, into the gap above the For list, because upward is where
-       the title is. */
-    .hero__base {
-      /* The clip surface, and now also the artwork's bounds — see the image
-         rule below.
-
-         Sideways it is 16% wider a side, up from 10%. That widening is the
-         artwork's headroom: the canopy runs off both edges, which is allowed,
-         while the sky-and-grass rectangle inside the collage — the part that
-         must stay whole — is 70.6% of its width and sits slightly left of
-         centre, so at 1.32 screens wide that rectangle still lands about ten
-         pixels inside each edge. It is the binding constraint, not the
-         canopy: past roughly 17% a side the rectangle starts leaving the
-         screen. On a tall phone this is what makes the picture bigger; on a
-         short one the height runs out first and the extra width is unused.
-
-         The floor sits inside the stage rather than past it, so the painted
-         collage stops clear of the For block instead of landing on top of it.
-         The top edge stays exactly on the stage, because the top is the one
-         edge that must not be cut. */
-      inset: 0 -16% -6px;
-    }
-
-    .hero__base img {
-      /* Full width of the clip surface, which is already 20% wider than the
-         stage — that widening is the growth, and doubling it here was making
-         the artwork half again as big as asked.
-
-         The height overshoots on purpose: at this width the collage needs 112%
-         of the surface to stay in ratio, and anchored to the top that surplus
-         falls off the bottom, where the collage already ends on a straight
-         edge of grass. */
-      width: 100%;
-      /* globals caps every image at max-width:100%, which measures against the
-         containing block — the widened base — so it has to come off here. */
-      max-width: none;
-      /* Exactly the surface, not 112% of it. The overshoot was the overlap:
-         `contain` fits the collage to the box it is given, so a box hanging
-         12% below the stage put the grass 12% of a screen into the For block
-         on every phone wide enough for the height to be the binding
-         dimension. Matched to the surface, the floor above is a floor. */
-      height: 100%;
-      object-fit: contain;
-      /* Top-anchored: the crown starts exactly at the stage's top edge, so the
-         one thing that must never be cut is the one thing guaranteed to be
-         inside the box. */
-      object-position: center top;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {

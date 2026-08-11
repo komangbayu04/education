@@ -101,7 +101,11 @@
      It used to be a fluid clamp reaching 7rem, which on a wide screen was a
      band roughly twice the height of anything standing in it. */
   --nav-gap: 16px;
-  --nav-height: calc(2 * var(--nav-gap) + clamp(4.75rem, 6vw, 7.0625rem) * 47 / 113);
+  /* The menu chip's height, and the tallest thing in the band — the wordmark
+     is shorter. Named so the band below and the chip itself read the same
+     number instead of one being tuned to match the other. */
+  --nav-control-h: 2.9375rem;
+  --nav-height: calc(2 * var(--nav-gap) + var(--nav-control-h));
 }
 
 /* Mobile gutter is a flat 20px, not fluid. The clamp above already floors at
@@ -132,6 +136,20 @@
 html {
   scroll-behavior: auto;
   -webkit-text-size-adjust: 100%;
+
+  /* No scrollbar. The page still scrolls exactly as it did — this hides the
+     bar, it does not disable the scroll — and Lenis is driving the position
+     anyway, so the native bar was never the control here.
+
+     Three declarations because no one of them covers every engine: the
+     property is standard in Firefox, prefixed in old Edge, and a pseudo
+     element in Chrome and Safari. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
 
 body {

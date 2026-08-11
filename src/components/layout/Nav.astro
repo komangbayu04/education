@@ -7,118 +7,159 @@
  * stripped here rather than in the source file, so re-exporting from Figma
  * needs no manual clean-up.
  *
- * TWO STATES, ONE HEADER. `data-nav-state` is `top` at the head of the page
- * and `pill` once you have scrolled past it:
+ * ONE HEADER, ONE LOOK. Wordmark left, a MENU chip right, and that is the
+ * whole bar at every scroll position. It used to morph into a floating pill
+ * partway down the page — that is gone, along with the Flip machinery, the
+ * glass layer and the scroll listener that drove it.
  *
- *   top    wordmark left, links right, a rule underneath — the full-width
- *          header the page opens with
- *   pill   a floating rounded bar: "Menu" left, wordmark centred, "Get in
- *          touch" right, on the inverted ground
- *
- * The same elements are in both. Nothing is duplicated and nothing is swapped
- * out for a second header — the two states are only different CSS, and
- * src/scripts/nav.ts animates the distance between them with GSAP Flip, so the
- * wordmark travels from the left edge to the centre rather than cutting there.
- * That is why the layout is built from two flexible sides around the wordmark:
- * which side grows is the whole difference between the states, and it is a
- * property Flip can measure on both.
+ * Everything else lives in the panel the chip opens: the site's links, and a
+ * list of the work with a preview beside it. The panel is the navigation, so
+ * the bar itself never has to carry more than a way into it.
  */
 import logoRaw from '../../assets/tribe-logo.svg?raw';
+
+interface NavLink {
+  label: string;
+  href: string;
+}
+
+interface Project {
+  name: string;
+  href: string;
+  /** Extensionless base path — .avif and .webp are both requested from it. */
+  image: string;
+  imageAlt: string;
+  /** Rendered with set:html so the figures inside can carry emphasis. */
+  blurb: string;
+}
+
+interface Props {
+  links?: NavLink[];
+  projects?: Project[];
+}
 
 const logo = logoRaw
   .replace(/fill="black"/g, 'fill="currentColor"')
   .replace(/\s(width|height)="[^"]*"/g, '')
   .replace('<svg', '<svg aria-hidden="true" focusable="false"');
 
-const links = [
-  { label: 'Work', href: '/work' },
-  { label: 'How we work', href: '/how-we-work' },
-  { label: 'What founders say', href: '/testimonials' },
-  { label: 'Blog', href: '/blog' },
-];
-
-/* The panel's foot. Deliberately not the site footer's link list again — the
-   panel is already that list; what it has no way to reach is the address. */
-const email = 'hello@tribelab.co';
-const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
+const {
+  links = [
+    { label: 'Work', href: '/work' },
+    { label: 'How we work', href: '/how-we-work' },
+    { label: 'What founders say', href: '/testimonials' },
+    { label: 'Blog', href: '/blog' },
+  ],
+  /* The two case studies that exist. The copy is the chapters' own — so the
+     panel is a way into the work rather than a second description of it — but
+     the artwork is not: these are shots cut for this panel, at the size and
+     crop a preview needs rather than a full-height chapter device shot. */
+  projects = [
+    {
+      name: 'Nerd Apply',
+      href: '/work/college-counseling-platform',
+      image: '/media/nav-nerd-apply',
+      imageAlt: 'The Nerd Apply platform running on a phone',
+      blurb:
+        'A privacy-first admissions data platform for college counselors, built on <strong>500,000+</strong> de-identified real applications across <strong>1,000+</strong> colleges.',
+    },
+    {
+      name: 'Overclock',
+      href: '/work/overclock',
+      image: '/media/nav-overclock',
+      imageAlt: 'Overclock running on a tablet',
+      blurb:
+        'An AI capability partner for enterprise teams, delivering ten-week accelerator cohorts, workflow-based corporate training, and embedded technical consulting.',
+    },
+  ],
+} = Astro.props;
 ---
 
-<header class="nav" data-nav data-nav-state="top">
-  <div class="nav__inner u-container" data-nav-bar>
-    {/* The pill's ground, as a layer of its own rather than as the bar's own
-        background. Its shape is the bar's shape — inset: 0 — but its opacity
-        is not: a 20px-radius glass panel drawn at the bar's full opening width
-        is not a shape anything in this design has, and showing it while the
-        bar is still that wide reads as a rendering fault. It stays at 0 until
-        the change is nearly done. See nav.ts. */}
-    <span class="nav__glass" aria-hidden="true" data-nav-glass></span>
+<header class="nav" data-nav>
+  <div class="nav__inner u-container">
+    <a class="nav__logo" href="/" aria-label="Tribe — home" set:html={logo} />
 
-    {/* The two sides are what move. In the top state only the end side grows,
-        which leaves the wordmark against the left edge; in the pill state both
-        grow equally, which is what centres it. */}
-    <div class="nav__side nav__side--start" data-nav-flip>
-      {/* Not a `data-nav-flip` target: it does not travel with the bar. It is
-          hidden for the whole morph and walks in from the left edge once the
-          bar has settled — see nav.ts. */}
-      <button
-        class="nav__toggle"
-        type="button"
-        aria-expanded="false"
-        aria-controls="nav-mobile"
-        data-nav-toggle
-        data-nav-menu
-      >
-        {/* The word in the pill state, the two strokes in the top state — one
-            control either way, so the panel it opens never changes owner. */}
-        <span class="nav__toggle-label u-label" aria-hidden="true">Menu</span>
-        <span class="u-sr-only">Menu</span>
-        <span class="nav__toggle-line" aria-hidden="true"></span>
-        <span class="nav__toggle-line" aria-hidden="true"></span>
-      </button>
-    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="nav-panel" data-nav-toggle>
+      {/* The word when the panel is shut, the two strokes crossed when it is
+          open — one control either way, so the panel never changes owner. */}
+      <span class="nav__toggle-label" aria-hidden="true">Menu</span>
+      <span class="u-sr-only">Menu</span>
+      <span class="nav__toggle-line" aria-hidden="true"></span>
+      <span class="nav__toggle-line" aria-hidden="true"></span>
+    </button>
+  </div>
 
-    <a class="nav__logo" href="/" aria-label="Tribe — home" data-nav-flip set:html={logo} />
+  <div class="nav__panel" id="nav-panel" data-nav-mobile hidden>
+    {/* The dark ground arrives as a field of blocks falling top to bottom —
+        built by src/scripts/nav.ts, which needs the viewport to know how many.
+        Once the field is complete the panel takes the colour itself, so no
+        seam between cells can show for the rest of the time it is open. */}
+    <div class="nav__blocks" aria-hidden="true" data-nav-blocks></div>
 
-    <div class="nav__side nav__side--end" data-nav-flip>
-      <nav class="nav__links" aria-label="Primary" data-nav-flip>
-        <ul>
+    <div class="nav__panel-inner u-container">
+      <nav class="nav__panel-nav" aria-label="Primary">
+        <ul class="nav__panel-list">
           {links.map((link, i) => (
-            <li>
-              {i > 0 && <span class="nav__sep" aria-hidden="true">•</span>}
-              <a class="nav__link u-label" href={link.href}>
-                <span class="nav__link-text">{link.label}</span>
+            <li class="nav__panel-item" data-nav-mobile-item>
+              <a class="nav__panel-link" href={link.href}>
+                <span class="nav__panel-index" aria-hidden="true">{i + 1}</span>
+                <span class="nav__panel-label">{link.label}</span>
               </a>
             </li>
           ))}
         </ul>
       </nav>
 
-      {/* Same as the toggle: out of the Flip, in from its own edge afterwards. */}
-      <a class="nav__contact u-label" href={`mailto:${email}`} data-nav-contact>Get in touch</a>
-    </div>
-  </div>
+      <div class="nav__work" data-nav-work>
+        {/* The list decides what the panel beside it shows. Hovering or
+            focusing a row is enough; the row is still a real link, so the
+            preview is decoration on top of a working control rather than the
+            control itself. */}
+        <ul class="nav__work-list">
+          {projects.map((project, i) => (
+            <li class="nav__work-item" data-nav-mobile-item>
+              <a
+                class="nav__work-link"
+                href={project.href}
+                data-nav-work-link={i}
+                data-active={i === 0 ? '' : undefined}
+              >
+                {project.name}
+              </a>
+            </li>
+          ))}
+        </ul>
 
-  <div class="nav__rule" aria-hidden="true"></div>
+        {/* One card per project, each a two-column pair of its own — the shot
+            and the words beside it. With the list to their left that reads as
+            three columns, but the pair has to stay one element: the script
+            swaps whole cards by index, and splitting them would give it two
+            things to keep in step for every project instead of one. */}
+        <div class="nav__work-preview" data-nav-mobile-item>
+          {projects.map((project, i) => (
+            <figure
+              class="nav__work-card"
+              data-nav-work-card={i}
+              data-active={i === 0 ? '' : undefined}
+            >
+              <div class="nav__work-shot">
+                {/* eager, not lazy. These sit inside a panel that ships
+                    `hidden`, so a lazy image downloads nothing until the menu
+                    is opened — and then the preview is an empty column for as
+                    long as the fetch takes, on the one frame it is meant to
+                    carry. They come to 26KB as avif for both projects, which
+                    is not worth deferring. */}
+                <picture>
+                  <source srcset={`${project.image}.avif`} type="image/avif" />
+                  <img src={`${project.image}.webp`} alt={project.imageAlt} loading="eager" decoding="async" />
+                </picture>
+              </div>
 
-  <div class="nav__mobile" id="nav-mobile" data-nav-mobile hidden>
-    {/* The black ground arrives as a field of blocks falling top to bottom —
-        built by src/scripts/nav.ts, which needs the viewport to know how many.
-        Once the field is complete the panel takes the colour itself, so no
-        seam between cells can show for the rest of the time it is open. */}
-    <div class="nav__blocks" aria-hidden="true" data-nav-blocks></div>
-
-    <ul class="nav__mobile-list">
-      {links.map((link) => (
-        <li data-nav-mobile-item>
-          <a class="nav__mobile-link" href={link.href}>{link.label}</a>
-        </li>
-      ))}
-    </ul>
-
-    <div class="nav__mobile-foot" data-nav-mobile-item>
-      <p class="nav__mobile-label u-label">Start a project</p>
-      <a class="nav__mobile-email" href={`mailto:${email}`}>{email}</a>
-      <p class="nav__mobile-legal">{legal}</p>
+              <figcaption class="nav__work-blurb" set:html={project.blurb} />
+            </figure>
+          ))}
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -128,9 +169,7 @@ const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
      be a full viewport tall — the pinned handover needs that to be able to
      reach 100%. The hero reserves --nav-height of top padding for it.
 
-     Fixed rather than absolute: the header has to still be on screen at the
-     point it becomes the pill, and at scroll 0 the two are indistinguishable —
-     nothing about the opening frame changes. */
+     Fixed, so the bar is on screen wherever the page is scrolled to. */
   .nav {
     position: fixed;
     top: 0;
@@ -140,73 +179,23 @@ const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
   }
 
   .nav__inner {
-    /* Above the mobile panel, which is a child of this header: without a
-       stacking order of its own the panel painted over the toggle and there
-       was no way left to close it. */
+    /* Above the panel, which is a child of this header: without a stacking
+       order of its own the panel painted over the toggle and there was no way
+       left to close it. */
     position: relative;
     z-index: 95;
     display: flex;
-    /* Centred, and the band is only as tall as what is in it plus --nav-gap
-       above and below — so the gap to the top of the page and the gap to the
-       rule underneath are the same number, and neither is guesswork. */
     align-items: center;
+    justify-content: space-between;
     gap: 2rem;
-    min-height: 0;
+    /* The band is only as tall as what is in it plus --nav-gap above and
+       below, so the gap to the top of the page and the gap under the wordmark
+       are the same number, and neither is guesswork. */
     padding-block: var(--nav-gap);
     color: var(--color-ink);
   }
 
-  /* --- Glass ---------------------------------------------------------------
-     Sized by the bar (inset: 0) so Flip carries it along, but faded in
-     separately and late — nav.ts starts it at 70% of the change. */
-  .nav__glass {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    border-radius: 20px;
-    /* A thin white veil that the blur behind it does the real work for. The
-       hairline border is what gives it an edge over a light section, where a
-       veil this faint has almost nothing to separate it from the page. */
-    background: rgb(255 255 255 / 0.22);
-    backdrop-filter: blur(22px) saturate(160%);
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
-    border: 1px solid rgb(255 255 255 / 0.45);
-    box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.1);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-
-  /* Above the glass. Without this the ground would paint over the wordmark:
-     it is the only positioned child, and positioned beats in-flow. */
-  .nav__side,
-  .nav__logo {
-    position: relative;
-    z-index: 1;
-  }
-
-  /* --- Sides ---------------------------------------------------------------
-     `flex-grow` is the state switch. Here only the end side grows, so the
-     wordmark is pinned to the left edge; in the pill state both do, and it
-     lands in the middle. */
-  .nav__side {
-    display: flex;
-    align-items: center;
-    gap: clamp(0.75rem, 1.6vw, 1.5rem);
-  }
-
-  .nav__side--start {
-    flex: 0 0 auto;
-  }
-
-  .nav__side--end {
-    flex: 1 1 0;
-    justify-content: flex-end;
-  }
-
-  /* --- Wordmark -----------------------------------------------------------
-     `color: inherit` so the one rule that inverts .nav__inner in the pill
-     state carries the wordmark with it. */
+  /* --- Wordmark ----------------------------------------------------------- */
   .nav__logo {
     display: block;
     flex: 0 0 auto;
@@ -214,216 +203,117 @@ const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
   }
 
   .nav__logo :global(svg) {
-    /* Native ratio is 113 × 47 */
-    width: clamp(4.75rem, 6vw, 7.0625rem);
+    /* Native ratio is 113 × 47, so the width is what sets the height: 5vw
+       lands the wordmark at 36px tall on a 1728px screen, which is the size
+       the reference bar carries. */
+    width: clamp(4.25rem, 5vw, 5.75rem);
     height: auto;
   }
 
-  /* --- Links -------------------------------------------------------------- */
-  .nav__links ul {
-    display: flex;
-    align-items: center;
-  }
-
-  .nav__links li {
-    display: flex;
-    align-items: center;
-  }
-
-  .nav__sep {
-    padding-inline: clamp(0.75rem, 1.6vw, 1.5rem);
-    font-size: 0.5rem;
-    color: inherit;
-  }
-
-  /* --- Contact -------------------------------------------------------------
-     Belongs to the pill only: at the top of the page the hero already carries
-     the call to action, and a second one in the header would compete with it. */
-  .nav__contact {
-    display: none;
-    align-items: center;
-    white-space: nowrap;
-    color: inherit;
-  }
-
-  .nav__link {
-    position: relative;
-    display: inline-block;
-    padding-block: 0.35rem;
-    overflow: hidden;
-  }
-
-  /* Underline sweeps in from the left */
-  .nav__link::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: 1px;
-    background: currentColor;
-    transform: scaleX(0);
-    transform-origin: left center;
-    transition: transform 0.5s var(--ease-out-expo);
-  }
-
-  .nav__link:hover::after,
-  .nav__link:focus-visible::after {
-    transform: scaleX(1);
-  }
-
-  .nav__rule {
-    height: 1px;
-    width: calc(100% - 2 * var(--section-padding-x));
-    margin-inline: auto;
-    max-width: var(--content-max-width);
-    background: var(--color-line);
-    transform-origin: left center;
-  }
-
-  /* --- Pill state ----------------------------------------------------------
-     Everything below is the same elements under different rules. Flip reads
-     the box each one occupies before and after the attribute flips, so the
-     wordmark's trip to the centre is measured, not hard-coded — see nav.ts. */
-  .nav[data-nav-state='pill'] .nav__inner {
-    align-items: center;
-    gap: clamp(0.75rem, 2vw, 1.5rem);
-    min-height: 0;
-    /* Off the very top edge, so it reads as floating over the page rather
-       than clamped to it */
-    margin-top: 0.75rem;
-    max-width: min(36rem, calc(100% - 2 * var(--section-padding-x)));
-    padding: 0.4375rem clamp(0.875rem, 1.6vw, 1.125rem);
-    color: var(--color-ink);
-  }
-
-  /* Smaller here than in the full-width header — the bar is barely taller
-     than the wordmark now, and at its opening size it would be the bar. */
-  .nav[data-nav-state='pill'] .nav__logo :global(svg) {
-    width: clamp(3.25rem, 4vw, 4rem);
-  }
-
-  .nav[data-nav-state='pill'] .nav__toggle-label,
-  .nav[data-nav-state='pill'] .nav__contact {
-    font-size: 0.6875rem;
-  }
-
-  /* Both sides grow: the wordmark between them ends up centred on the bar,
-     not on whatever the two happen to measure. */
-  .nav[data-nav-state='pill'] .nav__side--start,
-  .nav[data-nav-state='pill'] .nav__side--end {
-    flex: 1 1 0;
-  }
-
-  .nav[data-nav-state='pill'] .nav__side--start {
-    order: 0;
-    justify-content: flex-start;
-  }
-
-  /* The link row is what "Menu" replaces — it cannot stay and be replaced. */
-  .nav[data-nav-state='pill'] .nav__links {
-    display: none;
-  }
-
-  .nav[data-nav-state='pill'] .nav__contact {
-    display: inline-flex;
-  }
-
-  .nav[data-nav-state='pill'] .nav__toggle {
-    display: inline-flex;
-    align-items: center;
-    width: auto;
-    height: auto;
-  }
-
-  .nav[data-nav-state='pill'] .nav__toggle-label {
-    display: inline;
-  }
-
-  /* The strokes are the top state's control; the word is this one's. */
-  .nav[data-nav-state='pill'] .nav__toggle-line {
-    display: none;
-  }
-
-  /* The rule belongs to the full-width header. The pill has an edge of its
-     own and does not need one drawn under it. */
-  .nav[data-nav-state='pill'] .nav__rule {
-    opacity: 0;
-  }
-
-  .nav[data-nav-state='pill'] .nav__link::after,
-  .nav[data-nav-state='pill'] .nav__contact::after {
-    background: currentColor;
-  }
-
-  /* --- Mobile ------------------------------------------------------------- */
+  /* --- Menu control --------------------------------------------------------
+     A chip, at every width. It is the only way into the site's navigation, so
+     it has to look like a control rather than like an icon. */
   .nav__toggle {
     position: relative;
-    display: none;
-    width: 2.5rem;
-    height: 2.5rem;
-    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Height from the token rather than from padding, so the band above can
+       reserve exactly this and the two cannot drift apart. */
+    min-height: var(--nav-control-h);
+    padding-inline: 2.25rem;
+    border-radius: 0.5rem;
+    background: var(--color-bg-secondary);
+    color: var(--color-ink);
     cursor: pointer;
+    transition: background 0.35s var(--ease-out-expo);
   }
 
-  /* Hidden until the pill, where it is the whole control */
+  .nav__toggle:hover,
+  .nav__toggle:focus-visible {
+    background: var(--color-line);
+  }
+
   .nav__toggle-label {
-    display: none;
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
   }
 
-  /* Both lines share one centre and are only ever translated or rotated from
+  /* Both strokes share one centre and are only ever translated or rotated from
      it. Stacked in a flex column instead, the closed gap and the rotation had
-     to cancel each other by hand, and the two strokes crossed off-centre —
-     which is the broken X. */
+     to cancel each other by hand, and the two crossed off-centre — which is
+     the broken X. Hidden until the panel is open; the word is the shut state's
+     control and the cross is the open one's. */
   .nav__toggle-line {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 1.5rem;
+    width: 1rem;
     height: 1px;
-    margin-left: -0.75rem;
+    margin-left: -0.5rem;
     background: var(--color-ink);
-    transform: translateY(-4px);
+    opacity: 0;
+    transform: translateY(-3px);
     transition: transform 0.4s var(--ease-out-expo);
   }
 
   .nav__toggle-line:last-child {
-    transform: translateY(4px);
+    transform: translateY(3px);
   }
 
-  /* Counted from the end, not the start: the button's first child is the
-     screen-reader label, so :first-child matched no line at all and only one
-     stroke ever rotated — which is the broken X. */
+  /* Counted from the end, not the start: the button's first children are the
+     label and the screen-reader text, so :first-child matched no line at all
+     and only one stroke ever rotated — which is the broken X. */
   .nav__toggle[aria-expanded='true'] .nav__toggle-line:nth-last-child(2) {
+    opacity: 1;
     transform: rotate(45deg);
   }
 
   .nav__toggle[aria-expanded='true'] .nav__toggle-line:last-child {
+    opacity: 1;
     transform: rotate(-45deg);
   }
 
-  /* --- Mobile panel --------------------------------------------------------
+  .nav__toggle[aria-expanded='true'] .nav__toggle-label {
+    opacity: 0;
+  }
+
+  /* A square once the word inside it is gone. Left at the chip's shut width it
+     is a wide slab holding a small cross, which is not the mark this design
+     has — and the label only goes transparent, so nothing else would collapse
+     the box.
+
+     Square on the control height, not a smaller number: the band reserves that
+     height either way, so anything shorter just floats in it. */
+  .nav__toggle[aria-expanded='true'] {
+    width: var(--nav-control-h);
+    padding-inline: 0;
+  }
+
+  /* --- Panel ---------------------------------------------------------------
      Fixed and full screen. It used to be a block in the header's flow with no
      ground of its own, which is why the page read straight through it. */
-  .nav__mobile {
+  .nav__panel {
     position: fixed;
     inset: 0;
     z-index: 90;
     display: flex;
     flex-direction: column;
-    /* Under the logo, not floating in the middle of the sheet. */
-    justify-content: flex-start;
-    padding: calc(var(--nav-height) + 1.5rem) var(--section-padding-x) 2.5rem;
     overflow-y: auto;
     /* Transparent until the field lands; the script sets this once it has. */
     background: transparent;
+    color: var(--color-ink-invert);
   }
 
-  .nav__mobile[data-filled] {
+  .nav__panel[data-filled] {
     background: var(--color-bg-invert);
   }
 
-  .nav__mobile[hidden] {
+  .nav__panel[hidden] {
     display: none;
   }
 
@@ -442,88 +332,248 @@ const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
     transform-origin: top center;
   }
 
-  .nav__mobile-list {
+  /* The panel's measure. Three quarters of the viewport, centred — the frame
+     does not run this content out to the page's gutters the way the bar above
+     it does. Everything inside is placed against this, not against the
+     container. */
+  .nav__panel-inner {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    /* The gutters have to be added back: max-width sizes the border box, and
+       .u-container's padding would otherwise come out of the 75vw and leave
+       the link row too narrow to hold four items — it wrapped, dropping "Blog"
+       onto a second line. */
+    max-width: min(100%, calc(75vw + 2 * var(--section-padding-x)));
+    gap: clamp(2rem, 5vw, 4rem);
+    /* Clear of the bar above it, which is fixed and paints over this. */
+    padding-top: calc(var(--nav-height) + clamp(1.5rem, 4vw, 3.5rem));
+    /* No bottom padding, and full height: the work shot runs to the panel's
+       bottom edge and is cut off there, which is what the frame shows. A
+       padded floor would leave it hanging above one. */
+    padding-bottom: 0;
+    flex: 1;
+    min-height: 0;
   }
 
-  /* --- Foot ----------------------------------------------------------------
-     Pushed to the bottom of the sheet whatever the list above it comes to. */
-  .nav__mobile-foot {
-    position: relative;
-    margin-top: auto;
-    padding-top: 2rem;
+  /* --- Links ---------------------------------------------------------------
+     A centred row, not a stack: four items at this size fit across the panel,
+     and the numbered index is what carries the order once they are side by
+     side rather than one under the other. */
+  .nav__panel-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    /* Wide enough that the four items and their gaps come to about three
+       quarters of the viewport, which is what sets the panel's measure —
+       nothing here is given an explicit width. */
+    /* Sized against the measure above, with room to spare: the four items and
+       three gaps have to come in under 75vw or the row wraps and "Blog" drops
+       to a line of its own. At 3.6vw it did exactly that. */
+    gap: clamp(1rem, 3.2vw, 3.5rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
-  .nav__mobile-label {
-    color: rgb(255 255 255 / 0.5);
+  .nav__panel-item {
+    flex: 0 1 auto;
   }
 
-  .nav__mobile-email {
-    display: inline-block;
-    margin-top: 0.5rem;
-    color: var(--color-ink-invert);
-    font-size: 1.125rem;
+  /* The rule belongs to the link, not to a separate element, so the two can
+     never drift apart. */
+  .nav__panel-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
+    padding-bottom: 0.625rem;
     border-bottom: 1px solid rgb(255 255 255 / 0.3);
-  }
-
-  .nav__mobile-legal {
-    margin-top: 1.5rem;
-    color: rgb(255 255 255 / 0.4);
-    font-size: 0.75rem;
-  }
-
-  .nav__mobile-link {
-    display: block;
-    padding-block: 0.875rem;
     color: var(--color-ink-invert);
-    font-size: clamp(1.75rem, 9vw, 3rem);
-    letter-spacing: var(--tracking-tight);
+    /* Display size, not link size — these are the panel's headline. Measured
+       against the frame: the set of four spans roughly three quarters of the
+       viewport, which at this face works out at about 3.4vw a letter. */
+    font-size: clamp(1.5rem, 3.05vw, 5rem);
     line-height: 1.1;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    transition:
+      border-color 0.35s var(--ease-out-expo),
+      opacity 0.35s var(--ease-out-expo);
+  }
+
+  .nav__panel-link:hover,
+  .nav__panel-link:focus-visible {
+    border-bottom-color: var(--color-ink-invert);
+  }
+
+  /* Set small and raised, as a superscript would be — it numbers the item
+     rather than being part of its name. */
+  .nav__panel-index {
+    font-size: 0.5em;
+    line-height: 1.4;
+    opacity: 0.6;
+  }
+
+  /* --- Work ----------------------------------------------------------------
+     The list on the left, the preview beside it — and the preview is itself a
+     shot and a paragraph side by side, so the whole block reads as three
+     columns. The list's share is the smallest: it is carrying two words per
+     row against an image and a paragraph. */
+  .nav__work {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 4.4fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    align-items: stretch;
+    /* Takes whatever height the link row leaves, so the shot inside it can
+       reach the panel's floor. The row has to be told it may shrink, or it
+       sizes to its tallest content and the shot runs past the bottom of the
+       screen instead of stopping at it. */
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+    /* Narrower than the link row above it, and hung from the same right edge
+       rather than centred under it — measured off the frame, where the two
+       blocks' right edges line up to within half a percent of the viewport
+       while their left edges are seven percent apart. Centring it instead put
+       the whole block three to four percent too far left at every width. */
+    width: 90%;
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  .nav__work-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nav__work-link {
+    display: block;
+    padding-block: clamp(0.75rem, 1.4vw, 1.125rem);
     border-bottom: 1px solid rgb(255 255 255 / 0.18);
+    color: rgb(255 255 255 / 0.62);
+    font-size: clamp(1rem, 1.5vw, 1.75rem);
+    line-height: 1.3;
+    transition: color 0.35s var(--ease-out-expo);
   }
 
-  /* The header sits above the panel — its toggle has to stay reachable — so
-     its own marks invert while the panel is black behind them. */
-  :global(html[data-nav-open]) .nav__logo,
-  :global(html[data-nav-open]) .nav__toggle-line {
+  /* The row whose preview is showing. Set by the script on hover and focus;
+     the first row ships with it so the panel never opens on an empty column. */
+  .nav__work-link[data-active],
+  .nav__work-link:hover,
+  .nav__work-link:focus-visible {
     color: var(--color-ink-invert);
-    background-color: var(--color-ink-invert);
   }
 
+  /* Every card in the same grid cell, so the column's height is the tallest of
+     them and swapping one for another moves nothing around it.
+
+     The explicit height and the shrinkable row are what carry the definite
+     height down from .nav__work — a percentage height resolves to auto against
+     an auto-height ancestor, so one link missing here breaks the whole chain
+     and the shot goes back to its intrinsic size. */
+  .nav__work-preview {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* The shot and its words, side by side. Centred against each other rather
+     than aligned to the top: the paragraph is a fraction of the image's height
+     and hung from its top edge it reads as a caption that has come adrift. */
+  .nav__work-card {
+    grid-area: 1 / 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.88fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1rem, 2.5vw, 2.5rem);
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.4s var(--ease-out-expo),
+      visibility 0.4s var(--ease-out-expo);
+  }
+
+  .nav__work-card[data-active] {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Fills its column and runs to the panel's floor, where it is cut off.
+     `cover` with the crop taken off the bottom, not `contain`: contained, the
+     shot was letterboxed inside its cell and painted at roughly half the
+     column's width — measured, it spanned 42% to 59% of the viewport inside a
+     cell that ran 34% to 68%. */
+  .nav__work-shot {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .nav__work-shot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+
+  .nav__work-blurb {
+    max-width: 30ch;
+    font-size: clamp(0.8125rem, 0.9vw, 1rem);
+    line-height: 1.6;
+    color: rgb(255 255 255 / 0.7);
+  }
+
+  .nav__work-blurb :global(strong) {
+    font-weight: 700;
+    color: var(--color-ink-invert);
+  }
+
+  /* The bar sits above the panel — its chip has to stay reachable — so the
+     wordmark inverts while the panel is dark behind it. The chip keeps its own
+     light ground and dark strokes: a light control on a dark sheet is the
+     clearer of the two, and it is what the frame has. */
   :global(html[data-nav-open]) .nav__logo {
-    background-color: transparent;
+    color: var(--color-ink-invert);
   }
 
-  :global(html[data-nav-open]) .nav__rule {
-    background: rgb(255 255 255 / 0.18);
-  }
-
-  @media (max-width: 62rem) {
-    .nav__links {
-      display: none;
+  /* --- Responsive ----------------------------------------------------------
+     Below this the panel's two halves stack: the preview's image needs more
+     width than a third of a phone, and the link row has already wrapped. */
+  @media (max-width: 48rem) {
+    .nav__work {
+      grid-template-columns: minmax(0, 1fr);
+      /* Stacked, there is no column beside the shot to fill the height with —
+         the block is as tall as its contents and the panel scrolls. */
+      flex: 0 0 auto;
+      width: 100%;
+      margin-left: 0;
     }
 
-    .nav__toggle {
-      display: flex;
+    /* Back to its own ratio: given the full height here it would be a wall of
+       device with the list and the words pushed off the screen. */
+    .nav__work-shot {
+      height: auto;
     }
 
-    /* The burger belongs on the right of the top state, and the side holding
-       it is first in the DOM because that is where the pill wants it. `order`
-       is what lets one markup serve both — and it is a property Flip reads off
-       the finished layout, so the swap animates rather than jumps. */
-    .nav[data-nav-state='top'] .nav__side--start {
-      order: 2;
+    .nav__work-shot img {
+      height: auto;
+      object-fit: contain;
     }
 
-    /* The band's own padding is symmetric now and comes from --nav-gap, which
-       the mobile block in globals.css already sets — nothing to override. */
-  }
+    .nav__panel-inner {
+      padding-bottom: clamp(2rem, 8vw, 3rem);
+    }
 
-  /* No room for three things on a narrow phone: the wordmark and the way in
-     win, and the address is one tap further down every page's footer. */
-  @media (max-width: 30rem) {
-    .nav[data-nav-state='pill'] .nav__contact {
-      display: none;
+    .nav__panel-link {
+      font-size: 1.125rem;
     }
   }
 
@@ -532,17 +582,9 @@ const legal = `©${new Date().getFullYear()} Tribe Designworks Inc.`;
     opacity: 0;
   }
 
-  :global(html[data-js='true']) .nav__rule {
-    transform: scaleX(0);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     :global(html[data-js='true']) .nav__inner {
       opacity: 1;
-    }
-
-    :global(html[data-js='true']) .nav__rule {
-      transform: scaleX(1);
     }
   }
 </style>

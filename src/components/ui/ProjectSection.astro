@@ -1,10 +1,14 @@
 ---
 /**
  * ProjectSection — the shared layout behind Overclock, Bedford and CELPIP
- * (chapters 3, 4, 5): a category badge, title + body, and a row of tags on
- * the left (top-to-bottom, pushed to the section's own edges — see
- * .project__text), a device shot stacked into the bottom-right corner and
- * bleeding past both edges.
+ * (chapters 3, 4, 5): title + body and a row of tags on the left (the tags
+ * pushed to the section's own bottom edge — see .project__text), a device shot
+ * stacked into the bottom-right corner and bleeding past both edges.
+ *
+ * The "The Team" badge above the title is gone — removed here and in
+ * Showcase.astro together, because it was one design shared across every
+ * chapter and half of it left standing would have read as an inconsistency
+ * rather than as a change.
  *
  * The <Timeline /> chapter marker is opt-in (`showMarker`, default true) —
  * Overclock turns it off, matching the reference frame it was redone
@@ -14,9 +18,9 @@
  * Showcase (chapter 2) is NOT built on this — it has its own gradient ground
  * and texture overlay that predate this component, and there was no reason to
  * disturb a section nobody asked to change. It does mirror this component's
- * badge/copy/tags structure and spacing by hand, so the two read as one
- * language rather than as two designs — see the docstring there for why it
- * isn't just built on this.
+ * copy/tags structure and spacing by hand, so the two read as one language
+ * rather than as two designs — see the docstring there for why it isn't just
+ * built on this.
  *
  * The crossfade between sections is driven entirely by src/scripts/hero.ts
  * against the generic `[data-chapter-section]` hook — nothing project-specific
@@ -40,8 +44,6 @@ interface Props {
   imageWidth: number;
   imageHeight: number;
   background: string;
-  badgeLabel?: string;
-  badgeIcon?: IconName;
   tags?: Tag[];
   /** Off for Overclock — see the docstring above. On by default so Bedford and
    *  CELPIP, currently untouched, keep rendering the marker they always have. */
@@ -65,8 +67,6 @@ const {
   imageWidth,
   imageHeight,
   background,
-  badgeLabel = 'The Team',
-  badgeIcon = 'multi-user',
   tags = [],
   showMarker = true,
   bodyMeasure = '41ch',
@@ -83,14 +83,10 @@ const {
 >
   <div class="project__inner u-container">
     <div class="project__text" data-chapter-text>
-      <span class="project__badge">
-        <Icon name={badgeIcon} size="0.9375rem" />
-        {badgeLabel}
-      </span>
-
-      {/* Title, body and the mobile-only CTA travel together — the badge
-          above and the tags below are what space-between pushes to the
-          section's own top and bottom edges; see .project__text. */}
+      {/* Title, body and the mobile-only CTA travel together. The "The Team"
+          badge that used to sit above it is gone; the auto margins on this
+          group are what keep it where space-between used to put it — see
+          .project__copy. */}
       <div class="project__copy">
         <h2 class="project__title" id={`${id}-title`}>{title}</h2>
         <p class="project__body">{body}</p>
@@ -159,8 +155,8 @@ const {
        height: 100% on the container does not change that, since a grid row's
        own track size is independent of the container's. Without this,
        .project__text's `align-self: stretch` had a content-sized row to
-       stretch into, not the section, and its badge/tags space-between
-       collapsed to a ~30px gap instead of reaching the section's edges.
+       stretch into, not the section, and its copy/tags spacing collapsed to a
+       ~30px gap instead of reaching the section's edges.
        Explicit 100% makes the row itself the full height, which is what
        "stretch" needed to mean something. */
     grid-template-rows: 100%;
@@ -188,13 +184,13 @@ const {
     flex-direction: column;
     /* Stretched to the section's own full height (overriding
        .project__inner's align-items: center, which only centred a
-       content-sized box) and then space-between across badge / copy / tags,
-       so the badge sits near the section's top edge and the tags near its
-       bottom. Same mechanic as Showcase.astro's .showcase__text — see there
-       for the numbers this was measured against. `gap` still applies as a
-       floor under `justify-content`, so nothing can collide if the section is
-       ever shorter than the content — e.g. when `tags` is empty and there are
-       only two groups instead of three. */
+       content-sized box) so the tags sit near the section's bottom edge and
+       the copy floats above them. Since the badge went, `space-between` alone
+       would pin the copy to the top — the auto margins on .project__copy are
+       what actually place it; this is what gives them free space to work with.
+       Same mechanic as Showcase.astro's .showcase__text. `gap` still applies
+       as a floor under `justify-content`, so nothing can collide if the
+       section is ever shorter than the content. */
     align-self: stretch;
     height: 100%;
     justify-content: space-between;
@@ -202,30 +198,17 @@ const {
     padding-block: clamp(1.5rem, 3vw, 2.5rem);
   }
 
-  /* Same values as Showcase.astro's .showcase__badge — kept in sync by hand
-     rather than by sharing a class, since the two components don't share a
-     stylesheet, but the "Team" badge has to read as one design wherever it
-     appears. color: var(--color-ink) rather than Showcase's specific navy:
-     this component's background changes per chapter (grey here, peach for
-     Bedford, mint for CELPIP), so the badge needs a colour that reads dark on
-     any of them rather than one tuned to a single ground. */
-  .project__badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4375rem;
-    align-self: flex-start;
-    padding: 0.4375rem 0.75rem;
-    border-radius: 999px;
-    background: rgb(255 255 255 / 0.6);
-    color: var(--color-ink);
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
   .project__copy {
     display: flex;
     flex-direction: column;
     gap: clamp(0.75rem, 1.2vw, 1.25rem);
+    /* What the badge used to buy. With three groups, space-between put this
+       one in the middle; with the badge gone there are two, and space-between
+       would pin this to the section's top edge instead. Auto margins take the
+       free space first and split it evenly above and below, which leaves the
+       copy floating where it was and the tags still on the bottom edge. Same
+       as Showcase.astro's .showcase__copy. */
+    margin-block: auto;
   }
 
   .project__title {

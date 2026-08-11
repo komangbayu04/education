@@ -5,7 +5,7 @@ import { isTouch, prefersReducedMotion } from './utils/device';
 /**
  * Hero motion.
  *
- * Intro    — photo clips open from the bottom, headline lines unmask, aside
+ * Intro    — the video clips open from the bottom, headline lines unmask, aside
  *            rows fade up and their rules draw in.
  * Handover — the scene pins once (so nothing in it ever scrolls away on its
  *            own) for every transition across all three sections, all sharing
@@ -89,7 +89,7 @@ export function initHero(): () => void {
   const asideItems = gsap.utils.toArray<HTMLElement>('[data-hero-aside-item]', hero);
   const rules = gsap.utils.toArray<HTMLElement>('.hero__list-rule', hero);
   const textCols = gsap.utils.toArray<HTMLElement>(
-    '.hero__col--title, .hero__col--aside',
+    '.hero__col--text',
     hero,
   );
 
@@ -516,6 +516,55 @@ export function initHero(): () => void {
         },
         atExitReveal + durExitReveal * EXIT_DISSOLVE_AT,
       );
+
+      /* And it stops taking the pointer at the same moment.
+         `autoAlpha` only parks visibility at the very end of that fade, so
+         from the first frame of the dissolve to the last there was a stretch —
+         measured, a third of a viewport of scroll — where the scene was down
+         to 0.5% opacity, the section underneath was plainly visible through
+         it, and every hover and click still landed on the chapter's
+         full-bleed `.project__link`. Pointing at the list below it reported
+         /work/overclock.
+
+         On the LAYERS, not on the scene. `pointer-events: none` on an ancestor
+         is undone by `auto` on a descendant, and `addArrival` above sets
+         exactly that on each layer as it swaps in — so scoping this to the
+         scene alone changed the computed value and nothing else: the hit test
+         still came back .project__link at 0.4% opacity.
+
+         Three levels have to be switched, not one, and each was found by
+         probing what `document.elementFromPoint` actually returned mid-fade:
+           the layers   `pointer-events: none` on an ancestor is undone by
+                        `auto` on a descendant, and `addArrival` sets exactly
+                        that on each layer as it swaps in
+           the scene    a pinned, full-viewport box with the default `auto`
+           the spacer   ScrollTrigger's own wrapper around the pinned scene —
+                        once the scene stops taking the pointer it falls
+                        straight through to its parent, which is the same box
+                        at the same size
+         Stopping at any one of them changed which element answered and not
+         whether the rows below could be reached.
+
+         Set, not tweened, and paired so the scrub restores it on the way back
+         up: before the dissolve each layer is opaque and is the thing on
+         screen, so it should still be clickable there. */
+      const pinSpacer = scene.parentElement?.classList.contains('pin-spacer')
+        ? scene.parentElement
+        : null;
+
+      const sceneHitTargets = [
+        scene,
+        ...(pinSpacer ? [pinSpacer] : []),
+        ...gsap.utils.toArray<HTMLElement>('.scene__layer', scene),
+      ];
+
+      handover
+        .set(sceneHitTargets, { pointerEvents: 'auto' }, atExitReveal)
+        .set(
+          sceneHitTargets,
+          { pointerEvents: 'none' },
+          atExitReveal + durExitReveal * EXIT_DISSOLVE_AT,
+        );
 
       /**
        * Pins the timeline's own duration to exactly 1.

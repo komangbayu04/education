@@ -135,12 +135,30 @@ the transparent padding, resizes and writes AVIF + WebP into `public/media/`:
 
 | Output | Size |
 |---|---|
-| `hero-base.avif` | 172 KB |
 | `showcase-device.avif` | 67 KB |
+| `two-ways.avif` | 85 KB |
 
-Both inside the PRD's 300 KB hero budget. AVIF is served first with WebP as the
-fallback via `<picture>`. `bg image.png` and `hover img.png` (the old two-layer
-sources) are no longer read by the build — kept in `image/` only as history.
+AVIF is served first with WebP as the fallback via `<picture>`. `two-ways` goes
+through the `photos` list rather than `jobs` — it is a full-frame photograph
+with nothing to trim — with `avif: true` because, unlike the portraits and
+journal cards, it does land in a `<picture>`. Its source is only 738 px wide,
+so `maxW` is nominal: `withoutEnlargement` keeps it at native size, which is
+roughly 1:1 with the panel it grounds at 1440.
+
+The hero's artwork is a **looping video**, not a still, and it does not go
+through that script. `image/video-hero.mp4` (864 × 496, 10s) was encoded once by
+hand into `public/media/`:
+
+```bash
+ffmpeg -i "image/video-hero.mp4" -an -c:v copy -movflags +faststart "public/media/hero-video.mp4"
+```
+
+plus a VP9 `.webm` sibling (470 KB, served first) and a first-frame
+`hero-video-poster.webp` for the gap before the video decodes. The audio track is
+stripped on the way in — the element is `muted` regardless, and autoplay depends
+on it. `image bgg.png`, `bg image.png` and `hover img.png` (the stills the hero
+used to be built from) are no longer read by the build — kept in `image/` only as
+history.
 
 ## Hero motion
 

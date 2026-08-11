@@ -5,3 +5,11 @@ node_modules/
 .env
 .env.production
 .claude/settings.local.json
+
+# The hero's 4K source, 48 MB. Every other build input in image/ is 1-3 MB and
+# is tracked; this one is not worth a permanent 48 MB in the history, and git
+# keeps a blob forever once it lands. What the site serves is the encode —
+# public/media/hero-video.{mp4,webm} — and that is committed. Keep the source
+# wherever masters are kept; the ffmpeg command that turns it into those two
+# files is in the README.
+image/video-upscale.mp4

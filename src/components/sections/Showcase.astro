@@ -3,9 +3,10 @@
  * Showcase — chapter 2 of the site (`data-chapter-section="2"`), the section
  * the hero transitions into.
  *
- * Soft blue ground, a category badge and project title and blurb on the left,
- * device shot stacked into the bottom-right corner (bleeding past both
- * edges).
+ * Soft blue ground, project title and blurb on the left, device shot stacked
+ * into the bottom-right corner (bleeding past both edges). No "The Team"
+ * badge above the title — removed here and in ProjectSection together, since
+ * it was one design shared across every chapter.
  *
  * The <Timeline /> chapter marker is imported but not rendered — the
  * reference frame this section was redone against has no marker in it,
@@ -23,8 +24,6 @@ interface Tag {
 }
 
 interface Props {
-  badgeLabel?: string;
-  badgeIcon?: IconName;
   title?: string;
   body?: string;
   tags?: Tag[];
@@ -35,8 +34,6 @@ interface Props {
 }
 
 const {
-  badgeLabel = 'The Team',
-  badgeIcon = 'multi-user',
   title = 'Nerd Apply',
   /* `<strong>` around the two figures — set:html rather than plain text, so
      the emphasis renders as markup instead of literal asterisks. Both numbers
@@ -62,15 +59,10 @@ const {
 
   <div class="showcase__inner u-container">
     <div class="showcase__text" data-chapter-text>
-      <span class="showcase__badge" data-showcase-item>
-        <Icon name={badgeIcon} size="0.9375rem" />
-        {badgeLabel}
-      </span>
-
-      {/* Title, body and the mobile-only CTA travel together as one group —
-          the badge above and the tags below are what space-between pushes to
-          the section's own top and bottom edges; this group is what's left in
-          the middle. */}
+      {/* Title, body and the mobile-only CTA travel together as one group.
+          The "The Team" badge that used to sit above it is gone; the auto
+          margins on this group are what keep it where space-between used to
+          put it — see .showcase__copy. */}
       <div class="showcase__copy">
         <h2 class="showcase__title" id="showcase-title" data-showcase-item>{title}</h2>
         <p class="showcase__body" data-showcase-item set:html={body} />
@@ -150,8 +142,8 @@ const {
        height: 100% on the container does not change that, since a grid row's
        own track size is independent of the container's. Without this,
        .showcase__text's `align-self: stretch` had a content-sized row to
-       stretch into, not the section, and its badge/tags space-between
-       collapsed to a ~30px gap instead of reaching the section's edges.
+       stretch into, not the section, and its copy/tags spacing collapsed to a
+       ~30px gap instead of reaching the section's edges.
        Explicit 100% makes the row itself the full height, which is what
        "stretch" needed to mean something. */
     grid-template-rows: 100%;
@@ -181,11 +173,12 @@ const {
     flex-direction: column;
     /* Stretched to the section's own full height (overriding
        .showcase__inner's align-items: center, which only centred a
-       content-sized box) and then space-between across the three groups —
-       badge, copy, tags — so the badge sits near the section's top edge and
-       the tags near its bottom, with the copy free-floating in whatever is
-       left. `gap` still applies as a floor under `justify-content` in flexbox,
-       so nothing can collide if the section is ever shorter than the content. */
+       content-sized box) so the tags sit near the section's bottom edge and
+       the copy floats above them. Since the badge went, `space-between` alone
+       would pin the copy to the top — the auto margins on .showcase__copy are
+       what actually place it; this is what gives them free space to work with.
+       `gap` still applies as a floor under `justify-content` in flexbox, so
+       nothing can collide if the section is ever shorter than the content. */
     align-self: stretch;
     height: 100%;
     justify-content: space-between;
@@ -197,21 +190,12 @@ const {
     display: flex;
     flex-direction: column;
     gap: clamp(0.75rem, 1.2vw, 1.25rem);
-  }
-
-  /* Small pill naming the project's category — sits above the title, on its
-     own translucent chip so it reads as a label rather than as copy. */
-  .showcase__badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4375rem;
-    align-self: flex-start;
-    padding: 0.4375rem 0.75rem;
-    border-radius: 999px;
-    background: rgb(255 255 255 / 0.6);
-    color: #0d1b33;
-    font-size: 0.75rem;
-    font-weight: 500;
+    /* What the badge used to buy. With three groups, space-between put this
+       one in the middle; with the badge gone there are two, and space-between
+       would pin this to the section's top edge instead. Auto margins take the
+       free space first and split it evenly above and below, which leaves the
+       copy floating where it was and the tags still on the bottom edge. */
+    margin-block: auto;
   }
 
   .showcase__title {
@@ -237,8 +221,8 @@ const {
   }
 
   /* --- Tags ------------------------------------------------------------------
-     What the project involved, as a row of pills rather than prose — the same
-     "label, not sentence" language as the badge above. */
+     What the project involved, as a row of pills rather than prose: label, not
+     sentence. The only pills left in the section now that the badge has gone. */
   .showcase__tags {
     display: flex;
     flex-wrap: wrap;

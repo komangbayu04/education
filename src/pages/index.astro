@@ -9,7 +9,12 @@ import Overclock from '../components/sections/Overclock.astro';
    site cannot keep. The components are untouched in
    src/components/sections/; putting them back is this import, their two
    blocks below, and their phases in hero.ts. */
-import Credibility from '../components/sections/Credibility.astro';
+/* Credibility is out of the page for now. The component is untouched in
+   src/components/sections/, and src/scripts/credibility.ts already returns a
+   no-op when it cannot find `[data-cred]`, so nothing else had to change to
+   take it out — except the exit field's colour and the trigger note below,
+   both of which named it explicitly. */
+import WorkCategories from '../components/sections/WorkCategories.astro';
 import TwoWays from '../components/sections/TwoWays.astro';
 import Testimonials from '../components/sections/Testimonials.astro';
 import Journal from '../components/sections/Journal.astro';
@@ -30,8 +35,8 @@ import Footer from '../components/layout/Footer.astro';
       Overclock holds
       Overclock → the page   pixel reveal, scattered, in the ground colour of
                               the section below the scene — so the pin ends on
-                              a screen that is already Credibility's colour and
-                              hands over with no seam
+                              a screen that is already that section's colour
+                              and hands over with no seam
     Without JS — or with reduced motion — all three stay in normal flow and
     read top to bottom, no pin, no crossfades.
   */}
@@ -69,10 +74,16 @@ import Footer from '../components/layout/Footer.astro';
     {/* The way out. Same field, same scatter, but laid in the ground colour of
         the section *below* the scene rather than of another chapter — there is
         no chapter after this one. By the time the pin releases, the screen is
-        already Credibility's white, so the scene scrolling away underneath it
-        is a change of colour nobody can see. Highest z-index in the scene: it
-        covers Overclock, and nothing arrives on top of it. */}
-    <div class="scene__grid" data-scene-grid="exit" style="--grid-bg: var(--color-bg-primary)" aria-hidden="true"></div>
+        already that section's colour, so the scene scrolling away underneath
+        it is a change of colour nobody can see. Highest z-index in the scene:
+        it covers Overclock, and nothing arrives on top of it.
+
+        This tracks whatever section comes next: it was white for Credibility,
+        then the cream of Two ways in, and is still that cream now that Our work
+        — categorized has come in above it — the two share the token, which is
+        the only reason inserting a section here didn't move this. Get it wrong
+        and the join is a visible band of the wrong colour. */}
+    <div class="scene__grid" data-scene-grid="exit" style="--grid-bg: var(--color-bg-twoways)" aria-hidden="true"></div>
   </div>
 
   {/* Where the scene ends and the page begins. hero.ts hangs the exit field's
@@ -89,18 +100,21 @@ import Footer from '../components/layout/Footer.astro';
   <div data-scene-after aria-hidden="true"></div>
 
   {/*
-    Outside the scene on purpose. The pin ends with the scene, so the handover
-    into this is plain document scroll — no pin, no crossfade, no scrub
-    (explicit direction). What covers the join is the exit field above, laid in
-    this section's own ground colour. Its one-shot entrance lives in
-    src/scripts/credibility.ts.
+    First out of the scene. Outside it on purpose: the pin ends with the scene,
+    so the handover into this is plain document scroll — no pin, no crossfade,
+    no scrub (explicit direction). What covers the join is the exit field
+    above, laid in this section's own ground colour — which is why this section
+    and the one below it share `--color-bg-twoways`.
+
+    Its reveal and its accordion live in src/scripts/workCategories.ts. The
+    per-category artwork is not in yet; see the component's docstring for where
+    it goes.
   */}
-  <Credibility />
+  <WorkCategories />
 
   {/*
-    Chapter 7, outside the scene for the same reason as Credibility: plain
-    document scroll into it, no pin and no crossfade (explicit direction).
-    Its own one-shot entrance lives in src/scripts/twoWays.ts.
+    Same plain-scroll treatment as the section above it, which it used to be.
+    Its one-shot entrance lives in src/scripts/twoWays.ts.
   */}
   <TwoWays />
 
@@ -146,9 +160,37 @@ import Footer from '../components/layout/Footer.astro';
 
   /* Nothing left to show: the exit field has covered it in the next section's
      own colour, and that section is already in position underneath. Hiding it
-     is what stops a screen-tall scene from having to be scrolled past. */
-  .scene[data-scene-done] {
-    visibility: hidden;
+     is what stops a screen-tall scene from having to be scrolled past.
+
+     The layers and grids are named explicitly, with !important, and both of
+     those are load-bearing.
+
+     `visibility` is inherited, but a child that sets `visible` on *itself*
+     wins over a hidden ancestor — and hero.ts leaves exactly that on every
+     layer it fades in, because autoAlpha writes visibility inline. So hiding
+     the scene alone hid nothing the layers were painting. They are also left
+     with an inline `pointer-events: auto` (see addArrival), and an element at
+     opacity 0 still takes clicks. With the scene carrying `z-index: 1` over
+     the section pulled up beneath it, that put Overclock's full-chapter link
+     across the whole page: every click anywhere below the scene went to
+     /work/overclock. !important is what beats those inline styles. */
+  .scene[data-scene-done],
+  .scene[data-scene-done] .scene__layer,
+  .scene[data-scene-done] .scene__grid,
+  .scene[data-scene-done] .scene__pixels {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* And the wrapper ScrollTrigger pins inside. It keeps its full height after
+     the pin releases — that height is the scroll runway — while the section
+     below is pulled up over it, so it stays a box lying across the top of
+     whatever is now on screen. Hiding the scene alone left that box taking the
+     clicks the scene no longer did. Matched with :has() because the spacer is
+     created at runtime and there is nothing else to hang this on; :global
+     because, for the same reason, it never carries Astro's scope attribute. */
+  :global(.pin-spacer:has(> .scene[data-scene-done])) {
+    pointer-events: none;
   }
 
   /* --- The join ------------------------------------------------------------

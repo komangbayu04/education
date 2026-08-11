@@ -38,8 +38,22 @@ export function initTwoWays(): () => void {
     defaults: { ease: 'power3.out' },
     scrollTrigger: {
       trigger: section,
-      start: 'top 72%',
+      /* Normally: a little before the section reaches the middle of the
+         screen, so the reveal is already under way as it arrives.
+         When the scene above is pinned, this section is pulled up underneath
+         it (`data-scene-pulled` — see hero.ts) and is covered until the pin
+         lets go. Measured against the viewport it would then be 28% of the
+         way up the screen while nobody can see it, and `once: true` means it
+         would be spent by the time the scene lifts: the section would appear
+         already finished. Its top reaching the top of the viewport IS the
+         moment it becomes visible, so that is where the reveal starts.
+
+         This matters here now that Credibility is out of the page — this is
+         the section the pull lands on. credibility.ts carries the same switch
+         for the same reason. */
+      start: () => (document.querySelector('[data-scene-pulled]') ? 'top top' : 'top 72%'),
       once: true,
+      invalidateOnRefresh: true,
     },
   });
 

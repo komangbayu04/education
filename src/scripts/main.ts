@@ -7,6 +7,7 @@ import { initTimeline } from './timeline';
 import { initWorkCursor } from './workCursor';
 import { initCaseStudy } from './caseStudy';
 import { initCredibility } from './credibility';
+import { initWorkCategories } from './workCategories';
 import { initTwoWays } from './twoWays';
 import { initTestimonials } from './testimonials';
 import { initJournal } from './journal';
@@ -32,6 +33,7 @@ function initPage(): void {
       initWorkCursor(),
       initCaseStudy(),
       initCredibility(),
+      initWorkCategories(),
       initTwoWays(),
       initTestimonials(),
       initJournal(),

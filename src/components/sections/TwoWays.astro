@@ -1,38 +1,36 @@
 ---
 /**
- * Two ways in — chapter 7, the section after Credibility.
+ * Two ways in — chapter 7, the section after the scene.
  *
  * Like Credibility, it lives outside <div data-scene> in index.astro: the
  * handover into it is plain document scroll — no pin, no crossfade, no scrub
  * (explicit direction). The only motion is a one-shot reveal when the section
  * first enters the viewport, in src/scripts/twoWays.ts.
  *
- * Layout is two columns, divided by a rule that runs the section's height.
- *   left   the pitch, then what both models include, then a disclosure with
- *          the full list of deliverables — the one thing here long enough to
- *          be worth folding away, and a <details> so it works with no JS.
- *   right  the two offer cards, the line about how they tend to run together,
- *          and the ask, on its own dark ground at the foot of the column.
+ * Rebuilt against a new reference frame. Two full-bleed panels, no page
+ * gutter between them and none at the screen edges — the split itself is the
+ * composition, so a container would put the section's own margin where the
+ * frame has none:
+ *   left   the photograph, full-bleed, with the pitch and the two offer cards
+ *          laid over it. The cards are glass — translucent, blurred, dark type
+ *          — so the picture reads through them rather than being boxed out.
+ *   right  cream. What both models include as an iconed list, the disclosure
+ *          under it, and the ask on its own black ground filling the foot of
+ *          the column.
  *
- * The rules between things are borders on the content, not free-standing
- * elements: the panel owns the vertical rule to its left, the second card owns
- * the one between the pair, and the disclosure owns the one above it. That way
- * they can never drift out of alignment with what they're separating.
+ * What the previous frame had and this one doesn't: the vertical rule between
+ * the columns (the colour change is the division now), the per-card FOR list,
+ * the highlighted card and its large faint FAV mark, and the line about pushes
+ * becoming partnerships. The offers are named Sprint and Retainer here, not
+ * THE PUSH and THE TEAM.
  */
 import Icon, { type IconName } from '../ui/Icon.astro';
 import { pixelField } from '../../lib/pixelField';
 
 interface Offer {
-  /** Rendered as-is — the frame has these in caps, so the copy carries it */
   name: string;
-  icon: IconName;
   summary: string;
-  forItems: string[];
   length: string;
-  /** Marks the recommended option: a soft ground plus the large faint word
-   *  below. A flag on the data, not a hard-coded index, so which card is
-   *  singled out is decided where the offers are. */
-  highlight?: boolean;
 }
 
 interface Included {
@@ -48,14 +46,12 @@ interface Props {
   detailsTitle?: string;
   detailsCopy?: string;
   offers?: Offer[];
-  /** The line under the cards, about how one becomes the other. */
-  note?: string;
+  image?: string;
+  imageAlt?: string;
   ctaTitle?: string;
   ctaCopy?: string;
   ctaLabel?: string;
   ctaHref?: string;
-  /** The word set behind the highlighted card. */
-  highlightLabel?: string;
 }
 
 const {
@@ -67,151 +63,152 @@ const {
      by meaning rather than traced. `phone` is the one left unused: the calls
      row leads on Figma, which the set does have. */
   included = [
-    { label: 'A senior team assigned to your account, not a rotating pool', icon: 'multi-user' },
+    { label: 'A senior team assigned to your account', icon: 'multi-user' },
     { label: 'Art direction from the founder on every deliverable', icon: 'rocket' },
     { label: 'Brand, web, product, and marketing under one team', icon: 'check-circle' },
     { label: 'Weekly calls and async reviews in Figma', icon: 'figma' },
     { label: 'Slack access to the people doing the work', icon: 'slack' },
     { label: 'Daily updates and momentum', icon: 'spinner' },
   ],
-  detailsTitle = "What's actually included?",
+  detailsTitle = "What's type of work we cover?",
   detailsCopy =
     'Brand identity and systems, websites and landing pages, product and UI design, design systems, pitch decks and investor materials, one-pagers and sales collateral, marketing and ad creative, social templates, email design, presentation and program materials, illustration and iconography, and front-end build when the work calls for it.',
   offers = [
     {
-      name: 'THE PUSH',
-      icon: 'rocket',
+      name: 'Sprint',
       summary: 'One push, one deadline, everything the moment requires.',
-      forItems: ['A Launch', 'A Rebrand', 'A Fundraise'],
       length: 'Fixed. 4 weeks and up',
     },
     {
-      name: 'THE TEAM',
-      icon: 'multi-user',
+      name: 'Retainer',
       summary: 'Your design function, year-round, across every surface.',
-      forItems: ['Brand', 'Website', 'Product Design', 'Marketing'],
       length: 'Ongoing, month to month',
-      highlight: true,
     },
   ],
-  note = 'Pushes have a way of becoming partnerships. Most of ours did.',
+  image = '/media/two-ways',
+  imageAlt = 'A man stepping between clouds above still water',
   ctaTitle = 'Ready to get going?',
   ctaCopy = "Tell us what's coming and we'll tell you which way fits.",
   ctaLabel = 'Talk to us',
   ctaHref = '/contact',
-  highlightLabel = 'FAV',
 } = Astro.props;
 
-/* The ask sits on the section's one dark ground, and both its edges dissolve
-   into the page rather than ending on a straight line — the same pixel
-   language as the chapter handovers and the founder quote's seam.
-   `pixelField` indexes its density array by column, so the two axes are
-   swapped again when the cells are placed: the density runs *down* each band,
-   not across it. Seeded, so a deploy cannot silently reshuffle the artwork. */
-const BAND_COLS = 28;
+/* The ask sits on the section's one dark ground, and the two edges that face
+   the cream — its top, and its right on the widths where it is inset — break
+   up into squares rather than ending on a straight line. Same pixel language
+   as the chapter handovers and the founder quote's seam.
+
+   `pixelField` indexes its density array by column and returns cells on a
+   (row, col) grid, so which axis is which is decided at placement: the top
+   band runs its length across and its density down, the right band runs its
+   length down and its density across. Seeded, so a deploy cannot silently
+   reshuffle the artwork. */
+/** Cells across the block. Its twin lives in .two__band--top's grid, and the
+ *  right band divides itself by the same number so both use one square size. */
+const BAND_COLS = 18;
+
 const bands = {
-  top: pixelField(70414, BAND_COLS, [0.85, 0.55, 0.3, 0.12]),
-  bottom: pixelField(31882, BAND_COLS, [0.12, 0.3, 0.55, 0.85]),
+  /* One row deep, and that is a correctness constraint rather than a taste
+     one. These are cream squares punched INTO the black, so the density is how
+     much of the edge is eaten — at 0.8 the top edge dissolved almost entirely
+     and left stranded black rectangles floating over the panel; a third of one
+     row notches it, which is what the frame draws.
+
+     A second row is what cannot be had. The copy is set clear of the first row
+     and no further (see .two__cta-content), so a square standing a row taller
+     is cream directly behind white type. Keeping the second row to the outer
+     columns only works while the copy is short of them, and it isn't: its
+     measure is a fixed ch cap while the block narrows with the viewport, so on
+     a narrow block the copy reaches over 90% of the width. The alternative —
+     padding the copy past both rows — puts 40-odd pixels of black into the
+     block at every width to buy one row of texture. */
+  top: pixelField(70414, BAND_COLS, [0.32]),
+  /* Five rows, anchored to the bottom — the frame's second cluster is in the
+     block's outer corner, not down its whole side. Denser than the top edge,
+     because a corner is where the two runs of squares meet. */
+  right: pixelField(31882, 5, [0.12, 0.3, 0.55]),
 };
 ---
 
 <section class="two" aria-labelledby="two-title" data-two>
-  <div class="two__texture" aria-hidden="true"></div>
+  <div class="two__grid">
+    {/* --- Left: the photograph, and everything laid over it ---------------- */}
+    <div class="two__stage">
+      <picture class="two__ground">
+        <source srcset={`${image}.avif`} type="image/avif" />
+        <img src={`${image}.webp`} alt={imageAlt} width="738" height="854" decoding="async" />
+      </picture>
 
-  <div class="two__inner u-container">
-    <div class="two__lead">
-      <div class="two__intro">
-        <h2 class="two__title" id="two-title" data-two-reveal="title">{title}</h2>
-        <p class="two__intro-copy" data-two-reveal="intro">{intro}</p>
-      </div>
+      <div class="two__stage-inner">
+        <div class="two__intro">
+          <h2 class="two__title" id="two-title" data-two-reveal="title">{title}</h2>
+          <p class="two__intro-copy" data-two-reveal="intro">{intro}</p>
+        </div>
 
-      <div class="two__include">
-        <h3 class="two__include-title" data-two-reveal="included-title">{includedTitle}</h3>
-
-        <ul class="two__include-list">
+        <div class="two__cards">
           {
-            included.map((item) => (
-              <li class="two__include-item" data-two-ritual>
-                <Icon name={item.icon} size="1.125rem" />
-                {item.label}
-              </li>
+            offers.map((offer) => (
+              <article class="two__card" data-two-card>
+                <h3 class="two__card-name">{offer.name}</h3>
+                <p class="two__card-summary">{offer.summary}</p>
+                <p class="two__card-length">{offer.length}</p>
+              </article>
             ))
           }
-        </ul>
+        </div>
       </div>
-
-      {/* <details>, not a JS accordion: it is a disclosure and nothing else,
-          so the platform's own one is open to keyboard and screen readers for
-          free and still works with the script disabled. `open` because the
-          frame shows it expanded — the fold is there for people who don't need
-          the list, not to hide it by default. */}
-      <details class="two__details" data-two-reveal="details" open>
-        <summary class="two__details-summary">
-          {detailsTitle}
-          <span class="two__details-mark" aria-hidden="true">
-            <svg viewBox="0 0 16 16" fill="none">
-              <path d="M3 6.5 8 11l5-4.5" stroke="currentColor" stroke-width="1.4" />
-            </svg>
-          </span>
-        </summary>
-
-        <p class="two__details-copy">{detailsCopy}</p>
-      </details>
     </div>
 
+    {/* --- Right: the cream column ------------------------------------------ */}
     <div class="two__panel">
-      <div class="two__cards">
-        {
-          offers.map((offer) => (
-            <article
-              class:list={['two__card', { 'two__card--highlight': offer.highlight }]}
-              data-two-card
-            >
-              {offer.highlight && (
-                /* First in the DOM so every sibling below paints over it —
-                   they are all position:relative, and equal z-index falls back
-                   to document order. Decorative: it is clipped by the card, so
-                   there is no whole word for a screen reader to read out. */
-                <span class="two__card-flag" aria-hidden="true">
-                  {highlightLabel}
-                </span>
-              )}
-              <h3 class="two__card-name">
-                {offer.name}
-                <Icon name={offer.icon} size="1.375rem" />
-              </h3>
-              <p class="two__card-summary">{offer.summary}</p>
+      <div class="two__panel-inner">
+        <div class="two__include">
+          <h3 class="two__include-title" data-two-reveal="included-title">{includedTitle}</h3>
 
-              <div class="two__card-group">
-                <p class="two__card-label">For</p>
-                <ul class="two__card-list">
-                  {offer.forItems.map((item) => (
-                    <li>
-                      <Icon name="check-circle" size="1.125rem" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          <ul class="two__include-list">
+            {
+              included.map((item) => (
+                <li class="two__include-item" data-two-ritual>
+                  <span class="two__include-mark" aria-hidden="true">
+                    <Icon name={item.icon} size="1rem" />
+                  </span>
+                  {item.label}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
 
-              {/* margin-top:auto on this block is what keeps both cards'
-                  LENGTH rows on the same line even though their FOR lists
-                  are different lengths */}
-              <div class="two__card-group two__card-group--length">
-                <p class="two__card-label">Length</p>
-                <p class="two__card-length">{offer.length}</p>
-              </div>
-            </article>
-          ))
-        }
+        {/* <details>, not a JS accordion: it is a disclosure and nothing else,
+            so the platform's own one is open to keyboard and screen readers for
+            free and still works with the script disabled. Closed by default —
+            the frame shows it folded, chevron down. */}
+        <details class="two__details" data-two-reveal="details">
+          <summary class="two__details-summary">
+            {detailsTitle}
+            <span class="two__details-mark" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none">
+                <path d="M3 6.5 8 11l5-4.5" stroke="currentColor" stroke-width="1.4" />
+              </svg>
+            </span>
+          </summary>
+
+          <p class="two__details-copy">{detailsCopy}</p>
+        </details>
       </div>
-
-      <p class="two__note" data-two-reveal="note">{note}</p>
 
       <div class="two__cta-block">
         {/* Decorative — the seams carry no meaning the copy doesn't already. */}
         <div class="two__band two__band--top" aria-hidden="true">
           {bands.top.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+        </div>
+
+        <div class="two__band two__band--right" aria-hidden="true">
+          {
+            bands.right.map((cell) => (
+              <span style={`grid-row:${cell.row};grid-column:${cell.col}`} />
+            ))
+          }
         </div>
 
         <div class="two__cta-content">
@@ -222,12 +219,6 @@ const bands = {
             <span class="two__cta-label" data-magnetic-inner>{ctaLabel}</span>
           </a>
         </div>
-
-        <div class="two__band two__band--bottom" aria-hidden="true">
-          {bands.bottom.map((cell) => (
-            <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />
-          ))}
-        </div>
       </div>
     </div>
   </div>
@@ -235,131 +226,270 @@ const bands = {
 
 <style>
   .two {
+    /* One knob for the horizontal inset of everything inside the two panels.
+       Both columns are padded by it, which is what puts the title and the
+       "Both models include" heading on the same optical margin from their own
+       outer edge. Width-only: a short window should not narrow the gutters. */
+    --two-pad: clamp(1.25rem, 3.2vw, 2.875rem);
+
+    /* The vertical rhythm, and the reason it is a separate set of knobs from
+       the one above: this section is a screen tall by definition (see
+       .two__grid), so its height is a budget rather than a result, and the
+       spacing has to come out of that budget. `min(Xvw, Ysvh)` is what makes
+       them height-aware — on a wide-but-short window the svh term wins and
+       everything tightens, which is what keeps the ask on the same screen as
+       the list instead of a scroll below it. Measured: at 1280x680 the section
+       ran 99px past the viewport before this.
+
+       Every svh coefficient is set so the two terms meet at about 820px of
+       height: at the reference's own 1440x900 the width term still wins and
+       the section is spaced exactly as it was drawn, and the svh term only
+       starts taking over on windows shorter than a laptop's. Tuned to meet at
+       900 instead, the first pass was quietly tightening the design size by a
+       tenth to buy compression nobody needed there. */
+    --two-pad-y: clamp(1rem, min(3.2vw, 5.2svh), 2.875rem);
+    --two-gap: clamp(0.5rem, min(1.5vw, 2.6svh), 1.375rem);
+    --two-gap-md: clamp(0.75rem, min(1.8vw, 3svh), 1.5rem);
+    --two-gap-lg: clamp(1rem, min(2.8vw, 4.4svh), 2.25rem);
+
     position: relative;
-    padding-block: clamp(3rem, 6vw, 5rem) clamp(3rem, 6vw, 5.5rem);
-    overflow: hidden;
+    /* No padding and no container: the panels run to the screen edges and meet
+       in the middle, so the split is the only edge in the section. */
     background: var(--color-bg-twoways);
     color: var(--color-ink);
   }
 
-  /* --- Pixel field ---------------------------------------------------------
-     CSS-generated, not an asset — see the note in the summary. Two offset
-     repeating gradients make a checker of translucent squares (the overlaps
-     read darker, which is what gives it the mottled look), then a radial mask
-     fades it out so it only ever sits behind the left column. */
-  .two__texture {
-    position: absolute;
-    inset: 0;
-    background-image:
-      repeating-linear-gradient(
-        90deg,
-        rgb(0 0 0 / 0.022) 0 3rem,
-        transparent 3rem 6rem
-      ),
-      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.022) 0 3rem, transparent 3rem 6rem);
-    mask-image: radial-gradient(58% 46% at 24% 46%, #000 0%, transparent 72%);
-    pointer-events: none;
-  }
-
-  .two__inner {
-    position: relative;
+  /* 1.06fr : 1fr — the frame divides at 51.4% of the width, which is the
+     photograph's share. Not 1:1: the picture carries the title, the copy and
+     both cards, and the cream column only has to hold a list. */
+  .two__grid {
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: clamp(2rem, 4vw, 4rem);
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr);
+    /* Both panels are as tall as the taller one. The photograph takes the
+       surplus; see .two__ground. */
     align-items: stretch;
+    /* A screen tall, whatever the screen is. `min-height`, not `height`: on a
+       short window the content is still allowed to make the section taller
+       than the viewport rather than being clipped to it — which is the one
+       thing worse than a section that doesn't quite fill.
+
+       svh, not vh: on mobile browsers vh is the *largest* viewport, so with
+       the toolbar showing the section would be exactly one toolbar taller than
+       the screen and the block at its foot would start the section cut off. */
+    min-height: 100svh;
   }
 
-  /* --- Left column ---------------------------------------------------------
-     The disclosure is pushed to the bottom so the column's two ends anchor to
-     the section's, matching the frame. */
-  .two__lead {
+  /* --- Left panel ---------------------------------------------------------- */
+  .two__stage {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: clamp(1.75rem, 3.5vw, 2.75rem);
+    /* The stacking context the ground and the type share. Also what clips the
+       photograph to the panel when `cover` overflows it. */
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  /* Behind everything in the panel, sized to it rather than to itself: the
+     source is 738x854 and the panel is close to that ratio at 1440, so `cover`
+     crops almost nothing there and takes whatever the cream column's height
+     asks for at every other width. */
+  .two__ground {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+
+  .two__ground img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .two__stage-inner {
+    display: flex;
+    flex-direction: column;
+    /* The gap between the pitch and the cards, which is the only vertical
+       measurement the panel needs — everything else is top-aligned and the
+       photograph absorbs the surplus at the foot. */
+    gap: clamp(1.75rem, min(4.7vw, 8.3svh), 4.25rem);
+    padding: var(--two-pad-y) var(--two-pad);
   }
 
   .two__intro {
     display: flex;
     flex-direction: column;
-    gap: clamp(0.75rem, 1.2vw, 1.125rem);
+    gap: var(--two-gap);
+    /* White on a photograph, so it needs to hold against the light parts of
+       the sky as well as the dark — the shadow is what carries it over the
+       clouds without putting a scrim over the picture. */
+    color: #fff;
+    text-shadow: 0 1px 18px rgb(10 20 40 / 0.35);
   }
 
   .two__title {
-    font-size: clamp(1.875rem, 3.1vw, 3rem);
+    font-size: clamp(1.875rem, 3.1vw, 2.875rem);
     font-weight: 400;
-    line-height: 1.14;
+    line-height: 1.1;
     letter-spacing: -0.02em;
   }
 
+  /* rem, not ch: the frame breaks this onto two lines, and where it breaks is
+     a measurement in the picture — the second line has to clear the card below
+     it. A ch measure re-derives that break from the font's own average glyph
+     width, which put it on three. */
   .two__intro-copy {
-    max-width: 34ch;
+    max-width: 22.5rem;
     font-size: var(--text-body);
-    line-height: 1.6;
+    line-height: 1.55;
   }
 
-  /* --- What both models include -------------------------------------------- */
-  .two__include {
+  /* --- The two offers ------------------------------------------------------
+     Glass, not cards on a ground: a translucent white with the picture blurred
+     behind it, dark type on top. The border is what gives it an edge to be
+     read against a sky that is white in places and deep blue in others — a
+     fill alone disappears into the cloud tops. */
+  .two__cards {
     display: flex;
     flex-direction: column;
-    gap: clamp(0.875rem, 1.6vw, 1.25rem);
+    gap: var(--two-gap);
+    /* The frame stops the cards short of the panel's right edge — they are
+       laid on the picture, and a card that reached the split would read as a
+       second column instead. */
+    padding-right: clamp(0rem, 4vw, 3.5rem);
   }
 
-  .two__include-title {
-    font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+  .two__card {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, min(0.9vw, 1.6svh), 0.8125rem);
+    /* Vertical padding on the height budget, horizontal on the width — a card
+       on a short screen should get shorter, not narrower. */
+    padding: clamp(0.875rem, min(2.3vw, 4svh), 2.0625rem) clamp(1.125rem, 2.3vw, 2.0625rem);
+    border: 1px solid rgb(255 255 255 / 0.55);
+    background: rgb(255 255 255 / 0.3);
+    /* Progressive: without it the fill is simply a translucent white, which is
+       still legible — the type's contrast does not depend on the blur. */
+    backdrop-filter: blur(16px) saturate(1.1);
+    color: var(--color-ink);
+  }
+
+  .two__card-name {
+    font-size: clamp(1.25rem, 1.85vw, 1.75rem);
     font-weight: 400;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
   }
 
-  .two__include-list {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(0.5rem, 0.9vw, 0.75rem);
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .two__card-summary {
+    font-size: var(--text-body);
+    line-height: 1.5;
   }
 
-  /* align-items: start, not center: three of these wrap to two lines at some
-     widths, and centred the icon then floats against the middle of the block
-     instead of sitting with the first line it belongs to. */
-  .two__include-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6875rem;
+  /* Ruled off above rather than carrying a rule of its own as an element, so
+     the line can never drift from what it divides. */
+  .two__card-length {
+    margin-top: clamp(0.5rem, min(0.9vw, 1.6svh), 0.8125rem);
+    padding-top: clamp(0.625rem, min(1.4vw, 2.4svh), 1.25rem);
+    border-top: 1px solid rgb(10 10 10 / 0.16);
     font-size: 0.875rem;
-    line-height: 1.45;
+    line-height: 1.4;
     color: var(--color-ink-secondary);
   }
 
-  /* The icon's own box is set inline by Icon.astro, so nudging it onto the
-     first line's optical centre has to happen here. */
-  .two__include-item :global(.icon) {
+  /* --- Right panel --------------------------------------------------------- */
+  .two__panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-twoways);
+  }
+
+  /* Takes the column's surplus height rather than letting it collect as one
+     dead gap above the ask — see .two__include-list for where it ends up. */
+  .two__panel-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: var(--two-gap-lg);
+    padding: var(--two-pad-y) var(--two-pad) var(--two-gap-lg);
+  }
+
+  .two__include {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: var(--two-gap-md);
+  }
+
+  .two__include-title {
+    font-size: clamp(1.0625rem, 1.5vw, 1.375rem);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--color-ink-secondary);
+  }
+
+  /* The rule under the heading and the one under the list are borders on the
+     list itself — one element, both edges, so neither can drift. */
+  .two__include-list {
+    display: flex;
+    flex-direction: column;
+    /* Where the column's surplus height lands: the six rows spread apart to
+       fill whatever the screen gives, with the gap as their floor. Everything
+       else in the panel is a fixed block — this is the only part of it that
+       can absorb a taller viewport without a hole opening up somewhere. */
+    flex: 1;
+    justify-content: space-between;
+    gap: var(--two-gap);
+    margin: 0;
+    padding-block: var(--two-gap-md);
+    border-block: 1px solid var(--color-line);
+    list-style: none;
+  }
+
+  /* align-items: center, not start: these are one line each at the widths the
+     panel is designed for, and the mark is a chip rather than a glyph — it has
+     a box of its own to be centred against. */
+  .two__include-item {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.625rem, 1.1vw, 1rem);
+    font-size: clamp(0.875rem, 1.15vw, 1.0625rem);
+    line-height: 1.35;
+  }
+
+  /* The chip the frame draws around each mark: black square, rounded, white
+     glyph — the inverse of the section's ground, which is what makes the list
+     read as a set of marks rather than as six more lines of type. */
+  .two__include-mark {
+    display: grid;
+    place-items: center;
     flex: none;
-    margin-top: 0.0625rem;
+    /* Six of these stacked are the tallest fixed thing in the cream column, so
+       they are on the height budget too — 3.6svh keeps them at their drawn
+       2rem on anything from a laptop up, and takes 4px off each on a short
+       window, which is 24px the section doesn't have to overflow by. */
+    width: clamp(1.75rem, 3.6svh, 2rem);
+    height: clamp(1.75rem, 3.6svh, 2rem);
+    border-radius: 0.5rem;
+    background: var(--color-bg-invert);
+    color: var(--color-ink-invert);
   }
 
-  /* --- Disclosure -----------------------------------------------------------
-     Pushed to the foot of the column, and ruled off above so it reads as the
-     column's closing block rather than as a fourth thing in the stack. */
-  .two__details {
-    margin-top: auto;
-    padding-top: clamp(1.25rem, 2.2vw, 1.75rem);
-    border-top: 1px solid var(--color-line);
-  }
-
+  /* --- Disclosure ---------------------------------------------------------- */
   .two__details-summary {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-bottom: clamp(1rem, 1.8vw, 1.5rem);
-    border-bottom: 1px solid var(--color-line);
-    font-size: clamp(1rem, 1.3vw, 1.125rem);
+    /* Beside the label, not pushed to the panel's far edge: the chevron belongs
+       to the question. */
+    gap: 0.75rem;
+    font-size: clamp(1.0625rem, 1.5vw, 1.375rem);
     line-height: 1.3;
+    color: var(--color-ink-secondary);
     cursor: pointer;
     /* The default marker is a triangle in the text flow; the mark below is the
-       one this design uses, and it has to be able to sit at the row's end. */
+       one this design uses. */
     list-style: none;
   }
 
@@ -373,7 +503,6 @@ const bands = {
     flex: none;
     width: 1.25rem;
     height: 1.25rem;
-    color: var(--color-ink);
     transition: rotate 0.4s var(--ease-out-expo);
   }
 
@@ -388,186 +517,28 @@ const bands = {
   }
 
   .two__details-copy {
-    padding-top: clamp(1rem, 1.8vw, 1.5rem);
+    padding-top: clamp(0.875rem, 1.6vw, 1.25rem);
     font-size: 0.875rem;
     line-height: 1.65;
     color: var(--color-ink-secondary);
   }
 
-  /* --- Right panel ---------------------------------------------------------
-     Owns the rule that divides the two columns. The cards used to each carry a
-     left border, which put a stray rule down the panel's outer edge as well as
-     between the pair; the outer one belongs to the column, not to a card. */
-  .two__panel {
-    display: flex;
-    flex-direction: column;
-    padding-left: clamp(1.25rem, 2.2vw, 2rem);
-    border-left: 1px solid var(--color-line);
-  }
-
-  .two__cards {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    /* No gap: the second card's own left border is the separator, so a gap
-       would just push the rule away from what it divides. */
-  }
-
-  .two__card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: clamp(0.75rem, 1.2vw, 1.125rem);
-    /* Top padding on both, not just the highlighted one — the ground needs
-       room above the heading, and the two cards have to stay on the same
-       baseline. */
-    padding: clamp(1.25rem, 2.2vw, 1.75rem) clamp(1.25rem, 2.2vw, 2rem)
-      clamp(1.75rem, 3vw, 2.5rem);
-  }
-
-  /* Only between the pair — see .two__panel. */
-  .two__card + .two__card {
-    border-left: 1px solid var(--color-line);
-  }
-
-  /* The first card's copy lines up with the panel's own left edge; its padding
-     would otherwise indent it away from the rule the column is hung on. */
-  .two__card:first-child {
-    padding-left: 0;
-  }
-
-  /* The recommended card. A wash rather than a border or a colour: the panel
-     is already ruled by the card borders, and anything stronger would read as
-     a different component instead of the same one, emphasised. */
-  .two__card--highlight {
-    overflow: hidden;
-    /* Left to right, following the reading direction and the card's own long
-       axis — down the card the wash fought the rules that cross it. */
-    background: linear-gradient(
-      90deg,
-      rgb(255 255 255 / 0.85),
-      rgb(255 255 255 / 0.35) 62%,
-      rgb(255 255 255 / 0.15)
-    );
-  }
-
-  /* Lifts the real content over the mark below. Excluding the mark by name
-     rather than relying on source order: both selectors carry the same
-     specificity once Astro scopes them, and a bare `> *` was winning over
-     .two__card-flag's own `position: absolute` — which put the mark back in
-     flow and pushed the whole card down by its line box. */
-  .two__card--highlight > *:not(.two__card-flag) {
-    position: relative;
-  }
-
-  /* Set large and very faint, and deliberately running off the card's right
-     edge — the card's own overflow does the cropping, so it reads as a mark
-     laid under the content rather than a label sitting in it. */
-  .two__card-flag {
-    position: absolute;
-    top: 34%;
-    /* Anchored to the card's right edge and pushed a fraction of its own type
-       size past it, so the V's outer stroke is always just clipped — a share
-       of the card's width instead would cut a different amount of the mark on
-       every layout, because the mark and the card don't scale together. */
-    right: -0.18em;
-    /* Three letters instead of eight, so it can be set far larger for the same
-       footprint — it is a mark under the content, not a word to be read. */
-    font-size: clamp(4.5rem, 11vw, 9rem);
-    font-weight: 500;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    color: var(--color-ink);
-    opacity: 0.035;
-    white-space: nowrap;
-    pointer-events: none;
-    user-select: none;
-  }
-
-  .two__card-name {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: clamp(0.9375rem, 1.2vw, 1.0625rem);
-    font-weight: 500;
-    letter-spacing: 0.01em;
-  }
-
-  .two__card-summary {
-    max-width: 30ch;
-    font-size: var(--text-body);
-    line-height: 1.55;
-    color: var(--color-ink-secondary);
-  }
-
-  .two__card-group {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(0.625rem, 1vw, 0.875rem);
-    padding-top: clamp(1rem, 1.8vw, 1.5rem);
-    border-top: 1px solid var(--color-line);
-  }
-
-  /* Pins the LENGTH block to the bottom of whichever card is shorter, so the
-     two cards' LENGTH rows line up regardless of how many FOR items each has. */
-  .two__card-group--length {
-    margin-top: auto;
-  }
-
-  /* Small caps, as the frame sets them — these name what follows rather than
-     saying anything themselves, so they sit below the copy in weight. */
-  .two__card-label {
-    font-size: 0.6875rem;
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-ink-muted);
-  }
-
-  .two__card-list {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(0.5rem, 0.8vw, 0.75rem);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .two__card-list li {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    font-size: var(--text-body);
-    line-height: 1.3;
-  }
-
-  .two__card-length {
-    font-size: var(--text-body);
-    line-height: 1.4;
-    color: var(--color-ink-secondary);
-  }
-
-  /* --- The line between the offer and the ask ------------------------------ */
-  .two__note {
-    padding: clamp(1.25rem, 2.2vw, 1.75rem) clamp(1.25rem, 2.2vw, 2rem)
-      clamp(1.25rem, 2.2vw, 1.75rem) 0;
-    border-top: 1px solid var(--color-line);
-    font-size: var(--text-body);
-    line-height: 1.6;
-    color: var(--color-ink-secondary);
-  }
-
   /* --- The ask -------------------------------------------------------------
-     The section's one dark ground, at the foot of the panel. Pulled left over
-     the panel's padding so it starts on the column rule rather than inside it
-     — the block is the end of the column, not another item within it. */
+     The section's one dark ground, filling the foot of the cream column and
+     running off its outer edge — the frame has it bleeding to the screen, so
+     only the two edges that face cream are finished. */
   .two__cta-block {
+    /* Cells across the block, and the single number both bands and the copy's
+       clearance are derived from. Its twin is BAND_COLS in the frontmatter,
+       which is what decides how many cells get rolled — change one and change
+       the other. */
+    --two-band-cols: 18;
+
     position: relative;
     margin-top: auto;
-    margin-left: calc(-1 * clamp(1.25rem, 2.2vw, 2rem));
     background: var(--color-bg-invert);
     color: var(--color-ink-invert);
-    /* Contains the two bands, which overspill their own edges by design. */
+    /* Contains the bands, which overspill their own edges by design. */
     overflow: hidden;
   }
 
@@ -575,37 +546,44 @@ const bands = {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: clamp(0.625rem, 1vw, 0.875rem);
-    /* Clear of both bands: they are four cells deep, and copy running into
-       them reads as a rendering fault rather than as a dissolve. */
-    padding: clamp(2.75rem, 5vw, 4rem) clamp(1.5rem, 2.6vw, 2.5rem);
+    gap: clamp(0.375rem, min(1vw, 1.75svh), 0.75rem);
+    /* Clear of the top band, which is one row — copy running into a square
+       reads as a rendering fault rather than as an edge breaking up.
+
+       Derived from the cell size, not set in rem: the cells are a share of the
+       block's width, so they grow with the viewport while a rem value doesn't.
+       At 1910 the first row alone was 51px deep against a 55px clearance, and
+       the title was 4px from being struck through. A percentage padding
+       resolves against the containing block's *width*, which is exactly the
+       dimension the cells are cut from. */
+    padding: calc(100% / var(--two-band-cols) + clamp(0.5rem, min(1.2vw, 2.1svh), 1.25rem))
+      var(--two-pad) clamp(1.25rem, min(3vw, 5.4svh), 2.75rem);
   }
 
   .two__cta-title {
-    font-size: clamp(1.375rem, 2.1vw, 1.875rem);
+    font-size: clamp(1.375rem, 2vw, 1.875rem);
     font-weight: 400;
     line-height: 1.2;
     letter-spacing: -0.015em;
   }
 
   .two__cta-copy {
-    max-width: 38ch;
+    /* One line at the reference's width, where 38ch broke it onto two — and
+       two lines here cost 25px of a section that is budgeted to a screen. */
+    max-width: 44ch;
     font-size: var(--text-body);
-    line-height: 1.6;
+    line-height: 1.55;
     color: rgb(255 255 255 / 0.72);
   }
 
   /* --- Bands ---------------------------------------------------------------
-     Square cells in the section's own ground colour, scattered densest at the
-     block's edge and thinning inward — so the dark ends by dissolving into the
-     page rather than on a straight line. aspect-ratio on the cells is what
-     keeps them square: the rows size themselves to one column's width. */
+     Square cells in the cream of the column, scattered densest at the block's
+     edge and thinning inward, so the dark ends by breaking up rather than on a
+     straight line. aspect-ratio on the cells is what keeps them square: the
+     track they don't set sizes itself to one cell of the one they do. */
   .two__band {
     position: absolute;
-    left: 0;
-    right: 0;
     display: grid;
-    grid-template-columns: repeat(28, 1fr);
     pointer-events: none;
   }
 
@@ -616,21 +594,37 @@ const bands = {
 
   .two__band--top {
     top: 0;
+    left: 0;
+    right: 0;
+    grid-template-columns: repeat(var(--two-band-cols), 1fr);
   }
 
-  .two__band--bottom {
+  /* The outer corner, on the same mechanic turned through ninety degrees: its
+     length runs up the block, its density across. Three columns of the same
+     grid the top band divides the block into, so every square in the section
+     is the one size without either band having to know a pixel value. It has
+     no `top`: its own cells give it its height (they are square, so a row is
+     as tall as a column is wide), which is what keeps it a corner rather than
+     a side. */
+  .two__band--right {
     bottom: 0;
+    right: 0;
+    width: calc(300% / var(--two-band-cols));
+    grid-template-columns: repeat(3, 1fr);
   }
 
-  /* Same shape as the hero's and Credibility's CTA, inverted for this ground:
-     the fill sweeps to the block's own black rather than to the page. */
+  /* Same shape as the hero's CTA, inverted for this ground: the fill sweeps to
+     the block's own black rather than to the page. */
   .two__cta {
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-top: clamp(0.75rem, 1.4vw, 1.25rem);
-    padding: 0.8125rem 1.75rem;
+    margin-top: clamp(0.5rem, min(1.4vw, 2.4svh), 1.25rem);
+    /* Wider than the hero's, as the frame sets it — this is the section's
+       single ask and the only control on a black ground, so it is sized to be
+       the thing you reach for rather than to fit its label. */
+    padding: clamp(0.75rem, 1.8svh, 0.9375rem) clamp(1.75rem, 3.4vw, 3.375rem);
     border-radius: 0.5rem;
     overflow: hidden;
     background: var(--color-bg-primary);
@@ -672,119 +666,38 @@ const bands = {
     color: var(--color-ink-invert);
   }
 
-  /* --- Responsive ---------------------------------------------------------- */
-  @media (max-width: 1199px) {
-    .two__inner {
+  /* --- Responsive ----------------------------------------------------------
+     63rem, not the 1199px the rest of the page splits at: this section is two
+     panels rather than a column of content beside a column of artwork, and
+     both of them still hold their own well below that. What decides it is the
+     cream column — six iconed rows and a heading stop fitting one line each
+     before the photograph stops working. */
+  @media (max-width: 63rem) {
+    .two__grid {
       grid-template-columns: minmax(0, 1fr);
-      gap: clamp(2.5rem, 6vw, 4rem);
     }
 
-    /* One column down, the rule the panel carries has nothing to its left to
-       divide — it reads as a stray mark against the page edge. */
-    .two__panel {
-      padding-left: 0;
-      border-left: 0;
+    /* Stacked, the photograph has no cream column to take its height from, so
+       it needs one of its own — otherwise the panel is exactly as tall as the
+       title and the two cards, which crops the picture to a strip. */
+    .two__stage {
+      /* Measured, not picked: the title and the two cards come to about 550px
+         on a 375 screen, so 38rem left barely a hundred of sky above them and
+         the panel read as a card stack with a texture behind it. This leaves
+         the picture a band of its own at the top on a phone, and the svh cap
+         is what stops it filling a short landscape window entirely. */
+      min-height: min(44rem, 92svh);
+      justify-content: flex-end;
     }
 
-    .two__card:first-child {
-      padding-left: clamp(1.25rem, 2.2vw, 2rem);
+    /* Pushed to the foot of the panel by the rule above, so the picture has
+       room above the cards rather than below them. */
+    .two__stage-inner {
+      padding-top: clamp(2.5rem, 8vw, 4rem);
     }
 
-    .two__note {
-      padding-inline: clamp(1.25rem, 2.2vw, 2rem);
-    }
-
-    .two__cta-block {
-      margin-left: 0;
-    }
-
-    /* Stacked, the ask belongs after the offer, not between the intro and it:
-       side by side the CTA sat at the foot of its own column, which read as
-       the end of the section — one column down it was landing before the cards
-       had said anything. The disclosure follows it, since it is reference
-       material rather than part of the pitch.
-
-       display:contents dissolves the left column so its parts become grid
-       items in their own right; only then can they be ordered around the
-       panel, which is a different parent. */
-    .two__lead {
-      display: contents;
-    }
-
-    .two__intro {
-      order: 1;
-    }
-
-    .two__include {
-      order: 2;
-    }
-
-    .two__panel {
-      order: 3;
-    }
-
-    .two__details {
-      order: 4;
-      margin-top: 0;
-    }
-  }
-
-  @media (max-width: 48rem) {
     .two__cards {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    /* Stacked, each offer becomes a panel of its own rather than two blocks
-       divided by a rule: the rule that separates them side by side reads as a
-       stray mark against the page edge here, and a horizontal one in its place
-       still leaves them looking like one long list. A ground and a gap say
-       "two things to choose between" without any rule at all. */
-    .two__card {
-      /* Full-bleed, with the container's gutter restored as its own padding.
-         Padded inside the container instead, the card's copy sat indented from
-         the section's — two different left edges on the same screen. This way
-         the panel reaches the screen edges and the text lines up with
-         everything above it. */
-      margin-inline: calc(-1 * var(--section-padding-x));
-      padding: clamp(1.25rem, 4.5vw, 1.75rem) var(--section-padding-x);
-      background: var(--color-surface);
-    }
-
-    .two__card + .two__card {
-      border-left: 0;
-      margin-top: clamp(1rem, 3.5vw, 1.5rem);
-    }
-
-    .two__card:first-child {
-      padding-left: var(--section-padding-x);
-    }
-
-    /* White, not the desktop wash: against --color-surface a translucent white
-       is almost the same value, and the recommended card has to be the one
-       that reads as lifted. Faded out across the card so the panel ends by
-       dissolving into the section's ground instead of stopping on an edge. */
-    .two__card--highlight {
-      background: linear-gradient(90deg, #fff 0%, rgb(255 255 255 / 0) 100%);
-    }
-
-    /* With one card per row there is no second card to line up with, so this
-       would only add a stray gap. */
-    .two__card-group--length {
-      margin-top: 0;
-    }
-
-    .two__note {
-      padding-inline: 0;
-    }
-
-    /* Full-bleed like the cards above it, so the one dark block on the page
-       reaches both screen edges rather than sitting in a cream frame. */
-    .two__cta-block {
-      margin-inline: calc(-1 * var(--section-padding-x));
-    }
-
-    .two__cta-content {
-      padding-inline: var(--section-padding-x);
+      padding-right: 0;
     }
   }
 

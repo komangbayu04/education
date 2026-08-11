@@ -24,12 +24,11 @@ async function alphaBBox(file) {
   return { width, height, minX, minY, maxX, maxY, w: maxX - minX + 1, h: maxY - minY + 1 };
 }
 
-// The tree canopy and the rectangular ground photo are now one pre-composited
-// asset (image bgg.png) — no separate cutout, so no runtime registration math
-// needed. Kept for reference: hero-tree / bg image.png / hover img.png are no
-// longer used by the site; the source PNGs stay in image/ only as history.
-const heroBox = await alphaBBox(`${SRC}/image bgg.png`);
-console.log('HERO ', JSON.stringify(heroBox));
+// Nothing here for the hero any more: its artwork is a looping video
+// (public/media/hero-video.*, from image/video-hero.mp4), which this script
+// does not touch. The stills it used to build — hero-base, from image bgg.png,
+// and before that hero-tree from bg image.png / hover img.png — are no longer
+// read by the site; the source PNGs stay in image/ only as history.
 
 const mockBox = await alphaBBox(`${SRC}/mockup2.png`);
 console.log('MOCK ', JSON.stringify(mockBox));
@@ -116,8 +115,36 @@ console.log('BEDFORD ', JSON.stringify(bedfordBox));
 const celpipBox = await alphaBBox(`${SRC}/image 4.png`);
 console.log('CELPIP ', JSON.stringify(celpipBox));
 
+/* The two shots the nav panel previews. Clean transparent cutouts like
+   mockup2.png, so alphaBBox works on them directly — and they go through the
+   `jobs` path rather than `photos` because the panel renders them in a
+   <picture> with an avif source, which the webp-only path would never write. */
+const navNerdBox = await alphaBBox(`${SRC}/Nerd Apply.png`);
+console.log('NAV NERD', JSON.stringify(navNerdBox));
+
+const navOverclockBox = await alphaBBox(`${SRC}/Overclock_nav.png`);
+console.log('NAV OVER', JSON.stringify(navOverclockBox));
+
+/* Work categories. 1–3 are the hover stack, 4–6 the strip; the sources are
+   numbered, the outputs are named for the job they do — a file called `3.png`
+   tells the next person nothing about where it lands. */
+const workCatSources = [
+  { file: '1.png', name: 'work-hover-1' },
+  { file: '2.png', name: 'work-hover-2' },
+  { file: '3.png', name: 'work-hover-3' },
+  { file: '4.png', name: 'work-shot-1' },
+  { file: '5.png', name: 'work-shot-2' },
+  { file: '6.png', name: 'work-shot-3' },
+];
+
+const workCatBoxes = [];
+for (const { file, name } of workCatSources) {
+  const box = await alphaBBox(`${SRC}/${file}`);
+  console.log(name.padEnd(14), JSON.stringify(box));
+  workCatBoxes.push({ src: `${SRC}/${file}`, box, name, maxW: 900 });
+}
+
 const jobs = [
-  { src: `${SRC}/image bgg.png`, box: heroBox, name: 'hero-base', maxW: 1600 },
   { src: `${SRC}/mockup2.png`, box: mockBox, name: 'showcase-device', maxW: 1400 },
   // Already cropped by keyOutGround, so its box is the whole buffer.
   {
@@ -128,15 +155,30 @@ const jobs = [
   },
   { src: `${SRC}/image 3.png`, box: bedfordBox, name: 'bedford-device', maxW: 1400 },
   { src: `${SRC}/image 4.png`, box: celpipBox, name: 'celpip-device', maxW: 1400 },
+  /* 900 rather than the 1400 above: these are previews inside the nav panel,
+     where the shot gets about half of a 75vw block — a good deal smaller than
+     a chapter's full-height device shot, even doubled for retina. */
+  { src: `${SRC}/Nerd Apply.png`, box: navNerdBox, name: 'nav-nerd-apply', maxW: 900 },
+  { src: `${SRC}/Overclock_nav.png`, box: navOverclockBox, name: 'nav-overclock', maxW: 900 },
+  /* Work categories — three for the hover stack, three for the strip a row
+     opens. Placeholders standing in for the real work, so every category
+     currently points at the same six.
+
+     maxW is nominal: the sources are 332–509px wide and `withoutEnlargement`
+     keeps them there. Stated anyway so the day a real, larger shot replaces
+     one of these it is capped like everything else rather than shipping at
+     whatever it happens to be. */
+  ...workCatBoxes,
 ];
 
 // Photographs that need no cutout — portraits, journal cards, and the founder
 // quote's ground. No alphaBBox: these are full-frame images with no
 // transparency to trim, so they are resized and encoded as they are.
 //
-// webp only, deliberately: every one of these lands in a plain <img src>
-// (the device shots above use <picture> with an avif source, these do not), so
-// an avif sibling would never be requested.
+// webp by default, deliberately: most of these land in a plain <img src> (the
+// device shots above use <picture> with an avif source, these do not), so an
+// avif sibling would never be requested. `avif: true` is for the ones that are
+// in a <picture> and are big enough for the second encode to be worth it.
 const photos = [
   { src: `${SRC}/ahmed.png`, name: 'portrait-ahmed', maxW: 640 },
   { src: `${SRC}/braden.png`, name: 'portrait-braden', maxW: 640 },
@@ -147,14 +189,27 @@ const photos = [
   { src: `${SRC}/blog2.png`, name: 'journal-2', maxW: 900 },
   { src: `${SRC}/blog3.png`, name: 'journal-3', maxW: 900 },
   { src: `${SRC}/bg 2.png`, name: 'quote-ground', maxW: 1800 },
+  /* The ground of Two ways in's left panel. Its source is only 738px wide, so
+     maxW is nominal — `withoutEnlargement` means it comes out at its native
+     size whatever is asked for, and the panel is about that wide at 1440.
+     Quality is up from the 82 the rest use for the same reason: this is the
+     one photo here that is displayed at roughly 1:1, where there is no
+     downscale left to hide compression in. */
+  { src: `${SRC}/two_ways.png`, name: 'two-ways', maxW: 1600, avif: true, quality: 90 },
 ];
 
-for (const { src, name, maxW } of photos) {
-  const out = await sharp(src)
-    .resize({ width: maxW, withoutEnlargement: true })
-    .webp({ quality: 82, effort: 6 })
-    .toFile(`${OUT}/${name}.webp`);
-  console.log(`${name}: webp ${out.width}x${out.height} ${(out.size / 1024).toFixed(0)}KB`);
+for (const { src, name, maxW, avif = false, quality = 82 } of photos) {
+  const base = sharp(src).resize({ width: maxW, withoutEnlargement: true });
+
+  const webp = await base.clone().webp({ quality, effort: 6 }).toFile(`${OUT}/${name}.webp`);
+  let line = `${name}: webp ${webp.width}x${webp.height} ${(webp.size / 1024).toFixed(0)}KB`;
+
+  if (avif) {
+    const out = await base.clone().avif({ quality: 55, effort: 5 }).toFile(`${OUT}/${name}.avif`);
+    line += ` · avif ${(out.size / 1024).toFixed(0)}KB`;
+  }
+
+  console.log(line);
 }
 
 for (const { src, box, name, maxW } of jobs) {
