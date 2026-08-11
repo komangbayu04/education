@@ -13,3 +13,8 @@ node_modules/
 # wherever masters are kept; the ffmpeg command that turns it into those two
 # files is in the README.
 image/video-upscale.mp4
+
+# The phone hero's source, 19 MB, and out for the same reason as the one above:
+# what the site serves is the encode — public/media/hero-video-mobile.{mp4,webm}
+# — and that is committed. The ffmpeg command that produces it is in the README.
+image/0811.mp4

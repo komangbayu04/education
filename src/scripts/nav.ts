@@ -32,7 +32,27 @@ export function initNav(): () => void {
   const toggle = nav.querySelector<HTMLButtonElement>('[data-nav-toggle]');
   const panel = nav.querySelector<HTMLElement>('[data-nav-mobile]');
   const blocks = panel?.querySelector<HTMLElement>('[data-nav-blocks]');
-  const items = panel ? gsap.utils.toArray<HTMLElement>('[data-nav-mobile-item]', panel) : [];
+  const marked = panel ? gsap.utils.toArray<HTMLElement>('[data-nav-mobile-item]', panel) : [];
+
+  /* What actually has a box, resolved at the moment it is needed.
+
+     An element with `display: contents` generates no box of its own — its
+     children are laid out by its grandparent instead — so animating it moves
+     nothing. On a phone both the work preview and the card inside it are
+     `display: contents` (see the mobile block in Nav.astro, where that is what
+     lets the project names sit between the shot and the words), which left the
+     shot and the blurb out of the open and close animations entirely: they
+     appeared and vanished in one frame while everything around them moved.
+
+     Resolved per open rather than once at init, because which elements are
+     `contents` depends on the viewport, and the viewport can change between
+     one opening and the next. */
+  const paintable = (el: HTMLElement): HTMLElement[] =>
+    getComputedStyle(el).display === 'contents'
+      ? gsap.utils.toArray<HTMLElement>(':scope > *', el).flatMap(paintable)
+      : [el];
+
+  const animatable = () => marked.flatMap(paintable);
 
   let field: HTMLElement[] = [];
   let animation: gsap.core.Timeline | null = null;
@@ -75,12 +95,12 @@ export function initNav(): () => void {
 
     if (prefersReducedMotion()) {
       panel.setAttribute('data-filled', '');
-      gsap.set(items, { opacity: 1, y: 0 });
+      gsap.set(animatable(), { opacity: 1, y: 0 });
       return;
     }
 
     buildField();
-    gsap.set(items, { opacity: 0, y: 18 });
+    gsap.set(animatable(), { opacity: 0, y: 18 });
 
     animation = gsap
       .timeline()
@@ -95,7 +115,7 @@ export function initNav(): () => void {
       // Only now: with every cell landed, the panel's own colour can take over
       // and the cells stop mattering.
       .add(() => panel.setAttribute('data-filled', ''))
-      .to(items, { opacity: 1, y: 0, duration: 0.34, ease: 'power3.out', stagger: 0.04 }, '-=0.22');
+      .to(animatable(), { opacity: 1, y: 0, duration: 0.34, ease: 'power3.out', stagger: 0.04 }, '-=0.22');
   };
 
   const close = () => {
@@ -118,7 +138,7 @@ export function initNav(): () => void {
     panel.removeAttribute('data-filled');
     animation = gsap
       .timeline({ onComplete: done })
-      .to(items, { opacity: 0, y: -8, duration: 0.15, ease: 'power2.in' }, 0)
+      .to(animatable(), { opacity: 0, y: -8, duration: 0.15, ease: 'power2.in' }, 0)
       .to(
         field,
         {
@@ -190,6 +210,105 @@ export function initNav(): () => void {
       // Keyboard users get the same preview — every other hover state in this
       // project has a focus equivalent.
       link.addEventListener('focus', () => show(i), { signal });
+    });
+
+    /**
+     * Opens a case study by growing its preview into the page.
+     *
+     * The panel's shot is the same artwork the case study opens on, so rather
+     * than the menu blinking out and a new page blinking in, the shot is lifted
+     * out of the panel and scaled up until it is the screen. The navigation
+     * happens under it, at the point where it covers everything, so what the
+     * reader sees is one continuous move.
+     *
+     * A clone, not the shot itself: the real one is inside a panel that is
+     * about to be scrolled, hidden and reset, and lifting it out of that
+     * layout would collapse the card around it mid-animation.
+     *
+     * Transform only — a scale about the centre plus the translation that puts
+     * that centre on the viewport's. Animating left/top/width/height would lay
+     * the page out again on every frame of the one animation that has to be
+     * smooth.
+     */
+    const growInto = (href: string, card: HTMLElement) => {
+      const shot = card.querySelector<HTMLElement>('.nav__work-shot');
+      if (!shot) return false;
+
+      const from = shot.getBoundingClientRect();
+      if (!from.width || !from.height) return false;
+
+      const clone = shot.cloneNode(true) as HTMLElement;
+      Object.assign(clone.style, {
+        position: 'fixed',
+        left: `${from.left}px`,
+        top: `${from.top}px`,
+        width: `${from.width}px`,
+        height: `${from.height}px`,
+        margin: '0',
+        zIndex: '200',
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        willChange: 'transform',
+      });
+      // The shot fills its box by `cover` in the panel; the clone has to keep
+      // doing that as the box grows, or the artwork letterboxes on the way up.
+      const img = clone.querySelector<HTMLElement>('img');
+      if (img) Object.assign(img.style, { width: '100%', height: '100%', objectFit: 'cover' });
+      document.body.appendChild(clone);
+
+      // `cover` again, but for the growth: whichever axis needs the most.
+      const scale = Math.max(window.innerWidth / from.width, window.innerHeight / from.height);
+      const dx = window.innerWidth / 2 - (from.left + from.width / 2);
+      const dy = window.innerHeight / 2 - (from.top + from.height / 2);
+
+      gsap
+        .timeline({ onComplete: () => { window.location.href = href; } })
+        // The panel goes first and faster, so the shot is travelling against
+        // the page rather than against the menu it came out of.
+        .to(panel, { autoAlpha: 0, duration: 0.32, ease: 'power2.out' }, 0)
+        .to(
+          clone,
+          { x: dx, y: dy, scale, duration: 0.68, ease: 'power3.inOut', transformOrigin: '50% 50%' },
+          0,
+        );
+
+      return true;
+    };
+
+    workLinks.forEach((link, i) => {
+      link.addEventListener(
+        'click',
+        (event) => {
+          const href = link.getAttribute('href');
+          // Anything that is not a plain left click belongs to the browser:
+          // open-in-new-tab, download, and the rest have to keep working.
+          if (
+            !href ||
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey ||
+            link.getAttribute('target') === '_blank'
+          ) {
+            return;
+          }
+          // Under reduced motion the navigation is the whole event.
+          if (prefersReducedMotion()) return;
+
+          const card = workCards[i];
+          if (!card) return;
+
+          event.preventDefault();
+          // The pointer may never have been over this row — a keyboard user
+          // tabbing straight to it, say — so make sure the card it is about to
+          // grow is the one on screen.
+          show(i);
+          if (!growInto(href, card)) window.location.href = href;
+        },
+        { signal },
+      );
     });
   }
 

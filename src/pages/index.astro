@@ -16,6 +16,7 @@ import Overclock from '../components/sections/Overclock.astro';
    both of which named it explicitly. */
 import WorkCategories from '../components/sections/WorkCategories.astro';
 import TwoWays from '../components/sections/TwoWays.astro';
+import Clients from '../components/sections/Clients.astro';
 import Testimonials from '../components/sections/Testimonials.astro';
 import Journal from '../components/sections/Journal.astro';
 import FounderQuote from '../components/sections/FounderQuote.astro';
@@ -119,8 +120,16 @@ import Footer from '../components/layout/Footer.astro';
   <TwoWays />
 
   {/*
+    A band rather than a chapter — ruled top and bottom, one row tall, and the
+    only thing on the page that moves without being scrolled. It introduces the
+    section under it, so the two are adjacent on purpose. No script: the loop is
+    a CSS animation over a list rendered twice.
+  */}
+  <Clients />
+
+  {/*
     Chapter 8. Same plain-scroll treatment as the two sections above it. Its
-    hover accordion and auto/manual marquee live in
+    hover accordion, the videos, and the quote grid's "See all" live in
     src/scripts/testimonials.ts.
   */}
   <Testimonials />

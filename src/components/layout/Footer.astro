@@ -222,6 +222,12 @@ const {
 
   /* --- Responsive ---------------------------------------------------------- */
   @media (max-width: 48rem) {
+    /* The shared mobile rhythm — see --section-gap-y in globals.css. It was
+       40 over 24, the only asymmetric pair on the page. */
+    .ft__inner {
+      padding-block: var(--section-gap-y);
+    }
+
     .ft__cols {
       justify-content: flex-start;
       gap: clamp(1.75rem, 8vw, 2.75rem);

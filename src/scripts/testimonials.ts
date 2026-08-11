@@ -562,12 +562,50 @@ function initMarquee(section: HTMLElement, cleanups: Array<() => void>): void {
 }
 
 /**
- * Testimonials (chapter 8) — the hover accordion, the marquee, and a one-shot
- * reveal when the section first scrolls into view.
+ * The quote grid's "See all" — unfolds the second row of cards.
+ *
+ * Runs under reduced motion like every other control here, because it is the
+ * only way to those cards and hiding content behind a preference is not a
+ * motion decision. There is nothing to soften anyway: which rows are on the
+ * page is a `display` switch in the component's CSS, off one attribute, with
+ * no transition on either side of it.
+ */
+function initSeeAll(section: HTMLElement, cleanups: Array<() => void>): void {
+  const more = section.querySelector<HTMLElement>('[data-tm-more]');
+  const button = section.querySelector<HTMLButtonElement>('[data-tm-see-all]');
+  if (!more || !button) return;
+
+  const label = button.querySelector<HTMLElement>('[data-tm-see-all-label]');
+  const controller = new AbortController();
+
+  button.addEventListener(
+    'click',
+    () => {
+      const open = more.toggleAttribute('data-open');
+      button.setAttribute('aria-expanded', String(open));
+      if (label) {
+        label.textContent =
+          (open ? button.dataset.labelLess : button.dataset.labelMore) ?? label.textContent;
+      }
+      // Three cards' worth of page just appeared below the fold — everything
+      // under it is measuring against the old layout until this runs.
+      ScrollTrigger.refresh();
+    },
+    { signal: controller.signal },
+  );
+
+  cleanups.push(() => controller.abort());
+}
+
+/**
+ * Testimonials (chapter 8) — the hover accordion, the spotlight, the videos,
+ * the marquee, the quote grid's "See all", and a one-shot reveal of the
+ * featured row when the section first scrolls into view.
  *
  * Same contract as the other post-scene sections: the reveal is not scrubbed
  * and not pinned, because the handover into this section is plain document
- * scroll.
+ * scroll. The quote grid under the featured row has no entrance at all — it is
+ * a static block of cards by design.
  *
  * Returns a cleanup function.
  */
@@ -581,6 +619,7 @@ export function initTestimonials(): () => void {
   initSpotlight(section, cleanups);
   initVideos(section, cleanups);
   initMarquee(section, cleanups);
+  initSeeAll(section, cleanups);
 
   if (prefersReducedMotion()) {
     // CSS already renders the finished section under the same query.
@@ -588,8 +627,10 @@ export function initTestimonials(): () => void {
   }
 
   const people = gsap.utils.toArray<HTMLElement>('[data-tm-person]', section);
-  const cards = gsap.utils.toArray<HTMLElement>('.tm__quote-card', section);
 
+  /* The featured row only. The quote grid under it has no entrance by design —
+     it is a static block of cards, and the CSS does not park it at opacity 0,
+     so there is nothing here to put back. */
   const tl = gsap.timeline({
     defaults: { ease: 'power3.out' },
     scrollTrigger: { trigger: section, start: 'top 75%', once: true },
@@ -597,18 +638,6 @@ export function initTestimonials(): () => void {
 
   if (people.length) {
     tl.fromTo(people, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.9, stagger: 0.12 }, 0);
-  }
-
-  if (cards.length) {
-    // Only the first few are on screen; staggering all of them (including the
-    // duplicated copy) would run long after the rail has scrolled past.
-    tl.fromTo(
-      cards.slice(0, 6),
-      { opacity: 0, y: 22 },
-      { opacity: 1, y: 0, duration: 0.7, stagger: 0.08 },
-      0.25,
-    );
-    tl.set(cards.slice(6), { opacity: 1 }, 0.25);
   }
 
   cleanups.push(() => {

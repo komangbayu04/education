@@ -189,19 +189,44 @@ const photos = [
   { src: `${SRC}/blog2.png`, name: 'journal-2', maxW: 900 },
   { src: `${SRC}/blog3.png`, name: 'journal-3', maxW: 900 },
   { src: `${SRC}/bg 2.png`, name: 'quote-ground', maxW: 1800 },
-  /* The ground of Two ways in's left panel. Its source is only 738px wide, so
-     maxW is nominal — `withoutEnlargement` means it comes out at its native
-     size whatever is asked for, and the panel is about that wide at 1440.
-     Quality is up from the 82 the rest use for the same reason: this is the
-     one photo here that is displayed at roughly 1:1, where there is no
-     downscale left to hide compression in. */
-  { src: `${SRC}/two_ways.png`, name: 'two-ways', maxW: 1600, avif: true, quality: 90 },
+  /* The ground of Two ways in's left panel. new-two.png replaces two_ways.png
+     — same 0.863 aspect, twice the resolution (1476x1710 against 738x854), so
+     it is a drop-in and the panel's markup keeps its ratio. maxW now bites
+     where it used to be nominal: the source is wider than 1600 was reaching
+     for, so this is a real downscale rather than `withoutEnlargement` handing
+     back the original. Quality stays at 90 — the panel shows this at close to
+     1:1 on a wide screen, where there is little downscale to hide compression
+     in. */
+  { src: `${SRC}/new-two.png`, name: 'two-ways', maxW: 1600, avif: true, quality: 90 },
+
+  /* Client wordmarks for the marquee above Testimonials.
+     `lossless`, unlike everything else here: these are flat two-colour marks
+     with hard edges at 62–145px wide, which is exactly what lossy WebP rings
+     around — and losslessly they are a couple of KB each anyway. maxW is
+     nominal for the same reason as two-ways: the sources are already smaller
+     than any cap worth stating, and `withoutEnlargement` keeps them there.
+     `phillips.png` is the file's spelling; the brand's is Philips, so the
+     output takes the brand's. */
+  ...[
+    ['gojek.png', 'logo-gojek'],
+    ['phillips.png', 'logo-philips'],
+    ['mandiri.png', 'logo-mandiri'],
+    ['BNP.png', 'logo-bnp-paribas'],
+    ['novo.png', 'logo-novo-nordisk'],
+    ['zingage.png', 'logo-zingage'],
+    ['MCD.png', 'logo-mcdonalds'],
+    ['Evyd.png', 'logo-evyd'],
+    ['Pfizer.png', 'logo-pfizer'],
+  ].map(([file, name]) => ({ src: `${SRC}/${file}`, name, maxW: 400, lossless: true })),
 ];
 
-for (const { src, name, maxW, avif = false, quality = 82 } of photos) {
+for (const { src, name, maxW, avif = false, quality = 82, lossless = false } of photos) {
   const base = sharp(src).resize({ width: maxW, withoutEnlargement: true });
 
-  const webp = await base.clone().webp({ quality, effort: 6 }).toFile(`${OUT}/${name}.webp`);
+  const webp = await base
+    .clone()
+    .webp(lossless ? { lossless: true, effort: 6 } : { quality, effort: 6 })
+    .toFile(`${OUT}/${name}.webp`);
   let line = `${name}: webp ${webp.width}x${webp.height} ${(webp.size / 1024).toFixed(0)}KB`;
 
   if (avif) {

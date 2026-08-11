@@ -26,6 +26,13 @@
   --color-line: #e3e3e1;
   --color-line-strong: #cfcfcd;
 
+  /* Ground of the first section, and not #fff on purpose: sampled off a
+     decoded frame, the video's own clear area is rgb(252,252,252). Against a
+     white section that three-level difference drew a visible rectangle around
+     the artwork — the video's edge reading as a box rather than as the
+     ground. */
+  --color-bg-hero: #fcfcfc;
+
   /* Ground of the second section. The hero's pixel reveal uses the same
      value, so the handover between them is seamless. */
   --color-bg-showcase: #e7edf4;
@@ -121,6 +128,30 @@
        air above and below than the flat 16px a desktop gets. The height itself
        still follows the wordmark — only the gap changes. */
     --nav-gap: 20px;
+
+    /* And the chip comes down with it. At the desktop 2.9375rem it stood 47px
+       tall opposite a 68px wordmark on a 375px screen — two-thirds taller than
+       the mark it faces, with 36px of padding either side of the word. Since
+       --nav-height is derived from this, the band and everything reserving
+       room for it shrink together. */
+    --nav-control-h: 2.375rem;
+
+    /* One rhythm for every stacked section on a phone, top and bottom.
+       Audited at 375px, the sections that stack were each carrying their own
+       number — Work categories 40, Clients 29, Testimonials and Journal 48,
+       the footer 40 over 24 — which read as an uneven page rather than as a
+       set of blocks. 3rem is the value the two longest sections already used,
+       so it is the one the others move to.
+
+       Deliberately not applied to two of them, and both are structural rather
+       than rhythm: Two ways in is two full-bleed panels that carry their own
+       ground to the section's edges, and the founder quote centres its copy in
+       a tall band whose top and bottom are decorative bands the padding exists
+       to clear. Giving either of those 3rem would break what they are.
+
+       Mobile only. Desktop spacing is per-section and tuned against the
+       reference frames; this is not the place to re-cut it. */
+    --section-gap-y: 3rem;
   }
 }
 

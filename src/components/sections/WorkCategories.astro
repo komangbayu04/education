@@ -164,10 +164,15 @@ const {
               <div class="cat__panel" id={panelId} data-cat-panel>
                 {/* Runs off the right edge of the screen — the gutter is put
                     back as padding so the last tile can be scrolled to. */}
-                <ul class="cat__strip">
+                <ul class="cat__strip" data-cat-strip>
+                  {/* Rendered twice so the drift in workCategories.ts can wrap
+                      without a seam — the same trick as the testimonials rail.
+                      The second copy is aria-hidden, so a screen reader hears
+                      each piece of work once. */}
                   {images.length > 0
-                    ? images.map((image) => (
-                        <li class="cat__shot">
+                    ? [0, 1].flatMap((copy) =>
+                        images.map((image) => (
+                        <li class="cat__shot" aria-hidden={copy === 1 ? 'true' : undefined}>
                           <picture>
                             <source srcset={`${image.src}.avif`} type="image/avif" />
                             <img
@@ -178,7 +183,8 @@ const {
                             />
                           </picture>
                         </li>
-                      ))
+                        )),
+                      )
                     : Array.from({ length: PLACEHOLDER_TILES }).map(() => (
                         <li class="cat__shot cat__shot--empty" aria-hidden="true" />
                       ))}
@@ -251,22 +257,57 @@ const {
   }
 
   /* Lit. Not opaque white: this ground is warm, and a pure white row on it
-     reads blue by comparison — the translucent white takes the cream with it. */
-  .cat__item:hover .cat__row,
-  .cat__item:focus-within .cat__row,
+     reads blue by comparison — the translucent white takes the cream with it.
+
+     `:has(:focus-visible)`, not `:focus-within`. A mouse click leaves the
+     toggle focused, so focus-within kept the row lit after it had been clicked
+     shut — the strip closed and the row stayed white, reading as still open.
+     focus-visible ignores that click and answers only to keyboard focus, which
+     is the case the rule was there for. */
+  .cat__item:has(:focus-visible) .cat__row,
   .cat__item[data-open] .cat__row {
     background: rgb(255 255 255 / 0.72);
     padding-inline: var(--cat-inset);
   }
 
-  /* The row above the stack, and the stack above every row after it. Only while
-     it is lit — a permanent z-index would put every row's (invisible) stack
-     over its neighbours and nothing below the first row would be clickable. */
-  .cat__item:hover,
-  .cat__item:focus-within,
+  /* The hover half of that, and it is gated on the device actually having a
+     pointer. A tap leaves :hover applied until the next tap lands somewhere
+     else, so on a phone the row stayed lit after its strip had been clicked
+     shut — the panel closed and the row went on reading as selected. There is
+     nothing hovering on a touch screen; this state is for a cursor. */
+  @media (hover: hover) {
+    .cat__item:hover .cat__row {
+      background: rgb(255 255 255 / 0.72);
+      padding-inline: var(--cat-inset);
+    }
+  }
+
+  /* Lifted over its neighbours, so the hover stack can hang out of the row it
+     belongs to and still be seen. Only while the row is lit — a permanent
+     z-index would put every row's (invisible) stack over the rows after it and
+     nothing below the first row would be clickable. */
   .cat__item[data-open] {
     position: relative;
     z-index: 2;
+  }
+
+  /* A step above the open row, and deliberately not the same number.
+     Both used to be 2, which left the tie to be broken by document order: an
+     open row *below* the hovered one won it, and its strip of screenshots
+     painted straight over the cards hanging down from the row above. Hover is
+     a preview and it is transient — it belongs over everything in the list,
+     wherever the open row happens to be. */
+  .cat__item:has(:focus-visible) {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* Pointer devices only, for the same reason as the lit ground above. */
+  @media (hover: hover) {
+    .cat__item:hover {
+      position: relative;
+      z-index: 3;
+    }
   }
 
   /* --- Row content --------------------------------------------------------
@@ -358,7 +399,12 @@ const {
   }
 
   /* Only the rotation differs between the three — the fan is what makes it
-     read as a stack. */
+     read as a stack.
+
+     These are the resting fan, and the no-JS one. While a row is hovered
+     workCategories.ts takes the transform over and cycles the cards through
+     these same three places, so the numbers here are mirrored in its SLOTS —
+     change one and the stack jumps at the moment the shuffle starts. */
   .cat__card--back {
     transform: rotate(-4deg) translate(-4%, 4%);
   }
@@ -450,17 +496,33 @@ const {
 
   /* --- Responsive ---------------------------------------------------------- */
   @media (max-width: 48rem) {
-    /* The number and the label stack rather than sitting in two columns: at a
-       phone's width a 26% first column leaves the longer labels wrapping to
-       three lines beside a two-character number. */
+    /* The shared mobile rhythm — see --section-gap-y in globals.css. */
+    .cat {
+      padding-block: var(--section-gap-y);
+    }
+
+    /* Still two columns, but the number's is only as wide as the number.
+       The desktop 26% is a proportion read off the frame, and at a phone's
+       width it spent a quarter of the row on two characters and wrapped the
+       longer labels to three lines beside them. `auto` keeps the label on the
+       same line as its number, which is the point of the pairing, without
+       giving the number a column it does not need. */
     .cat__toggle {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 0.375rem;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 0.625rem;
+      align-items: baseline;
     }
 
     .cat__num {
       font-size: 0.8125rem;
       color: var(--color-ink-secondary);
+    }
+
+    /* Stacked under the number rather than beside it, the label is the row's
+       only line of any weight, and at the desktop 1rem it sat heavier than the
+       "See Work" beside it. */
+    .cat__label {
+      font-size: 0.875rem;
     }
 
     /* No room for it, and nothing to hover with. The strip is the preview

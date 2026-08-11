@@ -273,7 +273,28 @@ export function initHero(): () => void {
              `data-scene-pulled`) is what the scroll continues on. The field
              was already painted in that section's own colour, so there is
              nothing to see in the swap. */
-          onLeave: () => scene.setAttribute('data-scene-done', ''),
+          /* The timeline is landed by hand before the scene is hidden, and
+             that ordering is the whole point.
+
+             This callback fires on the scroll crossing the pin's end. The
+             field it is hiding, though, is driven by the scrub — which lags
+             the scroll by 0.3s. A flick, which is how a phone is scrolled,
+             crosses the end while the timeline is still catching up, so the
+             scene was being hidden with the field part-laid and the next
+             section came up through the gaps. Measured mid-flick: the scroll
+             was at the pin's end with the timeline still at 0.86 and one tile
+             of 276 down.
+
+             `progress(1)` finishes the handover in the same frame, so whatever
+             is on screen at the moment the scene goes is the completed field —
+             which is the next section's own ground colour, and therefore no
+             transition at all to look at. The scrub still owns the value
+             either side of this; it is only being told where it was always
+             heading. */
+          onLeave: () => {
+            handover.progress(1);
+            scene.setAttribute('data-scene-done', '');
+          },
           onEnterBack: () => scene.removeAttribute('data-scene-done'),
           onUpdate: (self) => {
             let slot = 1;
@@ -400,6 +421,21 @@ export function initHero(): () => void {
        * Built here rather than in markup because the count depends on the
        * viewport, and rebuilt on every matchMedia pass for the same reason.
        */
+      /* Every field built above, and how to build it again. The viewport is an
+         input to the count, and the viewport changes after the build: rotating
+         a phone, dragging a window, or — the common one — a mobile browser
+         hiding its URL bar, which is worth 80-odd pixels of height without any
+         event a layout would normally care about.
+
+         Nothing re-ran this, so the field stayed the size it was born at.
+         Measured: after an 88px height change the exit field stopped 19px
+         short of the bottom of the screen, and that strip is Overclock, read
+         straight through while the scene dissolves over the section below —
+         two chapters at once, which is the one thing the handover exists to
+         prevent. A rotation, or any larger change, uncovers proportionally
+         more: at 1280 wide with a field built for 375 it covered 43%. */
+      const tileFields: Array<() => void> = [];
+
       const addTileReveal = (
         key: string,
         start: number,
@@ -409,37 +445,59 @@ export function initHero(): () => void {
         const grid = scene.querySelector<HTMLElement>(`[data-scene-grid="${key}"]`);
         if (!grid) return 0;
 
-        const size = Math.max(40, Math.round(window.innerWidth / 14));
-        // +2 on each axis for the one-tile overspill the CSS insets rely on
-        const cols = Math.ceil(window.innerWidth / size) + 2;
-        const rows = Math.ceil(window.innerHeight / size) + 2;
-        grid.style.setProperty('--px-size', `${size}px`);
-        grid.style.setProperty('--px-cols', String(cols));
-
-        const frag = document.createDocumentFragment();
-        for (let i = 0; i < cols * rows; i++) frag.appendChild(document.createElement('span'));
-        grid.replaceChildren(frag);
-
         // 0.72 of the phase for the scatter, leaving the rest for the layer to
         // take over — the swap has to land while the field still covers
         // everything, or the outgoing chapter flashes back through.
         const spread = duration * 0.72;
-        tl.fromTo(
-          Array.from(grid.children) as HTMLElement[],
-          { scale: 0.55, autoAlpha: 0 },
-          {
-            // Slightly over 1 so neighbours overlap instead of meeting on a
-            // fractional pixel boundary and letting the old chapter show
-            // through as a hairline.
-            scale: 1.04,
-            autoAlpha: 1,
-            duration: duration * 0.14,
-            ease: 'power2.out',
-            stagger: { grid: [rows, cols], from: 'random', amount: spread },
-          },
-          start,
-        );
+        let tween: gsap.core.Tween | null = null;
+        let builtCols = 0;
+        let builtRows = 0;
 
+        const build = () => {
+          const size = Math.max(40, Math.round(window.innerWidth / 14));
+          // +2 on each axis for the one-tile overspill the CSS insets rely on
+          const cols = Math.ceil(window.innerWidth / size) + 2;
+          const rows = Math.ceil(window.innerHeight / size) + 2;
+          // Refreshes are frequent — every accordion click below calls one —
+          // and almost none of them change the viewport. Rebuilding a few
+          // hundred spans on each would be work for nothing.
+          if (cols === builtCols && rows === builtRows) return;
+          builtCols = cols;
+          builtRows = rows;
+
+          grid.style.setProperty('--px-size', `${size}px`);
+          grid.style.setProperty('--px-cols', String(cols));
+
+          const frag = document.createDocumentFragment();
+          for (let i = 0; i < cols * rows; i++) frag.appendChild(document.createElement('span'));
+          grid.replaceChildren(frag);
+
+          // The old tween still points at spans that are no longer in the
+          // document, so it goes with them.
+          tween?.kill();
+          tween = gsap.fromTo(
+            Array.from(grid.children) as HTMLElement[],
+            { scale: 0.55, autoAlpha: 0 },
+            {
+              // Slightly over 1 so neighbours overlap instead of meeting on a
+              // fractional pixel boundary and letting the old chapter show
+              // through as a hairline.
+              scale: 1.04,
+              autoAlpha: 1,
+              duration: duration * 0.14,
+              ease: 'power2.out',
+              stagger: { grid: [rows, cols], from: 'random', amount: spread },
+            },
+          );
+          /* Absolute position, so a rebuild lands the field in exactly the
+             phase it was scheduled for. Added in the same call stack that
+             created it, so it is re-parented off the global timeline before a
+             tick can render it there. */
+          tl.add(tween, start);
+        };
+
+        build();
+        tileFields.push(build);
         return spread;
       };
 
@@ -488,34 +546,47 @@ export function initHero(): () => void {
          in. It is the last thing the scene paints, and once it has, the pin is
          over and the scene is hidden — see the trigger's onLeave, and the pull
          that puts the next section exactly where the scene was. */
+
+      /** Where in the exit phase the scene stops being painted at all.
+
+       *  It is a cut, not a fade. Everything before it is the field landing;
+       *  at it, the scene goes and the section under it is simply what is
+       *  there. 0.86 because that is where the scatter finishes — see below —
+       *  so what is on screen at the moment of the cut is a complete field and
+       *  nothing else. */
+      const EXIT_CUT_AT = 0.86;
+
+      /* The scatter gets the whole phase now, not 55% of it.
+
+         It used to get 55% and the scene then cross-faded out over the
+         remaining 45%. That fade is what put two chapters on screen together:
+         for a third of a viewport of scroll the scene sat at a low opacity
+         with Overclock still legible through the thinning tiles while the next
+         section's rows were already crisp underneath. Reported twice, and both
+         times the complaint was the same — the transition had not finished but
+         the section below was already up.
+
+         There is nothing to fade to. The exit field is painted in the next
+         section's own ground colour (see the note in WorkCategories.astro), so
+         a complete field and that section's empty ground are the same flat
+         colour. Cutting between them shows no seam, which is what makes the
+         fade unnecessary rather than merely unwanted.
+
+         The scatter ends at 0.86 of whatever duration it is given — 0.72 of it
+         staggering the tiles in, plus the 0.14 the last tile takes to arrive —
+         so handing it the whole phase puts the finished field exactly at the
+         cut. */
       addTileReveal('exit', atExitReveal, durExitReveal);
 
-      /** Where in the exit phase the scene starts giving way to what is under
-       *  it. Just past halfway: late enough that the field reads as a field
-       *  first, early enough that the next section is arriving well before the
-       *  pin lets go rather than at the instant it does. */
-      const EXIT_DISSOLVE_AT = 0.55;
+      /* And then the scene is gone, in one frame.
 
-      /* And then the scene itself goes. The field alone only got as far as a
-         screen of flat colour: the next section was already in position
-         underneath, and nothing let it through until the pin released. Fading
-         the scene out is what lets it through — the tiles dissolve along with
-         everything they were covering, and what is behind them is the section
-         that was there all along.
-
-         Started once the scatter is essentially done, so the two read as one
-         movement: Overclock breaks up into tiles, the tiles thin out, the next
-         section is what is left. It is scrubbed like everything else here, so
-         scrolling back up brings the scene straight back. */
-      handover.to(
-        scene,
-        {
-          autoAlpha: 0,
-          ease: 'none',
-          duration: durExitReveal * (1 - EXIT_DISSOLVE_AT),
-        },
-        atExitReveal + durExitReveal * EXIT_DISSOLVE_AT,
-      );
+         `set`, not `to`: a tween would reintroduce the very window this is
+         removing. Scrubbed like everything else here, so scrolling back up
+         puts the scene straight back — hence the pair, one either side of the
+         cut, rather than a single set that the scrub could not undo. */
+      handover
+        .set(scene, { autoAlpha: 1 }, atExitReveal)
+        .set(scene, { autoAlpha: 0 }, atExitReveal + durExitReveal * EXIT_CUT_AT);
 
       /* And it stops taking the pointer at the same moment.
          `autoAlpha` only parks visibility at the very end of that fade, so
@@ -563,7 +634,7 @@ export function initHero(): () => void {
         .set(
           sceneHitTargets,
           { pointerEvents: 'none' },
-          atExitReveal + durExitReveal * EXIT_DISSOLVE_AT,
+          atExitReveal + durExitReveal * EXIT_CUT_AT,
         );
 
       /**
@@ -582,8 +653,17 @@ export function initHero(): () => void {
        */
       handover.set({}, {}, 1);
 
+      /* ScrollTrigger fires this on resize, which is exactly when a field can
+         stop covering the screen — see the note by `tileFields`. `refreshInit`
+         rather than `refresh`: it runs before positions are recalculated, so
+         the new spans are in place by the time the timeline is re-rendered at
+         the current scroll. */
+      const rebuildTileFields = () => tileFields.forEach((build) => build());
+      ScrollTrigger.addEventListener('refreshInit', rebuildTileFields);
+
       // Runs when the query stops matching, and on mm.revert()
       return () => {
+        ScrollTrigger.removeEventListener('refreshInit', rebuildTileFields);
         pixels?.replaceChildren();
         delete scene.dataset.sceneMode;
         scene.removeAttribute('data-scene-done');

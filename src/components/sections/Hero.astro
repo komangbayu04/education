@@ -40,6 +40,16 @@ const {
 <section class="hero" data-hero data-chapter-section="1" aria-labelledby="hero-title">
   <div class="hero__texture" aria-hidden="true"></div>
 
+  {/* The drawn guides: two hairline verticals and one large circle. Purely
+      decorative, and early in the section so they paint under the artwork and
+      the copy without needing a z-index of their own. */}
+  <div class="hero__guides" aria-hidden="true">
+    <span class="hero__guide hero__guide--left"></span>
+    <span class="hero__guide hero__guide--right"></span>
+    <span class="hero__ring"></span>
+    <span class="hero__ring hero__ring--inner"></span>
+  </div>
+
   {/* The artwork is the section's ground, not a column in it: the composition
       is baked into the video — the tree on the left, clear white on the right
       exactly where the copy sits — so the frame only reads correctly when the
@@ -64,9 +74,29 @@ const {
           muted
           playsinline
           preload="auto"
-          poster="/media/hero-video-poster.webp"
           aria-label="Showreel of the studio's work"
         >
+          {/* The phone cut first, because a <source> is chosen by walking this
+              list in order and taking the first one whose type is playable and
+              whose `media` matches — so the narrow pair has to be ahead of the
+              wide one to ever win. Verified in this engine: a source with a
+              media query that cannot match is skipped rather than taken.
+
+              Two different cuts, not one scaled: the wide file is a 1.74
+              landscape composed with the tree left and clear ground right for
+              the copy, and on a phone that framing has nowhere to go. This one
+              is cut portrait for it. */}
+          <source
+            src="/media/hero-video-mobile.webm"
+            type="video/webm"
+            media="(max-width: 48rem)"
+          />
+          <source
+            src="/media/hero-video-mobile.mp4"
+            type="video/mp4"
+            media="(max-width: 48rem)"
+          />
+
           <source src="/media/hero-video.webm" type="video/webm" />
           <source src="/media/hero-video.mp4" type="video/mp4" />
         </video>
@@ -108,16 +138,162 @@ const {
 
 <style>
   .hero {
-    --hero-pad-top: clamp(1.5rem, 2.6vw, 3rem);
+    /* Air above the copy, on top of the nav's own band. Roughly a third of what
+       it was: with the artwork no longer a column beside the type but the
+       section's ground, this padding was the only thing holding the headline
+       down, and it sat a good 50px lower than the composition wanted. */
+    --hero-pad-top: clamp(0.5rem, 1.1vw, 1.5rem);
+
+    /* Where the copy starts, and — because the artwork is levelled with it —
+       where the video starts too. It is the hero's own top padding restated as
+       a value rather than only applied as one, so .hero__stage can read the
+       same number instead of a hand-matched copy of it. */
+    --hero-media-top: calc(var(--nav-height) + var(--hero-pad-top));
+
+    /* How much larger the frame is than the box it is fitted to. It grows from
+       its own foot, so the seating stays and the extra height goes upward —
+       see .hero__video. */
+    /* 1, and that is the largest the frame goes without losing anything.
+
+       `contain` already fits the frame to the box on whichever axis runs out
+       first, so every value above 1 crops by definition — and because the
+       frame is seated on the box's floor and grows upward, what it crops is
+       the top of the canopy. Measured at 1.13 the canopy's top sat at y=-12,
+       twelve pixels above the screen.
+
+       The size comes from the box instead, which is what the inset below is
+       for: at full height the frame is bound by the width rather than the
+       height and comes out at 1440x827 against the 1401x805 this box used to
+       give it — bigger, and whole.
+
+       To go beyond that the frame has to be cropped somewhere. The only place
+       it can afford to lose is the foot: the grass is uniform and already runs
+       to the section's edge. That means seating the frame at the top instead
+       (object-position and transform-origin both) and scaling from there, so
+       the growth goes downward past the section floor and the canopy stays
+       put. Say the word and it is those two lines. */
+    --hero-media-scale: 0.93;
+
+    /* Where the artwork and the copy sit, relative to where the grid puts
+       them. Four numbers rather than one, because the two no longer travel
+       together: they began as a single shift moving both the same distance
+       left, and have since been pulled apart — the artwork right and up, the
+       copy further left and down.
+
+       Every one of them is declared, and that is not tidiness: these are read
+       inside `transform`, and a `var()` with no value makes the whole
+       declaration invalid — which is how an undeclared shift once threw away
+       the `scale()` sitting beside it in the same transform and left the frame
+       painting unscaled however the scale was set. */
+    --hero-media-x: -4px;
+    --hero-media-y: -12px;
+    --hero-copy-x: -28px;
+    --hero-copy-y: 38px;
 
 
     position: relative;
+    /* The video's own white, so its edge does not draw a box — see
+       --color-bg-hero. */
+    background: var(--color-bg-hero);
     /* Exactly one viewport. The scroll scene depends on this: a scene shorter
        than the viewport makes the end of the pin unreachable. Room for the
        overlaid nav is reserved with padding instead of layout height. */
     height: 100svh;
     min-height: 34rem;
     padding-block: calc(var(--nav-height) + var(--hero-pad-top)) 0;
+  }
+
+  /* --- Drawn guides ---------------------------------------------------------
+     Two verticals and a circle, all hairlines, all taken off the reference
+     frame rather than placed by eye.
+
+     The circle was solved, not guessed. Its arc crosses the top edge of the
+     frame at 215 and 1065 and the bottom edge at 95 and 1185, of a 1282x743
+     view — four points, which is more than enough to pin a circle down. Half
+     widths of 425 at the top and 545 at the bottom put its centre below the
+     middle:
+
+       r^2 - cy^2 = 425^2     and     r^2 - (H - cy)^2 = 545^2
+       -> cy = 450 (60.5% of the height), r = 619 (48.27% of the width)
+
+     Both crossings reproduce exactly from those two numbers, so what is below
+     is the frame's geometry rather than an impression of it.
+
+     The diameter is a percentage of the width and `aspect-ratio` supplies the
+     height, so the ring scales with the viewport and stays a circle rather
+     than becoming an ellipse on a short window.
+
+     The verticals measured 10.76% in on the left and 11.39% on the right — one
+     symmetric inset read twice with a few pixels of error either way. 11% is
+     the mean, used on both sides.
+
+     Desktop only, at the same 1200px the two-column hero itself needs. Below
+     it the section is one column with the video behind the copy, and a circle
+     wider than the screen with two rules through it is noise rather than
+     structure. */
+  .hero__guides {
+    display: none;
+  }
+
+  @media (min-width: 1200px) {
+    /* Gone from the wide layout. It was a faint pixel grid masked to the
+       right-hand side, and with the drawn guides above now carrying that side
+       of the composition the two were competing for the same empty space. It
+       stays below 1200px, where there are no guides. */
+    .hero__texture {
+      display: none;
+    }
+
+    .hero__guides {
+      position: absolute;
+      inset: 0;
+      display: block;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .hero__guide,
+    .hero__ring {
+      position: absolute;
+      /* Faint enough to read as paper rather than as drawn lines, and a fifth
+         stronger than the 0.07 it started at — at that value the arcs were
+         only really there on a good screen. */
+      border-color: rgb(10 10 10 / 0.085);
+      border-style: solid;
+    }
+
+    .hero__guide {
+      top: 0;
+      bottom: 0;
+      border-width: 0 0 0 1px;
+    }
+
+    .hero__guide--left {
+      left: 11%;
+    }
+
+    .hero__guide--right {
+      right: 11%;
+    }
+
+    /* Two of them, concentric. The outer one is the circle solved from the
+       frame; the inner is a quarter smaller, which is the only number it
+       needs — everything else it shares. */
+    .hero__ring {
+      --hero-ring-d: 96.27%;
+
+      left: 50%;
+      top: 60.5%;
+      width: var(--hero-ring-d);
+      aspect-ratio: 1;
+      translate: -50% -50%;
+      border-width: 1px;
+      border-radius: 50%;
+    }
+
+    .hero__ring--inner {
+      --hero-ring-d: calc(96.27% * 0.75);
+    }
   }
 
   /* Faint pixel field behind the copy, masked so it only ever sits on the
@@ -160,6 +336,10 @@ const {
   .hero__col--text {
     position: relative;
     z-index: 2;
+    /* Its own pair — see the note at the top of this file. Applied to the
+       column and not to the grid track, so the track keeps its measure and the
+       headline still breaks where it was set to. */
+    transform: translate(var(--hero-copy-x), var(--hero-copy-y));
   }
 
   /* --- Headline -----------------------------------------------------------
@@ -188,7 +368,10 @@ const {
     font-weight: 400;
     line-height: var(--leading-display);
     letter-spacing: -0.025em;
-    padding-top: clamp(0.5rem, 1.5vw, 1.75rem);
+    /* None on the desktop row. --hero-pad-top above is the air over the
+       headline, and a second helping here was the other half of why it sat
+       low. The phone rule further down keeps its own. */
+    padding-top: 0;
   }
 
   .hero__line {
@@ -209,12 +392,17 @@ const {
      The pitch and the two ways in, pushed to the foot of the column by the
      auto margin rather than by a fixed offset — so the space between it and
      the headline is whatever the viewport has left, at any height. */
+  /* Pushed to the foot of the column by the auto margin, and then held well
+     clear of it by the bottom one — which is the knob that decides how high
+     this block sits, since nothing under it is fixed. It was 44px, which put
+     the pitch and the buttons in the section's bottom corner with about 195px
+     of empty column standing between them and the tagline. */
   .hero__lede {
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
     margin-top: auto;
-    margin-bottom: clamp(1.5rem, 3vw, 2.75rem);
+    margin-bottom: clamp(2.5rem, 7.5vw, 7.5rem);
   }
 
   .hero__body {
@@ -234,12 +422,38 @@ const {
      The section's ground, covering the whole viewport behind everything else.
      It used to be a column in the grid, which cropped a composition cut for
      the full frame down to half the width. */
+  /* Pinned to the foot of the section rather than filling it, and shorter than
+     it by --hero-media-h. Two things come out of that:
+
+     the frame gets smaller, because `contain` fits it to this box and the box
+     is no longer the whole screen; and it stands *on* the section's bottom
+     edge, which is what stops the grass reading as cut off. Filling the height,
+     the artwork ran to the bottom of the window with nothing under it, so the
+     edge of the video and the edge of the screen were the same line and the
+     picture looked sliced by it rather than seated on it. */
   .hero__stage {
     position: absolute;
+    /* Top levelled with the headline, foot on the section's own — so the box
+       is everything below the line "We" starts on, and the frame is as large
+       as that leaves room for. Its width follows, since `contain` keeps the
+       ratio.
+
+       A share of the height (78%) came first and was the wrong control: it set
+       the artwork's size directly and let the top edge land wherever that
+       worked out, which was a good 70px below the headline. Stated as two
+       edges instead, the size is a result and the alignment is the rule. */
+    /* Full height, not levelled with the headline. The inset used to start
+       this box at --hero-media-top so its top edge lined up with the line "We"
+       starts on. That cost the artwork size for an alignment nobody can see:
+       the frame is `contain`ed and seated on the box's floor, so the empty
+       band the inset created was simply video-white above the composition —
+       the same colour as the section. Removing it lets `contain` fit a frame
+       bound by the width instead of the height, which is the larger of the
+       two. The artwork does not move; only its size changes. */
     inset: 0;
     z-index: 0;
     width: 100%;
-    height: 100%;
+    height: auto;
     margin: 0;
     /* Pointer parallax is applied here. */
     will-change: transform;
@@ -275,7 +489,44 @@ const {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: transparent;
+    /* Centred, level with the copy beside it, rather than seated on the box's
+       floor. The floor was there because `contain` leaves a band wherever the
+       frame is bound by its width, and a band under the composition read as a
+       mistake — but that only held while the section was white and the
+       video's ground was not. Both are rgb(252,252,252) now (see
+       --color-bg-hero), so the band is the same colour as everything around it
+       and there is nothing left to hide. */
+    object-position: center;
+
+    /* The poster, as a background rather than the `poster` attribute. That
+       attribute takes one URL at every width, and the two cuts do not share a
+       shape — the landscape still on the phone's portrait box flashed
+       hard-cropped for as long as the first frame took to decode. As a
+       background it can be swapped per breakpoint, and it is sized and
+       anchored to match whatever `object-fit` is doing above it, so the still
+       and the first frame land in the same place. */
+    background-image: url('/media/hero-video-poster.webp');
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+
+    /* Scaled on the element rather than by giving the box more room, because
+       there is no more room to give: the box already runs from the headline's
+       line to the section's foot, and at 1440 the fitted frame is within 40px
+       of the full width — so a taller box buys almost nothing before `contain`
+       switches to being bound by the width instead. Scaling the element scales
+       what it paints, which is the only lever left.
+
+       `50% 50%` so it grows and shrinks about its own middle and stays level
+       with the copy. It was `50% 100%`, which pinned the foot and sent every
+       added pixel upward into the canopy — the reason the frame cropped at the
+       top rather than settling.
+
+       The offset rides along in the same declaration, since one element can
+       only have one `transform`. Order reads right to left: scale about the
+       centre first, then move the result. */
+    transform: translate(var(--hero-media-x), var(--hero-media-y)) scale(var(--hero-media-scale));
+    transform-origin: 50% 50%;
   }
 
   /* --- Buttons ------------------------------------------------------------- */
@@ -389,9 +640,75 @@ const {
     .hero__lede {
       margin-top: auto;
     }
+
+    /* Back to filling the section, and centred in it. Seating the frame on the
+       floor is a desktop composition: there the copy is a column beside the
+       artwork, so the space the shorter box frees is above the video and
+       nothing is standing in it. Here the copy is the full width with
+       `space-between` holding its lede at the section's foot — a video pushed
+       down into that corner lands under the buttons. */
+    .hero__stage {
+      inset: 0;
+      height: 100%;
+    }
+
+    /* Neither the growth nor the shift. Both are desktop-row moves: they exist
+       because the copy is a column beside the artwork and the pair can travel
+       together into the space on the left. Here the copy is the full width
+       with the video behind it, so shifting it sideways only pushes it out of
+       its own gutter, and scaling a frame that is already width-bound at this
+       size just crops it. */
+    .hero__video {
+      object-position: center;
+      transform: none;
+    }
+
+    .hero__col--text {
+      transform: none;
+    }
   }
 
   @media (max-width: 48rem) {
+    /* The phone cut, seated on the section's floor.
+
+       `cover`, not `contain`: this file is cut portrait for exactly this box,
+       so filling it is the point — contained, it would letterbox and the whole
+       reason for a second encode would be lost. The crop that `cover` takes
+       comes off the top, which is where this composition can afford it: the
+       subject sits low in the frame and the sky above is what gives way as the
+       screen gets shorter. The foot stays put at every height, which is what
+       keeps it stacked against the bottom.
+
+       The poster follows the same rule, so the frame before the first decoded
+       frame is framed identically. */
+    .hero__video {
+      object-fit: cover;
+      object-position: center bottom;
+      /* Same frame, same rule as the video over it. */
+      background-image: url('/media/hero-video-mobile-poster.webp');
+      background-size: cover;
+      background-position: center bottom;
+    }
+
+    /* --- The copy, as two blocks ---------------------------------------
+       The headline and its tagline are one thing and the body and its
+       buttons are another, so the step between those two groups is bigger
+       than the step inside either. Everything is already left-aligned on
+       the section's own gutter — `text-align: start` and a shared 20px left
+       edge — so only the vertical steps are set here. */
+
+    /* The tagline belongs to the headline: it names who the work is for and
+       reads as its second line, not as a paragraph under it. */
+    .hero__head {
+      gap: 0.25rem;
+    }
+
+    /* And the two groups sit apart. They were flush — the column had no gap
+       at all, so the body ran straight on from the tagline. */
+    .hero__col--text {
+      gap: 1rem;
+    }
+
 
     /* One line, not three stacked words. The lines are spans, so inline is
        all it takes — plus a real space between them, since the markup has
@@ -406,7 +723,15 @@ const {
       display: inline;
     }
 
-    .hero__line:not(:last-child)::after {
+    /* `:not(:empty)` is load-bearing. SplitText copies this class onto the
+       spans it generates when it re-splits the headline, and some come out
+       empty — measured, the h1 held six .hero__line spans: an empty one,
+       "We", an empty one, "Design", an empty one, "Credibility". Each empty
+       span still matched :not(:last-child) and rendered a space of its own,
+       and the first child of the box being one of them is what set the
+       headline 6.7px in from the tagline and body under it. Only a span with
+       a word in it earns a space after it. */
+    .hero__line:not(:empty):not(:last-child)::after {
       content: '\00a0';
     }
 

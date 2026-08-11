@@ -548,8 +548,78 @@ const {
      Below this the panel's two halves stack: the preview's image needs more
      width than a third of a phone, and the link row has already wrapped. */
   @media (max-width: 48rem) {
+    /* The band's two controls, cut to a phone's scale.
+
+       Both were carrying their desktop size: the chip 118x47 with 36px of
+       padding either side of 16px type, against a 68px wordmark, on a 375px
+       screen. That is a third of the screen's width spent on the word "Menu"
+       and a control standing two-thirds taller than the mark it sits opposite.
+
+       The height itself is not set here: --nav-control-h lives in globals.css,
+       where --nav-height is derived from it, so the band, the hero's top
+       padding and the chapter clearances all follow it down together. A
+       `:root` rule in this file would be scoped to the component and never
+       match anything. */
+
+    .nav__toggle {
+      padding-inline: 1.25rem;
+      border-radius: 0.375rem;
+    }
+
+    .nav__toggle-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+    }
+
+    .nav__logo :global(svg) {
+      width: 3.625rem;
+    }
+
+    /* --- The open panel -----------------------------------------------
+       Desktop composes this as two rows of columns: a centred row of four
+       links, and under it the work list, its shot and its words side by side.
+       None of that survives 375px, so the whole panel becomes one left-aligned
+       column here. */
+
+    /* Full width. The 75vw measure exists to set how wide the desktop link row
+       runs; on a phone it only inset the panel's contents by 27px on each side
+       and left the block narrower than the gutter it sits in. */
+    .nav__panel-inner {
+      max-width: 100%;
+      padding-bottom: clamp(2rem, 8vw, 3rem);
+      /* Now a floor under the two blocks rather than the distance between
+         them — space-between owns that, and `gap` still applies as a minimum
+         if the panel is ever too short to have any free space to hand out. */
+      gap: clamp(1.5rem, 6vw, 2.5rem);
+      /* Links to the top, the work block to the bottom. Halving the shot left
+         about 230px of dead screen under the panel's contents, and stacked at
+         the top they read as having run out rather than as a composition. */
+      justify-content: space-between;
+    }
+
+    /* A stack, left-aligned, rather than a centred wrapping row. */
+    .nav__panel-list {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      gap: clamp(0.875rem, 3.6vw, 1.5rem);
+    }
+
+    .nav__panel-link {
+      font-size: 1.625rem;
+      /* No rule under it. The border separates four items sharing one line;
+         stacked, it reads as four underlined headings instead. The number
+         beside each is what carries the order here. */
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    /* Shot, then the two project names, then the words — the order the frame
+       draws, and not the order they appear in the markup. */
     .nav__work {
-      grid-template-columns: minmax(0, 1fr);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.875rem, 3.6vw, 1.375rem);
       /* Stacked, there is no column beside the shot to fill the height with —
          the block is as tall as its contents and the panel scrolls. */
       flex: 0 0 auto;
@@ -557,10 +627,35 @@ const {
       margin-left: 0;
     }
 
-    /* Back to its own ratio: given the full height here it would be a wall of
-       device with the list and the words pushed off the screen. */
+    /* `display: contents` is what lets the active card's two children take
+       part in the column above, so the name row can sit between them — they
+       are a two-column grid of their own everywhere else. The inactive card is
+       not rendered at all rather than held at opacity 0, which is what the
+       crossfade needs; there is no hover here to crossfade for, and a card
+       kept in the flow would add its own shot and words to the column. */
+    .nav__work-preview {
+      display: contents;
+    }
+
+    .nav__work-card {
+      display: none;
+    }
+
+    .nav__work-card[data-active] {
+      display: contents;
+    }
+
     .nav__work-shot {
+      order: 1;
+      /* Back to its own ratio: given the full height here it would be a wall
+         of device with the list and the words pushed off the screen. */
       height: auto;
+      /* Half width, which on these shots is half the height too — both are
+         the same 0.885 portrait, so one number does for either project. At
+         the full 335 the device ran 379 tall and took most of the panel's
+         remaining screen on its own. Left, with everything else. */
+      width: 50%;
+      align-self: flex-start;
     }
 
     .nav__work-shot img {
@@ -568,12 +663,23 @@ const {
       object-fit: contain;
     }
 
-    .nav__panel-inner {
-      padding-bottom: clamp(2rem, 8vw, 3rem);
+    .nav__work-list {
+      order: 2;
+      flex-direction: row;
+      gap: clamp(1rem, 4.5vw, 1.75rem);
     }
 
-    .nav__panel-link {
-      font-size: 1.125rem;
+    /* Side by side, the underline that separates stacked rows would sit under
+       each name as decoration. Colour already says which one is showing. */
+    .nav__work-link {
+      padding-block: 0;
+      border-bottom: 0;
+      font-size: 1.0625rem;
+    }
+
+    .nav__work-blurb {
+      order: 3;
+      max-width: none;
     }
   }
 

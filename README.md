@@ -150,7 +150,15 @@ through that script. `image/video-hero.mp4` (864 × 496, 10s) was encoded once b
 hand into `public/media/`:
 
 ```bash
-ffmpeg -i "image/video-hero.mp4" -an -c:v copy -movflags +faststart "public/media/hero-video.mp4"
+# The crop is not optional: the source's last row is baked dark (55,55,55
+# against a 253 ground), and scaled down it painted a grey hairline across
+# the full width of the hero. Four rows off the source clears it and keeps
+# the scaled height even, which yuv420p requires anyway.
+ffmpeg -i "image/video-upscale.mp4" -an \n  -vf "crop=3838:2200:0:0,scale=1920:-2" \n  -c:v libx264 -crf 28 -preset slow -pix_fmt yuv420p \n  -movflags +faststart "public/media/hero-video.mp4"
+
+ffmpeg -i "image/video-upscale.mp4" -an \n  -vf "crop=3838:2200:0:0,scale=1920:-2" \n  -c:v libvpx-vp9 -crf 48 -b:v 0 -row-mt 1 -pix_fmt yuv420p \n  "public/media/hero-video.webm"
+
+ffmpeg -i "public/media/hero-video.mp4" -vframes 1 \n  -c:v libwebp -quality 80 "public/media/hero-video-poster.webp"
 ```
 
 plus a VP9 `.webm` sibling (470 KB, served first) and a first-frame

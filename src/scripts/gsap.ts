@@ -18,4 +18,24 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 const DEBUG_MARKERS = false;
 ScrollTrigger.defaults({ markers: import.meta.env.DEV && DEBUG_MARKERS });
 
+/* Dev only — a handle on the clock, for checking motion by hand.
+ *
+ * gsap assigns `window.gsap` itself, but only from a code path that this
+ * bundle never takes: measured, the global is undefined on a loaded page. So
+ * this is the handle, not a duplicate of one.
+ *
+ * It earns its place because the browser tooling used against this site runs
+ * the page with requestAnimationFrame frozen. That stops gsap.ticker, and with
+ * it everything driven per frame — the strip drift in workCategories.ts, the
+ * scene's scrub — so none of it can be observed at all without a way to step
+ * time forward: `gsap.ticker.tick()` between real waits, or
+ * `gsap.globalTimeline.time(t)` to jump.
+ *
+ * Gated on import.meta.env.DEV, so Vite folds the branch away and it is not in
+ * the production bundle (PRD §4.6, same gate as the ScrollTrigger markers).
+ */
+if (import.meta.env.DEV) {
+  (window as unknown as { gsap: typeof gsap }).gsap = gsap;
+}
+
 export { gsap, ScrollTrigger, SplitText };

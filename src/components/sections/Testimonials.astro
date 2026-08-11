@@ -9,11 +9,16 @@
  *    default. Because one note opens exactly as another closes, the row's
  *    total width never changes — the cards just share whatever is left.
  *
- * 2. Marquee (bottom). A native `overflow-x: auto` rail so manual scrolling
- *    (trackpad, touch, drag) is free and correct, with an auto-scroll driven
- *    off the shared GSAP ticker on top. The card list is rendered twice so the
- *    loop can wrap seamlessly; the second copy is aria-hidden so screen
- *    readers hear each quote once.
+ * 2. Quote grid (bottom). Three cards across, standing still — no entrance, no
+ *    drift, nothing that moves — with a second three folded away behind "See
+ *    all". Which rows are on the page is a `display` switch off one attribute;
+ *    the script sets the attribute and nothing else.
+ *
+ *    The cards are the same `.tm__quote-card` the marquee was built from, so
+ *    the two faces of this section cannot drift apart in styling. The marquee's
+ *    own markup is gone; its CSS (`.tm__rail` / `.tm__track`) and the
+ *    `initMarquee` half of the script are still here and both no-op without
+ *    `[data-tm-rail]` in the DOM, so putting a moving rail back is markup only.
  *
  * Both behaviours live in src/scripts/testimonials.ts. Without JS the section
  * still reads: every note is visible (stacked) and the rail is a plain
@@ -55,7 +60,13 @@ interface Quote {
 interface Props {
   featured?: Featured[];
   quotes?: Quote[];
+  seeAllLabel?: string;
+  seeLessLabel?: string;
 }
+
+/** Quotes on screen before "See all". The rest are folded away behind it — one
+ *  row of three, and one row of three more. */
+const VISIBLE_QUOTES = 3;
 
 const {
   featured = [
@@ -139,7 +150,30 @@ const {
         '"Every handoff was already anticipated. We stopped writing briefs halfway through the engagement because they were reading the roadmap better than we were."',
       variant: 'trail',
     },
+    /* Five and six complete the second row — "See all" opens three at a time,
+       so the list wants a multiple of three or the row it reveals comes out
+       short. */
+    {
+      name: 'Ahmed F. Haque',
+      role: 'Founder, Overclock',
+      photo: '/media/portrait-ahmed.webp',
+      headline: 'Design stopped being a thing we had to think about.',
+      quote:
+        '"Speed to production was a huge difference. We came out with work that moved the business, not a concept deck."',
+      variant: 'lead',
+    },
+    {
+      name: 'Braden Weissman',
+      role: 'Co-Founder, NerdApply',
+      photo: '/media/portrait-braden.webp',
+      headline: 'They shipped faster than our own team could have.',
+      quote:
+        '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
+      variant: 'trail',
+    },
   ],
+  seeAllLabel = 'See all',
+  seeLessLabel = 'See less',
 } = Astro.props;
 
 /* One speaker, drawn once and used by both faces of this section. The slash
@@ -238,7 +272,7 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
         </figure>
       ))}
 
-      <ol class="tm__spot-rail">
+      <ol class="tm__spot-rail" style={`--spot-count:${featured.length}`}>
         {featured.map((person, i) => (
           <li class="tm__spot-slot">
             <span class="tm__spot-index" aria-hidden="true">/{i + 1}</span>
@@ -387,6 +421,61 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     }
   </div>
 
+  {
+    quotes.length > 0 && (
+      <div class="tm__more u-container" data-tm-more>
+        <ul class="tm__grid" id="tm-quote-grid">
+          {quotes.map((entry, i) => (
+            <li
+              class:list={['tm__grid-item', { 'tm__grid-item--extra': i >= VISIBLE_QUOTES }]}
+            >
+              <figure
+                class:list={['tm__quote-card', `tm__quote-card--${entry.variant ?? 'lead'}`]}
+              >
+                <div class="tm__quote-body">
+                  <div class="tm__quote-who">
+                    <p class="tm__name">{entry.name}</p>
+                    <p class="tm__role">{entry.role}</p>
+                  </div>
+
+                  <p class="tm__quote-headline">{entry.headline}</p>
+                  <blockquote class="tm__quote-text">{entry.quote}</blockquote>
+                </div>
+
+                {entry.photo && (
+                  /* Empty alt: the name is right beside it in the card, so a
+                     screen reader announcing the portrait as well says the
+                     same person twice. */
+                  <div class="tm__quote-portrait">
+                    <img src={entry.photo} alt="" loading="lazy" decoding="async" />
+                  </div>
+                )}
+              </figure>
+            </li>
+          ))}
+        </ul>
+
+        {/* Only ever rendered when there is something folded away behind it,
+            and only ever *shown* when JS is live — with the script off every
+            card is already on the page (see the closed state at the foot of
+            this file), and a control whose whole job is to reveal what you can
+            already see is a dead button. */}
+        {quotes.length > VISIBLE_QUOTES && (
+          <button
+            class="tm__see-all"
+            type="button"
+            data-tm-see-all
+            data-label-more={seeAllLabel}
+            data-label-less={seeLessLabel}
+            aria-expanded="false"
+            aria-controls="tm-quote-grid"
+          >
+            <span data-tm-see-all-label>{seeAllLabel}</span>
+          </button>
+        )}
+      </div>
+    )
+  }
 </section>
 
 <style>
@@ -394,6 +483,25 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     /* One knob for the open note's width. The note's inner wrapper is pinned
        to the same value so the copy never re-wraps mid-animation. */
     --tm-note-w: min(38vw, 34rem);
+
+    /* --- Quote-grid geometry ---------------------------------------------
+       Three numbers the grid's spacing is derived from rather than guessed at,
+       because two of them are what made the cards touch: each portrait hangs
+       most of its own height outside its card, and each 'trail' card is lifted
+       by the stagger — so the space between two cards is nothing like the gap
+       you write. */
+    /* Down from clamp(7rem, 13vw, 11rem). The row gap is 2*hang before any
+       clearance, and hang is ~49% of this — so this number, not the gap, is
+       what set the 131px trough between the two rows of cards. At 10vw the
+       portraits are still the largest thing in the block and the rows close up
+       by about a third. */
+    --tm-quote-portrait: clamp(6rem, 10vw, 9rem);
+    --tm-quote-stagger: clamp(2rem, 4vw, 3.5rem);
+    /** The clearance asked for: 24px between anything and anything. */
+    --tm-quote-gap: 1.5rem;
+    /** What hangs outside the card: 46% of the portrait's height, and its
+     *  height is 1.06 x its width. */
+    --tm-quote-hang: calc(0.4876 * var(--tm-quote-portrait));
 
     position: relative;
     padding-block: clamp(3rem, 6vw, 5rem);
@@ -676,14 +784,36 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     display: none;
   }
 
-  /* Proportions read off the reference: the rail is 24% of the block and the
-     gap between it and the portrait 1.3%, both as fractions rather than fixed
-     widths so the whole thing scales with the screen. */
+  /* The rail and the portrait are one block, and the portrait is what sets its
+     height: the stage carries the portrait's own aspect ratio, worked out from
+     the column it sits in, and the rail simply fills that height.
+
+     It used to be four thumbs at a fixed 24% column with nothing tying their
+     total height to the portrait beside them — so they ran past the bottom of
+     it by about 145px on a 375 screen and the block read as lopsided. The
+     thumbs now divide whatever height the portrait gives them.
+
+     15%, down from 24%, is not arbitrary. Solving thumbW/thumbH for the 74:81
+     the reference draws — where the height each thumb inherits is the stage's
+     height less the index labels and gaps, divided four ways — puts it at
+     0.151 on a 375 screen. So they stay the portraits they were rather than
+     turning square, which is what 16% gave (0.98, near enough a square).
+     Wider phones drift a little more portrait, because the labels and gaps are
+     fixed pixels and count for less of the height as the stage grows.
+
+     The three fractions are unitless on purpose — the columns, the gap and the
+     aspect ratio are all derived from them, so they cannot fall out of step. */
   .tm__spot-stage {
+    --spot-rail: 0.15;
+    --spot-gap: 0.013;
+    /* The portrait's own ratio, 230 : 284 off the reference. */
+    --spot-portrait: calc(284 / 230);
+
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 24%;
-    gap: 1.3%;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) calc(var(--spot-rail) * 100%);
+    gap: calc(var(--spot-gap) * 100%);
+    aspect-ratio: 1 / calc((1 - var(--spot-rail) - var(--spot-gap)) * var(--spot-portrait));
+    align-items: stretch;
   }
 
   /* Every panel occupies the same cell, so switching never re-lays the page
@@ -719,11 +849,33 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     object-fit: cover;
   }
 
+  /* Rows rather than a flex column: every slot gets an equal share of the
+     height the stage hands down, whatever that turns out to be, and none of
+     them can push the rail past it. `--spot-count` comes from the markup, so
+     adding a fifth founder needs no change here. */
   .tm__spot-rail {
     grid-area: 1 / 2;
-    display: flex;
-    flex-direction: column;
+    /* Zero height, then filled by min-height. Both are needed: a plain
+       `height: 100%` is an indefinite percentage while the row is being sized,
+       so the rail fell back to its content height and pushed the row 14px past
+       the portrait — the row it was supposed to be measuring itself against.
+       At height 0 it contributes nothing to that sizing, and min-height then
+       resolves against the finished row. */
+    height: 0;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-rows: repeat(var(--spot-count, 4), minmax(0, 1fr));
     gap: clamp(0.5rem, 2vw, 0.875rem);
+  }
+
+  /* The index label takes what it needs; the thumb takes the rest. */
+  .tm__spot-slot {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
   }
 
   .tm__spot-index {
@@ -736,9 +888,13 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
   .tm__spot-thumb {
     display: block;
     width: 100%;
+    /* Sized by the slot, not by a ratio of its own — that is what keeps the
+       rail inside the portrait. The 74:81 the reference draws is what the
+       16% rail column produces here anyway; see .tm__spot-stage. */
+    height: 100%;
+    min-height: 0;
     padding: 0;
     border: 0;
-    aspect-ratio: 74 / 81;
     overflow: hidden;
     background: var(--color-line);
     cursor: pointer;
@@ -806,6 +962,108 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     }
   }
 
+  /* ===================== Quote grid =====================
+     The same card the marquee below was built from, stood still: three across,
+     a second three folded away behind "See all", and no motion of any kind on
+     any of it. The cards keep their own classes, so the two faces of this
+     section cannot drift apart in styling. */
+  .tm__more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Purely the break between the founders above and the quotes below — it is
+       not clearance for the hanging portraits, which is what it used to say.
+       .tm__grid's own padding-top already reserves `hang + gap` for exactly
+       those, so the two were reserving the same space one after the other:
+       86px here on top of 94px there, for a single row of portraits that needs
+       94. Halved, which is what closed the trough between the two blocks. */
+    margin-top: clamp(1.5rem, 3vw, 2.75rem);
+  }
+
+  /* The gaps are derived, not picked. Sideways is simply the clearance, because
+     the portraits sit inside their cards horizontally. Downwards is not: two
+     cards in one column can face each other with a portrait hanging out of
+     both, and the lower one may also be lifted by the stagger — so the row gap
+     has to cover both hangs, give back the lift, and still leave the clearance.
+
+     Written as a gap of 30px, the second row landed *on* the first: the cards
+     touched, and one portrait ran across the card below it. That is the case
+     this arithmetic is for. */
+  .tm__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    column-gap: var(--tm-quote-gap);
+    row-gap: calc(
+      2 * var(--tm-quote-hang) + var(--tm-quote-gap) - var(--tm-quote-stagger)
+    );
+    width: 100%;
+    margin: 0;
+    /* The same clearance at the row's own ends, where the first row's portraits
+       hang up out of the grid and the last row's hang down out of it. */
+    /* Asymmetric, because the two edges have different work to do. The top
+       clears a lead card's portrait, which hangs a full `hang` above it. The
+       bottom only has to clear a *trail* card's, and trail cards are lifted by
+       the stagger — so what hangs below the last row is `hang - stagger`, not
+       `hang`. Measured at 1440 that is 29px against the 115px this used to
+       reserve, which is most of the empty band that stood between the cards
+       and the "See all" button. max() keeps it sane if the stagger ever grows
+       past the hang. */
+    padding-block: calc(var(--tm-quote-hang) + var(--tm-quote-gap))
+      max(
+        var(--tm-quote-gap),
+        calc(var(--tm-quote-hang) - var(--tm-quote-stagger) + var(--tm-quote-gap))
+      );
+    padding-inline: 0;
+    list-style: none;
+  }
+
+  /* The card sizes itself from this cell rather than from the fixed width the
+     marquee gave it — that width was a rail's business, and here the column
+     is. */
+  .tm__grid .tm__quote-card {
+    width: 100%;
+  }
+
+  /* Folded away until "See all". Only when JS is live — see the closed state at
+     the foot of this file. */
+  :global(html[data-js='true']) .tm__grid-item--extra {
+    display: none;
+  }
+
+  :global(html[data-js='true']) [data-tm-more][data-open] .tm__grid-item--extra {
+    display: block;
+  }
+
+  /* Same shape as the hero's button, on this section's white ground. */
+  .tm__see-all {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0.9375rem 2.5rem;
+    border-radius: 0.5rem;
+    background: var(--color-bg-invert);
+    color: var(--color-ink-invert);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.4s var(--ease-out-expo);
+  }
+
+  /* It only has a job once something is hidden, and nothing is hidden without
+     JS to hide it. */
+  :global(html[data-js='true']) .tm__see-all {
+    display: inline-flex;
+  }
+
+  .tm__see-all:hover,
+  .tm__see-all:focus-visible {
+    background: var(--color-accent-hover);
+  }
+
   /* ===================== Marquee ===================== */
   .tm__rail {
     margin-top: clamp(3rem, 6vw, 5.5rem);
@@ -847,7 +1105,7 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
 
   /* The two variants sit at different heights — that offset is the rhythm */
   .tm__quote-card--trail {
-    translate: 0 calc(-1 * clamp(2rem, 4vw, 3.5rem));
+    translate: 0 calc(-1 * var(--tm-quote-stagger));
   }
 
   .tm__quote-body {
@@ -878,10 +1136,12 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
   }
 
   /* Hangs outside the card — the card must not clip it */
+  /* The width is the knob at the top of this file, and the row gap is worked
+     out from it — change it there, not here, or the grid stops clearing it. */
   .tm__quote-portrait {
     position: absolute;
     right: clamp(0.75rem, 1.4vw, 1.25rem);
-    width: clamp(7rem, 13vw, 11rem);
+    width: var(--tm-quote-portrait);
     aspect-ratio: 1 / 1.06;
     overflow: hidden;
     background: var(--color-line);
@@ -980,15 +1240,54 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     }
   }
 
+  /* Two across before one: three columns of a card carrying a hanging portrait
+     stop working well before the section does. */
+  @media (max-width: 61.25rem) {
+    .tm__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   @media (max-width: 48rem) {
+    /* The shared mobile rhythm — see --section-gap-y in globals.css. Same
+       number this section already used; stated through the token so it
+       moves with the rest rather than by coincidence. */
+    .tm {
+      /* 16 off the top only. The section reads as sitting too low under the
+         client strip; its foot is where the shared rhythm still applies. */
+      padding-block: calc(var(--section-gap-y) - 1rem) var(--section-gap-y);
+    }
+
     .tm__quote-card {
       width: min(80vw, 22rem);
     }
 
+    .tm__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Full column width — the fixed measure above is the rail's, and there is
+       no rail here. */
+    .tm__grid .tm__quote-card {
+      width: 100%;
+    }
+
     /* Same shape as desktop, just smaller: the portrait keeps hanging off the
-       card's corner rather than dropping inside it. Only the sizes come down. */
-    .tm__quote-portrait {
-      width: clamp(4.5rem, 20vw, 6rem);
+       card's corner rather than dropping inside it. Only the sizes come down.
+
+       The stagger goes entirely: the offset that gives a row its rhythm is a
+       row's idea, and stacked it only pulls one card into the gap above it.
+       Both are set here as the knobs rather than as overrides further down, so
+       the grid's own spacing arithmetic follows them — one column of cards
+       whose portraits hang 37px needs a different gap from three columns whose
+       portraits hang 86px, and it now works that out for itself. */
+    .tm {
+      /* The floor is the number that matters here, not the vw term: at 375
+         the preferred size falls under it, so lowering 4.5rem is the only
+         thing that actually moves the stack. Every gap in this column is
+         `hang + clearance` and hang is ~49% of this. */
+      --tm-quote-portrait: clamp(3.75rem, 16vw, 5.5rem);
+      --tm-quote-stagger: 0px;
     }
 
     .tm__quote-card--lead .tm__quote-who,
@@ -1000,17 +1299,43 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     .tm__quote-card {
       flex-direction: column;
     }
+
+    /* Every portrait hangs from the top, including the trail cards' — which
+       hang from the bottom everywhere else.
+
+       Stacked, the cards alternate lead / trail / lead, so the gaps alternate
+       too: one has nothing in it at all, the next has two portraits facing
+       each other across it. A single row-gap has to cover the worst of those,
+       which put 97px between every pair of cards and left the empty ones
+       reading as a hole in the column. Hanging them all the same way makes
+       every gap carry exactly one portrait, so the gap that fits is the same
+       gap everywhere — and it is 37px smaller. */
+    .tm__grid .tm__quote-card--trail .tm__quote-portrait {
+      top: 0;
+      bottom: auto;
+      translate: 0 -46%;
+    }
+
+    /* One hang, not two — see above. */
+    .tm__grid {
+      row-gap: calc(var(--tm-quote-hang) + var(--tm-quote-gap));
+      /* Nothing hangs below the last card any more, so the bottom only needs
+         the plain clearance the top of the block already gets from the hang. */
+      padding-bottom: var(--tm-quote-gap);
+    }
   }
 
-  /* ===================== Pre-reveal ===================== */
-  :global(html[data-js='true']) [data-tm-person],
-  :global(html[data-js='true']) .tm__quote-card {
+  /* ===================== Pre-reveal =====================
+     The featured row only. The quote grid below it is deliberately not here:
+     it has no entrance, so parking it at opacity 0 would need a timeline to
+     put it back — and the whole point of that block is that nothing animates
+     it. */
+  :global(html[data-js='true']) [data-tm-person] {
     opacity: 0;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) [data-tm-person],
-    :global(html[data-js='true']) .tm__quote-card {
+    :global(html[data-js='true']) [data-tm-person] {
       opacity: 1;
     }
   }

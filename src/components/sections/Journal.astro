@@ -269,6 +269,15 @@ const dissolve = (seed: number) => {
     }
   }
 
+  @media (max-width: 48rem) {
+    /* The shared mobile rhythm — see --section-gap-y in globals.css. Same
+       number the clamp above already resolved to on a phone; stated through
+       the token so it moves with the rest rather than by coincidence. */
+    .jr {
+      padding-block: var(--section-gap-y);
+    }
+  }
+
   @media (max-width: 40rem) {
     .jr__grid {
       grid-template-columns: minmax(0, 1fr);

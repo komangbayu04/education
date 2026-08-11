@@ -38,20 +38,28 @@ export function initTwoWays(): () => void {
     defaults: { ease: 'power3.out' },
     scrollTrigger: {
       trigger: section,
-      /* Normally: a little before the section reaches the middle of the
-         screen, so the reveal is already under way as it arrives.
-         When the scene above is pinned, this section is pulled up underneath
-         it (`data-scene-pulled` — see hero.ts) and is covered until the pin
-         lets go. Measured against the viewport it would then be 28% of the
-         way up the screen while nobody can see it, and `once: true` means it
-         would be spent by the time the scene lifts: the section would appear
-         already finished. Its top reaching the top of the viewport IS the
-         moment it becomes visible, so that is where the reveal starts.
+      /* A little before the section arrives, so the reveal is already under
+         way by the time it is properly on screen.
 
-         This matters here now that Credibility is out of the page — this is
-         the section the pull lands on. credibility.ts carries the same switch
-         for the same reason. */
-      start: () => (document.querySelector('[data-scene-pulled]') ? 'top top' : 'top 72%'),
+         The exception is the one section the scene's pull lands on. That one
+         is dragged up underneath the pinned scene (`data-scene-pulled` — see
+         hero.ts) and is covered until the pin lets go, so a viewport-relative
+         start fires while nobody can see it and `once: true` spends it: the
+         section then appears already finished. For that section, its top
+         reaching the top of the viewport IS the moment it becomes visible.
+
+         Which section that is has to be asked, not assumed. This used to
+         switch on the attribute merely existing anywhere on the page, and it
+         was written when this was the section the pull landed on. Work
+         categories sits between the scene and this one now, so the attribute
+         is still there but the reasoning no longer applies here — and this
+         section was waiting for its top to reach the top of the screen when
+         most of it was already in view, which is why its copy and cards were
+         missing under a photograph that had clearly arrived. */
+      start: () => {
+        const marker = document.querySelector('[data-scene-pulled]');
+        return marker?.nextElementSibling === section ? 'top top' : 'top 90%';
+      },
       once: true,
       invalidateOnRefresh: true,
     },

@@ -25,12 +25,13 @@
  * THE PUSH and THE TEAM.
  */
 import Icon, { type IconName } from '../ui/Icon.astro';
-import { pixelField } from '../../lib/pixelField';
 
 interface Offer {
   name: string;
   summary: string;
   length: string;
+  /** Sits in the card's top-right corner, as the reference draws it. */
+  icon: IconName;
 }
 
 interface Included {
@@ -78,11 +79,16 @@ const {
       name: 'Sprint',
       summary: 'One push, one deadline, everything the moment requires.',
       length: 'Fixed. 4 weeks and up',
+      icon: 'rocket',
     },
     {
       name: 'Retainer',
       summary: 'Your design function, year-round, across every surface.',
       length: 'Ongoing, month to month',
+      /* The reference draws a four-point sparkle here. `spinner` is the set's
+         starburst and the closest of the seven — same mark the "Daily updates"
+         row uses, and for the same reason. */
+      icon: 'spinner',
     },
   ],
   image = '/media/two-ways',
@@ -93,41 +99,6 @@ const {
   ctaHref = '/contact',
 } = Astro.props;
 
-/* The ask sits on the section's one dark ground, and the two edges that face
-   the cream — its top, and its right on the widths where it is inset — break
-   up into squares rather than ending on a straight line. Same pixel language
-   as the chapter handovers and the founder quote's seam.
-
-   `pixelField` indexes its density array by column and returns cells on a
-   (row, col) grid, so which axis is which is decided at placement: the top
-   band runs its length across and its density down, the right band runs its
-   length down and its density across. Seeded, so a deploy cannot silently
-   reshuffle the artwork. */
-/** Cells across the block. Its twin lives in .two__band--top's grid, and the
- *  right band divides itself by the same number so both use one square size. */
-const BAND_COLS = 18;
-
-const bands = {
-  /* One row deep, and that is a correctness constraint rather than a taste
-     one. These are cream squares punched INTO the black, so the density is how
-     much of the edge is eaten — at 0.8 the top edge dissolved almost entirely
-     and left stranded black rectangles floating over the panel; a third of one
-     row notches it, which is what the frame draws.
-
-     A second row is what cannot be had. The copy is set clear of the first row
-     and no further (see .two__cta-content), so a square standing a row taller
-     is cream directly behind white type. Keeping the second row to the outer
-     columns only works while the copy is short of them, and it isn't: its
-     measure is a fixed ch cap while the block narrows with the viewport, so on
-     a narrow block the copy reaches over 90% of the width. The alternative —
-     padding the copy past both rows — puts 40-odd pixels of black into the
-     block at every width to buy one row of texture. */
-  top: pixelField(70414, BAND_COLS, [0.32]),
-  /* Five rows, anchored to the bottom — the frame's second cluster is in the
-     block's outer corner, not down its whole side. Denser than the top edge,
-     because a corner is where the two runs of squares meet. */
-  right: pixelField(31882, 5, [0.12, 0.3, 0.55]),
-};
 ---
 
 <section class="two" aria-labelledby="two-title" data-two>
@@ -136,7 +107,7 @@ const bands = {
     <div class="two__stage">
       <picture class="two__ground">
         <source srcset={`${image}.avif`} type="image/avif" />
-        <img src={`${image}.webp`} alt={imageAlt} width="738" height="854" decoding="async" />
+        <img src={`${image}.webp`} alt={imageAlt} width="1476" height="1710" decoding="async" />
       </picture>
 
       <div class="two__stage-inner">
@@ -149,7 +120,13 @@ const bands = {
           {
             offers.map((offer) => (
               <article class="two__card" data-two-card>
-                <h3 class="two__card-name">{offer.name}</h3>
+                <div class="two__card-head">
+                  <h3 class="two__card-name">{offer.name}</h3>
+                  {/* Decorative: the card is already named in words beside it. */}
+                  <span class="two__card-mark" aria-hidden="true">
+                    <Icon name={offer.icon} size="1.375rem" />
+                  </span>
+                </div>
                 <p class="two__card-summary">{offer.summary}</p>
                 <p class="two__card-length">{offer.length}</p>
               </article>
@@ -198,18 +175,18 @@ const bands = {
       </div>
 
       <div class="two__cta-block">
-        {/* Decorative — the seams carry no meaning the copy doesn't already. */}
-        <div class="two__band two__band--top" aria-hidden="true">
-          {bands.top.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
-        </div>
-
-        <div class="two__band two__band--right" aria-hidden="true">
-          {
-            bands.right.map((cell) => (
-              <span style={`grid-row:${cell.row};grid-column:${cell.col}`} />
-            ))
-          }
-        </div>
+        {/* Decorative — the seam carries no meaning the copy doesn't already.
+            A supplied asset now, not a generated field: the two edges used to
+            be built here by pixelField() and laid out as CSS grids, which put
+            the artwork's composition in this file. It is drawn, so it lives in
+            a drawing. */}
+        <img
+          class="two__pattern"
+          src="/media/two-pattern.svg"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        />
 
         <div class="two__cta-content">
           <h3 class="two__cta-title" data-two-reveal="cta-title">{ctaTitle}</h3>
@@ -367,11 +344,30 @@ const bands = {
     /* Vertical padding on the height budget, horizontal on the width — a card
        on a short screen should get shorter, not narrower. */
     padding: clamp(0.875rem, min(2.3vw, 4svh), 2.0625rem) clamp(1.125rem, 2.3vw, 2.0625rem);
-    border: 1px solid rgb(255 255 255 / 0.55);
-    background: rgb(255 255 255 / 0.3);
-    /* Progressive: without it the fill is simply a translucent white, which is
-       still legible — the type's contrast does not depend on the blur. */
-    backdrop-filter: blur(16px) saturate(1.1);
+    /* Solid cream, not glass. The cards were translucent white over a blur, so
+       the photograph read through them; the new reference sets them as flat
+       cream cards with a hairline edge, which is what puts the pitch in front
+       of the picture rather than in it. The blur went with the transparency —
+       there is nothing left to blur. */
+    border: 1px solid rgb(10 10 10 / 0.12);
+    background: var(--color-bg-twoways);
+    color: var(--color-ink);
+  }
+
+  /* The name and its mark share the top line, the mark pushed to the far
+     corner — which is where the reference puts it. */
+  .two__card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .two__card-mark {
+    /* flex, not the default inline: as an inline box it carried a 30px line
+       box around a 22px glyph and sat low against the name beside it. */
+    display: flex;
+    flex: none;
     color: var(--color-ink);
   }
 
@@ -413,13 +409,27 @@ const bands = {
     flex: 1;
     gap: var(--two-gap-lg);
     padding: var(--two-pad-y) var(--two-pad) var(--two-gap-lg);
+    /* Less at the head than --two-pad-y gives the rest of the section, not
+       more. It was 60px here — a figure derived from the reference frame back
+       when the list was `flex: 1` with `space-between`, which meant the head
+       could be pushed down without the foot moving: the rows simply closed up
+       to pay for it.
+
+       That is no longer true. The list is its natural height now, so every
+       pixel at the top is a pixel the whole column carries down, and it was
+       reading as a hole above the heading. Halved, and the 28px it gives back
+       lands in the slack under the disclosure — which is where the details
+       copy opens into. */
+    padding-top: clamp(1rem, min(2.2vw, 3.6svh), 2rem);
   }
 
   .two__include {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    gap: var(--two-gap-md);
+    /* Its own step rather than --two-gap-md, which the list's own padding also
+       reads: the heading needed another 17px of air under it and the rules
+       around the list did not. */
+    gap: clamp(1rem, min(2.85vw, 4.6svh), 2.5625rem);
   }
 
   .two__include-title {
@@ -432,15 +442,18 @@ const bands = {
 
   /* The rule under the heading and the one under the list are borders on the
      list itself — one element, both edges, so neither can drift. */
+  /* Packed to the top of the column, not spread down it. The surplus height
+     collects in one place instead — under the disclosure and above the dark
+     block — which is exactly where it is needed: that is the room the details
+     copy unfolds into when the question is opened.
+
+     It used to be `flex: 1` with `space-between`, so the six rows took the
+     surplus into their own gaps and there was none left over. That reads well
+     closed and badly open: with nowhere to go, opening the question either
+     pushed the ask off the screen or squeezed the rows it had just spread. */
   .two__include-list {
     display: flex;
     flex-direction: column;
-    /* Where the column's surplus height lands: the six rows spread apart to
-       fill whatever the screen gives, with the gap as their floor. Everything
-       else in the panel is a fixed block — this is the only part of it that
-       can absorb a taller viewport without a hole opening up somewhere. */
-    flex: 1;
-    justify-content: space-between;
     gap: var(--two-gap);
     margin: 0;
     padding-block: var(--two-gap-md);
@@ -459,9 +472,10 @@ const bands = {
     line-height: 1.35;
   }
 
-  /* The chip the frame draws around each mark: black square, rounded, white
-     glyph — the inverse of the section's ground, which is what makes the list
-     read as a set of marks rather than as six more lines of type. */
+  /* The chip the frame draws around each mark: black square, white glyph — the
+     inverse of the section's ground, which is what makes the list read as a set
+     of marks rather than as six more lines of type. Square-cornered: the
+     reference draws a hard box, and rounding it made the six read as buttons. */
   .two__include-mark {
     display: grid;
     place-items: center;
@@ -472,7 +486,6 @@ const bands = {
        window, which is 24px the section doesn't have to overflow by. */
     width: clamp(1.75rem, 3.6svh, 2rem);
     height: clamp(1.75rem, 3.6svh, 2rem);
-    border-radius: 0.5rem;
     background: var(--color-bg-invert);
     color: var(--color-ink-invert);
   }
@@ -528,26 +541,35 @@ const bands = {
      running off its outer edge — the frame has it bleeding to the screen, so
      only the two edges that face cream are finished. */
   .two__cta-block {
-    /* Cells across the block, and the single number both bands and the copy's
-       clearance are derived from. Its twin is BAND_COLS in the frontmatter,
-       which is what decides how many cells get rolled — change one and change
-       the other. */
+    /* How deep the pixel band is, and the same number the copy is held clear
+       of it by — see the mobile block at the foot of this file. */
+    --two-pattern-h: 1.75rem;
+
+    /* Roughly how many cells wide the supplied pattern reads across this
+       block, and the number the copy's top clearance is derived from. It is an
+       estimate now rather than a shared constant: the artwork is a drawing
+       (two-pattern.svg), so nothing here decides its cell size — this only has
+       to be close enough to keep the title out of the notches along the top
+       edge. */
     --two-band-cols: 18;
 
     position: relative;
     margin-top: auto;
     background: var(--color-bg-invert);
     color: var(--color-ink-invert);
-    /* Contains the bands, which overspill their own edges by design. */
+    /* Clips the pattern, which is sized to cover and so overspills. */
     overflow: hidden;
   }
 
   .two__cta-content {
+    /* Over the pattern, which fills the block behind it. */
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: clamp(0.375rem, min(1vw, 1.75svh), 0.75rem);
-    /* Clear of the top band, which is one row — copy running into a square
+    /* Clear of the notches along the top edge — copy running into a square
        reads as a rendering fault rather than as an edge breaking up.
 
        Derived from the cell size, not set in rem: the cells are a share of the
@@ -581,40 +603,37 @@ const bands = {
      edge and thinning inward, so the dark ends by breaking up rather than on a
      straight line. aspect-ratio on the cells is what keeps them square: the
      track they don't set sizes itself to one cell of the one they do. */
-  .two__band {
+  /* The supplied edge treatment, laid over the block's own black.
+
+     `cover` with a right-top anchor, not a stretch: the drawing is 708x235 and
+     the block is whatever the column gives it, so stretching it to fit would
+     put the squares out of square — which is the one thing a pixel edge cannot
+     survive. Anchored right because that is where its artwork is; the left of
+     the drawing is plain dark and the block's own background carries on under
+     it seamlessly.
+
+     Sits under the copy (.two__cta-content is positioned above it) and takes
+     no pointer events, so the button beneath is untouched. */
+  /* `fill`, which is the one value here that shows the whole drawing.
+     two-pattern.svg is a composition, not a texture: notches along the top
+     edge, a staircase down the right, a cluster in the bottom-right corner.
+     `cover` was cropping whichever of those did not fit the block's ratio —
+     at a wide window it fits the width and takes the bottom-right cluster off,
+     and the top edge was left reading as five large notches and nothing else.
+
+     The cost is that the squares are not exactly square: the artwork is drawn
+     at 708 x 235 and the block is about 699 x 250, so they come out around 8%
+     tall at the size this was drawn for. Against losing a third of the
+     composition, that is the cheaper of the two. */
+  .two__pattern {
     position: absolute;
-    display: grid;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
     pointer-events: none;
   }
 
-  .two__band span {
-    aspect-ratio: 1;
-    background: var(--color-bg-twoways);
-  }
-
-  .two__band--top {
-    top: 0;
-    left: 0;
-    right: 0;
-    grid-template-columns: repeat(var(--two-band-cols), 1fr);
-  }
-
-  /* The outer corner, on the same mechanic turned through ninety degrees: its
-     length runs up the block, its density across. Three columns of the same
-     grid the top band divides the block into, so every square in the section
-     is the one size without either band having to know a pixel value. It has
-     no `top`: its own cells give it its height (they are square, so a row is
-     as tall as a column is wide), which is what keeps it a corner rather than
-     a side. */
-  .two__band--right {
-    bottom: 0;
-    right: 0;
-    width: calc(300% / var(--two-band-cols));
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  /* Same shape as the hero's CTA, inverted for this ground: the fill sweeps to
-     the block's own black rather than to the page. */
   .two__cta {
     position: relative;
     display: inline-flex;
@@ -681,23 +700,100 @@ const bands = {
        it needs one of its own — otherwise the panel is exactly as tall as the
        title and the two cards, which crops the picture to a strip. */
     .two__stage {
-      /* Measured, not picked: the title and the two cards come to about 550px
-         on a 375 screen, so 38rem left barely a hundred of sky above them and
-         the panel read as a card stack with a texture behind it. This leaves
-         the picture a band of its own at the top on a phone, and the svh cap
-         is what stops it filling a short landscape window entirely. */
-      min-height: min(44rem, 92svh);
+      /* Measured, not picked. The title, the intro and the two cards come to
+         about 500px on a 375 screen, and this is what sits above them as sky.
+
+         It was 44rem, which on a 375x812 phone made a 704px panel for 519px of
+         content — 251px of empty cloud before the title, a third of the panel
+         spent on nothing. 36rem brings that to about 120 and still gives the
+         picture a clear band of its own, which is the whole reason the panel
+         is taller than its contents. The svh cap is what stops it filling a
+         short landscape window entirely. */
+      /* No sky band of its own any more. It was min(34.5rem, 78svh), which
+         stood the panel taller than its contents so a stretch of the
+         photograph showed above the title — 123px of it at first, then 87.
+         Asked for 32 top and bottom, there is no band left to have: 32 is the
+         padding below, and the panel is exactly its contents plus that. The
+         picture still fills the panel behind the title and the cards; what has
+         gone is the clear run of it above them. */
       justify-content: flex-end;
     }
 
     /* Pushed to the foot of the panel by the rule above, so the picture has
        room above the cards rather than below them. */
     .two__stage-inner {
-      padding-top: clamp(2.5rem, 8vw, 4rem);
+      /* Down from clamp(2.5rem, 8vw, 4rem). With the band above it cut, this
+         was the other half of the same empty space. */
+      /* 32 at both ends, and with the band above gone these are the whole
+         distance: the title's box starts 32px under the panel's top edge and
+         the last card ends 32px above its bottom. */
+      padding-block: 2rem;
     }
 
     .two__cards {
       padding-right: 0;
+    }
+
+    /* The edge only, not the whole block.
+
+       The drawing is 708x235 — a 3.01 ratio — and a phone's block is 375x193,
+       which is 1.94. `cover` resolves that by drawing the artwork 582 wide
+       against a 375 box, and since it is anchored right, the 207px that go
+       past the left edge drag the cream checker out of the drawing's corner
+       and into the middle of the block. Measured, it landed across y 47-127 —
+       exactly where the title and the line under it sit. White copy on an
+       opaque cream square reads as missing text.
+
+       Cut to a band at the top, the box is wide and short instead, so the
+       width constrains and what shows is the top of the drawing at its own
+       proportions: the notched edge, which is the part that has to be there.
+       The corner checker is cropped away with the rest — it is the half of
+       this artwork a narrow block has no room for.
+
+       At the foot rather than the head: the drawing's own squares cluster in
+       its lower right, so anchoring there is also what shows the most of them.
+       The block's bottom padding grows by exactly this height, so the band has
+       somewhere to sit that is not on top of the button. */
+    .two__pattern {
+      inset: auto 0 0;
+      height: var(--two-pattern-h);
+      object-position: right bottom;
+    }
+
+    /* The copy moves with it. The top padding was clearing notches that are no
+       longer up there, and the foot now has to hold the band clear of the
+       button — which ran to within 4px of the block's bottom edge before this,
+       so there was nowhere for the squares to go. */
+    .two__cta-content {
+      padding-top: clamp(1.25rem, 4vw, 2rem);
+      padding-bottom: calc(clamp(1.25rem, min(3vw, 5.4svh), 2.75rem) + var(--two-pattern-h));
+    }
+
+    /* Six iconed rows, and stacked they had 8px between them — `--two-gap`
+       bottoms out at its clamp floor down here, so the chips very nearly
+       touched. Six more, stated as an addition rather than a replacement so
+       the row keeps tracking the token it shares with the rest of the panel. */
+    .two__include-list {
+      gap: calc(var(--two-gap) + 6px);
+    }
+
+    /* Stacked, the dark block landed flush against the disclosure above it —
+       measured, a gap of exactly 0. Its top edge is a row of cream squares
+       punched into the black, and an edge effect needs an edge to read
+       against: hard up under "What's type of work we cover?" it looked like a
+       rendering fault rather than the seam it is. */
+    .two__cta-block {
+      margin-top: clamp(2.5rem, 9vw, 4rem);
+    }
+
+    /* Back to cropping here. Stacked, the block is about 375 x 193 against a
+       drawing of 708 x 235 — stretching that far turns the squares into
+       rectangles half again as wide as they are tall, which is past the point
+       where the artwork still reads as pixels. Anchored to the top-right, the
+       two edges that are actually finished are the two that survive the crop. */
+    .two__pattern {
+      object-fit: cover;
+      object-position: right top;
     }
   }
 

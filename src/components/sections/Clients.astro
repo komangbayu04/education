@@ -1,0 +1,220 @@
+---
+/**
+ * Our designers worked with — a slow marquee of client wordmarks, sitting
+ * between the Journal and Testimonials.
+ *
+ * Two things carry it, and neither is JS:
+ *
+ *   uniform cells   every mark is centred in a box of exactly the same size
+ *                   and contained inside it, so nine logos drawn at nine
+ *                   different aspect ratios (62x42 through 145x42) read as one
+ *                   row rather than as nine sizes. Normalising on height alone
+ *                   — the usual way — would still leave the wide ones half
+ *                   again as long as the narrow ones.
+ *
+ *   a CSS loop      the list is rendered twice and the pair translated by half
+ *                   its own width, which lands the second copy exactly where
+ *                   the first began. Nothing measures anything, so it cannot
+ *                   drift out of step. The second copy is aria-hidden, so a
+ *                   screen reader hears each client once.
+ *
+ * The marks are small (the sources top out at 145px wide), so they are encoded
+ * losslessly — see the note in tools/prep-images.mjs.
+ */
+
+interface Client {
+  name: string;
+  /** Under public/media, no extension — webp only, these are tiny. */
+  logo: string;
+}
+
+interface Props {
+  label?: string;
+  clients?: Client[];
+  /** Seconds for one full pass. Slow on purpose: this is a band to be read in
+   *  passing, not something to watch. */
+  duration?: number;
+}
+
+const {
+  label = 'Our designers worked with:',
+  duration = 60,
+  clients = [
+    { name: 'Gojek', logo: '/media/logo-gojek' },
+    { name: 'Philips', logo: '/media/logo-philips' },
+    { name: 'Mandiri', logo: '/media/logo-mandiri' },
+    { name: 'BNP Paribas', logo: '/media/logo-bnp-paribas' },
+    { name: 'Novo Nordisk', logo: '/media/logo-novo-nordisk' },
+    { name: 'Zingage', logo: '/media/logo-zingage' },
+    { name: "McDonald's", logo: '/media/logo-mcdonalds' },
+    { name: 'EVYD', logo: '/media/logo-evyd' },
+    { name: 'Pfizer', logo: '/media/logo-pfizer' },
+  ],
+} = Astro.props;
+---
+
+<section class="clients" aria-labelledby="clients-label" style={`--clients-duration:${duration}s`}>
+  <p class="clients__label u-container" id="clients-label">{label}</p>
+
+  <div class="clients__viewport">
+    <div class="clients__marquee">
+      {
+        [false, true].map((isCopy) => (
+          <ul class="clients__track" aria-hidden={isCopy ? 'true' : undefined}>
+            {clients.map((client) => (
+              <li class="clients__cell">
+                {/* Not lazy. Nine files at about 1.3KB each — and the second
+                    copy is the same nine URLs — so there is nothing to defer,
+                    while a mark that arrives late arrives *while the row is
+                    moving*, which is a pop-in in the middle of the band. */}
+                <img
+                  class="clients__logo"
+                  src={`${client.logo}.webp`}
+                  alt={isCopy ? '' : client.name}
+                  decoding="async"
+                />
+              </li>
+            ))}
+          </ul>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .clients {
+    /* The cell every mark is centred in. One box, one size, nine logos.
+
+       The height clears the tallest source (EVYD, 45px) rather than sitting on
+       an average, and the marks are only ever scaled *down* into it — see
+       .clients__logo. A box shorter than that either clips them or, with
+       `contain`, blows the short ones up: Philips is 95x25, and stretched to a
+       common height it would be running at 1.5x on a raster wordmark. The
+       sources were exported at the sizes they were meant to be read at, and
+       the reference frame shows them at different heights for the same reason.
+       Uniform means the cells, not the marks. */
+    --clients-cell-w: clamp(7rem, 11vw, 10.5rem);
+    --clients-cell-h: clamp(2rem, 3.4vw, 3.25rem);
+
+    position: relative;
+    padding-block: clamp(1.75rem, 3.2vw, 2.75rem);
+    /* A band, not a section: ruled top and bottom so it reads as a strip
+       between the two sections it divides rather than as a third one. */
+    border-block: 1px solid var(--color-line);
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+  }
+
+  .clients__label {
+    font-size: clamp(0.9375rem, 1.15vw, 1.0625rem);
+    line-height: 1.3;
+  }
+
+  /* Full-bleed: the row runs off both screen edges, which is what says it
+     continues rather than ending in the gutter. */
+  .clients__viewport {
+    /* The step from the label to the marks. Floors higher than it used to
+       (1.25rem): with the strip's own padding brought in, this is what keeps
+       the label reading as a heading over the row rather than as part of it. */
+    margin-top: clamp(2rem, 2.2vw, 1.875rem);
+    overflow: hidden;
+  }
+
+  .clients__marquee {
+    display: flex;
+    width: max-content;
+    /* -50% is exactly one copy of the list, so the frame this ends on is the
+       frame it started from and the seam never shows. */
+    animation: clients-drift var(--clients-duration) linear infinite;
+  }
+
+  @keyframes clients-drift {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  /* The spacing at the join between the two copies is made entirely of these
+     side paddings — half a gap on each — and the marquee itself carries no
+     `gap` at all. That is what makes -50% exact: the distance from a logo to
+     its twin in the second copy is then one track's width, and one track is
+     half the marquee. With a gap on the marquee as well, the two were 24.5px
+     apart and the loop jumped once a pass. */
+  .clients__track {
+    display: flex;
+    align-items: center;
+    gap: clamp(1.5rem, 3.4vw, 3.5rem);
+    margin: 0;
+    padding-inline: clamp(0.75rem, 1.7vw, 1.75rem);
+    list-style: none;
+  }
+
+  /* Height fixed, width from the mark inside it.
+
+     It used to be a uniform box, --clients-cell-w wide, with each logo centred
+     in it. That makes the cells even and the *gaps* uneven, which is the one
+     of the two anybody sees: the marks run from 62 to 145px wide, so the space
+     between two of them came out as the track's gap plus half the slack either
+     side — 75px between the two widest, 130px between two narrow ones, a 55px
+     spread across one row.
+
+     Sized to its content, the cell is the mark, and the track's `gap` is the
+     distance between them at every pair. The width knob still caps each mark
+     (see .clients__logo), so nothing here can outgrow what the box allowed.
+
+     The marquee is unaffected: its -50% loop needs the two copies to be the
+     same width as each other, not the cells to be the same width as each
+     other. */
+  .clients__cell {
+    display: grid;
+    place-items: center;
+    flex: none;
+    height: var(--clients-cell-h);
+  }
+
+  /* Capped against the cell's own two knobs rather than against `100%`, which
+     did not constrain these at all — eight of the nine marks were overflowing a
+     104x26 cell at their natural size on a phone. Both caps at once, on a
+     replaced element with auto sizing, is what scales a mark down until it
+     satisfies each of them while keeping its ratio.
+
+     Down only: at its natural size a mark sits inside the cell untouched, and
+     nothing here can make one larger than it was drawn. */
+  .clients__logo {
+    max-width: var(--clients-cell-w);
+    max-height: var(--clients-cell-h);
+    width: auto;
+    height: auto;
+  }
+
+  /* Width only. The height clamp already floors at 2rem, which is the value
+     this width wants — pinning it lower here only shrank the marks further for
+     no gain in fit, since the width is what runs out on a phone. */
+  @media (max-width: 48rem) {
+    .clients {
+      /* Not the shared --section-gap-y here. This is a ruled strip rather than
+         a section, and the rules are the thing being spaced: 48 above and
+         below stood the label a long way off its own top rule and left the
+         bottom one drifting well clear of the marks. Tighter under than over,
+         because the gap below only has to clear the logos while the gap above
+         also carries the label. */
+      padding-block: 2rem 1.5rem;
+
+      --clients-cell-w: 6.5rem;
+    }
+  }
+
+  /* A band that slides on its own is exactly what this switches off. The row
+     stays readable — it simply stops moving, and the overflow crops it at the
+     screen edge as it would any other wide row. */
+  @media (prefers-reduced-motion: reduce) {
+    .clients__marquee {
+      animation: none;
+    }
+  }
+</style>
