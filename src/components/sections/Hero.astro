@@ -250,6 +250,10 @@ const {
       display: block;
       overflow: hidden;
       pointer-events: none;
+      /* How far in the two verticals sit. Named because the inner circle is
+         derived from it — see .hero__ring--inner — so the two cannot drift
+         apart if this is ever retuned. */
+      --hero-guide-inset: 11%;
       /* Over the artwork, under the copy. The stage is z-index 0 and these
          come before it in the document, so with no z-index of their own they
          painted underneath and the video's frame cut both circles wherever it
@@ -276,16 +280,16 @@ const {
     }
 
     .hero__guide--left {
-      left: 11%;
+      left: var(--hero-guide-inset);
     }
 
     .hero__guide--right {
-      right: 11%;
+      right: var(--hero-guide-inset);
     }
 
     /* Two of them, concentric. The outer one is the circle solved from the
-       frame; the inner is a quarter smaller, which is the only number it
-       needs — everything else it shares. */
+       frame; the inner is sized to meet the verticals, which is the only
+       number it needs — everything else it shares. */
     .hero__ring {
       --hero-ring-d: 96.27%;
 
@@ -298,8 +302,13 @@ const {
       border-radius: 50%;
     }
 
+    /* Tangent to the two verticals rather than a fraction of the outer ring.
+       Centred at 50%, a circle touches a line 11% in from the edge when its
+       radius is the 39% between them — so its diameter is the width less both
+       insets. Written that way rather than as the 78% it works out to, so it
+       stays touching if --hero-guide-inset ever moves. */
     .hero__ring--inner {
-      --hero-ring-d: calc(96.27% * 0.75);
+      --hero-ring-d: calc(100% - 2 * var(--hero-guide-inset));
     }
   }
 
