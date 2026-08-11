@@ -250,6 +250,13 @@ const {
       display: block;
       overflow: hidden;
       pointer-events: none;
+      /* Over the artwork, under the copy. The stage is z-index 0 and these
+         come before it in the document, so with no z-index of their own they
+         painted underneath and the video's frame cut both circles wherever it
+         overlapped them. 1 puts them across the film; the copy column is 2 and
+         still sits on top of everything. They take no pointer events, so
+         nothing about what is clickable changes. */
+      z-index: 1;
     }
 
     .hero__guide,
