@@ -78,9 +78,37 @@ export function initHero(): () => void {
   const hero = document.querySelector<HTMLElement>('[data-hero]');
   if (!hero) return () => {};
 
+  /* --- Keeping the film and the breakpoint in step ------------------------
+     The hero carries two cuts of the video — a landscape one and a portrait
+     one for phones — chosen by `media` on their <source> elements. That
+     attribute is only read while the element is selecting a resource, which
+     happens once, at load. Resizing past the breakpoint does not re-run it, so
+     the element goes on playing whichever file it picked when the page opened.
+
+     On its own that would only mean the wrong crop. What made it look broken
+     is that the poster behind it is a CSS background and *does* switch on
+     resize: drag a phone-width window out to desktop and the portrait film
+     plays over the landscape still — two trees side by side with a seam down
+     the middle.
+
+     `load()` is what re-runs resource selection. Bound to the same 48rem the
+     sources are cut at, and set up before the reduced-motion return below,
+     because the video plays either way: nothing here animates, it only makes
+     the element pick up the file its own markup already asked for. */
+  const heroVideo = hero.querySelector<HTMLVideoElement>('[data-hero-video]');
+  const narrow = window.matchMedia('(max-width: 48rem)');
+  const reselectSource = () => {
+    if (!heroVideo) return;
+    heroVideo.load();
+    // load() pauses, and autoplay only fires for the first load.
+    heroVideo.play().catch(() => {});
+  };
+  narrow.addEventListener('change', reselectSource);
+  const stopWatchingWidth = () => narrow.removeEventListener('change', reselectSource);
+
   // Reduced motion: the CSS already renders the resolved end state, and the
   // scene stays in normal flow because we never set data-scene-mode.
-  if (prefersReducedMotion()) return () => {};
+  if (prefersReducedMotion()) return stopWatchingWidth;
 
   const title = hero.querySelector<HTMLElement>('[data-hero-title]');
   const base = hero.querySelector<HTMLElement>('[data-hero-base]');
@@ -733,6 +761,7 @@ export function initHero(): () => void {
   }
 
   return () => {
+    stopWatchingWidth();
     tl.kill();
     split?.revert();
     cleanups.forEach((fn) => fn());
