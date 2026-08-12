@@ -354,8 +354,26 @@ const {
     z-index: 2;
     /* Its own pair — see the note at the top of this file. Applied to the
        column and not to the grid track, so the track keeps its measure and the
-       headline still breaks where it was set to. */
-    transform: translate(var(--hero-copy-x), var(--hero-copy-y));
+       headline still breaks where it was set to.
+
+       `left`/`top` on an already-relative box, not a transform, and that is
+       load-bearing. hero.ts animates this column out of the scene with a `y`
+       tween; GSAP writes that as an inline `transform`, having first read the
+       CSS one and folded it in. An inline style beats the `transform: none`
+       the narrow layout relies on, so the desktop offset survived every
+       resize — drag a wide window down to a phone and the copy stayed 28px
+       left, clipped against the gutter, until the page was reloaded. It looked
+       right after a reload only because GSAP reads `none` at that width and
+       writes x: 0.
+
+       Moving it to the `translate` property does not help: GSAP nulls the
+       independent transform properties on anything it animates, writing
+       `translate: none; rotate: none; scale: none` alongside its own
+       `transform`. `left`/`top` are the only offsets here it has no reason to
+       touch, and on a relative box they move the paint without moving the
+       flow — so the animation composes over them instead of replacing them. */
+    left: var(--hero-copy-x);
+    top: var(--hero-copy-y);
   }
 
   /* --- Headline -----------------------------------------------------------
@@ -680,7 +698,8 @@ const {
     }
 
     .hero__col--text {
-      transform: none;
+      left: auto;
+      top: auto;
     }
   }
 
