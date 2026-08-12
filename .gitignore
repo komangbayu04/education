@@ -18,3 +18,9 @@ image/video-upscale.mp4
 # what the site serves is the encode — public/media/hero-video-mobile.{mp4,webm}
 # — and that is committed. The ffmpeg command that produces it is in the README.
 image/0811.mp4
+
+# The hero's 4K desktop master, 90 MB, and out for the same reason as the two
+# above: what the site serves is the encode — public/media/hero-video.{mp4,webm}
+# — and that is committed. The phone cut's source is 4.5 MB and is tracked, so
+# only this one needs keeping wherever masters are kept.
+image/Bg-hero-dekstop.mp4

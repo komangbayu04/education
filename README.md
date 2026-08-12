@@ -150,15 +150,22 @@ through that script. `image/video-hero.mp4` (864 × 496, 10s) was encoded once b
 hand into `public/media/`:
 
 ```bash
-# The crop is not optional: the source's last row is baked dark (55,55,55
-# against a 253 ground), and scaled down it painted a grey hairline across
-# the full width of the hero. Four rows off the source clears it and keeps
-# the scaled height even, which yuv420p requires anyway.
-ffmpeg -i "image/video-upscale.mp4" -an \n  -vf "crop=3838:2200:0:0,scale=1920:-2" \n  -c:v libx264 -crf 28 -preset slow -pix_fmt yuv420p \n  -movflags +faststart "public/media/hero-video.mp4"
+# Two cuts: a 16:9 one for the wide layout and a portrait one for phones, each
+# chosen by `media` on its <source>. The phone cut is encoded at its native
+# 402x874 rather than scaled up — the source is already that size, and
+# upscaling it would only cost bytes.
+ffmpeg -i "image/Bg-hero-dekstop.mp4" -an -vf "scale=1920:-2"   -c:v libx264 -crf 28 -preset slow -pix_fmt yuv420p   -movflags +faststart "public/media/hero-video.mp4"
 
-ffmpeg -i "image/video-upscale.mp4" -an \n  -vf "crop=3838:2200:0:0,scale=1920:-2" \n  -c:v libvpx-vp9 -crf 48 -b:v 0 -row-mt 1 -pix_fmt yuv420p \n  "public/media/hero-video.webm"
+ffmpeg -i "image/Bg-hero-dekstop.mp4" -an -vf "scale=1920:-2"   -c:v libvpx-vp9 -crf 48 -b:v 0 -row-mt 1 -pix_fmt yuv420p   "public/media/hero-video.webm"
 
-ffmpeg -i "public/media/hero-video.mp4" -vframes 1 \n  -c:v libwebp -quality 80 "public/media/hero-video-poster.webp"
+ffmpeg -i "image/hero-bg-mobile .mp4" -an   -c:v libx264 -crf 28 -preset slow -pix_fmt yuv420p   -movflags +faststart "public/media/hero-video-mobile.mp4"
+
+ffmpeg -i "image/hero-bg-mobile .mp4" -an   -c:v libvpx-vp9 -crf 48 -b:v 0 -row-mt 1 -pix_fmt yuv420p   "public/media/hero-video-mobile.webm"
+
+# Posters, from the encodes so the still and the first frame match exactly.
+ffmpeg -i "public/media/hero-video.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/hero-video-poster.webp"
+
+ffmpeg -i "public/media/hero-video-mobile.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/hero-video-mobile-poster.webp"
 ```
 
 plus a VP9 `.webm` sibling (470 KB, served first) and a first-frame
