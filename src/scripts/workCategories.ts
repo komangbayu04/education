@@ -24,8 +24,8 @@ import { prefersReducedMotion } from './utils/device';
  *
  *   shuffle    while a row is hovered, its stack of preview cards cycles: the
  *              front card shrinks away, the two behind it step forward, and it
- *              reappears at the back. First swap a second in, then one every
- *              1.2s — see the constants above `startShuffle`.
+ *              reappears at the back, a card every 0.3s — see the constants
+ *              above `startShuffle`.
  *
  * The panels are closed from CSS (`html[data-js='true'] .cat__panel`) rather
  * than from here, so there is no frame on first paint where seven open strips
@@ -149,22 +149,22 @@ export function initWorkCategories(): () => void {
     { rotation: -4, xPercent: -4, yPercent: 4, zIndex: 1 },
   ];
 
-  /** Seconds before the first card gives way, once the row is hovered. Long
-   *  enough that a pointer crossing the list on its way somewhere else never
-   *  sets anything moving; short enough that stopping on a row shows you what
-   *  it does almost at once. */
-  const FIRST = 1;
-
-  /** Seconds a card holds the front between cycles, after that first one. */
-  const HOLD = 1.2;
+  /** Seconds before the first card gives way, once the row is hovered, and
+   *  the same again between every cycle after it.
+   *
+   *  It was 1 then 1.2, which meant a second of nothing before the stack did
+   *  anything at all — long enough to read as static. At 0.3 it is moving
+   *  almost as soon as the pointer settles. */
+  const FIRST = 0.3;
+  const HOLD = 0.3;
 
   /** How long the swap itself takes: the front card leaving, and the two
    *  behind stepping up into the space. Kept under the hold, so the stack is
-   *  always still for a beat before it moves again rather than running
-   *  continuously. */
-  const STEP = 0.38;
-  const OUT = 0.28;
-  const IN = 0.32;
+   *  still for a beat before it moves again rather than running continuously
+   *  — which is why these came down with it. */
+  const STEP = 0.24;
+  const OUT = 0.18;
+  const IN = 0.2;
 
   /**
    * One row's stack, cycling for as long as it is hovered.
