@@ -435,7 +435,18 @@ const {
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
-    margin-top: auto;
+    /* The step down from the headline, bounded rather than `auto`.
+
+       `auto` pushed this block to the foot of the column, which reads well
+       only while the column is about the height it was designed against. It
+       takes every pixel the viewport has: at 1440x900 that is 263px, and on a
+       1061x1285 tablet the same rule opened it to roughly 750 — the headline
+       at the top of the screen and the buttons at the bottom, with nothing
+       between them.
+
+       29svh reproduces the 263 this had at 900 tall, and the cap holds it
+       there as the screen grows instead of letting it run. */
+    margin-top: clamp(1.5rem, 29svh, 16.5rem);
     margin-bottom: clamp(2.5rem, 7.5vw, 7.5rem);
   }
 
