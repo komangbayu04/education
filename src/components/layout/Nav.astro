@@ -196,6 +196,21 @@ const {
   }
 
   /* --- Wordmark ----------------------------------------------------------- */
+  /* The wordmark is coloured by rule, not by blending.
+
+     `mix-blend-mode: difference` is the usual way to make a mark invert
+     against whatever is under it, and it cannot work here: it only blends
+     within its own stacking context, and this bar sits inside two — .nav is
+     fixed with a z-index, .nav__inner carries another. Measured, the nearest
+     one is .nav__inner, so the mark would blend against that box's own
+     backdrop, which is nothing. On the near-white hero it came out white on
+     white. Whatever else changes about the bar, it will always be fixed and
+     always be above the page, so this approach stays unavailable.
+
+     Which leaves telling it what it is over. The only dark surface the bar
+     ever sits on is the menu panel, handled just below. If a dark section is
+     ever added under the bar, the way to extend this is an observer marking
+     which section is behind it — not a blend. */
   .nav__logo {
     display: block;
     flex: 0 0 auto;
@@ -223,6 +238,10 @@ const {
     min-height: var(--nav-control-h);
     padding-inline: 2.25rem;
     border-radius: 0.5rem;
+    /* Inside stroke, 1px, black at 16% — straight off the spec. Inside is what
+       `border` already does on a border-box element, so the chip's height
+       stays exactly --nav-control-h rather than growing by the stroke. */
+    border: 1px solid rgb(0 0 0 / 0.16);
     background: var(--color-bg-secondary);
     color: var(--color-ink);
     cursor: pointer;
