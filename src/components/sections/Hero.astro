@@ -650,7 +650,17 @@ const {
      (minmax(0, 1fr) — the 0 minimum is what lets it shrink below the image's
      intrinsic height), which is what makes this hold on a short phone without
      a per-device image size. */
-  @media (max-width: 1199px) {
+  /* The single-column hero, and it starts at the phone breakpoint now rather
+     than at 1199px.
+
+     The premise of collapsing early was that the contained film would be a
+     short band with clear page above and below it, leaving the full width free
+     for the copy. That stopped being true: at 1061x1285 the band is 597 tall
+     and the copy sits straight on the tree, buttons and all. The film is cut
+     for two columns, so between 768 and 1199 it now keeps them — measured, the
+     copy column comes out 358px wide at 1024 and 280px at 800, clearing the
+     tree by 54px and 43px, with the headline fitting at both. */
+  @media (max-width: 48rem) {
     .hero {
       --hero-pad-top: clamp(1rem, 3vw, 2rem);
       padding-bottom: clamp(1rem, 3vw, 2rem);
