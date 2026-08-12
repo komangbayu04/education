@@ -1025,14 +1025,55 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     width: 100%;
   }
 
-  /* Folded away until "See all". Only when JS is live — see the closed state at
+  /* Shown, not hidden, and cut off under a blur.
+
+     The extra row used to be `display: none`, so the only sign anything was
+     folded away was the button itself. The frame keeps the row on screen and
+     takes it away instead — a band of it visible, going out of focus and out
+     of sight as it falls — which says "there is more of this" in a way a
+     button on its own cannot.
+
+     Only when JS is live. With the script off nothing is folded and every card
+     is already on the page, so none of this applies — see the closed state at
      the foot of this file. */
-  :global(html[data-js='true']) .tm__grid-item--extra {
-    display: none;
+  .tm__more {
+    position: relative;
   }
 
-  :global(html[data-js='true']) [data-tm-more][data-open] .tm__grid-item--extra {
-    display: block;
+  /* The sliver. Enough of the card to read a name and the first line under it,
+     which is what makes it obviously another testimonial rather than a strip
+     of grey. The cards themselves are 351 and 409 tall, so this is roughly the
+     top third of one. */
+  :global(html[data-js='true']) [data-tm-more]:not([data-open]) .tm__grid-item--extra {
+    max-height: clamp(6rem, 11vw, 8.5rem);
+    overflow: hidden;
+  }
+
+  /* The blur, laid over the foot of the block rather than applied to the cards.
+
+     `backdrop-filter` on an overlay, not `filter` on the row: a filter blurs
+     the element evenly, and what this wants is a blur that comes on as the
+     eye travels down. Masking the overlay is what grades it — the backdrop is
+     sampled through the mask, so the blur arrives with the fade rather than
+     switching on at an edge.
+
+     The white on top of it is what finishes the fade: blur alone leaves the
+     card legible in outline, and the frame has the row going to nothing. */
+  :global(html[data-js='true']) [data-tm-more]:not([data-open])::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: clamp(7rem, 13vw, 11rem);
+    backdrop-filter: blur(7px);
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0) 0%,
+      rgb(255 255 255 / 0.72) 55%,
+      rgb(255 255 255 / 0.98) 100%
+    );
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 45%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 45%);
+    pointer-events: none;
   }
 
   /* Same shape as the hero's button, on this section's white ground. */
@@ -1057,6 +1098,17 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
      JS to hide it. */
   :global(html[data-js='true']) .tm__see-all {
     display: inline-flex;
+  }
+
+  /* Sat over the fade while there is one, so the button reads as the lid on
+     the row it is holding down rather than as a control parked underneath it.
+     Above the overlay, which takes no pointer events of its own. */
+  :global(html[data-js='true']) [data-tm-more]:not([data-open]) .tm__see-all {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(1.5rem, 3vw, 2.75rem);
+    translate: -50% 0;
+    z-index: 1;
   }
 
   .tm__see-all:hover,
