@@ -160,18 +160,27 @@ const {
             so the platform's own one is open to keyboard and screen readers for
             free and still works with the script disabled. Closed by default —
             the frame shows it folded, chevron down. */}
-        <details class="two__details" data-two-reveal="details">
-          <summary class="two__details-summary">
-            {detailsTitle}
-            <span class="two__details-mark" aria-hidden="true">
-              <svg viewBox="0 0 16 16" fill="none">
-                <path d="M3 6.5 8 11l5-4.5" stroke="currentColor" stroke-width="1.4" />
-              </svg>
-            </span>
-          </summary>
+        <div class="two__details-slot" data-two-reveal="details">
+          <details class="two__details">
+            <summary class="two__details-summary">
+              {detailsTitle}
+              <span class="two__details-mark" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <path d="M3 6.5 8 11l5-4.5" stroke="currentColor" stroke-width="1.4" />
+                </svg>
+              </span>
+            </summary>
 
-          <p class="two__details-copy">{detailsCopy}</p>
-        </details>
+            <p class="two__details-copy">{detailsCopy}</p>
+          </details>
+
+          {/* The same words again, never shown, and the only thing here that
+              takes up room. See .two__details-slot for why the answer has to
+              be measured by something other than itself. Rendered from the
+              same prop as the real one, so the two cannot drift apart, and
+              hidden from the accessibility tree so it is not read twice. */}
+          <p class="two__details-copy two__details-reserve" aria-hidden="true">{detailsCopy}</p>
+        </div>
       </div>
 
       <div class="two__cta-block">
@@ -529,11 +538,50 @@ const {
     rotate: 180deg;
   }
 
+  /* The answer's height is held open whether or not the answer is showing.
+
+     Opening the question used to lengthen the section under it: 199px on a
+     phone, and on a wide screen 112px that the iconed list above absorbed by
+     squeezing its own rows — so either the page grew or the rows it had just
+     spread jumped closer together. Both read as the layout coming apart under
+     a click.
+
+     The fix is a second copy of the same words that is always in the flow and
+     never visible. It is what gives this block its height; the real answer is
+     taken out of the flow and laid over it, so revealing it changes nothing
+     about the size of anything.
+
+     Measured by a duplicate rather than by a number because the answer wraps
+     differently at every width — any height written here would be right at one
+     size and wrong at the rest. Both copies come from the same prop and share
+     this rule, so they wrap identically by construction. */
+  .two__details-slot {
+    position: relative;
+  }
+
+  .two__details {
+    position: relative;
+  }
+
   .two__details-copy {
     padding-top: clamp(0.875rem, 1.6vw, 1.25rem);
     font-size: 0.875rem;
     line-height: 1.65;
     color: var(--color-ink-secondary);
+  }
+
+  /* Out of the flow, and pinned directly under the summary: with the answer
+     absolute, the <details> box is only ever as tall as its summary, so
+     `top: 100%` is the line the reserve below it also starts on. */
+  .two__details > .two__details-copy {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+  }
+
+  .two__details-reserve {
+    visibility: hidden;
   }
 
   /* --- The ask -------------------------------------------------------------
