@@ -1040,13 +1040,19 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     position: relative;
   }
 
-  /* The sliver. Enough of the card to read a name and the first line under it,
-     which is what makes it obviously another testimonial rather than a strip
-     of grey. The cards themselves are 351 and 409 tall, so this is roughly the
-     top third of one. */
-  :global(html[data-js='true']) [data-tm-more]:not([data-open]) .tm__grid-item--extra {
-    max-height: clamp(6rem, 11vw, 8.5rem);
-    overflow: hidden;
+  /* The second row is not shown at all — not even a band of it.
+
+     Letting a sliver through put a whole second row of cards on screen below
+     the grid's own 108px row gap, which read as another row that happened to
+     be faded rather than as the first row running out. What invites the click
+     is the fade landing on the row you are already reading, so the extras stay
+     out of the flow entirely and the blur below does the work. */
+  :global(html[data-js='true']) .tm__grid-item--extra {
+    display: none;
+  }
+
+  :global(html[data-js='true']) [data-tm-more][data-open] .tm__grid-item--extra {
+    display: block;
   }
 
   /* The blur, laid over the foot of the block rather than applied to the cards.
@@ -1062,8 +1068,9 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
   :global(html[data-js='true']) [data-tm-more]:not([data-open])::after {
     content: '';
     position: absolute;
+    /* Over the foot of the first row, which is the row it is asking about. */
     inset: auto 0 0;
-    height: clamp(7rem, 13vw, 11rem);
+    height: clamp(8rem, 15vw, 13rem);
     backdrop-filter: blur(7px);
     background: linear-gradient(
       to bottom,
