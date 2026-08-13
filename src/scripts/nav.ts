@@ -1,4 +1,4 @@
-import { gsap } from './gsap';
+import { gsap, ScrollTrigger } from './gsap';
 import { getLenis } from './scroll';
 import { prefersReducedMotion } from './utils/device';
 
@@ -321,9 +321,91 @@ export function initNav(): () => void {
       .from(inner, { y: -14, duration: 0.9 }, 0);
   }
 
+  const stopTone = initLogoTone(nav);
+
   return () => {
+    stopTone();
     controller.abort();
     animation?.kill();
     lockScroll(false);
+  };
+}
+
+/**
+ * The wordmark takes its colour from what is behind it.
+ *
+ * `mix-blend-mode: difference` is the usual way to do this and it does not
+ * work here: the bar is a fixed, z-indexed stacking context of its own, so the
+ * only backdrop the mark can blend with is the bar's own — transparent — and
+ * it came out white on white. Isolating it would mean giving up the stacking
+ * that keeps the bar above the panel.
+ *
+ * So the dark grounds are declared rather than detected, with
+ * `data-nav-over="dark"`, and this watches whether one of them is behind the
+ * mark. Declared because they cannot be read: the founder quote's darkness is
+ * a photograph under a scrim, and no computed background colour anywhere in
+ * that section says so.
+ *
+ * Both axes are tested, which is not fussiness — the "Ready to get going?"
+ * block is dark at every width but sits in the right-hand column on a desktop,
+ * where the mark passes to the left of it and must stay dark. Stacked, the
+ * same block is full width and does pass under the mark.
+ *
+ * Returns a cleanup function.
+ */
+function initLogoTone(nav: HTMLElement): () => void {
+  const logo = nav.querySelector<HTMLElement>('.nav__logo');
+  const zones = gsap.utils.toArray<HTMLElement>('[data-nav-over="dark"]');
+  if (!logo || !zones.length) return () => {};
+
+  const root = document.documentElement;
+
+  /* Measured on refresh and held, so a scroll costs no layout reads: the
+     mark's box is fixed to the viewport and the zones' are in page space, so
+     the only thing that changes between frames is how far the page has
+     scrolled. */
+  let mark = { top: 0, bottom: 0, left: 0, right: 0 };
+  let boxes: Array<{ top: number; bottom: number; left: number; right: number }> = [];
+
+  const measure = () => {
+    const r = logo.getBoundingClientRect();
+    mark = { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+    boxes = zones.map((zone) => {
+      const b = zone.getBoundingClientRect();
+      return { top: b.top + window.scrollY, bottom: b.bottom + window.scrollY, left: b.left, right: b.right };
+    });
+  };
+
+  const apply = () => {
+    const y = window.scrollY;
+    const over = boxes.some(
+      (b) =>
+        b.top - y < mark.bottom &&
+        b.bottom - y > mark.top &&
+        b.left < mark.right &&
+        b.right > mark.left,
+    );
+    root.toggleAttribute('data-nav-over-dark', over);
+  };
+
+  measure();
+  apply();
+
+  /* Driven by ScrollTrigger rather than a scroll listener so it runs on the
+     same ticker as everything else here — Lenis owns the scroll position, and
+     a raw listener would be reading it a frame behind the rest of the page. */
+  const watcher = ScrollTrigger.create({
+    start: 0,
+    end: 'max',
+    onUpdate: apply,
+    onRefresh: () => {
+      measure();
+      apply();
+    },
+  });
+
+  return () => {
+    watcher.kill();
+    root.removeAttribute('data-nav-over-dark');
   };
 }

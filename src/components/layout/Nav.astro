@@ -207,10 +207,16 @@ const {
      white. Whatever else changes about the bar, it will always be fixed and
      always be above the page, so this approach stays unavailable.
 
-     Which leaves telling it what it is over. The only dark surface the bar
-     ever sits on is the menu panel, handled just below. If a dark section is
-     ever added under the bar, the way to extend this is an observer marking
-     which section is behind it — not a blend. */
+     Which leaves telling it what it is over, and that is what happens now: the
+     dark grounds carry `data-nav-over="dark"` and the observer in nav.ts sets
+     `data-nav-over-dark` on the root while one of them is behind the mark. Two
+     surfaces qualify today — the founder quote and the "Ready to get going?"
+     block — plus the menu panel, which has its own attribute just below.
+
+     Declared rather than detected because the darkness cannot always be read:
+     the founder quote is a photograph under a scrim, and every computed
+     background colour in that section is the cream it sits on. To add another,
+     put the attribute on it; nothing here needs to change. */
   .nav__logo {
     display: block;
     flex: 0 0 auto;
@@ -559,8 +565,22 @@ const {
      wordmark inverts while the panel is dark behind it. The chip keeps its own
      light ground and dark strokes: a light control on a dark sheet is the
      clearer of the two, and it is what the frame has. */
-  :global(html[data-nav-open]) .nav__logo {
+  :global(html[data-nav-open]) .nav__logo,
+  /* And the same over a dark section, set by the tone observer in nav.ts. The
+     mark is drawn in currentColor, so this is the whole of it. Both selectors
+     ask for the same colour, so the panel being open over a dark section is
+     not a conflict — it is the same answer twice. */
+  :global(html[data-nav-over-dark]) .nav__logo {
     color: var(--color-ink-invert);
+  }
+
+  /* Only the colour is animated, and only here. The mark crosses the edge of a
+     dark section in a few frames of scrolling, and switching outright reads as
+     a glitch at that speed; a short ease reads as the mark responding to what
+     it is over. Left out of the reduced-motion query on purpose — a colour
+     fade with no movement is not what that setting is asking to be spared. */
+  .nav__logo {
+    transition: color 0.28s var(--ease-out-expo);
   }
 
   /* --- Responsive ----------------------------------------------------------

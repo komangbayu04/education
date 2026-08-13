@@ -28,7 +28,14 @@ interface Props {
 const { clips } = Astro.props;
 ---
 
-<section class="cs-vid" aria-label="Project videos" data-cs-videos>
+{/* data-nav-over: the one dark ground on a case study, and the bar is fixed
+    over it like everywhere else. The observer in nav.ts inverts the wordmark
+    while this is behind it.
+
+    The dark placeholder tiles elsewhere on this page are deliberately not
+    marked: they are what a missing image falls back to, so they go the moment
+    real media lands, and a marker on one would be a marker on nothing. */}
+<section class="cs-vid" aria-label="Project videos" data-cs-videos data-nav-over="dark">
   <ul class="cs-vid__row">
     {
       clips.map((clip) => (

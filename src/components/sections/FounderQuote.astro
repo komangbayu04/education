@@ -85,10 +85,15 @@ const topCells = band([0.92, 0.62, 0.4, 0.22, 0.1], 0);
 const bottomCells = band([0.06, 0.14, 0.26, 0.42, 0.62, 0.82, 0.96], 5000);
 ---
 
+{/* data-nav-over: the darkness here is the photograph and its scrim, not a
+    background colour, so nothing can read it off the CSS — it is declared
+    instead. See the tone observer in nav.ts, which inverts the wordmark while
+    this section is behind it. */}
 <section
   class="quote"
   aria-labelledby="quote-name"
   data-quote
+  data-nav-over="dark"
   style={`--quote-cols:${COLS}`}
 >
   <div class="quote__media">

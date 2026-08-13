@@ -183,7 +183,11 @@ const {
         </div>
       </div>
 
-      <div class="two__cta-block">
+      {/* Dark enough that the wordmark has to invert over it — see the tone
+          observer in nav.ts. At desktop this block sits in the right column
+          and never passes under the mark; stacked it is full width and does.
+          The observer tests both axes, so the same marker is correct at both. */}
+      <div class="two__cta-block" data-nav-over="dark">
         {/* Decorative — the seam carries no meaning the copy doesn't already.
             A supplied asset now, not a generated field: the two edges used to
             be built here by pixelField() and laid out as CSS grids, which put
