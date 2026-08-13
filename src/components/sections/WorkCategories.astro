@@ -20,11 +20,16 @@
  *          it, running off the right edge of the screen and scrolling
  *          horizontally. One row open at a time.
  *
- * The real artwork is not in yet: every category points at the same six
- * placeholders — three for its stack, three for its strip. They are the only
- * thing standing in, so replacing them is a `stack` and an `images` array per
- * row and nothing else. A category given neither still renders: blank
- * silhouettes in the fan, PLACEHOLDER_TILES empty frames in the strip.
+ * Four categories have their artwork: Website, Landing Page, Product Design and
+ * Pitch Deck each have a folder under image/ named for them, and every file in
+ * it becomes a tile in that category's strip — the first four are also its
+ * hover deck. The counts live in the `work()` calls below and the output names
+ * in tools/prep-images.mjs; the two agree on a convention rather than on a list
+ * of filenames each.
+ *
+ * Social Media, Ads and One-pagers have no folder yet and still point at the
+ * shared placeholders. A category given neither still renders: silhouettes in
+ * the deck, PLACEHOLDER_TILES empty frames in the strip.
  *
  * Motion and the accordion live in src/scripts/workCategories.ts. Without JS
  * every strip is open, which is the whole content reachable by scroll alone.
@@ -40,12 +45,11 @@ interface Category {
   /** Where "See Work" goes. */
   href: string;
   /**
-   * The three cards of the hover stack, back to front. Its own list rather
-   * than the strip's first three: the stack and the strip show different
-   * artwork, and while one array fed both, giving the stack a photo meant
-   * putting that same photo first in the strip.
+   * The cards of the hover deck, back to front — so the last entry is the one
+   * on top. Its own list rather than a slice taken in the markup, because a
+   * category can want a different set here from the one its strip opens with.
    *
-   * Fewer than three leaves the cards behind it as the bare silhouettes they
+   * Fewer than four leaves the slots behind them as the bare silhouettes they
    * started as, which is what an artwork-less category still looks like.
    */
   stack?: { src: string; alt: string }[];
@@ -58,6 +62,16 @@ interface Category {
    * it.
    */
   images?: { src: string; alt: string }[];
+  /**
+   * The shape every tile and card in this category is cut to, as a CSS
+   * `aspect-ratio` value — the source files' own, so `cover` has nothing to
+   * take off an edge.
+   *
+   * Per category rather than one figure for the section, because the folders
+   * do not agree with each other: cut to a shared 51/30 the deck slides were
+   * fine and the site screenshots lost their top strip.
+   */
+  ratio?: string;
 }
 
 interface Props {
@@ -66,14 +80,11 @@ interface Props {
   viewLabel?: string;
 }
 
-/* Placeholders, and the same six on every row on purpose — the real work is
-   not cut yet, and one set standing in everywhere is honest about that in a
-   way a different arbitrary set per category would not be. Replacing them is
-   per-category `stack` and `images` arrays and nothing else.
-
-   The alt text says what these actually are. Writing them up as the category's
-   own work would be a caption that is not true yet, and the strip is the part
-   a screen reader reads. */
+/* Still the placeholders, for the three categories with no folder of their own
+   in image/ yet — Social Media, Ads, One-pagers. One set standing in on all
+   three is honest about that in a way a different arbitrary set each would not
+   be, and the alt text says what they actually are: writing them up as that
+   category's work would be a caption that is not true yet. */
 const STACK_PLACEHOLDER = [
   { src: '/media/work-hover-1', alt: 'Placeholder artwork' },
   { src: '/media/work-hover-2', alt: 'Placeholder artwork' },
@@ -86,22 +97,99 @@ const STRIP_PLACEHOLDER = [
   { src: '/media/work-shot-3', alt: 'Placeholder work sample' },
 ];
 
+/** The deck's slots, rear to front — so the last one is the card on top. Its
+ *  length is how many shots a category's deck takes off the front of its
+ *  strip. */
+const SLOTS = ['rear', 'back', 'mid', 'front'] as const;
+const STACK_SIZE = SLOTS.length;
+
+/* The two shapes the sources come in, written as the pixel dimensions they
+   actually are rather than reduced — so the day a folder is re-exported, the
+   number here can be checked against the file in one look. */
+const SITE_RATIO = '804 / 510';
+const DECK_RATIO = '843 / 474';
+/** What the shared placeholders are, and the fallback for a category with
+ *  neither a folder nor a ratio of its own. */
+const PLACEHOLDER_RATIO = '51 / 30';
+
+/**
+ * A category's artwork, built from the count of files in its folder.
+ *
+ * The names are the ones tools/prep-images.mjs writes — `work-<slug>-<n>`,
+ * numbered from 1 in the folder's own sorted order — so this and that script
+ * agree on one convention rather than on a list of filenames each. Adding a
+ * shot is dropping it in the folder, re-running `npm run images`, and moving
+ * the number here.
+ *
+ * `ratio` is the source files' own, and every tile and card in that category is
+ * cut to it. Per category because the folders do not agree: the site, landing
+ * and product shots are 804 x 510 and the deck slides 843 x 474. Cut to one
+ * shared figure, `cover` took the difference off an edge — which is what was
+ * slicing the top off the Overclock screenshot.
+ */
+const work = (slug: string, count: number, label: string, ratio: string) => {
+  const images = Array.from({ length: count }, (_, i) => ({
+    src: `/media/work-${slug}-${i + 1}`,
+    alt: `${label} — sample ${i + 1}`,
+  }));
+
+  /* Deck back-to-front, so the first file in the folder is the card on top:
+     the markup paints index 0 into the rearmost slot. Fewer than STACK_SIZE
+     files simply leaves the slots behind it as silhouettes. */
+  return { images, stack: images.slice(0, STACK_SIZE).reverse(), ratio };
+};
+
 const {
   title = 'Our work - categorized',
   viewLabel = 'See Work',
   categories = [
-    { number: '01', label: 'Website Design & Development', href: '/work' },
-    { number: '02', label: 'Landing Page Design & Development', href: '/work' },
-    { number: '03', label: 'Product Design', href: '/work' },
-    { number: '04', label: 'Pitch Deck', href: '/work' },
-    { number: '05', label: 'Social Media', href: '/work' },
-    { number: '06', label: 'Ads', href: '/work' },
-    { number: '07', label: 'One-pagers', href: '/work' },
-  ].map((category) => ({
-    ...category,
-    stack: STACK_PLACEHOLDER,
-    images: STRIP_PLACEHOLDER,
-  })),
+    {
+      number: '01',
+      label: 'Website Design & Development',
+      href: '/work',
+      ...work('website', 7, 'Website design', SITE_RATIO),
+    },
+    {
+      number: '02',
+      label: 'Landing Page Design & Development',
+      href: '/work',
+      ...work('landing-page', 7, 'Landing page design', SITE_RATIO),
+    },
+    {
+      number: '03',
+      label: 'Product Design',
+      href: '/work',
+      ...work('product-design', 5, 'Product design', SITE_RATIO),
+    },
+    {
+      number: '04',
+      label: 'Pitch Deck',
+      href: '/work',
+      ...work('pitch-deck', 8, 'Pitch deck', DECK_RATIO),
+    },
+    // No folder yet — see the placeholders above.
+    {
+      number: '05',
+      label: 'Social Media',
+      href: '/work',
+      stack: STACK_PLACEHOLDER,
+      images: STRIP_PLACEHOLDER,
+    },
+    {
+      number: '06',
+      label: 'Ads',
+      href: '/work',
+      stack: STACK_PLACEHOLDER,
+      images: STRIP_PLACEHOLDER,
+    },
+    {
+      number: '07',
+      label: 'One-pagers',
+      href: '/work',
+      stack: STACK_PLACEHOLDER,
+      images: STRIP_PLACEHOLDER,
+    },
+  ],
 } = Astro.props;
 ---
 
@@ -114,12 +202,22 @@ const {
         categories.map((category, i) => {
           const panelId = `cat-panel-${category.number}`;
           const images = category.images ?? [];
-          /* Back, mid, front — index 2 is the card on top, so the list reads
-             in paint order and the last one written is the one seen. */
+          /* Rear, back, mid, front — the last entry is the card on top, so the
+             list reads in paint order and the one written last is the one
+             seen. */
           const stack = category.stack ?? [];
+          /* Right-aligned against the front of the deck: a category with fewer
+             shots than slots leaves its *rear* slots empty, not its front one.
+             Filled from the rear instead, Product Design's three shots put the
+             empty silhouette on top and covered all three. */
+          const stackOffset = SLOTS.length - Math.min(stack.length, SLOTS.length);
 
           return (
-            <li class="cat__item" data-cat-item>
+            <li
+              class="cat__item"
+              data-cat-item
+              style={`--cat-ratio:${category.ratio ?? PLACEHOLDER_RATIO}`}
+            >
               <div class="cat__row">
                 {/* The toggle is the number and the label; "See Work" is its
                     own link beside it. One control each, because they go two
@@ -144,8 +242,8 @@ const {
                 {/* Decorative: it is a preview of the strip the row opens, and
                     the strip is the thing that carries the alt text. */}
                 <div class="cat__stack" aria-hidden="true">
-                  {['back', 'mid', 'front'].map((position, layer) => {
-                    const shot = stack[layer];
+                  {SLOTS.map((position, layer) => {
+                    const shot = stack[layer - stackOffset];
 
                     return (
                       <span class:list={['cat__card', `cat__card--${position}`]}>
@@ -361,7 +459,9 @@ const {
     right: 7.8%;
     z-index: 1;
     width: clamp(15rem, 30%, 27rem);
-    aspect-ratio: 43 / 29;
+    /* The category's own, set on the item — so the deck is the shape of the
+       work in it and `cover` inside each card has nothing to crop. */
+    aspect-ratio: var(--cat-ratio, 43 / 29);
     opacity: 0;
     transform: translateY(-50%) scale(0.94);
     transition:
@@ -405,16 +505,38 @@ const {
      workCategories.ts takes the transform over and cycles the cards through
      these same three places, so the numbers here are mirrored in its SLOTS —
      change one and the stack jumps at the moment the shuffle starts. */
-  .cat__card--back {
-    transform: rotate(-4deg) translate(-4%, 4%);
+  /* A stepped deck rather than a rotated fan: same size card three times, each
+     one set back up and to the left of the one in front of it and scaled down
+     by the same ratio, so the steps read as distance rather than as three
+     cards laid out on a table.
+
+     z-index is declared rather than left to DOM order because the cycle in
+     workCategories.ts moves cards between these places — paint order has to be
+     a property of the slot, not of where the element happens to sit in the
+     markup. */
+  .cat__card--front {
+    transform: none;
+    z-index: 3;
   }
 
   .cat__card--mid {
-    transform: rotate(2.5deg) translate(3%, -2%);
+    transform: translate(-7%, -7%) scale(0.93);
+    z-index: 2;
   }
 
-  .cat__card--front {
-    transform: rotate(-1deg);
+  .cat__card--back {
+    transform: translate(-14%, -14%) scale(0.86);
+    z-index: 1;
+  }
+
+  /* The fourth step, same ratio again — four because that is how many shots
+     the deck shows, and every category with a folder now has at least that
+     many. A category with fewer leaves its rear slots as silhouettes; see
+     stackOffset in the markup for why the gap sits at the back and not on
+     top. */
+  .cat__card--rear {
+    transform: translate(-21%, -21%) scale(0.79);
+    z-index: 0;
   }
 
   /* No artwork in that slot yet: a flat silhouette rather than an empty white
@@ -427,6 +549,10 @@ const {
 
   .cat__card--mid:not(:has(img)) {
     background: #a8a8a8;
+  }
+
+  .cat__card--rear:not(:has(img)) {
+    background: #7d7d7d;
   }
 
   /* --- The strip -----------------------------------------------------------
@@ -472,7 +598,11 @@ const {
   .cat__shot {
     flex: none;
     width: clamp(16rem, 38%, 32rem);
-    aspect-ratio: 51 / 30;
+    /* The category's own shape, so `cover` below has nothing to take off. At a
+       flat 51/30 the site screenshots — 804 x 510, a shorter frame — were
+       being trimmed top and bottom, which took the browser chrome off the top
+       of the Overclock shot. */
+    aspect-ratio: var(--cat-ratio, 51 / 30);
     overflow: hidden;
     scroll-snap-align: start;
     background: var(--color-surface);

@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync } from 'node:fs';
 
 const SRC = 'image';
 const OUT = 'public/media';
@@ -125,9 +125,10 @@ console.log('NAV NERD', JSON.stringify(navNerdBox));
 const navOverclockBox = await alphaBBox(`${SRC}/Overclock_nav.png`);
 console.log('NAV OVER', JSON.stringify(navOverclockBox));
 
-/* Work categories. 1–3 are the hover stack, 4–6 the strip; the sources are
-   numbered, the outputs are named for the job they do — a file called `3.png`
-   tells the next person nothing about where it lands. */
+/* The generic stack/strip placeholders, still here for the three categories
+   that have no folder of their own yet — Social Media, Ads, One-pagers. The
+   sources are numbered, the outputs are named for the job they do: a file
+   called `3.png` tells the next person nothing about where it lands. */
 const workCatSources = [
   { file: '1.png', name: 'work-hover-1' },
   { file: '2.png', name: 'work-hover-2' },
@@ -142,6 +143,47 @@ for (const { file, name } of workCatSources) {
   const box = await alphaBBox(`${SRC}/${file}`);
   console.log(name.padEnd(14), JSON.stringify(box));
   workCatBoxes.push({ src: `${SRC}/${file}`, box, name, maxW: 900 });
+}
+
+/* The real work, one folder per category under image/. The folder's name is
+   the category's; everything in it becomes a tile in that category's strip,
+   and the first four are also its hover stack.
+ *
+ * Read off the disk rather than listed here, so adding a shot to a category is
+ * dropping a file in its folder and re-running this — nothing to keep in step.
+ * Sorted numerically, because Pitch Deck's files are 01, 02, 04, 08, 13… and a
+ * plain sort puts 13 before 2.
+ *
+ * These are full-frame screenshots with no transparency to trim, so they go
+ * through the `photos` path rather than `jobs` — with `avif: true`, since the
+ * component renders each one in a <picture>. */
+const WORK_CATEGORY_FOLDERS = {
+  Website: 'website',
+  'Landing page': 'landing-page',
+  'Product Design': 'product-design',
+  'Pitch Deck': 'pitch-deck',
+};
+
+const workCatPhotos = [];
+for (const [folder, slug] of Object.entries(WORK_CATEGORY_FOLDERS)) {
+  const files = readdirSync(`${SRC}/${folder}`)
+    .filter((file) => /\.(png|jpe?g|webp)$/i.test(file))
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+
+  files.forEach((file, i) => {
+    workCatPhotos.push({
+      src: `${SRC}/${folder}/${file}`,
+      name: `work-${slug}-${i + 1}`,
+      /* The widest either use gets is the strip's 32rem tile, doubled for a
+         retina screen. The sources are 843–931px, so `withoutEnlargement`
+         keeps them there and this is only a ceiling for anything larger
+         dropped in later. */
+      maxW: 1000,
+      avif: true,
+    });
+  });
+
+  console.log(`work/${slug}: ${files.length} file(s)`);
 }
 
 const jobs = [
@@ -218,6 +260,10 @@ const photos = [
     ['Evyd.png', 'logo-evyd'],
     ['Pfizer.png', 'logo-pfizer'],
   ].map(([file, name]) => ({ src: `${SRC}/${file}`, name, maxW: 400, lossless: true })),
+
+  // One entry per file across the four category folders — see
+  // WORK_CATEGORY_FOLDERS above.
+  ...workCatPhotos,
 ];
 
 for (const { src, name, maxW, avif = false, quality = 82, lossless = false } of photos) {
