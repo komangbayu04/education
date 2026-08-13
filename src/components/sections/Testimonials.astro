@@ -1068,9 +1068,19 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
   :global(html[data-js='true']) [data-tm-more]:not([data-open])::after {
     content: '';
     position: absolute;
-    /* Over the foot of the first row, which is the row it is asking about. */
+    /* Over the foot of the first row, which is the row it is asking about.
+
+       Taller than it was — 12rem at the floor and 19rem at the cap, up from 8
+       and 13. The band is where the row goes to nothing, so its height is how
+       long that takes: at 208px on a desktop the card was still fully legible
+       a line above the button and then gone, which reads as a panel laid over
+       the text rather than as the column fading out.
+
+       Both ends move, and the floor is the one that matters on a phone: 15vw
+       of 375 is 56px, so mobile never saw the fluid value at all — it sat on
+       the floor, and raising it is the only way the band grows there. */
     inset: auto 0 0;
-    height: clamp(8rem, 15vw, 13rem);
+    height: clamp(12rem, 22vw, 19rem);
     backdrop-filter: blur(7px);
     background: linear-gradient(
       to bottom,
