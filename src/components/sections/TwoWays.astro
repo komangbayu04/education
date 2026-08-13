@@ -843,6 +843,29 @@ const {
       object-fit: cover;
       object-position: right top;
     }
+
+    /* The answer stops being held open, and goes back to being an ordinary
+       disclosure that pushes what is under it.
+
+       Reserving the room is a fix for a problem this layout does not have. On
+       a wide screen the question sits beside the iconed list, so opening it
+       either grew the section or squeezed those rows together — the reserve is
+       what stops the composition moving under a click. Stacked, there is
+       nothing beside it and the section is free to grow, so all the reserve
+       does is hold a block of empty space under a closed question. On a phone
+       that is a 199px hole between the question and the dark block, which
+       reads as a broken gap rather than as room being kept.
+
+       Both halves have to go together: the reserve is what gives the slot its
+       height, and the real answer is only absolute because the reserve is
+       standing in for it. */
+    .two__details > .two__details-copy {
+      position: static;
+    }
+
+    .two__details-reserve {
+      display: none;
+    }
   }
 
   /* --- Pre-reveal state ----------------------------------------------------
