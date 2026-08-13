@@ -866,6 +866,20 @@ const {
     .two__details-reserve {
       display: none;
     }
+
+    /* And the question gets a finger-sized target. It was 335x22 — wide enough
+       to hit, but 22px tall is under the 24px floor WCAG asks for, on the one
+       control this block has.
+
+       Padding with the same negative margin, rather than a min-height: the
+       hit area comes out at 44px while the box the layout sees stays 22, so
+       the spacing around it is exactly what it was. The 11px it reaches into
+       above and below is empty on both sides — the copy above ends well clear
+       and the dark block is 40px under it. */
+    .two__details-summary {
+      padding-block: 0.6875rem;
+      margin-block: -0.6875rem;
+    }
   }
 
   /* --- Pre-reveal state ----------------------------------------------------

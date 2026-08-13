@@ -525,6 +525,30 @@ const {
       font-size: 0.875rem;
     }
 
+    /* A finger-sized target, without moving the words.
+
+       This is the control that opens a row on a phone — there is no hover
+       here, so "See Work" is how the strip gets seen at all. It was 58x17,
+       under even the 24px floor WCAG asks for and a quarter the height of the
+       row it sits in, because it is a grid item centred in that row rather
+       than filling it.
+
+       Stretching it to the row's own height gives it 58x58 and the flex
+       centring keeps the text on the line it was already on, so nothing moves.
+       Its own row is also exactly what it grows into — no padding reaching
+       into the rows above and below, where a near-miss would open the wrong
+       one.
+
+       Mobile only. On a desktop the link goes to /work and the pointer is
+       precise; a taller box there would only mean the underline thickening
+       whenever the cursor entered the column. */
+    .cat__link {
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
     /* No room for it, and nothing to hover with. The strip is the preview
        here. */
     .cat__stack {
