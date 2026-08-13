@@ -109,6 +109,8 @@ const {
          in at the bottom. The gap between them is the column, not a margin —
          see .hero__lede's margin-top: auto. -->
     <div class="hero__col hero__col--text">
+      <span class="hero__gap hero__gap--lead" aria-hidden="true"></span>
+
       <div class="hero__head">
         <h1 class="hero__title" id="hero-title" data-hero-title>
           {lines.map((line) => <span class="hero__line">{line}</span>)}
@@ -116,6 +118,10 @@ const {
 
         <p class="hero__tagline" data-hero-aside-item>{tagline}</p>
       </div>
+
+      {/* The spacing around and inside the copy, as boxes rather than margins.
+          All three are elastic: see .hero__gap. */}
+      <span class="hero__gap hero__gap--mid" aria-hidden="true"></span>
 
       <div class="hero__lede">
         <p class="hero__body" data-hero-aside-item>{body}</p>
@@ -132,6 +138,8 @@ const {
           </a>
         </div>
       </div>
+
+      <span class="hero__gap hero__gap--foot" aria-hidden="true"></span>
     </div>
   </div>
 </section>
@@ -188,7 +196,14 @@ const {
     --hero-media-x: -4px;
     --hero-media-y: -12px;
     --hero-copy-x: -28px;
-    --hero-copy-y: 38px;
+    /* Was 38px, a downward nudge against the film. It is 0 because the copy is
+       centred vertically now, and a nudge is the one thing that cannot survive
+       that: it moves the block off the middle by its own value and doubles
+       into the difference between the space above the headline and the space
+       below the buttons. Kept as a declared 0 rather than deleted — it is read
+       inside a `var()` below, and an undeclared one invalidates the whole
+       declaration. */
+    --hero-copy-y: 0px;
 
 
     position: relative;
@@ -200,7 +215,17 @@ const {
        overlaid nav is reserved with padding instead of layout height. */
     height: 100svh;
     min-height: 34rem;
-    padding-block: calc(var(--nav-height) + var(--hero-pad-top)) 0;
+    /* The same inset top and bottom, and the symmetry is the point: the copy
+       centres itself inside this box, so the box has to be centred in the
+       section or the copy is not. The top inset clears the nav and the bottom
+       had nothing to answer it — measured at 1440x900 that put 287px above the
+       headline against 116px under the buttons, which reads as copy sitting on
+       the floor rather than as a centred block.
+
+       It costs height, and on a short screen that comes out of the elastic gaps
+       rather than out of the copy: they collapse before anything is pushed
+       past the fold. */
+    padding-block: calc(var(--nav-height) + var(--hero-pad-top));
   }
 
   /* --- Drawn guides ---------------------------------------------------------
@@ -373,16 +398,7 @@ const {
        touch, and on a relative box they move the paint without moving the
        flow — so the animation composes over them instead of replacing them. */
     left: var(--hero-copy-x);
-    /* The downward nudge is a composition choice against the film, and the
-       first thing to give up when the window is too short to hold the column.
-       The scene pins this section at exactly one viewport, so anything past
-       the bottom edge is cut off rather than scrolled to — at 780x580 the
-       buttons ended 35px below it and were simply gone.
-
-       min() rather than a `max-height` query so it lets go gradually instead
-       of stepping: full 38px from 714px tall upward, tapering to nothing by
-       672px. 42rem is the height at which the column has no slack left. */
-    top: min(var(--hero-copy-y), max(0px, 100svh - 42rem));
+    top: var(--hero-copy-y);
   }
 
   /* --- Headline -----------------------------------------------------------
@@ -444,28 +460,66 @@ const {
     display: flex;
     flex-direction: column;
     gap: clamp(1rem, 1.6vw, 1.5rem);
-    /* The step down from the headline, bounded rather than `auto`.
+  }
 
-       `auto` pushed this block to the foot of the column, which reads well
-       only while the column is about the height it was designed against. It
-       takes every pixel the viewport has: at 1440x900 that is 263px, and on a
-       1061x1285 tablet the same rule opened it to roughly 750 — the headline
-       at the top of the screen and the buttons at the bottom, with nothing
-       between them.
+  /* The spacing around and inside the copy: above the headline, between it and
+     the pitch, and under the buttons. Three boxes rather than three margins.
 
-       29svh reproduces the 263 this had at 900 tall, and the cap holds it
-       there as the screen grows instead of letting it run.
+     The spacing was margins first, and went through three tries. `auto` read
+     well at the height it was designed against and nowhere else — on a
+     1061x1285 tablet it opened to roughly 750px, the headline at the top of the
+     screen and the buttons at the bottom with nothing between them. A 29svh
+     clamp fixed that end and broke the other: the scene pins this section at
+     exactly one viewport, so on a short screen the buttons it pushed past the
+     bottom edge were cut off rather than scrolled to. Subtracting a fixed 32rem
+     from the viewport height covered the short case only as long as the copy
+     was the height it was on the screen I measured — at 1263 wide the headline
+     takes a third line and the same subtraction is 70px short.
 
-       The second term is the floor under all of it: what is left of the
-       viewport once the headline, the body, the buttons and the nav band above
-       them have taken their share. 29svh of a 580-tall window is 168px of
-       empty column on a screen that has none to give, and since the scene pins
-       this section at exactly one viewport, the buttons it pushed out were cut
-       off rather than scrolled to. Whichever of the two is smaller wins, so
-       the gap simply stops growing once the column runs out — no breakpoint,
-       and nothing changes above 721px tall, where 29svh is the smaller one. */
-    margin-top: clamp(1.5rem, min(29svh, 100svh - 32rem), 16.5rem);
-    margin-bottom: clamp(2.5rem, 7.5vw, 7.5rem);
+     The mistake in all three is that a margin is written in advance, and how
+     much room is left is not knowable in advance: it depends on where the
+     headline wraps, and that depends on the width. So the space is a box now,
+     and it measures itself.
+
+     Growing into the free space takes what the column has and nothing more, so
+     it cannot overflow — when the copy fills the column there is none to take
+     and these collapse to nothing. Each cap is the other end, holding a gap at
+     its designed size instead of letting it run on a tall screen. No viewport
+     maths, and no breakpoint.
+
+     All three are grow-only, and none has a height of its own. That part is
+     deliberate: the column's grid row is content sized, so it grows with what
+     is in it and there is never negative free space for flex-shrink to work
+     on. A height here would be a height everywhere, overflow included — an
+     earlier version gave the foot gap `height: clamp(2.5rem, 7.5vw, 7.5rem)`
+     and at 1263x480 it sat at its full 95px while the buttons hung 53px past
+     the bottom edge. Written as a cap on space it can only claim, it lets go
+     by itself.
+
+     Together they are also what centres the copy. The lead and foot gaps grow
+     at the same rate and have no cap, so whatever is left after the middle gap
+     reaches its own is split evenly above and below — the block sits in the
+     middle of the column without `justify-content: center`, which centres by
+     overflowing equally in both directions and would push the headline up
+     under the nav on a short screen. These cannot overflow at all. */
+  .hero__gap {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  /* Capped, because this one is a step inside the copy rather than air around
+     it: uncapped it takes a third of the column on a tall screen and the pitch
+     drifts away from the headline it belongs to. Everything it cannot use goes
+     to the two outside gaps, which is what keeps the block centred rather than
+     bottom heavy — the whole free space used to land here, and the copy sat on
+     the floor of the section with the headline stranded at the ceiling. */
+  .hero__gap--mid {
+    /* The floor is this one's alone. The outside gaps are air and may go to
+       nothing, but this is the space between two pieces of copy: at 1263x560
+       the column ran out, all three collapsed together, and the pitch came to
+       rest against the line above it. */
+    min-height: 1.25rem;
+    max-height: clamp(2rem, 7vh, 5.5rem);
   }
 
   .hero__body {
@@ -713,6 +767,16 @@ const {
        the section, and the auto margin still does the work. */
     .hero__lede {
       margin-top: auto;
+    }
+
+    /* And the elastic gaps stand down, because this layout does not have the
+       problem they solve: the phone stacks into one column that grows to fit
+       its copy rather than being pinned to one viewport, so nothing here gets
+       cut off. Leaving them in would also fight the auto margin above — an
+       auto margin claims the free space before flex-grow sees any of it, so
+       the gap would collapse to its min and simply add 24px. */
+    .hero__gap {
+      display: none;
     }
 
     /* Back to filling the section, and centred in it. Seating the frame on the
