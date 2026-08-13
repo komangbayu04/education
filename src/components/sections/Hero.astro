@@ -808,25 +808,56 @@ const {
   }
 
   @media (max-width: 48rem) {
-    /* The phone cut, seated on the section's floor.
+    /* The phone cut, seated on the section's floor and never reaching the copy.
 
-       `cover`, not `contain`: this file is cut portrait for exactly this box,
-       so filling it is the point — contained, it would letterbox and the whole
-       reason for a second encode would be lost. The crop that `cover` takes
-       comes off the top, which is where this composition can afford it: the
-       subject sits low in the frame and the sky above is what gives way as the
-       screen gets shorter. The foot stays put at every height, which is what
-       keeps it stacked against the bottom.
+       The copy stands on this film rather than beside it, and it can only do
+       that because the film has a clear band at the top: measured off a decoded
+       frame, the top 44.4% of this cut is the same near-white as the section —
+       the tree does not begin until row 388 of 874. That band is the whole
+       licence for the overlay, and everything here exists to keep it under the
+       copy.
 
-       The poster follows the same rule, so the frame before the first decoded
+       `cover` used to do the fitting, on the reasoning that its crop comes off
+       the top where the composition can afford it. That holds while the box is
+       the shape the file was cut for, and fails as the box gets wider: `cover`
+       sizes the frame by the box's WIDTH, so a wider box means a taller frame,
+       and every pixel of that extra height is taken off the top — out of the
+       band. At 731x1078 it scaled a 402x874 file to 731x1589, cropped 511px
+       off the top, and the canopy came up 141px into the body copy.
+
+       `contain` cannot do it either, on its own: it caps the frame at the box's
+       height, which keeps the band at 44.4% of the section, but on a short
+       screen the copy is taller than that — at 360x640 the copy runs to 49% and
+       the tree still reaches 31px into it.
+
+       So the height is capped by what is actually left under the copy. 22rem is
+       the copy's own measured height plus air (315px at 360 wide, 335px at 731,
+       and it barely moves between), and dividing the remainder by the 55.6% of
+       the frame the artwork occupies gives the tallest frame whose tree still
+       starts below the last button. Above roughly 830px of viewport the cap
+       stops binding and the film simply fills the section, which is every phone
+       held upright — so this changes nothing there and everything on the sizes
+       where the copy was being covered.
+
+       The poster follows the same rules, so the frame before the first decoded
        frame is framed identically. */
     .hero__video {
-      object-fit: cover;
-      object-position: center bottom;
+      object-fit: contain;
+      object-position: 50% 100%;
+      height: min(100%, calc((100% - 22rem) * 1.8));
       /* Same frame, same rule as the video over it. */
       background-image: url('/media/hero-video-mobile-poster.webp');
-      background-size: cover;
-      background-position: center bottom;
+      background-size: contain;
+      background-position: 50% 100%;
+    }
+
+    /* Which leaves seating it. The video's box is shorter than the stage once
+       the cap bites, and a shorter box in an inset-0 parent sits at the top —
+       the film would float with its tree in mid-air. */
+    .hero__base {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
     }
 
     /* --- The copy, as two blocks ---------------------------------------
