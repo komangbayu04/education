@@ -373,7 +373,16 @@ const {
        touch, and on a relative box they move the paint without moving the
        flow — so the animation composes over them instead of replacing them. */
     left: var(--hero-copy-x);
-    top: var(--hero-copy-y);
+    /* The downward nudge is a composition choice against the film, and the
+       first thing to give up when the window is too short to hold the column.
+       The scene pins this section at exactly one viewport, so anything past
+       the bottom edge is cut off rather than scrolled to — at 780x580 the
+       buttons ended 35px below it and were simply gone.
+
+       min() rather than a `max-height` query so it lets go gradually instead
+       of stepping: full 38px from 714px tall upward, tapering to nothing by
+       672px. 42rem is the height at which the column has no slack left. */
+    top: min(var(--hero-copy-y), max(0px, 100svh - 42rem));
   }
 
   /* --- Headline -----------------------------------------------------------
@@ -445,8 +454,17 @@ const {
        between them.
 
        29svh reproduces the 263 this had at 900 tall, and the cap holds it
-       there as the screen grows instead of letting it run. */
-    margin-top: clamp(1.5rem, 29svh, 16.5rem);
+       there as the screen grows instead of letting it run.
+
+       The second term is the floor under all of it: what is left of the
+       viewport once the headline, the body, the buttons and the nav band above
+       them have taken their share. 29svh of a 580-tall window is 168px of
+       empty column on a screen that has none to give, and since the scene pins
+       this section at exactly one viewport, the buttons it pushed out were cut
+       off rather than scrolled to. Whichever of the two is smaller wins, so
+       the gap simply stops growing once the column runs out — no breakpoint,
+       and nothing changes above 721px tall, where 29svh is the smaller one. */
+    margin-top: clamp(1.5rem, min(29svh, 100svh - 32rem), 16.5rem);
     margin-bottom: clamp(2.5rem, 7.5vw, 7.5rem);
   }
 
@@ -671,6 +689,7 @@ const {
      for two columns, so between 768 and 1199 it now keeps them — measured, the
      copy column comes out 358px wide at 1024 and 280px at 800, clearing the
      tree by 54px and 43px, with the headline fitting at both. */
+
   @media (max-width: 48rem) {
     .hero {
       --hero-pad-top: clamp(1rem, 3vw, 2rem);
