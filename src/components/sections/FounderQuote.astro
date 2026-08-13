@@ -122,24 +122,15 @@ const bottomCells = band([0.06, 0.14, 0.26, 0.42, 0.62, 0.82, 0.96], 5000);
       <blockquote class="quote__text" data-quote-reveal>{quote}</blockquote>
     </figure>
 
-    {/* Three boxes for one picture, because the parallax needs two depths and
-        the reveal already owns the middle one. The frame drifts with the
-        cursor; the picture inside it drifts further, so the two separate as
-        the pointer moves. `.quote__portrait` is left alone for the reveal's
-        transform — see founderQuote.ts. */}
-    <div class="quote__portrait-wrap" data-quote-parallax="frame">
-      <div class="quote__portrait" data-quote-reveal>
-        <div class="quote__portrait-shift" data-quote-parallax="image">
-          {
-            portrait ? (
-              <img src={portrait} alt={portraitAlt} loading="lazy" decoding="async" />
-            ) : (
-              /* PLACEHOLDER — pass `portrait` to replace */
-              <span class="quote__portrait-fallback" aria-hidden="true" />
-            )
-          }
-        </div>
-      </div>
+    <div class="quote__portrait" data-quote-reveal>
+      {
+        portrait ? (
+          <img src={portrait} alt={portraitAlt} loading="lazy" decoding="async" />
+        ) : (
+          /* PLACEHOLDER — pass `portrait` to replace */
+          <span class="quote__portrait-fallback" aria-hidden="true" />
+        )
+      }
     </div>
   </div>
 </section>
@@ -261,41 +252,20 @@ const bottomCells = band([0.06, 0.14, 0.26, 0.42, 0.62, 0.82, 0.96], 5000);
     text-wrap: pretty;
   }
 
-  .quote__portrait-wrap {
-    flex: none;
-  }
-
   .quote__portrait {
+    flex: none;
     width: clamp(9rem, 22vw, 20rem);
     aspect-ratio: 20 / 22;
     overflow: hidden;
     background: var(--color-bg-secondary);
   }
 
-  .quote__portrait-shift {
-    width: 100%;
-    height: 100%;
-  }
-
-  /* The picture is oversized inside its frame so the drift has somewhere to go.
-     The two numbers are a pair: 14% of scale on a 317px-wide portrait leaves
-     22px of photograph beyond each edge, and the 5.5% shift in founderQuote.ts
-     spends 17px of it — about 5px of margin at the extreme. Raising the shift
-     without raising this opens a gap at the edge of the frame.
-
-     On the image and not on the box that moves, which is the one place it
-     survives: GSAP nulls the independent transform properties of anything it
-     animates, writing `translate: none; rotate: none; scale: none` beside its
-     own `transform`. A scale on .quote__portrait-shift would hold until the
-     first pointer move and then vanish, opening exactly the gap it exists to
-     prevent. Nothing animates the image itself. */
   .quote__portrait img,
   .quote__portrait-fallback {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    scale: 1.14;
   }
 
   .quote__portrait-fallback {
