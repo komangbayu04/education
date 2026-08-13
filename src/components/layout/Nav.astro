@@ -641,11 +641,17 @@ const {
       flex-direction: column;
       flex-wrap: nowrap;
       align-items: flex-start;
-      gap: clamp(0.875rem, 3.6vw, 1.5rem);
+      /* Was clamp(0.875rem, 3.6vw, 1.5rem), which floored at 14px on a 375
+         screen — four 26px headings a thumb's width apart, reading as one
+         block rather than four things to choose between. The panel had 220px
+         of empty middle to spend on this. */
+      gap: clamp(1.125rem, 5.3vw, 1.75rem);
     }
 
     .nav__panel-link {
-      font-size: 1.625rem;
+      /* These are the panel's headline; 26px was body-ish for a full screen
+         with four items on it. */
+      font-size: 2rem;
       /* No rule under it. The border separates four items sharing one line;
          stacked, it reads as four underlined headings instead. The number
          beside each is what carries the order here. */
@@ -658,7 +664,12 @@ const {
     .nav__work {
       display: flex;
       flex-direction: column;
-      gap: clamp(0.875rem, 3.6vw, 1.375rem);
+      /* One gap doing two jobs, because the shot, the names and the words are
+         three items in this one column: it is the step under the picture and
+         the step between the clickable name and its description. Both were
+         14px, which read as the description belonging to the picture rather
+         than to the name above it. */
+      gap: clamp(1.125rem, 5.3vw, 1.75rem);
       /* Stacked, there is no column beside the shot to fill the height with —
          the block is as tall as its contents and the panel scrolls. */
       flex: 0 0 auto;
@@ -689,11 +700,13 @@ const {
       /* Back to its own ratio: given the full height here it would be a wall
          of device with the list and the words pushed off the screen. */
       height: auto;
-      /* Half width, which on these shots is half the height too — both are
-         the same 0.885 portrait, so one number does for either project. At
-         the full 335 the device ran 379 tall and took most of the panel's
-         remaining screen on its own. Left, with everything else. */
-      width: 50%;
+      /* Both shots are the same 0.885 portrait, so one number does for either
+         project. Half width came from the full 335 running 379 tall and taking
+         most of the panel on its own — but half was an over-correction: at 375
+         it left a 168px phone sitting under 220px of empty panel. 70% splits
+         the difference at 235 wide, and the room comes out of that empty
+         middle rather than out of anything else. Left, with everything else. */
+      width: 70%;
       align-self: flex-start;
     }
 
@@ -713,7 +726,9 @@ const {
     .nav__work-link {
       padding-block: 0;
       border-bottom: 0;
-      font-size: 1.0625rem;
+      /* Up with the rest. These are the one thing in this block you can click,
+         so they should not be the smallest type in it by a hair. */
+      font-size: 1.1875rem;
     }
 
     .nav__work-blurb {
