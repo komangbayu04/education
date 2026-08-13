@@ -63,10 +63,15 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  *
  *            Only transform and opacity are touched, so nothing re-lays-out
  *            and nothing can jump.
- * Mobile   — below the pin gate (<1200px) there is no pin and no handover, but
- *            the hero still gets its own small scroll-tied zoom (scale
- *            1 → 1.08) as it scrolls past, tied to how much of the hero has
- *            scrolled rather than a fixed distance.
+ * Mobile   — the same pin and the same handover. There is no width gate: the
+ *            context below is `(min-width: 1px)`, so every width builds the
+ *            scene and a resize never tears it down and rebuilds it. What a
+ *            resize does do is refresh the trigger, which is why the scene's
+ *            finished state is re-derived there rather than latched at the
+ *            edges — see setSceneDone.
+ *
+ *            (This used to read "below the pin gate (<1200px) there is no pin
+ *            and no handover". That gate is long gone; the note outlived it.)
  * Hover    — the photo zooms slightly (scale 1 → 1.06) on a nested wrapper
  *            independent of the scroll-driven scale, so the two tweens never
  *            compete over the same property on the same element.
@@ -279,7 +284,38 @@ export function initHero(): () => void {
         [atOverclockArrival + durOverclockArrival * REVEAL_DONE, 2],
       ];
 
-      const handover = gsap.timeline({
+      /* Whether the scene is spent, as one function rather than a pair of edge
+         callbacks — so every route to that state agrees, and any of them can
+         set it in either direction.
+
+         Landing the timeline by hand before hiding the scene is the ordering
+         that matters here. The field being hidden is driven by the scrub,
+         which lags the scroll by 0.3s; a flick crosses the end while the
+         timeline is still catching up, and the scene was being hidden with the
+         field part-laid and the next section coming up through the gaps.
+         Measured mid-flick: the scroll at the pin's end, the timeline still at
+         0.86, one tile of 276 down. `progress(1)` finishes it in the same
+         frame, so what is on screen when the scene goes is the completed field
+         — the next section's own ground colour, and therefore nothing to look
+         at. The scrub still owns the value either side of this; it is only
+         being told where it was always heading. */
+      /* Declared before it is built, and read defensively below, because the
+         trigger refreshes as it is created — so `onRefresh` calls this once
+         while the timeline it names is still being constructed. `let` with no
+         initialiser gives a binding that reads as undefined at that moment; a
+         `const` here would be in its temporal dead zone and throw. */
+      let handover: gsap.core.Timeline | undefined;
+
+      const setSceneDone = (done: boolean) => {
+        if (done) {
+          handover?.progress(1);
+          scene.setAttribute('data-scene-done', '');
+        } else {
+          scene.removeAttribute('data-scene-done');
+        }
+      };
+
+      handover = gsap.timeline({
         defaults: { ease: 'none' },
         scrollTrigger: {
           trigger: scene,
@@ -319,11 +355,25 @@ export function initHero(): () => void {
              transition at all to look at. The scrub still owns the value
              either side of this; it is only being told where it was always
              heading. */
-          onLeave: () => {
-            handover.progress(1);
-            scene.setAttribute('data-scene-done', '');
-          },
-          onEnterBack: () => scene.removeAttribute('data-scene-done'),
+          onLeave: () => setSceneDone(true),
+          onEnterBack: () => setSceneDone(false),
+          /* And the same state re-derived whenever the trigger re-measures,
+             which is the case the two callbacks above cannot cover.
+
+             They fire on the scroll crossing the pin's end. A resize crosses
+             nothing: `invalidateOnRefresh` recomputes start and end — both are
+             viewport multiples, so a narrower or shorter window moves the end
+             a long way — while the scroll position stays exactly where it was.
+             Drag a window while parked just above the join and the end can
+             land above the current scroll: past the end, with `onLeave` never
+             having fired. The scene is then never marked done, so it stays
+             painted, in flow, with the section that is pulled up over it
+             showing through — both at once, and stuck that way until a reload,
+             because nothing else will ever set the attribute.
+
+             Asking the trigger where it actually is costs nothing and cannot
+             go stale, which a latch set only at the edges always can. */
+          onRefresh: (self) => setSceneDone(self.progress >= 1),
           onUpdate: (self) => {
             let slot = 1;
             for (const [threshold, num] of slotThresholds) {
