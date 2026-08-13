@@ -158,10 +158,14 @@ const {
 
         {/* <details>, not a JS accordion: it is a disclosure and nothing else,
             so the platform's own one is open to keyboard and screen readers for
-            free and still works with the script disabled. Closed by default —
-            the frame shows it folded, chevron down. */}
+            free and still works with the script disabled.
+
+            Open by default. The answer is short and it is the only thing in
+            this column, so folding it away by default hid the one piece of
+            copy the block exists to deliver behind a click most people would
+            never make. It still folds — the control is unchanged. */}
         <div class="two__details-slot" data-two-reveal="details">
-          <details class="two__details">
+          <details class="two__details" open>
             <summary class="two__details-summary">
               {detailsTitle}
               <span class="two__details-mark" aria-hidden="true">

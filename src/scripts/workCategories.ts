@@ -117,17 +117,21 @@ export function initWorkCategories(): () => void {
     const controller = new AbortController();
     toggle.addEventListener('click', () => toggleItem(item), { signal: controller.signal });
 
-    /* On a phone this opens the row rather than following its href.
-       There is no hover there, so the fan of preview cards never appears and
-       the strip is the only way to see any of the work without leaving the
-       page — which made "See Work" the one control that could not show you
-       any. The href stays exactly as it is: it is what a desktop click still
-       does, and what a click with this script absent does at any width. */
+    /* "See Work" opens the row, at every width.
+
+       It was gated to phones, on the reasoning that a desktop click should
+       follow the href instead. That href is /work, and there is no /work page
+       — only /work/college-counseling-platform — so what a desktop click
+       actually did was leave the page for a 404. Opening the row is what the
+       control is for at both sizes: the strip it opens is the work.
+
+       The href stays as it is. With this script absent the anchor is still a
+       real link, which is the only reason it is an anchor and not a button,
+       and it is the thing to point at a /work index if one is ever built. */
     const link = item.querySelector<HTMLAnchorElement>('.cat__link');
     link?.addEventListener(
       'click',
       (event) => {
-        if (!compact.matches) return;
         event.preventDefault();
         toggleItem(item);
       },
@@ -138,16 +142,22 @@ export function initWorkCategories(): () => void {
   });
 
   // --- Shuffle ------------------------------------------------------------
-  /* The three places a card can be, front to back. These mirror the CSS
-     that lays the fan out for the no-JS case; from here on GSAP owns the
-     transform, so the two only have to agree closely, not exactly. (They
-     differ by a hair: CSS rotates then translates, GSAP translates then
-     rotates, which turns a 4% offset by four degrees — about a pixel.) */
+  /* The four places a card can be, front to back — a stepped deck, each one
+     set back up and to the left and scaled by the same ratio. These mirror the
+     CSS that lays the deck out for the no-JS case, and here they agree exactly:
+     GSAP's xPercent/yPercent are percentages of the element's own size, which
+     is what a CSS percentage translate is, and both apply translate before
+     scale. */
   const SLOTS = [
-    { rotation: -1, xPercent: 0, yPercent: 0, zIndex: 3 },
-    { rotation: 2.5, xPercent: 3, yPercent: -2, zIndex: 2 },
-    { rotation: -4, xPercent: -4, yPercent: 4, zIndex: 1 },
+    { x: 0, y: 0, xPercent: 0, yPercent: 0, scale: 1 },
+    { x: 0, y: 0, xPercent: -7, yPercent: -7, scale: 0.93 },
+    { x: 0, y: 0, xPercent: -14, yPercent: -14, scale: 0.86 },
+    { x: 0, y: 0, xPercent: -21, yPercent: -21, scale: 0.79 },
   ];
+
+  /* Kept out of SLOTS because it is the one property that must not be tweened
+     with the rest — see the note in `advance`. */
+  const SLOT_Z = [3, 2, 1, 0];
 
   /** Seconds before the first card gives way, once the row is hovered, and
    *  the same again between every cycle after it.
@@ -156,14 +166,21 @@ export function initWorkCategories(): () => void {
    *  anything at all — long enough to read as static. At 0.3 it is moving
    *  almost as soon as the pointer settles. */
   const FIRST = 0.3;
-  const HOLD = 0.3;
+  const HOLD = 0.38;
 
-  /** How long the swap itself takes: the front card leaving, and the two
-   *  behind stepping up into the space. Kept under the hold, so the stack is
-   *  still for a beat before it moves again rather than running continuously
-   *  — which is why these came down with it. */
+  /** How long the cards that stay in view take to step forward one place. */
   const STEP = 0.24;
-  const OUT = 0.18;
+
+  /** The card giving way, in two halves: shrinking away where it stands, then
+   *  growing back in at the rear. It does not travel between the two — it is
+   *  at no size at all in between, which is what lets it be re-parked at the
+   *  back without that move being seen.
+   *
+   *  Scale only, and no opacity: a card at scale 0 has no size to be seen at,
+   *  so fading it as well only softens the edge of a shape that has already
+   *  gone. HOLD above covers OUT + IN, so one turn finishes before the next
+   *  begins. */
+  const OUT = 0.16;
   const IN = 0.2;
 
   /**
@@ -186,28 +203,69 @@ export function initWorkCategories(): () => void {
     let call: gsap.core.Tween | null = null;
     let cycle: gsap.core.Timeline | null = null;
 
-    const place = (card: HTMLElement, slot: number, duration: number) =>
-      gsap.to(card, { ...SLOTS[slot], duration, ease: 'power3.inOut', overwrite: 'auto' });
-
+    /**
+     * One turn of the deck. Two different moves, on purpose:
+     *
+     *   the cards that stay   step forward one place, all in the same tween
+     *                         over the same duration with the same ease, which
+     *                         is what makes them read as one deck turning
+     *                         rather than as three cards each doing something.
+     *
+     *   the card giving way   shrinks away where it stands, and comes back out
+     *                         of the rear of the deck at nothing, growing to
+     *                         the size that slot holds.
+     *
+     * The second is why the first is not simply extended to it. Stepped like
+     * the others, that card travels the whole depth of the deck in view — it
+     * crosses in front of everything it is meant to be going behind, and the
+     * turn reads as a card sliding backwards rather than as one leaving and
+     * another arriving.
+     *
+     * There is no point between the two halves where it is visible at a wrong
+     * size or in a wrong place: it is at scale 0 for exactly the frame the
+     * `set` re-parks it, which is what the `set` is for.
+     */
     const advance = () => {
       const leaving = order.shift();
       if (!leaving) return;
       order.push(leaving);
 
-      // The two behind step forward while the front one is still shrinking, so
-      // the gap it leaves is already being filled rather than opening first.
+      /** Where the card giving way ends up — the last place in the deck. */
+      const rear = order.length - 1;
+
+      cycle = gsap.timeline();
+
       order.forEach((card, slot) => {
-        if (card !== leaving) place(card, slot, STEP);
+        if (card === leaving) return;
+
+        cycle!.to(
+          card,
+          { ...SLOTS[slot], duration: STEP, ease: 'power2.inOut', overwrite: 'auto' },
+          0,
+        );
+
+        /* Stacking swaps halfway, and it has to be a `set` rather than part of
+           the tween above: z-index is an integer, so tweening it steps through
+           whole numbers at moments nothing else is happening and the deck
+           visibly re-orders in one frame.
+
+           Halfway is where the two cards trading places are closest in size and
+           position, so the swap has the least to show. Doing it at the start
+           pops the incoming card over the outgoing one while they are still a
+           full step apart. */
+        cycle!.set(card, { zIndex: SLOT_Z[slot] }, STEP / 2);
       });
 
-      cycle = gsap
-        .timeline()
-        .to(leaving, { scale: 0, opacity: 0, duration: OUT, ease: 'power2.in' })
-        // Parked at the back with no transition — it is invisible at this
-        // point, so the jump costs nothing and saves it travelling across the
-        // fan in view.
-        .set(leaving, { ...SLOTS[order.length - 1] })
-        .to(leaving, { scale: 1, opacity: 1, duration: IN, ease: 'power2.out' });
+      cycle
+        // Away where it stands — position untouched, so it collapses into
+        // itself rather than shrinking toward somewhere.
+        .to(leaving, { scale: 0, duration: OUT, ease: 'power2.in', overwrite: 'auto' }, 0)
+        /* Re-parked at the back at no size, and dropped to the rear z-index in
+           the same frame. Both are invisible moves precisely because they
+           happen while it has no size. `scale: 0` after the spread, since
+           SLOTS[rear] carries a scale of its own. */
+        .set(leaving, { ...SLOTS[rear], scale: 0, zIndex: SLOT_Z[rear] }, OUT)
+        .to(leaving, { scale: SLOTS[rear].scale, duration: IN, ease: 'power2.out' }, OUT);
     };
 
     const tick = () => {
@@ -229,9 +287,11 @@ export function initWorkCategories(): () => void {
          so a hard reset is three cards visibly jumping inside it. */
       order.forEach((card) => gsap.killTweensOf(card));
       cards.forEach((card, i) => {
+        // `cards` is the DOM's back → front; the slots run front → back.
+        const slot = cards.length - 1 - i;
         gsap.to(card, {
-          ...SLOTS[cards.length - 1 - i],
-          scale: 1,
+          ...SLOTS[slot],
+          zIndex: SLOT_Z[slot],
           opacity: 1,
           duration: 0.35,
           ease: 'power2.out',
