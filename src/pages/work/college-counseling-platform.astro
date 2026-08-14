@@ -13,7 +13,6 @@ import CaseStudyIntro from '../../components/case-study/CaseStudyIntro.astro';
 import CaseStudyBand from '../../components/case-study/CaseStudyBand.astro';
 import CaseStudyOverview from '../../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../../components/case-study/CaseStudyVideos.astro';
-import CaseStudyApproach from '../../components/case-study/CaseStudyApproach.astro';
 import CaseStudyExperience from '../../components/case-study/CaseStudyExperience.astro';
 import CaseStudyResult from '../../components/case-study/CaseStudyResult.astro';
 import CaseStudyNext from '../../components/case-study/CaseStudyNext.astro';
@@ -54,6 +53,7 @@ const intro =
         which is why no tiles are passed. The aside beside the heading is where
         the claim came from: the room, rather than a strategy deck. */}
     <CaseStudyOverview
+      id="cs-platform"
       eyebrow="Platform"
       heading="Counselor-facing flows carrying real data density, where every added control costs the user something."
       caption="Counselors told them the same thing at the conference: it's the only platform they can figure out how to use. Beautiful was the word they kept using."
@@ -64,31 +64,17 @@ const intro =
         replaced by it. Empty until the footage arrives. */}
     <CaseStudyBand inset />
 
-    <CaseStudyApproach
-      eyebrow="Privacy"
+    {/* Privacy. The statement and two shots that do not share a baseline: the
+        campus frame starts level with the label and runs down the right, the
+        product shot sits under the claim it belongs to. No body copy and no
+        list — the frame makes the point in one sentence and then shows it. */}
+    <CaseStudyOverview
+      id="cs-privacy"
+      layout="lift"
+      eyebrow="Privacy you can see"
       heading="De-identification isn't a policy page. It's a visual system inside every profile."
-      copy="Every record a counselor opens has to show enough to be useful and never enough to identify a student. That line is drawn in the interface, not in the terms."
-      items={[
-        {
-          caption:
-            'Identifying fields are masked at the source, so the view never holds what it must not show.',
-        },
-        {
-          caption:
-            'An aggregate only resolves once the cohort behind it is large enough to stay anonymous.',
-        },
-        {
-          caption:
-            'Every profile carries the same visual grammar, so a counselor learns the rules once.',
-        },
-        {
-          caption:
-            'What is withheld is shown as withheld, rather than left blank for the reader to guess at.',
-        },
-        {
-          caption: 'Exports inherit the rules the screen is under, not a looser set of their own.',
-        },
-      ]}
+      wide={{}}
+      side={{}}
     />
 
     {/* One panel per surface, all still placeholders. */}

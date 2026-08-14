@@ -23,6 +23,13 @@ interface Tile {
 }
 
 interface Props {
+  /** Anchors the section's label. Needed because the page uses this component
+   *  more than once and an id has to be unique on the page. */
+  id?: string;
+  /** 'stagger' drops the side shot below the wide one's baseline, which is the
+   *  frame's default. 'lift' raises it instead, so it starts level with the
+   *  label and the copy reads down the column beside it. */
+  layout?: 'stagger' | 'lift';
   eyebrow?: string;
   heading: string;
   caption?: string;
@@ -33,7 +40,17 @@ interface Props {
   side?: Tile;
 }
 
-const { eyebrow = 'Overview', heading, caption, wide, side } = Astro.props;
+const {
+  id = 'cs-ov',
+  layout = 'stagger',
+  eyebrow = 'Overview',
+  heading,
+  caption,
+  wide,
+  side,
+} = Astro.props;
+
+const labelId = `${id}-label`;
 
 /* The grid is the two tiles. With neither, there is nothing to lay out and the
    head stands on its own. */
@@ -44,55 +61,63 @@ const hasMedia = Boolean(wide || side);
 const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44, 0.5, 0.54, 0.58, 0.6]);
 ---
 
-<section class="cs-ov u-container" aria-labelledby="cs-ov-label" data-cs-reveal>
+<section
+  class:list={['cs-ov', 'u-container', `cs-ov--${layout}`]}
+  aria-labelledby={labelId}
+  data-cs-reveal
+>
   <div class="cs-ov__pixels" aria-hidden="true">
     {cells.map((cell) => <span style={`grid-column:${cell.col};grid-row:${cell.row}`} />)}
   </div>
 
-  <p class="cs-ov__eyebrow u-label" id="cs-ov-label">{eyebrow}</p>
+  <div class="cs-ov__col">
+    <p class="cs-ov__eyebrow u-label" id={labelId}>{eyebrow}</p>
 
   {/* The statement and the aside that qualifies it, side by side — the frame
       sets the aside against the heading's last line rather than under it, so
       it reads as a margin note on the claim rather than as the next thing to
       be read. It falls under the heading once there is no room for two
       columns. */}
-  <div class="cs-ov__head">
+  <div class:list={['cs-ov__head', { 'cs-ov__head--aside': caption }]}>
     <h2 class="cs-ov__heading">{heading}</h2>
     {caption && <p class="cs-ov__caption">{caption}</p>}
   </div>
 
-  {hasMedia && (
-  <div class="cs-ov__grid">
-    <div class="cs-ov__main">
-      <figure class="cs-ov__media cs-ov__media--wide">
-        {
-          wide?.src ? (
+  {/* The wide shot closes the first column; the side shot is the second one.
+
+      They are not wrapped together: the lifted layout has to place the side
+      shot against the section's own columns, and it could not reach those from
+      inside a grid of their own. */}
+  {
+    hasMedia && (
+        <figure class="cs-ov__media cs-ov__media--wide">
+          {wide?.src ? (
             <picture>
               <source srcset={`${wide.src}.avif`} type="image/avif" />
               <img src={`${wide.src}.webp`} alt={wide.alt ?? ''} loading="lazy" decoding="async" />
             </picture>
           ) : (
             <span class="cs-ov__empty" />
-          )
-        }
-      </figure>
-
-    </div>
-
-    <figure class="cs-ov__media cs-ov__media--side">
-      {
-        side?.src ? (
-          <picture>
-            <source srcset={`${side.src}.avif`} type="image/avif" />
-            <img src={`${side.src}.webp`} alt={side.alt ?? ''} loading="lazy" decoding="async" />
-          </picture>
-        ) : (
-          <span class="cs-ov__empty" />
-        )
-      }
-    </figure>
+          )}
+        </figure>
+    )
+  }
   </div>
-  )}
+
+  {
+    hasMedia && (
+        <figure class="cs-ov__media cs-ov__media--side">
+          {side?.src ? (
+            <picture>
+              <source srcset={`${side.src}.avif`} type="image/avif" />
+              <img src={`${side.src}.webp`} alt={side.alt ?? ''} loading="lazy" decoding="async" />
+            </picture>
+          ) : (
+            <span class="cs-ov__empty" />
+          )}
+        </figure>
+    )
+  }
 </section>
 
 <style>
@@ -123,7 +148,94 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
     background: rgb(0 0 0 / 0.035);
   }
 
-  /* --- Statement ----------------------------------------------------------- */
+  /* --- Statement -----------------------------------------------------------
+     Both layouts make the section the grid. What differs is whether the copy
+     is one item in it or three. */
+  .cs-ov--stagger,
+  .cs-ov--lift {
+    display: grid;
+    grid-template-columns: 55.8% minmax(0, 1fr);
+    gap: 0 3.5%;
+    align-items: start;
+  }
+
+  /* Stagger — the frame's default. The column dissolves so its three children
+     are the section's own items: the copy runs the full width and the pair of
+     shots sits under it, the side one dropped below the wide one's baseline. */
+  .cs-ov--stagger .cs-ov__col {
+    display: contents;
+  }
+
+  .cs-ov--stagger .cs-ov__eyebrow,
+  .cs-ov--stagger .cs-ov__head {
+    grid-column: 1 / -1;
+  }
+
+  .cs-ov--stagger .cs-ov__media--wide {
+    grid-column: 1;
+  }
+
+  .cs-ov--stagger .cs-ov__media--side {
+    grid-column: 2;
+    /* Percentage margins resolve against the grid's width, so the stagger
+       stays proportional instead of collapsing at narrow widths. */
+    margin-top: 7.3%;
+  }
+
+  /* Lift — the side shot starts level with the label and runs down beside the
+     copy, which reads as one column next to it.
+
+     The column stays a real box here, and that is what makes it work. The
+     first attempt left the three children as grid items and spanned the side
+     shot across their rows — but a spanning item taller than the rows it
+     spans has its extra height shared out among them, so a 586px shot pushed
+     the label 794px clear of its own statement. One item cannot be pushed
+     apart from itself. */
+  .cs-ov--lift .cs-ov__col {
+    grid-column: 1;
+  }
+
+  .cs-ov--lift .cs-ov__media--side {
+    grid-column: 2;
+    margin-top: 0;
+  }
+
+  .cs-ov--stagger .cs-ov__media--wide,
+  .cs-ov--lift .cs-ov__media--wide {
+    margin-top: clamp(2rem, 4.5vw, 3.75rem);
+  }
+
+  /* Stacked, neither layout has a second column: one column, reading order,
+     the side shot last. */
+  @media (max-width: 61.25rem) {
+    .cs-ov--stagger,
+    .cs-ov--lift {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Every placement above is named again rather than swept up by `> *`.
+
+       `.cs-ov--lift > *` is one class and a universal — less specific than the
+       `.cs-ov--lift .cs-ov__media--side` it has to override, so the side shot
+       kept `grid-column: 2` here and the grid answered by making an implicit
+       second column for it, 0px wide. The shot came out 0x0 and the section
+       looked like it had lost its artwork. */
+    .cs-ov--stagger .cs-ov__eyebrow,
+    .cs-ov--stagger .cs-ov__head,
+    .cs-ov--stagger .cs-ov__media--wide,
+    .cs-ov--stagger .cs-ov__media--side,
+    .cs-ov--lift .cs-ov__col,
+    .cs-ov--lift .cs-ov__media--wide,
+    .cs-ov--lift .cs-ov__media--side {
+      grid-column: 1;
+    }
+
+    .cs-ov--stagger .cs-ov__media--side,
+    .cs-ov--lift .cs-ov__media--side {
+      margin-top: clamp(1rem, 3vw, 1.75rem);
+    }
+  }
+
   .cs-ov__eyebrow {
     position: relative;
     color: var(--color-ink-secondary);
@@ -138,16 +250,9 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
     letter-spacing: -0.02em;
   }
 
-  /* --- Artwork -------------------------------------------------------------
-     Two columns at the frame's own proportions, with the right one dropped by
-     a share of the row's width. */
-  .cs-ov__grid {
-    display: grid;
-    grid-template-columns: 55.8% minmax(0, 1fr);
-    gap: 3.5%;
-    align-items: start;
-    margin-top: clamp(2rem, 4.5vw, 3.75rem);
-  }
+  /* --- Artwork ------------------------------------------------------------
+     Placement is on the section now — see the two layouts above. What is left
+     here is what the shots are, rather than where they go. */
 
   .cs-ov__media {
     margin: 0;
@@ -186,11 +291,18 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
      the pair however many lines the heading runs to. */
   .cs-ov__head {
     position: relative;
+    margin-top: clamp(0.625rem, 1.4vw, 1.125rem);
+  }
+
+  /* Two columns only when there is an aside to put in the second one. It used
+     to be unconditional, which reserved 21em beside a heading that had nothing
+     to sit there — on the privacy section that squeezed a two-line statement
+     into four. */
+  .cs-ov__head--aside {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 21em);
     gap: clamp(1.5rem, 5vw, 5rem);
     align-items: end;
-    margin-top: clamp(0.625rem, 1.4vw, 1.125rem);
   }
 
   .cs-ov__caption {
@@ -203,24 +315,16 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
   /* One column below the two-column threshold, with the aside back under the
      claim it qualifies. */
   @media (max-width: 61.25rem) {
-    .cs-ov__head {
+    .cs-ov__head--aside {
       grid-template-columns: minmax(0, 1fr);
       gap: clamp(1rem, 3vw, 1.75rem);
     }
   }
 
-  /* --- Stacked -------------------------------------------------------------- */
+  /* --- Stacked ------------------------------------------------------------
+     The columns themselves collapse with the layouts above, at 61.25rem. This
+     is what goes with them. */
   @media (max-width: 62rem) {
-    .cs-ov__grid {
-      grid-template-columns: minmax(0, 1fr);
-      gap: clamp(1.5rem, 5vw, 2.5rem);
-    }
-
-    /* Nothing left to stagger against once they're stacked. */
-    .cs-ov__media--side {
-      margin-top: 0;
-    }
-
     .cs-ov__caption {
       margin-top: clamp(1.25rem, 4vw, 2rem);
     }
