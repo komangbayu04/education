@@ -31,6 +31,17 @@ interface Project {
   imageAlt: string;
   /** Rendered with set:html so the figures inside can carry emphasis. */
   blurb: string;
+  /** The film the case study opens on, extensionless under /media. Given one,
+   *  the preview shows it rather than a still — so what the frame widens into
+   *  is the same footage that is already playing inside it, and the morph has
+   *  nothing to cross-fade. Falls back to `image` where there is no film. */
+  video?: string;
+  poster?: string;
+  /** Pairs this preview with the band at the top of its case study. Astro's
+   *  router morphs one element into the other when both carry the same name,
+   *  which is what makes opening a project read as its frame widening into the
+   *  page rather than as a cut. Omit it and the link is an ordinary one. */
+  transitionName?: string;
 }
 
 interface Props {
@@ -58,6 +69,9 @@ const {
     {
       name: 'Nerd Apply',
       href: '/work/college-counseling-platform',
+      transitionName: 'work-nerd-apply',
+      video: '/media/na-opening',
+      poster: '/media/na-opening-poster.webp',
       image: '/media/nav-nerd-apply',
       imageAlt: 'The Nerd Apply platform running on a phone',
       blurb:
@@ -142,17 +156,38 @@ const {
               data-nav-work-card={i}
               data-active={i === 0 ? '' : undefined}
             >
-              <div class="nav__work-shot">
-                {/* eager, not lazy. These sit inside a panel that ships
-                    `hidden`, so a lazy image downloads nothing until the menu
-                    is opened — and then the preview is an empty column for as
-                    long as the fetch takes, on the one frame it is meant to
-                    carry. They come to 26KB as avif for both projects, which
-                    is not worth deferring. */}
-                <picture>
-                  <source srcset={`${project.image}.avif`} type="image/avif" />
-                  <img src={`${project.image}.webp`} alt={project.imageAlt} loading="eager" decoding="async" />
-                </picture>
+              <div class="nav__work-shot" transition:name={project.transitionName}>
+                {
+                  project.video ? (
+                    /* The case study's own opening, playing in the frame it is
+                       about to become. `metadata` rather than `auto`: the panel
+                       ships hidden and most visits never open it, and the
+                       poster covers the frame until the film decodes. */
+                    <video
+                      autoplay
+                      muted
+                      loop
+                      playsinline
+                      preload="metadata"
+                      poster={project.poster}
+                      aria-label={project.imageAlt}
+                      tabindex="-1"
+                    >
+                      <source src={`${project.video}.webm`} type="video/webm" />
+                      <source src={`${project.video}.mp4`} type="video/mp4" />
+                    </video>
+                  ) : (
+                    /* eager, not lazy. These sit inside a panel that ships
+                       `hidden`, so a lazy image downloads nothing until the
+                       menu is opened — and then the preview is an empty column
+                       for as long as the fetch takes, on the one frame it is
+                       meant to carry. */
+                    <picture>
+                      <source srcset={`${project.image}.avif`} type="image/avif" />
+                      <img src={`${project.image}.webp`} alt={project.imageAlt} loading="eager" decoding="async" />
+                    </picture>
+                  )
+                }
               </div>
 
               <figcaption class="nav__work-blurb" set:html={project.blurb} />
@@ -545,6 +580,7 @@ const {
     overflow: hidden;
   }
 
+  .nav__work-shot video,
   .nav__work-shot img {
     display: block;
     width: 100%;
@@ -714,6 +750,7 @@ const {
       align-self: flex-start;
     }
 
+    .nav__work-shot video,
     .nav__work-shot img {
       height: auto;
       object-fit: contain;

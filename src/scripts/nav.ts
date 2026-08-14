@@ -213,66 +213,30 @@ export function initNav(): () => void {
     });
 
     /**
-     * Opens a case study by growing its preview into the page.
+     * Opens a case study.
      *
-     * The panel's shot is the same artwork the case study opens on, so rather
-     * than the menu blinking out and a new page blinking in, the shot is lifted
-     * out of the panel and scaled up until it is the screen. The navigation
-     * happens under it, at the point where it covers everything, so what the
-     * reader sees is one continuous move.
+     * The move itself is not built here. The panel's shot and the band at the
+     * top of the case study carry the same `transition:name`, so Astro's router
+     * morphs one into the other — the frame widens into the page, with the
+     * destination already inside it, which is the whole point: what opens is
+     * what arrives.
      *
-     * A clone, not the shot itself: the real one is inside a panel that is
-     * about to be scrolled, hidden and reset, and lifting it out of that
-     * layout would collapse the card around it mid-animation.
+     * This used to do it by hand: clone the shot, scale it until it covered the
+     * screen, then `window.location.href`. Two things were wrong with that. The
+     * thing that grew was a photograph of a phone and the thing that arrived was
+     * the case study's own opening, so the two never met — the zoom ended and
+     * the page cut. And that assignment is a full document load, which tears
+     * down the router and takes every shared-element transition with it.
      *
-     * Transform only — a scale about the centre plus the translation that puts
-     * that centre on the viewport's. Animating left/top/width/height would lay
-     * the page out again on every frame of the one animation that has to be
-     * smooth.
+     * So the click does exactly two things: closes the menu, and lets the link
+     * be a link. Everything else is the router's.
      */
-    const growInto = (href: string, card: HTMLElement) => {
-      const shot = card.querySelector<HTMLElement>('.nav__work-shot');
-      if (!shot) return false;
-
-      const from = shot.getBoundingClientRect();
-      if (!from.width || !from.height) return false;
-
-      const clone = shot.cloneNode(true) as HTMLElement;
-      Object.assign(clone.style, {
-        position: 'fixed',
-        left: `${from.left}px`,
-        top: `${from.top}px`,
-        width: `${from.width}px`,
-        height: `${from.height}px`,
-        margin: '0',
-        zIndex: '200',
-        overflow: 'hidden',
-        pointerEvents: 'none',
-        willChange: 'transform',
-      });
-      // The shot fills its box by `cover` in the panel; the clone has to keep
-      // doing that as the box grows, or the artwork letterboxes on the way up.
-      const img = clone.querySelector<HTMLElement>('img');
-      if (img) Object.assign(img.style, { width: '100%', height: '100%', objectFit: 'cover' });
-      document.body.appendChild(clone);
-
-      // `cover` again, but for the growth: whichever axis needs the most.
-      const scale = Math.max(window.innerWidth / from.width, window.innerHeight / from.height);
-      const dx = window.innerWidth / 2 - (from.left + from.width / 2);
-      const dy = window.innerHeight / 2 - (from.top + from.height / 2);
-
-      gsap
-        .timeline({ onComplete: () => { window.location.href = href; } })
-        // The panel goes first and faster, so the shot is travelling against
-        // the page rather than against the menu it came out of.
-        .to(panel, { autoAlpha: 0, duration: 0.32, ease: 'power2.out' }, 0)
-        .to(
-          clone,
-          { x: dx, y: dy, scale, duration: 0.68, ease: 'power3.inOut', transformOrigin: '50% 50%' },
-          0,
-        );
-
-      return true;
+    const openProject = () => {
+      /* Shut, not faded: the panel is `position: fixed` and would otherwise be
+         part of the outgoing snapshot, sitting over the morph it is handing
+         off to. Closing it also releases the scroll lock, which the next page
+         inherits. */
+      close();
     };
 
     workLinks.forEach((link, i) => {
@@ -300,12 +264,13 @@ export function initNav(): () => void {
           const card = workCards[i];
           if (!card) return;
 
-          event.preventDefault();
-          // The pointer may never have been over this row — a keyboard user
-          // tabbing straight to it, say — so make sure the card it is about to
-          // grow is the one on screen.
+          /* Not prevented, and that is the change: the router needs the
+             navigation to be its own. `show(i)` still runs, so the card that
+             morphs is the one the reader is looking at — a keyboard user may
+             have tabbed straight here without the pointer ever being over the
+             row. */
           show(i);
-          if (!growInto(href, card)) window.location.href = href;
+          openProject();
         },
         { signal },
       );
