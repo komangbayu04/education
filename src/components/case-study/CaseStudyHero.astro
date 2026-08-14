@@ -120,8 +120,14 @@ const cells = pixelField(20260804, ROWS, DENSITY);
   }
 
   .cs-hero__summary {
-    /* In em, so the measure holds its three lines as the type scales. */
-    max-width: 26em;
+    /* In em, so the measure holds its line count as the type scales.
+
+       33em, not 26. The old measure was set against a three-line standfirst;
+       the copy it carries now is half as long again and broke to five, which
+       stands the block taller than the pills opposite it and leaves the pair
+       looking unrelated. At this width it sets in four, which is what the
+       frame shows. */
+    max-width: 33em;
     font-size: var(--text-caption);
     line-height: 1.55;
   }
