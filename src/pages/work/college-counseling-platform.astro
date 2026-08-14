@@ -39,7 +39,9 @@ const intro =
       summary={summary}
       tags={['Admissions software', 'Product', 'Design system']}
       image="/media/showcase-device"
-      imageAlt="The counseling platform running on a phone"
+      imageAlt="The Nerd Apply platform, opening title sequence"
+      video="/media/na-opening"
+      poster="/media/na-opening-poster.webp"
     />
 
     <CaseStudyIntro eyebrow="Introduction" copy={intro} />
@@ -154,14 +156,17 @@ const intro =
           size: 0.74,
           label: 'Campaign carousel, second frame',
         },
-        {
-          video: '/media/na-marketing-last',
-          poster: '/media/na-marketing-last-poster.webp',
-          ratio: '16 / 9',
-          size: 0.68,
-          label: 'Campaign film',
-        },
       ]}
+    />
+
+    {/* The closing film, full-bleed rather than another tile in the rail: it is
+        the last thing the work section says, and at a rail's height it read as
+        one more asset in a row of them. Same treatment as the bands above. */}
+    <CaseStudyBand
+      video="/media/na-marketing-last"
+      poster="/media/na-marketing-last-poster.webp"
+      ratio="16 / 9"
+      label="Campaign film"
     />
 
     <CaseStudyResult

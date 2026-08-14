@@ -7,12 +7,17 @@
  * Three sites needed the same three-way choice, and three copies of it would
  * drift.
  *
- * The play control is only a real button when there is a URL behind it, so a
- * tile whose footage hasn't arrived is never a dead control. Playback lives in
- * src/scripts/caseStudy.ts, which hangs off `data-cs-play` / `data-cs-video`.
+ * The footage plays itself: muted, looping, no control. These are surfaces
+ * being shown rather than films to be watched — there is nothing to start and
+ * nothing to miss — and a page of tiles each wanting a click is a page of work
+ * to see what is already there. Muted is what makes autoplay allowed at all.
  *
  * It renders no box of its own — the tile it sits in owns the shape, the
  * clipping and the background. This is only what goes inside.
+ *
+ * The play control and its styles are gone: every asset plays itself now, so
+ * the button had nothing to start. initVideos in src/scripts/caseStudy.ts is
+ * inert for the same reason — it looks for the buttons and returns.
  */
 
 interface Props {
@@ -40,14 +45,20 @@ const videoIsComplete = Boolean(video && /\.(mp4|webm|mov)$/i.test(video));
 {
   video ? (
     <Fragment>
-      {/* preload="none" so a tile nobody plays costs one poster image, not a
-          video download. */}
+      {/* `metadata`, not `none`: nothing is going to click these, so a tile
+          that never loads never plays. The poster still covers the gap before
+          the first frame decodes. */}
       <video
         class="cs-asset__video"
         src={videoIsComplete ? video : undefined}
         poster={poster ?? (src ? `${src}.webp` : undefined)}
-        preload="none"
+        autoplay
+        muted
+        loop
         playsinline
+        preload="metadata"
+        aria-label={label}
+        tabindex="-1"
         data-cs-video
       >
         {
@@ -59,17 +70,6 @@ const videoIsComplete = Boolean(video && /\.(mp4|webm|mov)$/i.test(video));
           )
         }
       </video>
-
-      <button
-        class="cs-asset__play"
-        type="button"
-        aria-label={label ? `Play ${label}` : 'Play video'}
-        data-cs-play
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M8 5v14l11-7z" fill="currentColor" />
-        </svg>
-      </button>
     </Fragment>
   ) : src ? (
     <picture>
@@ -99,36 +99,4 @@ const videoIsComplete = Boolean(video && /\.(mp4|webm|mov)$/i.test(video));
 
   /* Hidden once playback starts, because from that point the browser's own
      controls are on top of the frame. */
-  :global(.cs-asset__play) {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    display: grid;
-    place-items: center;
-    width: clamp(2.75rem, 4vw, 3.75rem);
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: rgb(255 255 255 / 0.92);
-    color: var(--color-ink);
-    transform: translate(-50%, -50%);
-    cursor: pointer;
-    transition:
-      transform 0.4s var(--ease-out-expo),
-      background-color 0.3s;
-  }
-
-  :global([data-playing] .cs-asset__play) {
-    display: none;
-  }
-
-  :global(.cs-asset__play svg) {
-    width: 42%;
-    height: 42%;
-  }
-
-  :global(.cs-asset__play:hover),
-  :global(.cs-asset__play:focus-visible) {
-    background: #fff;
-    transform: translate(-50%, -50%) scale(1.08);
-  }
 </style>

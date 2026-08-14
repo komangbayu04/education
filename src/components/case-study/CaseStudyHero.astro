@@ -21,12 +21,18 @@ interface Props {
   title: string;
   summary: string;
   tags?: string[];
-  /** Extensionless — .avif and .webp are both requested from it. */
+  /** Extensionless — .avif and .webp are both requested from it. Ignored when
+   *  `video` is given. */
   image: string;
   imageAlt: string;
+  /** The opening. Extensionless under /media: .webm and .mp4 are both offered.
+   *  Given one, it takes the band and plays itself — muted and looping, since
+   *  it is the page's first impression rather than something to be started. */
+  video?: string;
+  poster?: string;
 }
 
-const { title, summary, tags = [], image, imageAlt } = Astro.props;
+const { title, summary, tags = [], image, imageAlt, video, poster } = Astro.props;
 
 /* Rows of the cell grid. The 22 columns are declared in the CSS below, where
    the grid actually lives — at the reference width that puts each square at
@@ -68,18 +74,37 @@ const cells = pixelField(20260804, ROWS, DENSITY);
       }
     </div>
 
-    <picture>
-      <source srcset={`${image}.avif`} type="image/avif" />
-      <img
-        class="cs-hero__device"
-        src={`${image}.webp`}
-        alt={imageAlt}
-        width="1400"
-        height="1139"
-        fetchpriority="high"
-        decoding="async"
-      />
-    </picture>
+    {
+      video ? (
+        <video
+          class="cs-hero__device cs-hero__device--film"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="auto"
+          poster={poster}
+          aria-label={imageAlt}
+          tabindex="-1"
+        >
+          <source src={`${video}.webm`} type="video/webm" />
+          <source src={`${video}.mp4`} type="video/mp4" />
+        </video>
+      ) : (
+        <picture>
+          <source srcset={`${image}.avif`} type="image/avif" />
+          <img
+            class="cs-hero__device"
+            src={`${image}.webp`}
+            alt={imageAlt}
+            width="1400"
+            height="1139"
+            fetchpriority="high"
+            decoding="async"
+          />
+        </picture>
+      )
+    }
   </figure>
 </section>
 
@@ -189,6 +214,23 @@ const cells = pixelField(20260804, ROWS, DENSITY);
     height: 82%;
     transform: translateX(-50%);
     object-fit: contain;
+  }
+
+  /* The opening as footage, which is a different thing from the device shot
+     above and has to undo it.
+
+     That rule seats a cutout in the band: absolute, bottom-flush, 82% tall and
+     centred by a transform, with the grey field and its pixels showing around
+     it. A film is the band — it fills the frame edge to edge, so every one of
+     those is reset here rather than qualified there. Written after it because
+     the two are one class each; at equal specificity the later one wins. */
+  .cs-hero__device--film {
+    inset: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    object-fit: cover;
   }
 
   /* --- Responsive ---------------------------------------------------------- */
