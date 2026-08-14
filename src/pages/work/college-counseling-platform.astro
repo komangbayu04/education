@@ -19,11 +19,14 @@ import CaseStudyResult from '../../components/case-study/CaseStudyResult.astro';
 import CaseStudyNext from '../../components/case-study/CaseStudyNext.astro';
 import Footer from '../../components/layout/Footer.astro';
 
-const title = 'A College Counseling Platform';
+const title = 'NerdApply';
 const summary =
-  'An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts.';
+  'NerdApply is college counseling software and datasets built to track student outcomes. It operates the National Education Research Database — 500,000+ de-identified college applications, contributed by 1,400+ counselors and schools.';
+
+/* The introduction, and the only place the length of the relationship is
+   stated outright — every section under it is a piece of that same run. */
 const intro =
-  'A modern college counseling platform designed to help students, families, and counselors navigate the university application journey with greater clarity.';
+  "We've worked with NerdApply continuously since late 2025. What began with a seed-round deck became a design system, then the platform, then everything around it. Today we touch nearly every surface the company puts in front of a user.";
 ---
 
 <Base title={`${title} — Tribe`} description={intro}>
@@ -38,59 +41,60 @@ const intro =
       imageAlt="The counseling platform running on a phone"
     />
 
-    <CaseStudyIntro copy={intro} />
+    <CaseStudyIntro eyebrow="Introduction" copy={intro} />
 
     {/*
       Three slots, in the frame's order: square, tall, landscape. None of the
-      artwork exists in the repo yet — the counselor badge included — so all
-      three render as the black blocks the frame itself shows. Adding one is a
-      single `src` (extensionless, .avif + .webp in public/media) plus its alt.
+      artwork exists in the repo yet, so all three render as the black blocks
+      the frame itself shows. Adding one is a single `src` (extensionless,
+      .avif + .webp in public/media) plus its alt.
     */}
-    <CaseStudyGallery tiles={[{}, {}, {}]} caption={intro} />
+    <CaseStudyGallery
+      tiles={[{}, {}, {}]}
+      caption="The product, the system it is built from, and the material that goes out around it — all of it running on the same de-identified record."
+    />
 
-    {/* Same story as the gallery: the two shots are still to come, so both
-        render as the frame's solid blocks. */}
+    {/* Platform. The heading makes the claim; the caption beside it is where
+        it came from, which is the room rather than a strategy deck. */}
     <CaseStudyOverview
-      heading="This platform provides a unified workspace for managing every stage of the college admissions journey."
-      caption="From application planning and document management to counselor collaboration and milestone tracking, it helps users stay aligned and informed."
+      eyebrow="Platform"
+      heading="Counselor-facing flows carrying real data density, where every added control costs the user something."
+      caption="Counselors kept saying the same thing at the conference: it is the only platform they can work out how to use. Most of this came out of the room they kept saying it in."
       wide={{}}
       side={{}}
     />
 
-    {/* Four players. No `video` URLs yet, so they render as plain blocks with
-        no play control — the footage is still to come. */}
-    <CaseStudyVideos clips={[{}, {}, {}, {}]} />
-
     <CaseStudyApproach
-      heading="Navigating the college admissions process often involves scattered information, disconnected communication, and manual tracking across multiple tools."
-      copy="The challenge was to create a unified experience that helps students and counselors stay aligned from planning to submission."
+      eyebrow="Privacy"
+      heading="De-identification isn't a policy page. It's a visual system inside every profile."
+      copy="Every record a counselor opens has to show enough to be useful and never enough to identify a student. That line is drawn in the interface, not in the terms."
       items={[
         {
           caption:
-            'A shared college list every party can see, so nobody is working from a stale copy.',
+            'Identifying fields are masked at the source, so the view never holds what it must not show.',
         },
         {
           caption:
-            'Deadlines and requirements collected per school, in the order they come due.',
+            'An aggregate only resolves once the cohort behind it is large enough to stay anonymous.',
         },
         {
           caption:
-            'Planning tools designed to help students organize every step of the admissions journey with greater clarity.',
+            'Every profile carries the same visual grammar, so a counselor learns the rules once.',
         },
         {
           caption:
-            'Counselor notes sit against the application they belong to, not in a separate thread.',
+            'What is withheld is shown as withheld, rather than left blank for the reader to guess at.',
         },
         {
-          caption:
-            'Documents gathered where they will be submitted from, ready when the deadline arrives.',
+          caption: 'Exports inherit the rules the screen is under, not a looser set of their own.',
         },
       ]}
     />
 
-    {/* One panel per feature, all still placeholders. */}
+    {/* One panel per surface, all still placeholders. */}
     <CaseStudyExperience
-      heading="The platform brings together every essential step of the college admissions process into one connected experience, making it easier to plan, collaborate, and track progress from start to finish."
+      eyebrow="Website"
+      heading="The platform brings together every essential step of the college admissions process into one connected experience."
       features={[
         {
           name: 'Personalized Dashboard',
@@ -120,11 +124,23 @@ const intro =
       ]}
     />
 
+    {/* Marketing, and the page's one dark band — it sits after the website
+        section because that is the order the frame reads in: the product
+        first, then the material that goes out around it. Four players; no
+        `video` URLs yet, so they render as plain blocks with no play control. */}
+    <CaseStudyVideos
+      eyebrow="Marketing"
+      heading="Conference collateral, campaign graphics, motion, video at a cadence one hire couldn't match."
+      caption="Each asset leans on a system that already exists, which is the whole reason the cadence is possible. The surfaces keep changing; the thing underneath them does not."
+      clips={[{}, {}, {}, {}]}
+    />
+
     <CaseStudyResult
+      title="An ongoing partnership"
       rows={[
-        { value: '6', label: 'Core experiences brought together.' },
-        { value: '1', label: 'Connected workspace for students and counselors' },
-        { value: 'End-to-End', label: 'Supporting every step of the admissions journey.' },
+        { value: '9', label: 'Quarters of continuous partnership.' },
+        { value: '1,100+', label: 'Organizations on the platform.' },
+        { value: '$3.2M', label: 'Seed round closed during the engagement.' },
       ]}
     />
 

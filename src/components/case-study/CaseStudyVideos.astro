@@ -22,10 +22,20 @@ interface Clip {
 }
 
 interface Props {
+  /** Section label, as the other bands carry. Omit for an unlabelled row. */
+  eyebrow?: string;
+  /** The claim this band is making, above the row. */
+  heading?: string;
+  /** A line under the row, in the muted grey the other captions use. */
+  caption?: string;
   clips: Clip[];
 }
 
-const { clips } = Astro.props;
+const { eyebrow, heading, caption, clips } = Astro.props;
+
+/* The heading is what the section is named by, and the label is the fallback —
+   a band with neither is decoration and gets the generic label it had before. */
+const labelId = eyebrow || heading ? 'cs-vid-label' : undefined;
 ---
 
 {/* data-nav-over: the one dark ground on a case study, and the bar is fixed
@@ -35,7 +45,22 @@ const { clips } = Astro.props;
     The dark placeholder tiles elsewhere on this page are deliberately not
     marked: they are what a missing image falls back to, so they go the moment
     real media lands, and a marker on one would be a marker on nothing. */}
-<section class="cs-vid" aria-label="Project videos" data-cs-videos data-nav-over="dark">
+<section
+  class="cs-vid"
+  aria-label={labelId ? undefined : 'Project videos'}
+  aria-labelledby={labelId}
+  data-cs-videos
+  data-nav-over="dark"
+>
+  {
+    (eyebrow || heading) && (
+      <header class="cs-vid__head" id={labelId}>
+        {eyebrow && <p class="cs-vid__eyebrow">{eyebrow}</p>}
+        {heading && <h2 class="cs-vid__heading">{heading}</h2>}
+      </header>
+    )
+  }
+
   <ul class="cs-vid__row">
     {
       clips.map((clip) => (
@@ -73,6 +98,8 @@ const { clips } = Astro.props;
       ))
     }
   </ul>
+
+  {caption && <p class="cs-vid__caption">{caption}</p>}
 </section>
 
 <style>
@@ -81,6 +108,42 @@ const { clips } = Astro.props;
 
     padding: var(--cs-vid-gap);
     background: var(--color-ink);
+  }
+
+  /* Inverted, because this is the page's one dark band — the same reason the
+     wordmark flips over it. The measure is held short so the claim breaks
+     where it is written to rather than running the full bleed. */
+  .cs-vid__head {
+    max-width: 46rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+    color: var(--color-ink-invert);
+  }
+
+  .cs-vid__eyebrow {
+    margin-bottom: 0.75rem;
+    font-family: var(--font-display);
+    font-size: var(--text-caption);
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    /* Not full white: the label names the section, the heading makes the
+       point, and they should not read at the same weight. */
+    opacity: 0.55;
+  }
+
+  .cs-vid__heading {
+    font-size: var(--text-h2);
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .cs-vid__caption {
+    max-width: 34rem;
+    margin-top: clamp(1.25rem, 2.5vw, 2rem);
+    color: var(--color-ink-invert);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    opacity: 0.6;
   }
 
   .cs-vid__row {
