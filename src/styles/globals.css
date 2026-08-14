@@ -378,7 +378,12 @@ ul {
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-group(work-nerd-apply) {
     animation-duration: 720ms;
-    animation-timing-function: var(--ease-in-out-quart);
+    /* Out, not in-out. The quart S-curve holds still at the start, so a click
+       bought nothing for its first tenth of a second and then the box lurched
+       across the middle of the move — which is what read as "not smooth" on a
+       travel this large. Expo-out leaves immediately and settles, so the frame
+       answers the click and arrives without a stop in the middle. */
+    animation-timing-function: var(--ease-out-expo);
   }
 
   ::view-transition-old(work-nerd-apply),

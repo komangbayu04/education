@@ -164,12 +164,19 @@ export function initNav(): () => void {
       { signal },
     );
 
-    // A link inside the panel navigates; the panel has to be gone by the time
-    // the next page paints.
+    /* A link inside the panel navigates, and the panel has to be gone by the
+       time the next page paints — except for the work rows, which are the one
+       case where it must not be. Those open a case study by morphing the frame
+       they are standing next to, and the router photographs the outgoing page
+       the moment the navigation starts: close the panel here and what it
+       photographs is a frame already halfway through fading out. They release
+       the panel themselves, without animating it. */
     panel.addEventListener(
       'click',
       (event: MouseEvent) => {
-        if (!(event.target as HTMLElement).closest('a')) return;
+        const link = (event.target as HTMLElement).closest('a');
+        if (!link) return;
+        if (link.hasAttribute('data-nav-work-link')) return;
         toggle.setAttribute('aria-expanded', 'false');
         close();
       },
@@ -232,11 +239,23 @@ export function initNav(): () => void {
      * be a link. Everything else is the router's.
      */
     const openProject = () => {
-      /* Shut, not faded: the panel is `position: fixed` and would otherwise be
-         part of the outgoing snapshot, sitting over the morph it is handing
-         off to. Closing it also releases the scroll lock, which the next page
-         inherits. */
-      close();
+      /* The panel is left standing, and that is the point.
+
+         It is `position: fixed`, so it is in the outgoing snapshot — and it
+         should be: the frame is lifted out of that snapshot as a named element
+         and rendered above it, so what happens is the menu fading away while
+         the frame flies out of it. Closing it here instead put a GSAP fade on
+         the panel at the same moment the router was photographing it, and the
+         frame the morph started from was already going transparent. That is
+         what stopped it opening cleanly.
+
+         Nothing is animated. The state is corrected — the toggle is shut, the
+         scroll lock is released so the next page does not inherit it — and the
+         panel itself is left exactly as the reader last saw it, because the
+         next page renders its own, closed. */
+      animation?.kill();
+      toggle?.setAttribute('aria-expanded', 'false');
+      lockScroll(false);
     };
 
     workLinks.forEach((link, i) => {
