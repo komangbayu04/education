@@ -242,8 +242,10 @@ const {
     /* Height from the token rather than from padding, so the band above can
        reserve exactly this and the two cannot drift apart. */
     min-height: var(--nav-control-h);
-    padding-inline: 2.25rem;
-    border-radius: 0.5rem;
+    /* Was 2.25rem a side, which is what made the chip 120px wide next to a
+       72px wordmark — most of that width was padding rather than word. */
+    padding-inline: 1.5rem;
+    border-radius: 0.4375rem;
     /* Inside stroke, 1px, black at 16% — straight off the spec. Inside is what
        `border` already does on a border-box element, so the chip's height
        stays exactly --nav-control-h rather than growing by the stroke. */
@@ -261,7 +263,9 @@ const {
 
   .nav__toggle-label {
     font-family: var(--font-display);
-    font-size: 0.9375rem;
+    /* Down with the chip around it. At 15px this was set larger than the nav
+       links it opens, which reads as the loudest thing in the bar. */
+    font-size: 0.8125rem;
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;

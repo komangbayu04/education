@@ -124,8 +124,15 @@
   --nav-gap: 16px;
   /* The menu chip's height, and the tallest thing in the band — the wordmark
      is shorter. Named so the band below and the chip itself read the same
-     number instead of one being tuned to match the other. */
-  --nav-control-h: 2.9375rem;
+     number instead of one being tuned to match the other.
+
+     2.5rem, down from 2.9375. At 47px the chip stood 1.57 times the height of
+     the 30px wordmark it faces and came out 120px wide beside a 72px mark —
+     the largest thing in a bar whose job is to stay out of the way. 40px puts
+     it at 1.33 times the mark, and is still well clear of any target floor.
+     --nav-height is derived from this, so the band and everything reserving
+     room for it come down with it. */
+  --nav-control-h: 2.5rem;
   --nav-height: calc(2 * var(--nav-gap) + var(--nav-control-h));
 }
 
