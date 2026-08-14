@@ -360,31 +360,68 @@ function initLogoTone(nav: HTMLElement): () => void {
 
   const root = document.documentElement;
 
-  /* Measured on refresh and held, so a scroll costs no layout reads: the
-     mark's box is fixed to the viewport and the zones' are in page space, so
-     the only thing that changes between frames is how far the page has
-     scrolled. */
+  /* The mark is fixed to the viewport, so its box only changes when the layout
+     does — that one is worth holding. */
   let mark = { top: 0, bottom: 0, left: 0, right: 0 };
-  let boxes: Array<{ top: number; bottom: number; left: number; right: number }> = [];
 
   const measure = () => {
     const r = logo.getBoundingClientRect();
     mark = { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
-    boxes = zones.map((zone) => {
-      const b = zone.getBoundingClientRect();
-      return { top: b.top + window.scrollY, bottom: b.bottom + window.scrollY, left: b.left, right: b.right };
-    });
   };
 
+  /* The zones are read live, every update, and that is not the wasteful half of
+     a trade — it is the only version that is correct.
+
+     They were cached in page space on refresh, with the scroll position
+     subtracted per frame to get back to the viewport. That arithmetic assumes a
+     zone moves up the screen as the page scrolls, which is true of an ordinary
+     section and false of the first one this had to handle: the Nerd Apply
+     chapter lives inside the pinned scene, so while the pin holds it, it stays
+     at the top of the viewport while `scrollY` runs on without it. Cached at
+     scroll 0 and read at 1200, the sum put a zone that was filling the screen
+     1200px above it, and the mark stayed ink on a near-black chapter.
+
+     Three rects per update, on elements the browser has already laid out. */
+
+  /* How much of a zone is actually on screen, as the product of its own opacity
+     and every ancestor's.
+
+     Being in the right place is not enough, and the scene is why. Its chapters
+     are stacked layers, all of them `inset: 0` and all of them full size from
+     the first frame — the one you see is the one that has been faded up. So the
+     dark chapter's box is behind the mark from scroll 0, a screen and a half
+     before it is visible, and testing geometry alone turned the mark white over
+     the white hero. Reading the layer's opacity is what separates "is in that
+     part of the page" from "is what is on screen there". */
+  const painted = (el: HTMLElement): number => {
+    let node: HTMLElement | null = el;
+    let alpha = 1;
+
+    while (node && node !== document.body) {
+      const style = getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden') return 0;
+      alpha *= Number(style.opacity);
+      if (alpha === 0) return 0;
+      node = node.parentElement;
+    }
+
+    return alpha;
+  };
+
+  /* Half, because the chapters cross-fade: at 0.5 the dark one is as much of
+     what you see as the light one it is replacing, which is the moment the mark
+     has to have changed by. Paired with the 0.28s ease on its colour, so the
+     two crossings meet in the middle rather than the mark snapping late. */
+  const COVERED = 0.5;
+
   const apply = () => {
-    const y = window.scrollY;
-    const over = boxes.some(
-      (b) =>
-        b.top - y < mark.bottom &&
-        b.bottom - y > mark.top &&
-        b.left < mark.right &&
-        b.right > mark.left,
-    );
+    const over = zones.some((zone) => {
+      const b = zone.getBoundingClientRect();
+      const overlaps =
+        b.top < mark.bottom && b.bottom > mark.top && b.left < mark.right && b.right > mark.left;
+
+      return overlaps && painted(zone) >= COVERED;
+    });
     root.toggleAttribute('data-nav-over-dark', over);
   };
 

@@ -203,9 +203,16 @@ const {
     pointer-events: none;
   }
 
-  /* Everything that is not the film sits above it. */
-  .showcase--film .showcase__inner,
-  .showcase--film .showcase__link {
+  /* Everything that is not the film sits above it.
+
+     Only .showcase__inner needs the position — it is static otherwise, and
+     z-index does nothing on a static box. The link is deliberately not in this
+     list: it is already `position: absolute; inset: 0` at z-index 3, which is
+     what makes it the full-chapter hit area the cursor tile rides. Setting it
+     relative here collapsed it to its content, and its only child is an
+     absolutely-positioned tile — so the link measured 0x0, pointerenter never
+     fired, and the tile was simply gone. */
+  .showcase--film .showcase__inner {
     position: relative;
     z-index: 1;
   }
