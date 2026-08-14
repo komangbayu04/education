@@ -1,24 +1,27 @@
 ---
 /**
- * Case-study core experience — a labelled statement, then a list of features
- * beside the artwork for whichever one is open.
+ * Case-study website section — a labelled statement, then rows of screens.
  *
- * The list sits in a narrow left column and is bottom-aligned with the media
- * panel, the way the frame has it: the two share a baseline even though the
- * list is much shorter. The panel itself runs off the right edge of the
- * screen, so the body is laid out on the full width with the gutter restored
- * as padding on the list alone.
+ * The label sits in a narrow left column with the statement beside it, and a
+ * second, quieter line repeats under the statement and again down the left
+ * against the rows. That repetition is the frame's, not an accident: the line
+ * under the statement belongs to the claim, the one beside the rows belongs to
+ * what they show.
  *
- * Exactly one feature is open at a time; its description and its artwork are
- * the two things that change. Without JS the first one stays open and the rest
- * read as a plain list of headings — nothing is hidden behind a control that
- * can't run. The switching lives in src/scripts/caseStudy.ts.
+ * The rows run off the right edge of the screen. They are not a carousel and
+ * they do not scroll — a website is a lot of screens, and the point being made
+ * is how many, so what matters is that the rows are clearly longer than the
+ * viewport rather than that you can get to the end of them.
+ *
+ * Was a feature accordion — a list of names beside one switching panel. The
+ * frame has no list and no control; the screens are the argument.
+ *
+ * Tiles with no `src` render as plain blocks, the same convention the rest of
+ * the page uses.
  */
 
-interface Feature {
-  name: string;
-  description: string;
-  /** Extensionless path under /media, or omitted for a placeholder panel. */
+interface Tile {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
   src?: string;
   alt?: string;
 }
@@ -26,56 +29,68 @@ interface Feature {
 interface Props {
   eyebrow?: string;
   heading: string;
-  features: Feature[];
+  /** Under the statement, in the same column. */
+  caption?: string;
+  /** Down the left, against the rows. */
+  aside?: string;
+  /** One array per row, left to right. */
+  rows?: Tile[][];
 }
 
-const { eyebrow = 'Core experience', heading, features } = Astro.props;
+const {
+  eyebrow = 'Website',
+  heading,
+  caption,
+  aside,
+  /* Three rows of four is what the frame shows, and enough that the last one
+     in each is cut by the screen's edge at every width this runs at. */
+  rows = [
+    [{}, {}, {}, {}],
+    [{}, {}, {}, {}],
+    [{}, {}, {}, {}],
+  ],
+} = Astro.props;
 ---
 
 <section class="cs-ex" aria-labelledby="cs-ex-label" data-cs-ex data-cs-reveal>
   <div class="cs-ex__head u-container">
     <p class="cs-ex__eyebrow u-label" id="cs-ex-label">{eyebrow}</p>
-    <h2 class="cs-ex__heading">{heading}</h2>
+
+    <div class="cs-ex__statement">
+      <h2 class="cs-ex__heading">{heading}</h2>
+      {caption && <p class="cs-ex__caption">{caption}</p>}
+    </div>
   </div>
 
-  <div class="cs-ex__body">
-    <ul class="cs-ex__list">
-      {
-        features.map((feature, i) => (
-          <li class="cs-ex__item" data-cs-ex-item data-open={i === 0 ? '' : undefined}>
-            <button class="cs-ex__name" type="button" aria-expanded={i === 0} data-cs-ex-toggle>
-              {feature.name}
-            </button>
-            {/* The text needs an element of its own: the collapse animates
-                grid-template-rows, and a bare text node becomes an anonymous
-                grid item that refuses to shrink below its content. */}
-            <p class="cs-ex__desc">
-              <span>{feature.description}</span>
-            </p>
-          </li>
-        ))
-      }
-    </ul>
+  <div class="cs-ex__body u-container">
+    {aside && <p class="cs-ex__aside">{aside}</p>}
 
-    {/* One panel per feature, stacked; the open one is the visible one. */}
-    <div class="cs-ex__stage">
+    <div class="cs-ex__rows">
       {
-        features.map((feature, i) => (
-          <figure class="cs-ex__panel" data-cs-ex-panel data-open={i === 0 ? '' : undefined}>
-            {feature.src ? (
-              <picture>
-                <source srcset={`${feature.src}.avif`} type="image/avif" />
-                <img
-                  src={`${feature.src}.webp`}
-                  alt={feature.alt ?? feature.name}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </picture>
-            ) : (
-              <span class="cs-ex__empty" />
-            )}
-          </figure>
+        rows.map((row, i) => (
+          /* Each row is nudged along from the one above it, so the vertical
+             seams between tiles never line up down the block — the frame's
+             rows are offset the same way. The nudge is a share of a tile, so
+             it holds its proportion as the tiles resize. */
+          <div class="cs-ex__row" style={`--cs-ex-row-shift: ${(i % 3) * 7}%`}>
+            {row.map((tile) => (
+              <figure class="cs-ex__tile">
+                {tile.src ? (
+                  <picture>
+                    <source srcset={`${tile.src}.avif`} type="image/avif" />
+                    <img
+                      src={`${tile.src}.webp`}
+                      alt={tile.alt ?? ''}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </picture>
+                ) : (
+                  <span class="cs-ex__empty" />
+                )}
+              </figure>
+            ))}
+          </div>
         ))
       }
     </div>
@@ -84,166 +99,108 @@ const { eyebrow = 'Core experience', heading, features } = Astro.props;
 
 <style>
   .cs-ex {
-    padding-block: clamp(2.5rem, 5.5vw, 4.5rem) clamp(3rem, 6vw, 5.5rem);
+    padding-block: clamp(2.5rem, 5vw, 4.5rem);
   }
 
   /* --- Statement -----------------------------------------------------------
-     Same two-column head as the approach section above it: the label holds its
-     own column so the paragraph lands on the page's second axis. */
-  .cs-ex__head {
+     Label left, claim right. The label's column is narrow and fixed in
+     proportion, which is what puts every section's label on the same line down
+     the page. */
+  .cs-ex__head,
+  .cs-ex__body {
     display: grid;
-    grid-template-columns: 28% minmax(0, 1fr);
-    gap: clamp(1rem, 2vw, 2rem);
+    grid-template-columns: 24% minmax(0, 1fr);
+    gap: clamp(1rem, 3vw, 2.5rem);
     align-items: start;
   }
 
   .cs-ex__eyebrow {
-    margin-top: 0.35em;
     color: var(--color-ink-secondary);
   }
 
   .cs-ex__heading {
-    max-width: 24em;
+    /* In em so the frame's three lines survive the fluid type scale. */
+    max-width: 20em;
     font-size: clamp(1.375rem, 2.5vw, 2.5rem);
-    line-height: 1.32;
+    line-height: 1.28;
     letter-spacing: -0.02em;
   }
 
-  /* --- Body ----------------------------------------------------------------
-     Laid out on the full width, not inside the container: the panel has to
-     reach the right edge. The list carries the gutter itself. */
-  .cs-ex__body {
-    display: grid;
-    grid-template-columns: 27.1% minmax(0, 1fr);
-    align-items: end;
-    margin-top: clamp(1.5rem, 3.5vw, 2.75rem);
-  }
-
-  .cs-ex__list {
-    padding-left: var(--section-padding-x);
-    padding-right: 1%;
-  }
-
-  .cs-ex__item {
-    padding-block: clamp(0.5rem, 1vw, 0.75rem);
-    border-bottom: 1px solid var(--color-line);
-  }
-
-  .cs-ex__name {
-    display: block;
-    width: 100%;
-    padding-block: 0.25rem;
-    font-size: var(--text-body);
-    line-height: 1.3;
-    text-align: left;
-    cursor: pointer;
-    transition: opacity 0.3s;
-  }
-
-  .cs-ex__item:not([data-open]) .cs-ex__name:hover {
-    opacity: 0.6;
-  }
-
-  /* Collapsed by rows rather than by height, so the description never needs a
-     measured pixel value to animate between. */
-  .cs-ex__desc {
-    display: grid;
-    grid-template-rows: 0fr;
-    margin-top: 0;
-    overflow: hidden;
-    font-size: var(--text-caption);
-    line-height: 1.45;
+  .cs-ex__caption {
+    max-width: 34em;
+    margin-top: clamp(0.875rem, 1.8vw, 1.375rem);
+    font-size: 0.8125rem;
+    line-height: 1.55;
     color: var(--color-ink-secondary);
-    opacity: 0;
-    transition:
-      grid-template-rows 0.45s var(--ease-out-expo),
-      opacity 0.3s,
-      margin-top 0.45s var(--ease-out-expo);
   }
 
-  /* Without this the child's automatic minimum size holds the row open and
-     nothing collapses. */
-  .cs-ex__desc > span {
-    display: block;
-    min-height: 0;
+  .cs-ex__body {
+    margin-top: clamp(2rem, 4.5vw, 3.75rem);
   }
 
-  .cs-ex__item[data-open] .cs-ex__desc {
-    grid-template-rows: 1fr;
-    margin-top: 0.5rem;
-    opacity: 1;
+  /* The same line again, against the rows rather than the claim. */
+  .cs-ex__aside {
+    max-width: 22em;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--color-ink-secondary);
   }
 
-  /* --- Stage ---------------------------------------------------------------
-     Panels stack in one box; only the open one is painted, so switching costs
-     no layout. */
-  .cs-ex__stage {
-    position: relative;
-    aspect-ratio: 493 / 350;
-  }
-
-  .cs-ex__panel {
-    position: absolute;
-    inset: 0;
-    margin: 0;
+  /* --- The rows ------------------------------------------------------------
+     Off the right edge of the screen: the gutter is cancelled so the last tile
+     in each row is cut by the viewport rather than stopping short of it. */
+  .cs-ex__rows {
+    display: grid;
+    gap: clamp(0.5rem, 1.1vw, 0.875rem);
+    margin-right: calc(-1 * var(--section-padding-x));
     overflow: hidden;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 0.45s var(--ease-out-expo),
-      visibility 0.45s;
   }
 
-  .cs-ex__panel[data-open] {
-    opacity: 1;
-    visibility: visible;
+  .cs-ex__row {
+    display: grid;
+    /* Fixed track width rather than a fraction: the row has to overflow, and
+       fractions would divide whatever space there is between four tiles and
+       fit them all in. */
+    grid-auto-flow: column;
+    grid-auto-columns: clamp(13rem, 26vw, 24rem);
+    gap: clamp(0.5rem, 1.1vw, 0.875rem);
+    /* Relative rather than a margin: the shift must not change how much room
+       the row has, only where its tiles sit in it. */
+    transform: translateX(var(--cs-ex-row-shift, 0));
   }
 
-  .cs-ex__panel picture,
-  .cs-ex__panel img,
+  .cs-ex__tile {
+    margin: 0;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: var(--color-surface);
+  }
+
+  .cs-ex__tile picture,
+  .cs-ex__tile img,
   .cs-ex__empty {
     display: block;
     width: 100%;
     height: 100%;
-  }
-
-  .cs-ex__panel img {
     object-fit: cover;
   }
 
   .cs-ex__empty {
-    background: #d5d5d5;
+    background: var(--color-surface);
   }
 
-  /* --- Responsive ---------------------------------------------------------- */
-  @media (max-width: 62rem) {
-    .cs-ex__head {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 0.75rem;
-    }
-
-    .cs-ex__eyebrow {
-      margin-top: 0;
-    }
-
-    /* Artwork first, then the list: a narrow column can't sit beside a panel
-       without starving both. */
+  /* --- Stacked -------------------------------------------------------------
+     The label goes above its statement and the aside above the rows: at this
+     width a 24% column is too narrow to set either in. */
+  @media (max-width: 61.25rem) {
+    .cs-ex__head,
     .cs-ex__body {
       grid-template-columns: minmax(0, 1fr);
-      gap: clamp(1.5rem, 5vw, 2.5rem);
+      gap: clamp(0.75rem, 2vw, 1.25rem);
     }
 
-    .cs-ex__list {
-      order: 2;
-      padding-inline: var(--section-padding-x);
-    }
-
-    /* Stacked, the panel no longer has a right edge to run off — bleeding it
-       here would just leave it as the one image on the page that ignores the
-       gutter. */
-    .cs-ex__stage {
-      margin-inline: var(--section-padding-x);
-      aspect-ratio: 16 / 11;
+    .cs-ex__aside {
+      max-width: none;
     }
   }
 </style>
