@@ -33,9 +33,16 @@
      ground. */
   --color-bg-hero: #fcfcfc;
 
-  /* Ground of the second section. The hero's pixel reveal uses the same
-     value, so the handover between them is seamless. */
-  --color-bg-showcase: #e7edf4;
+  /* Ground of the second section. The hero's pixel reveal uses the same value,
+     so the handover between them is seamless — which is the whole reason this
+     is a token and not a colour written twice.
+
+     It follows the chapter's ground, and that ground is a film now: sampled
+     off the cover's own first frame, averaged across its top and bottom edges,
+     where the crop meets the section. It was #e7edf4, a pale blue, back when
+     the chapter was a near-white gradient. Change the film and this moves with
+     it, or the pixels dissolve into a colour the section no longer is. */
+  --color-bg-showcase: #061630;
 
   /* Ground of the third section. */
   --color-bg-overclock: #e2e2e2;

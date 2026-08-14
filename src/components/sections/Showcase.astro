@@ -31,6 +31,11 @@ interface Props {
   tags?: Tag[];
   image?: string;
   imageAlt?: string;
+  /** Extensionless cover video under /media — .webm and .mp4 are both asked
+   *  for. Given one, it becomes the chapter's ground and `image` is unused. */
+  video?: string;
+  /** First frame, shown until the video decodes. */
+  poster?: string;
   href?: string;
   viewLabel?: string;
 }
@@ -52,14 +57,49 @@ const {
     { label: 'Branding Design' },
   ],
   image = '/media/showcase-device',
+  video = '/media/showcase-cover',
+  poster = '/media/showcase-cover-poster.webp',
   imageAlt = 'The Nerd Apply platform running on a phone',
   href = '/work/college-counseling-platform',
   viewLabel = 'View case study',
 } = Astro.props;
 ---
 
-<section class="showcase" aria-labelledby="showcase-title" data-chapter-section="2">
-  <div class="showcase__texture" aria-hidden="true"></div>
+{/* data-nav-over: the chapter's ground is a dark film now, and the bar is
+    fixed over it — the observer in nav.ts inverts the wordmark while this is
+    behind it. Only set when there is a film; on the still it is a light
+    ground and the mark stays ink. */}
+<section
+  class:list={['showcase', { 'showcase--film': video }]}
+  aria-labelledby="showcase-title"
+  data-chapter-section="2"
+  data-nav-over={video ? 'dark' : undefined}
+>
+  {
+    video && (
+      /* The chapter's ground. Behind everything, muted and looping — it is
+         scenery, not a player, so it carries no controls and nothing depends
+         on it having started. `poster` holds the first frame until it decodes,
+         which is the same still the section's background colour is sampled
+         from, so there is nothing to see in the swap. */
+      <video
+        class="showcase__film"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        poster={poster}
+        aria-hidden="true"
+        tabindex="-1"
+      >
+        <source src={`${video}.webm`} type="video/webm" />
+        <source src={`${video}.mp4`} type="video/mp4" />
+      </video>
+    )
+  }
+
+  {!video && <div class="showcase__texture" aria-hidden="true" />}
 
   <div class="showcase__inner u-container">
     <div class="showcase__text" data-chapter-text>
@@ -97,12 +137,16 @@ const {
       </ul>
     </div>
 
-    <figure class="showcase__media" data-showcase-media>
-      <picture>
-        <source srcset={`${image}.avif`} type="image/avif" />
-        <img src={`${image}.webp`} alt={imageAlt} width="1400" height="1139" decoding="async" />
-      </picture>
-    </figure>
+    {
+      !video && (
+        <figure class="showcase__media" data-showcase-media>
+          <picture>
+            <source srcset={`${image}.avif`} type="image/avif" />
+            <img src={`${image}.webp`} alt={imageAlt} width="1400" height="1139" decoding="async" />
+          </picture>
+        </figure>
+      )
+    }
 
     {/* Marker intentionally not rendered here — see the docstring above. */}
   </div>
@@ -126,12 +170,87 @@ const {
     height: 100%;
     min-height: 100svh;
     overflow: hidden;
-    background: linear-gradient(
-      160deg,
-      var(--color-bg-showcase) 0%,
-      #eef2f7 55%,
-      #f4f7fa 100%
-    );
+    /* The still chapter's ground, for the case where no film is given. The
+       first stop is written out rather than read from --color-bg-showcase: that
+       token now follows the film, and this gradient is the light treatment it
+       replaced. Reading it here would make the pale gradient start at navy. */
+    background: linear-gradient(160deg, #e7edf4 0%, #eef2f7 55%, #f4f7fa 100%);
+    color: var(--color-ink);
+  }
+
+  /* The chapter's ground, when it is a film.
+
+     `cover`, and that is safe here in a way it is not in the hero: this cut is
+     16:9 with its subject on the right and its left third all but black, so
+     what a crop takes is empty ground either side of the product rather than
+     anything the composition needs. The copy sits over that dark left third,
+     which is why it needs no scrim of its own — measured off the frame, the
+     left third averages rgb(1,8,20).
+
+     Behind everything: the section's own children paint over it in source
+     order, and this is first. */
+  .showcase__film {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Where the crop is taken from. The product sits right of centre in the
+       frame; anchoring right keeps it in shot as the box narrows, and it is
+       the left — the empty end — that gives way. */
+    object-position: right center;
+    pointer-events: none;
+  }
+
+  /* Everything that is not the film sits above it. */
+  .showcase--film .showcase__inner,
+  .showcase--film .showcase__link {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Flat, and in the film's own colour rather than the light gradient: the
+     video covers this, so what it is for is the frame before the first decode
+     and any edge the crop does not reach. */
+  .showcase--film {
+    background: var(--color-bg-showcase);
+    color: var(--color-ink-invert);
+  }
+
+  /* --- The copy, inverted -------------------------------------------------
+     The values below were all set against a near-white ground. On the film
+     they are the same weights the other way up. */
+  .showcase--film .showcase__title,
+  .showcase--film .showcase__body {
+    color: var(--color-ink-invert);
+  }
+
+  .showcase--film .showcase__body {
+    /* Not full white. The body is a step quieter than the title on the light
+       ground too — #1c2333 against #0d1b33 — and this is that same step. */
+    color: rgb(255 255 255 / 0.76);
+  }
+
+  /* The badge keeps its light chip and dark ink: it is a label on a card, and
+     a card reads on either ground. */
+
+  /* The pills do not. Outlined in ink at 16% over near-black they disappear,
+     and their 40%-white fill goes muddy rather than light. Inverted, they are
+     the same idea: a hairline ring and a wash of the ground's opposite. */
+  .showcase--film .showcase__tag {
+    border-color: rgb(255 255 255 / 0.28);
+    background: rgb(255 255 255 / 0.08);
+    color: rgb(255 255 255 / 0.92);
+  }
+
+  /* And the touch-only button turns over with them. It is an ink pill with
+     white type, which on the light ground is the strongest thing in the
+     chapter and on this one is #0a0a0a against #061630 — the type still reads,
+     but the pill stops being a shape. Light chip, dark ink: the same way round
+     as the badge above it, which was already built for either ground. */
+  .showcase--film .showcase__cta {
+    background: var(--color-ink-invert);
     color: var(--color-ink);
   }
 

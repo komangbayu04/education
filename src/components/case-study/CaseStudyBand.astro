@@ -1,0 +1,98 @@
+---
+/**
+ * Case-study band — a full-bleed strip of motion between two sections.
+ *
+ * The frame puts one of these under the introduction and another under the
+ * platform section: the copy makes a claim, the band shows it running. It is
+ * the page's only full-width element, so it is what gives the reading its
+ * rhythm — two columns of text, then the whole screen.
+ *
+ * Empty until the footage arrives. With no `video` it renders as a plain
+ * block, the same convention every other slot on this page uses, and it is
+ * sized by ratio rather than by content — so the band holds its exact place in
+ * the layout now and nothing below it moves when the film lands.
+ *
+ * The video, when it comes, is scenery: muted, looping, no controls, and
+ * nothing on the page depends on it having started.
+ */
+
+interface Props {
+  /** Extensionless path under /media — .webm and .mp4 are both requested. */
+  video?: string;
+  /** First frame, held until the video decodes. */
+  poster?: string;
+  /** Width / height. The frame's bands are 16:9. */
+  ratio?: string;
+  /** Described for a screen reader only when the band carries meaning. */
+  label?: string;
+}
+
+const { video, poster, ratio = '16 / 9', label } = Astro.props;
+---
+
+<section
+  class="cs-band"
+  style={`--cs-band-ratio: ${ratio}`}
+  aria-label={label}
+  aria-hidden={label ? undefined : 'true'}
+  data-cs-band
+>
+  {
+    video ? (
+      <video
+        class="cs-band__film"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        poster={poster}
+        tabindex="-1"
+      >
+        <source src={`${video}.webm`} type="video/webm" />
+        <source src={`${video}.mp4`} type="video/mp4" />
+      </video>
+    ) : (
+      <span class="cs-band__empty" />
+    )
+  }
+</section>
+
+<style>
+  /* Full bleed out of the page's gutter. The page is a plain column, so this
+     is the one element that has to break out of it — 100vw against the
+     viewport rather than 100% of the column, pulled back by half the
+     difference. `dvw` rather than `vw`: on a phone with a visible scrollbar
+     the two differ, and `vw` includes the bar's width, which is what puts a
+     full-bleed row into horizontal scroll. */
+  .cs-band {
+    width: 100dvw;
+    margin-left: calc(50% - 50dvw);
+    /* Sized by ratio, so the band holds its place before the film exists and
+       nothing below it moves when one lands. */
+    aspect-ratio: var(--cs-band-ratio);
+    overflow: hidden;
+    /* The placeholder ground, and the letterbox behind a film whose ratio does
+       not match the band's exactly. */
+    background: var(--color-ink);
+  }
+
+  .cs-band__film,
+  .cs-band__empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* On a phone a 16:9 band is a 211px sliver on a 375 screen, which reads as a
+     rule rather than as a piece of the page. Squarer, so it keeps some
+     presence — and capped against the viewport so it can never take the whole
+     screen on a tall handset. */
+  @media (max-width: 48rem) {
+    .cs-band {
+      aspect-ratio: 4 / 3;
+      max-height: 62svh;
+    }
+  }
+</style>
