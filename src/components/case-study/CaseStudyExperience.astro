@@ -1,6 +1,7 @@
 ---
 /**
- * Case-study website section — a labelled statement, then rows of screens.
+ * Case-study website section — a labelled statement, rows of screens, then a
+ * pair of shots.
  *
  * The label sits in a narrow left column with the statement beside it, and a
  * second, quieter line repeats under the statement and again down the left
@@ -8,22 +9,34 @@
  * under the statement belongs to the claim, the one beside the rows belongs to
  * what they show.
  *
- * The rows run off the right edge of the screen. They are not a carousel and
- * they do not scroll — a website is a lot of screens, and the point being made
- * is how many, so what matters is that the rows are clearly longer than the
- * viewport rather than that you can get to the end of them.
+ * The screens are ONE image, not a row of tiles and not a carousel. How they sit
+ * against each other is part of what is being shown, so the arrangement belongs
+ * to the export rather than to this layout — reassembled here out of separate
+ * files, the composition would be whatever the CSS guessed. It runs off the
+ * right edge of the screen: a website is a lot of screens and the point is how
+ * many, so what matters is that there is clearly more of it than fits.
  *
- * Was a feature accordion — a list of names beside one switching panel. The
- * frame has no list and no control; the screens are the argument.
+ * Under it, the pair: one large shot, and beside its foot a smaller one with a
+ * line of its own above. The line belongs to the pair, not to the section.
  *
- * Tiles with no `src` render as plain blocks, the same convention the rest of
- * the page uses.
+ * ARTWORK: none of it is in yet. The screens and both shots render as plain
+ * blocks — the same convention the rest of the page uses — and giving any of
+ * them a `src` is the whole of what it takes to fill one in.
  */
 
+/**
+ * One slot. `video` and `src` are alternatives: give it footage and it plays,
+ * give it an image and it sits still, give it neither and it is a placeholder
+ * block. Both are extensionless — .webm/.mp4 for footage, .avif/.webp for a
+ * still — and `ratio` lets a slot keep the shape of whatever lands in it
+ * rather than being cropped to the layout's guess.
+ */
 interface Tile {
-  /** Extensionless path under /media, or omitted for a placeholder block. */
   src?: string;
+  video?: string;
+  poster?: string;
   alt?: string;
+  ratio?: string;
 }
 
 interface Props {
@@ -33,22 +46,25 @@ interface Props {
   caption?: string;
   /** Down the left, against the rows. */
   aside?: string;
-  /** One array per row, left to right. */
-  rows?: Tile[][];
+  /** The screens, as one image. Its own shape travels with it, since a
+   *  composition of screens is whatever the export happens to be. */
+  screens?: Tile & { ratio?: string };
+  /** The two shots under them: a large one and, beside its foot, a smaller one
+   *  with a line of its own above. */
+  pair?: { large?: Tile; small?: Tile; caption?: string };
 }
+
+/** What the screens image is cut to until one arrives with a shape of its own —
+ *  roughly three rows of landscape screens, which is what the frame shows. */
+const SCREENS_RATIO = '3 / 2';
 
 const {
   eyebrow = 'Website',
   heading,
   caption,
   aside,
-  /* Three rows of four is what the frame shows, and enough that the last one
-     in each is cut by the screen's edge at every width this runs at. */
-  rows = [
-    [{}, {}, {}, {}],
-    [{}, {}, {}, {}],
-    [{}, {}, {}, {}],
-  ],
+  screens = {},
+  pair = {},
 } = Astro.props;
 ---
 
@@ -65,41 +81,94 @@ const {
   <div class="cs-ex__body u-container">
     {aside && <p class="cs-ex__aside">{aside}</p>}
 
-    <div class="cs-ex__rows">
+    {/* One image, not a row of tiles. The screens are a composition — how they
+        sit against each other is part of what is being shown — so it arrives
+        as a single export rather than being reassembled here out of pieces the
+        layout would have to guess the arrangement of. */}
+    <figure class="cs-ex__screens" style={`--cs-ex-screens-ratio:${screens.ratio ?? SCREENS_RATIO}`}>
       {
-        rows.map((row, i) => (
-          /* Each row is nudged along from the one above it, so the vertical
-             seams between tiles never line up down the block — the frame's
-             rows are offset the same way. The nudge is a share of a tile, so
-             it holds its proportion as the tiles resize. */
-          <div class="cs-ex__row" style={`--cs-ex-row-shift: ${(i % 3) * 7}%`}>
-            {row.map((tile) => (
-              <figure class="cs-ex__tile">
-                {tile.src ? (
-                  <picture>
-                    <source srcset={`${tile.src}.avif`} type="image/avif" />
-                    <img
-                      src={`${tile.src}.webp`}
-                      alt={tile.alt ?? ''}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </picture>
-                ) : (
-                  <span class="cs-ex__empty" />
-                )}
-              </figure>
-            ))}
-          </div>
-        ))
+        screens.video ? (
+          <video autoplay muted loop playsinline preload="none" poster={screens.poster} tabindex="-1">
+            <source src={`${screens.video}.webm`} type="video/webm" />
+            <source src={`${screens.video}.mp4`} type="video/mp4" />
+          </video>
+        ) : screens.src ? (
+          <picture>
+            <source srcset={`${screens.src}.avif`} type="image/avif" />
+            <img
+              src={`${screens.src}.webp`}
+              alt={screens.alt ?? ''}
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+        ) : (
+          <span class="cs-ex__empty" />
+        )
       }
+    </figure>
+  </div>
+
+  {/* The two shots under the rows. The large one leads; the smaller sits beside
+      its foot with its own line above, which is the frame's arrangement. */}
+  <div class="cs-ex__pair u-container">
+    <figure class="cs-ex__shot cs-ex__shot--large" style={pair.large?.ratio && `--cs-ex-shot-ratio:${pair.large.ratio}`}>
+      {
+        pair.large?.video ? (
+          <video autoplay muted loop playsinline preload="none" poster={pair.large.poster} tabindex="-1">
+            <source src={`${pair.large.video}.webm`} type="video/webm" />
+            <source src={`${pair.large.video}.mp4`} type="video/mp4" />
+          </video>
+        ) : pair.large?.src ? (
+          <picture>
+            <source srcset={`${pair.large.src}.avif`} type="image/avif" />
+            <img
+              src={`${pair.large.src}.webp`}
+              alt={pair.large.alt ?? ''}
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+        ) : (
+          <span class="cs-ex__empty cs-ex__empty--dark" />
+        )
+      }
+    </figure>
+
+    <div class="cs-ex__pair-side">
+      {pair.caption && <p class="cs-ex__pair-caption">{pair.caption}</p>}
+
+      <figure class="cs-ex__shot cs-ex__shot--small" style={pair.small?.ratio && `--cs-ex-shot-ratio:${pair.small.ratio}`}>
+        {
+          pair.small?.video ? (
+            <video autoplay muted loop playsinline preload="none" poster={pair.small.poster} tabindex="-1">
+              <source src={`${pair.small.video}.webm`} type="video/webm" />
+              <source src={`${pair.small.video}.mp4`} type="video/mp4" />
+            </video>
+          ) : pair.small?.src ? (
+            <picture>
+              <source srcset={`${pair.small.src}.avif`} type="image/avif" />
+              <img
+                src={`${pair.small.src}.webp`}
+                alt={pair.small.alt ?? ''}
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+          ) : (
+            <span class="cs-ex__empty cs-ex__empty--dark" />
+          )
+        }
+      </figure>
     </div>
   </div>
 </section>
 
 <style>
+  /* The page's rhythm, set on .cs — see the page. The fallback is what this
+     used to be, so the component still stands up outside that wrapper. */
   .cs-ex {
-    padding-block: clamp(2.5rem, 5vw, 4.5rem);
+    padding-block: var(--cs-section-y, clamp(2.5rem, 5vw, 4.5rem));
   }
 
   /* --- Statement -----------------------------------------------------------
@@ -135,7 +204,7 @@ const {
   }
 
   .cs-ex__body {
-    margin-top: clamp(2rem, 4.5vw, 3.75rem);
+    margin-top: clamp(2.5rem, 6vw, 5.5rem);
   }
 
   /* The same line again, against the rows rather than the claim. */
@@ -146,38 +215,67 @@ const {
     color: var(--color-ink-secondary);
   }
 
-  /* --- The rows ------------------------------------------------------------
-     Off the right edge of the screen: the gutter is cancelled so the last tile
-     in each row is cut by the viewport rather than stopping short of it. */
-  .cs-ex__rows {
-    display: grid;
-    gap: clamp(0.5rem, 1.1vw, 0.875rem);
-    margin-right: calc(-1 * var(--section-padding-x));
-    overflow: hidden;
-  }
-
-  .cs-ex__row {
-    display: grid;
-    /* Fixed track width rather than a fraction: the row has to overflow, and
-       fractions would divide whatever space there is between four tiles and
-       fit them all in. */
-    grid-auto-flow: column;
-    grid-auto-columns: clamp(13rem, 26vw, 24rem);
-    gap: clamp(0.5rem, 1.1vw, 0.875rem);
-    /* Relative rather than a margin: the shift must not change how much room
-       the row has, only where its tiles sit in it. */
-    transform: translateX(var(--cs-ex-row-shift, 0));
-  }
-
-  .cs-ex__tile {
+  /* --- The screens ---------------------------------------------------------
+     One image, running off the right edge of the screen: the gutter is
+     cancelled so it is cut by the viewport rather than stopping short of it.
+     There is a lot of it and the point is that there is a lot of it. */
+  .cs-ex__screens {
     margin: 0;
-    aspect-ratio: 16 / 10;
+    margin-right: calc(-1 * var(--section-padding-x));
+    aspect-ratio: var(--cs-ex-screens-ratio, 3 / 2);
     overflow: hidden;
     background: var(--color-surface);
   }
 
-  .cs-ex__tile picture,
-  .cs-ex__tile img,
+  /* --- The pair ------------------------------------------------------------
+     Large left, and a column to its right holding the line and the small shot.
+     `align-items: stretch` plus the column's own `flex-end` is what puts the
+     small shot's foot on the large one's: bottom-aligned by construction, so
+     the two stay level whatever the copy above does. */
+  .cs-ex__pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: clamp(1rem, 2.4vw, 2rem);
+    align-items: stretch;
+    margin-top: clamp(2rem, 5vw, 4.5rem);
+  }
+
+  .cs-ex__pair-side {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: clamp(1.5rem, 3.4vw, 3.25rem);
+  }
+
+  .cs-ex__pair-caption {
+    max-width: 26em;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--color-ink);
+  }
+
+  .cs-ex__shot {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  /* Ratios rather than heights, so both shots are in their final place before
+     any artwork exists — and the small one is the shallower of the two, which
+     is what leaves room above it for the line. */
+  .cs-ex__shot--large {
+    aspect-ratio: var(--cs-ex-shot-ratio, 3 / 2);
+  }
+
+  .cs-ex__shot--small {
+    aspect-ratio: var(--cs-ex-shot-ratio, 8 / 5);
+  }
+
+  .cs-ex__screens picture,
+  .cs-ex__screens img,
+  .cs-ex__screens video,
+  .cs-ex__shot picture,
+  .cs-ex__shot img,
+  .cs-ex__shot video,
   .cs-ex__empty {
     display: block;
     width: 100%;
@@ -187,6 +285,14 @@ const {
 
   .cs-ex__empty {
     background: var(--color-surface);
+  }
+
+  /* The pair's blocks are the page's one dark placeholder. They stand for full
+     -bleed artwork rather than for a screen in a frame, and the page's own
+     surface grey at that size reads as a gap in the layout rather than as
+     something not yet delivered. */
+  .cs-ex__empty--dark {
+    background: var(--color-bg-invert);
   }
 
   /* --- Stacked -------------------------------------------------------------
@@ -201,6 +307,19 @@ const {
 
     .cs-ex__aside {
       max-width: none;
+    }
+
+    /* One under the other, and the line back above its own shot. Side by side
+       the small shot is a third of a phone's width — smaller than the tiles in
+       the rows above it, which makes the pair read as a footnote to them
+       rather than as the section's closing pair. */
+    .cs-ex__pair {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(1.25rem, 4vw, 2rem);
+    }
+
+    .cs-ex__pair-side {
+      gap: clamp(1rem, 3vw, 1.5rem);
     }
   }
 </style>

@@ -24,3 +24,10 @@ image/0811.mp4
 # — and that is committed. The phone cut's source is 4.5 MB and is tracked, so
 # only this one needs keeping wherever masters are kept.
 image/Bg-hero-dekstop.mp4
+
+# The case-study source footage, 135 MB across eight files. What ships is the
+# encodes in public/media/na-*.{mp4,webm} — 22 MB, and committed. Same rule the
+# two hero masters above are under: the encode is the deliverable, the master is
+# not worth a permanent place in the history. The ffmpeg command that produces
+# them is in the README.
+image/na-video/

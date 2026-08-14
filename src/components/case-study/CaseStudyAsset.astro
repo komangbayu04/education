@@ -1,0 +1,134 @@
+---
+/**
+ * One asset on a case study — a player, a still, or a plain block.
+ *
+ * Its own component rather than a helper in the section that uses it: Astro's
+ * frontmatter is script, not template, so a function cannot return markup there.
+ * Three sites needed the same three-way choice, and three copies of it would
+ * drift.
+ *
+ * The play control is only a real button when there is a URL behind it, so a
+ * tile whose footage hasn't arrived is never a dead control. Playback lives in
+ * src/scripts/caseStudy.ts, which hangs off `data-cs-play` / `data-cs-video`.
+ *
+ * It renders no box of its own — the tile it sits in owns the shape, the
+ * clipping and the background. This is only what goes inside.
+ */
+
+interface Props {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  src?: string;
+  alt?: string;
+  /** Footage. Either a complete URL — one file, any host — or an extensionless
+   *  path under /media, in which case .webm and .mp4 are both offered and the
+   *  browser takes the first it can play. */
+  video?: string;
+  /** Frame shown before playback. Falls back to the still. */
+  poster?: string;
+  /** What it shows, for the play button's label. */
+  label?: string;
+}
+
+const { src, alt, video, poster, label } = Astro.props;
+
+/* A path with an extension is one file and is used as given; without one it is
+   a pair to choose between. Written as a test on the value rather than a second
+   prop, so a caller has one thing to pass either way. */
+const videoIsComplete = Boolean(video && /\.(mp4|webm|mov)$/i.test(video));
+---
+
+{
+  video ? (
+    <Fragment>
+      {/* preload="none" so a tile nobody plays costs one poster image, not a
+          video download. */}
+      <video
+        class="cs-asset__video"
+        src={videoIsComplete ? video : undefined}
+        poster={poster ?? (src ? `${src}.webp` : undefined)}
+        preload="none"
+        playsinline
+        data-cs-video
+      >
+        {
+          !videoIsComplete && (
+            <Fragment>
+              <source src={`${video}.webm`} type="video/webm" />
+              <source src={`${video}.mp4`} type="video/mp4" />
+            </Fragment>
+          )
+        }
+      </video>
+
+      <button
+        class="cs-asset__play"
+        type="button"
+        aria-label={label ? `Play ${label}` : 'Play video'}
+        data-cs-play
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M8 5v14l11-7z" fill="currentColor" />
+        </svg>
+      </button>
+    </Fragment>
+  ) : src ? (
+    <picture>
+      <source srcset={`${src}.avif`} type="image/avif" />
+      <img src={`${src}.webp`} alt={alt ?? ''} loading="lazy" decoding="async" />
+    </picture>
+  ) : (
+    <span class="cs-asset__empty" />
+  )
+}
+
+<style>
+  /* Global, because these three are placed by whichever section's tile wraps
+     them and that tile's own rules are scoped to it. Named for this component
+     so nothing else can match them by accident. */
+  :global(.cs-asset__video),
+  :global(.cs-asset__empty) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  :global(.cs-asset__empty) {
+    background: var(--color-surface);
+  }
+
+  /* Hidden once playback starts, because from that point the browser's own
+     controls are on top of the frame. */
+  :global(.cs-asset__play) {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: clamp(2.75rem, 4vw, 3.75rem);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.92);
+    color: var(--color-ink);
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition:
+      transform 0.4s var(--ease-out-expo),
+      background-color 0.3s;
+  }
+
+  :global([data-playing] .cs-asset__play) {
+    display: none;
+  }
+
+  :global(.cs-asset__play svg) {
+    width: 42%;
+    height: 42%;
+  }
+
+  :global(.cs-asset__play:hover),
+  :global(.cs-asset__play:focus-visible) {
+    background: #fff;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+</style>

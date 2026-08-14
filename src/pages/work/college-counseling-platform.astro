@@ -78,25 +78,90 @@ const intro =
     />
 
     {/* Website. The claim, the line under it, and the same line again beside
-        the rows of screens that make the point — the repetition is the
-        frame's. Rows default to three of four empty tiles; passing `rows`
-        replaces them with real shots. */}
+        the screens that make the point — the repetition is the frame's.
+
+        The screens are ONE image, not a set of tiles: how they sit against each
+        other is part of what is being shown, so the arrangement belongs to the
+        export. Pass `screens={{ src, alt, ratio }}` when it lands.
+
+        The pair under it carries only its line for now. Its two shots are
+        placeholders until the artwork arrives: add `large` and `small` to this
+        object, each an extensionless path under /media. */}
     <CaseStudyExperience
       eyebrow="Website"
       heading="The platform brings together every essential step of the college admissions process into one connected experience"
       caption="Making it easier to plan, collaborate, and track progress from start to finish."
       aside="Making it easier to plan, collaborate, and track progress from start to finish."
+      screens={{
+        video: '/media/na-web1',
+        poster: '/media/na-web1-poster.webp',
+        ratio: '4 / 3',
+      }}
+      pair={{
+        large: {
+          video: '/media/na-web2',
+          poster: '/media/na-web2-poster.webp',
+          ratio: '4 / 5',
+        },
+        small: {
+          video: '/media/na-web3',
+          poster: '/media/na-web3-poster.webp',
+          ratio: '4 / 3',
+        },
+        caption: 'Each asset starts from a system that already exists. Throughput climbs.',
+      }}
     />
 
-    {/* Marketing, and the page's one dark band — it sits after the website
-        section because that is the order the frame reads in: the product
-        first, then the material that goes out around it. Four players; no
-        `video` URLs yet, so they render as plain blocks with no play control. */}
+    {/* Marketing. It sits after the website section because that is the order
+        the frame reads in: the product first, then the material that goes out
+        around it.
+
+        No artwork yet — the two that lead and the four in the rail all render
+        as plain blocks. Filling one in is a `src` (or a `video`) on its entry;
+        `size` is its height against the rail's, which is what keeps the row
+        from being four equal boxes, and a `caption` frames that asset as a
+        card with its own line. */}
     <CaseStudyVideos
       eyebrow="Marketing"
       heading="Conference collateral, campaign graphics, motion, video at a cadence one hire couldn't match."
-      caption="Each asset leans on a system that already exists, which is the whole reason the cadence is possible. The surfaces keep changing; the thing underneath them does not."
-      clips={[{}, {}, {}, {}]}
+      caption="Each asset starts from a system that already exists. Throughput climbs."
+      pair={{
+        tall: {
+          video: '/media/na-marketing1',
+          poster: '/media/na-marketing1-poster.webp',
+          ratio: '1 / 1',
+          label: 'Campaign motion',
+        },
+        wide: {
+          video: '/media/na-marketing2',
+          poster: '/media/na-marketing2-poster.webp',
+          ratio: '4 / 3',
+          label: 'Conference collateral',
+        },
+      }}
+      assets={[
+        {
+          video: '/media/na-carousel1',
+          poster: '/media/na-carousel1-poster.webp',
+          ratio: '3 / 4',
+          size: 0.81,
+          label: 'Campaign carousel, first frame',
+        },
+        {
+          video: '/media/na-carousel2',
+          poster: '/media/na-carousel2-poster.webp',
+          ratio: '1 / 1',
+          size: 0.74,
+          label: 'Campaign carousel, second frame',
+        },
+        {
+          video: '/media/na-marketing-last',
+          poster: '/media/na-marketing-last-poster.webp',
+          ratio: '16 / 9',
+          size: 0.68,
+          label: 'Campaign film',
+        },
+      ]}
     />
 
     <CaseStudyResult
@@ -125,6 +190,16 @@ const intro =
 
 <style>
   .cs {
+    /* The page's vertical rhythm, in one place. Every section reads it for its
+       own padding, and since the sections butt directly against each other
+       (their gap is exactly 0), the space between any two is twice this.
+
+       It was written out six times as clamp(2.5rem, 5vw, 4.5rem) — 72px a side,
+       so 144 between sections — which read as crowded once the sections carried
+       full-width artwork. One token instead of six copies, because a rhythm
+       that has to be edited in six files is a rhythm that drifts. */
+    --cs-section-y: clamp(3rem, 6.6vw, 6rem);
+
     padding-top: var(--nav-height);
   }
 </style>

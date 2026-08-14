@@ -111,7 +111,11 @@ const copies = [0, 1];
 
 <style>
   .cs-ap {
-    padding-block: clamp(2.5rem, 5.5vw, 4.5rem) clamp(3rem, 6vw, 5.5rem);
+    /* The page's rhythm, set on .cs — see the page. A little more at the foot
+       than the head, as it always had: the rail below the copy needs clearing
+       from the section under it more than the label needs from the one above. */
+    padding-block: var(--cs-section-y, clamp(2.5rem, 5.5vw, 4.5rem))
+      calc(var(--cs-section-y, clamp(3rem, 6vw, 5.5rem)) * 1.2);
   }
 
   /* --- Statement -----------------------------------------------------------

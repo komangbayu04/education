@@ -1,222 +1,347 @@
 ---
 /**
- * Case-study video band — the full-bleed black strip of tall players.
+ * Case-study marketing section — a labelled statement, a two-up, then a rail of
+ * assets.
  *
- * A row, not a carousel: the tiles sit still and each one is a real video
- * player. Four across at desktop, at the frame's card proportions, with the
- * gutter equal to the gap between them so the row reads as one block.
+ * Built to the same bones as the website section above it: the label in a narrow
+ * left column with the claim beside it, and everything under them cut by the
+ * page's edges rather than fitted inside them. The two read as one pair of
+ * sections because they share that structure, not because they repeat a
+ * component.
  *
- * The play control only renders as a real button when a `video` URL is given,
- * so a tile whose footage hasn't arrived is never a dead control — it renders
- * as a plain block, the same convention the rest of the page uses. Playback
- * itself lives in src/scripts/caseStudy.ts.
+ *   two-up   a tall asset and a wide one, the wide one riding higher. The
+ *            offset is the frame's and it is what stops two rectangles side by
+ *            side reading as a table.
+ *
+ *   rail     everything else, at mixed sizes, cut at both ends. Any item can
+ *            carry a line of its own, which renders it as a framed card — the
+ *            frame is what separates a caption belonging to one asset from the
+ *            section's own.
+ *
+ * Every item takes a `video` as readily as an image, and the play control only
+ * renders as a real button when there is a URL behind it, so a tile whose
+ * footage hasn't arrived is never a dead control. What goes inside a tile is
+ * CaseStudyAsset; this file owns only where the tiles are and what shape they
+ * are. Playback lives in src/scripts/caseStudy.ts.
+ *
+ * Was a full-bleed black band of four tall players. The frame has this section
+ * on the page's own white with the assets at their own sizes, so the dark ground
+ * went — and with it `data-nav-over="dark"`, which would otherwise invert the
+ * wordmark over a white section.
  */
 
-interface Clip {
-  /** A video file the browser can play inline — mp4/webm, same-origin or CORS. */
+import CaseStudyAsset from './CaseStudyAsset.astro';
+
+interface Asset {
+  /** Extensionless path under /media, or omitted for a placeholder block. */
+  src?: string;
+  alt?: string;
+  /** A video file the browser can play inline — mp4/webm, same-origin or CORS.
+   *  Given one, the tile becomes a player with a control of its own. */
   video?: string;
-  /** Frame shown before playback. Also the poster attribute. */
+  /** Frame shown before playback. Falls back to `src`. */
   poster?: string;
-  /** What the clip shows, for the play button's label. */
+  /** What it shows, for the play button's label. */
   label?: string;
+  /** The tile's own shape, as a CSS `aspect-ratio`. */
+  ratio?: string;
+  /** A line belonging to this asset. Given one, it is framed as a card. */
+  caption?: string;
+  /** Height against the rail's own, so the row is not a set of equal blocks.
+   *  1 is the rail's height; 0.8 is four-fifths of it. */
+  size?: number;
 }
 
 interface Props {
-  /** Section label, as the other bands carry. Omit for an unlabelled row. */
   eyebrow?: string;
-  /** The claim this band is making, above the row. */
   heading?: string;
-  /** A line under the row, in the muted grey the other captions use. */
+  /** The line above the rail, in the content column. */
   caption?: string;
-  clips: Clip[];
+  /** The two that lead: a tall one and a wide one beside it. */
+  pair?: { tall?: Asset; wide?: Asset };
+  /** Everything after them, cut by both edges. */
+  assets?: Asset[];
 }
 
-const { eyebrow, heading, caption, clips } = Astro.props;
+/** What an asset with no shape of its own is cut to. */
+const TALL_RATIO = '346 / 409';
+const WIDE_RATIO = '603 / 406';
+const RAIL_RATIO = '4 / 5';
 
-/* The heading is what the section is named by, and the label is the fallback —
-   a band with neither is decoration and gets the generic label it had before. */
+/** How far the rail is pulled left, as a share of its own width — so its first
+ *  item is cut by the edge in the same way its last one is. */
+const RAIL_SHIFT = '-4%';
+
+const {
+  eyebrow = 'Marketing',
+  heading,
+  caption,
+  pair = {},
+  assets = [],
+} = Astro.props;
+
 const labelId = eyebrow || heading ? 'cs-vid-label' : undefined;
 ---
 
-{/* data-nav-over: the one dark ground on a case study, and the bar is fixed
-    over it like everywhere else. The observer in nav.ts inverts the wordmark
-    while this is behind it.
-
-    The dark placeholder tiles elsewhere on this page are deliberately not
-    marked: they are what a missing image falls back to, so they go the moment
-    real media lands, and a marker on one would be a marker on nothing. */}
 <section
   class="cs-vid"
-  aria-label={labelId ? undefined : 'Project videos'}
+  aria-label={labelId ? undefined : 'Marketing'}
   aria-labelledby={labelId}
   data-cs-videos
-  data-nav-over="dark"
+  data-cs-reveal
 >
   {
     (eyebrow || heading) && (
-      <header class="cs-vid__head" id={labelId}>
-        {eyebrow && <p class="cs-vid__eyebrow">{eyebrow}</p>}
+      <div class="cs-vid__head u-container">
+        {eyebrow && <p class="cs-vid__eyebrow u-label" id={labelId}>{eyebrow}</p>}
         {heading && <h2 class="cs-vid__heading">{heading}</h2>}
-      </header>
+      </div>
     )
   }
 
-  <ul class="cs-vid__row">
-    {
-      clips.map((clip) => (
-        <li class="cs-vid__item">
-          <div class="cs-vid__media" data-cs-media>
-            {clip.video ? (
-              /* preload="none" so a tile nobody plays costs one poster image,
-                 not a video download. */
-              <video
-                class="cs-vid__video"
-                src={clip.video}
-                poster={clip.poster}
-                preload="none"
-                playsinline
-                data-cs-video
-              />
-            ) : (
-              <span class="cs-vid__empty" />
-            )}
+  {/* The two that lead. The wide one rides higher — see .cs-vid__pair. */}
+  <div class="cs-vid__pair u-container">
+    <figure
+      data-cs-media
+      class="cs-vid__tile cs-vid__tile--tall"
+      style={`--cs-vid-ratio:${pair.tall?.ratio ?? TALL_RATIO}`}
+    >
+      <CaseStudyAsset {...pair.tall} />
+    </figure>
 
-            {clip.video && (
-              <button
-                class="cs-vid__play"
-                type="button"
-                aria-label={clip.label ? `Play ${clip.label}` : 'Play video'}
-                data-cs-play
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M8 5v14l11-7z" fill="currentColor" />
-                </svg>
-              </button>
-            )}
+    <figure
+      data-cs-media
+      class="cs-vid__tile cs-vid__tile--wide"
+      style={`--cs-vid-ratio:${pair.wide?.ratio ?? WIDE_RATIO}`}
+    >
+      <CaseStudyAsset {...pair.wide} />
+    </figure>
+  </div>
+
+  {
+    (caption || assets.length > 0) && (
+      <div class="cs-vid__tail u-container">
+        {caption && <p class="cs-vid__caption">{caption}</p>}
+
+        {assets.length > 0 && (
+          <div class="cs-vid__rail-clip" data-cs-mkt-rail>
+            <div class="cs-vid__rail">
+              {assets.map((asset) => (
+                <div
+                  class:list={['cs-vid__cell', { 'cs-vid__cell--card': Boolean(asset.caption) }]}
+                  style={`--cs-vid-size:${asset.size ?? 1}`}
+                >
+                  <figure
+                    class="cs-vid__tile"
+                    data-cs-media
+                    style={`--cs-vid-ratio:${asset.ratio ?? RAIL_RATIO}`}
+                  >
+                    <CaseStudyAsset {...asset} />
+                  </figure>
+
+                  {asset.caption && <p class="cs-vid__cell-caption">{asset.caption}</p>}
+                </div>
+              ))}
+            </div>
           </div>
-        </li>
-      ))
-    }
-  </ul>
-
-  {caption && <p class="cs-vid__caption">{caption}</p>}
+        )}
+      </div>
+    )
+  }
 </section>
 
 <style>
+  /* The page's rhythm, set on .cs — see the page. The fallback is what this
+     used to be, so the component still stands up outside that wrapper. */
   .cs-vid {
-    --cs-vid-gap: 1.9vw;
-
-    padding: var(--cs-vid-gap);
-    background: var(--color-ink);
+    padding-block: var(--cs-section-y, clamp(2.5rem, 5vw, 4.5rem));
   }
 
-  /* Inverted, because this is the page's one dark band — the same reason the
-     wordmark flips over it. The measure is held short so the claim breaks
-     where it is written to rather than running the full bleed. */
+  /* --- Statement -----------------------------------------------------------
+     The same two tracks as the website section's head, so both labels sit on
+     one line down the page. */
   .cs-vid__head {
-    max-width: 46rem;
-    margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
-    color: var(--color-ink-invert);
+    display: grid;
+    grid-template-columns: 24% minmax(0, 1fr);
+    gap: clamp(1rem, 3vw, 2.5rem);
+    align-items: start;
   }
 
   .cs-vid__eyebrow {
-    margin-bottom: 0.75rem;
-    font-family: var(--font-display);
-    font-size: var(--text-caption);
-    font-weight: 500;
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    /* Not full white: the label names the section, the heading makes the
-       point, and they should not read at the same weight. */
-    opacity: 0.55;
+    color: var(--color-ink-secondary);
   }
 
   .cs-vid__heading {
-    font-size: var(--text-h2);
-    line-height: 1.2;
-    text-wrap: balance;
+    max-width: 20em;
+    font-size: clamp(1.375rem, 2.5vw, 2.5rem);
+    line-height: 1.28;
+    letter-spacing: -0.02em;
   }
 
-  .cs-vid__caption {
-    max-width: 34rem;
-    margin-top: clamp(1.25rem, 2.5vw, 2rem);
-    color: var(--color-ink-invert);
-    font-size: 0.875rem;
-    line-height: 1.6;
-    opacity: 0.6;
-  }
-
-  .cs-vid__row {
+  /* --- The two that lead ---------------------------------------------------
+     0.57 : 1 is the frame's, and it is the tall one's share — a portrait asset
+     beside a landscape one, not two halves. */
+  .cs-vid__pair {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--cs-vid-gap);
+    grid-template-columns: minmax(0, 0.57fr) minmax(0, 1fr);
+    gap: clamp(0.75rem, 1.9vw, 1.25rem);
+    align-items: start;
+    margin-top: clamp(2.5rem, 6vw, 5.5rem);
   }
 
-  .cs-vid__media {
+  /* The offset, and it is on the tall one rather than a lift on the wide one:
+     pushing the shorter column down keeps the pair's top edge where the grid
+     put it, so the section's rhythm is unchanged and only the two tiles move
+     against each other.
+
+     Qualified by the pair, and that is not decoration: `.cs-vid__tile` sets
+     `margin: 0` and is written after this, so at one class each the reset won
+     and both tiles sat on the same line. */
+  .cs-vid__pair .cs-vid__tile--tall {
+    margin-top: clamp(1rem, 2.4vw, 2.125rem);
+  }
+
+  /* --- The rail ------------------------------------------------------------
+     Cut at both ends: the clip cancels the gutter on the right so the last item
+     runs off the screen, and the shift on the rail itself pulls the first one
+     off the left. Same device as the website section's rows, for the same
+     reason — the point is that there is more of this than fits. */
+  .cs-vid__tail {
+    margin-top: clamp(2.5rem, 6vw, 5.5rem);
+  }
+
+  /* Indented onto the content column — the label's track plus the gap after
+     it, which is where the heading starts. The track alone left it one gap
+     short of the line it is meant to sit under. */
+  .cs-vid__caption {
+    max-width: 34em;
+    margin-left: calc(24% + clamp(1rem, 3vw, 2.5rem));
+    margin-bottom: clamp(1.75rem, 3.8vw, 3.25rem);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--color-ink);
+  }
+
+  /* A real scroller, dragged by hand — see initMarketingRail in
+     src/scripts/caseStudy.ts. `overflow-x: auto` rather than a transform is
+     what makes a trackpad flick, a touch swipe and a keyboard all work without
+     any of them being reimplemented; the script only adds mouse drag on top of
+     it. The scrollbar itself is hidden because the row running off the edge is
+     the affordance. */
+  .cs-vid__rail-clip {
+    margin-right: calc(-1 * var(--section-padding-x));
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    cursor: grab;
+  }
+
+  .cs-vid__rail-clip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cs-vid__rail-clip[data-dragging] {
+    cursor: grabbing;
+  }
+
+  .cs-vid__rail {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.75rem, 1.9vw, 1.375rem);
+    /* Its own width, not the clip's — otherwise the flex row would compress its
+       items to fit and there would be nothing to scroll. The trailing gutter is
+       given back so the last item can be scrolled all the way in. */
+    width: max-content;
+    padding-right: var(--section-padding-x);
+  }
+
+  /* Height first, width from the tile's own ratio — which is what lets one row
+     hold a portrait badge, a framed card and a landscape shot without any of
+     them being cropped to a common shape. */
+  .cs-vid__cell {
+    flex: none;
+    height: calc(clamp(14rem, 30vw, 25rem) * var(--cs-vid-size, 1));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cs-vid__cell .cs-vid__tile {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* An asset with a line of its own, set in a frame — the frame is what says
+     the line belongs to this one rather than to the row. */
+  .cs-vid__cell--card {
+    padding: clamp(0.75rem, 1.4vw, 1rem);
+    background: var(--color-surface);
+  }
+
+  .cs-vid__cell-caption {
+    max-width: 24em;
+    margin-top: clamp(0.625rem, 1.2vw, 1rem);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--color-ink-secondary);
+  }
+
+  /* --- Tiles ---------------------------------------------------------------- */
+  .cs-vid__tile {
     position: relative;
-    aspect-ratio: 262 / 637;
+    margin: 0;
+    aspect-ratio: var(--cs-vid-ratio, 4 / 5);
     overflow: hidden;
+    background: var(--color-surface);
   }
 
-  .cs-vid__video,
-  .cs-vid__empty {
+  /* In the rail the height is set and the width follows, so the ratio has to
+     drive the width rather than the height. */
+  .cs-vid__cell .cs-vid__tile {
+    height: 100%;
+    width: auto;
+  }
+
+  /* The picture only. The player, the play mark and the placeholder all come
+     from CaseStudyAsset and are styled there — a scoped rule here would not
+     reach them anyway, since they are that component's markup. */
+  .cs-vid__tile picture,
+  .cs-vid__tile img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  /* Lighter than the band, or the placeholder is invisible against it. */
-  .cs-vid__empty {
-    background: #262626;
-  }
-
-  /* --- Play mark -----------------------------------------------------------
-     Hidden once playback starts, because from that point the browser's own
-     controls are on top of the frame. */
-  .cs-vid__play {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    display: grid;
-    place-items: center;
-    width: clamp(2.75rem, 4vw, 3.75rem);
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: rgb(255 255 255 / 0.92);
-    color: var(--color-ink);
-    transform: translate(-50%, -50%);
-    cursor: pointer;
-    transition:
-      transform 0.4s var(--ease-out-expo),
-      background-color 0.3s;
-  }
-
-  .cs-vid__media[data-playing] .cs-vid__play {
-    display: none;
-  }
-
-  .cs-vid__play svg {
-    width: 42%;
-    height: 42%;
-  }
-
-  .cs-vid__play:hover,
-  .cs-vid__play:focus-visible {
-    background: #fff;
-    transform: translate(-50%, -50%) scale(1.08);
-  }
-
-  /* --- Responsive ----------------------------------------------------------
-     Four tall players don't fit a phone; two do, and the row keeps its shape
-     rather than turning into something to swipe. */
-  @media (max-width: 62rem) {
-    .cs-vid {
-      --cs-vid-gap: 3vw;
+  /* --- Stacked -------------------------------------------------------------- */
+  @media (max-width: 61.25rem) {
+    .cs-vid__head {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(0.75rem, 2vw, 1.25rem);
     }
 
-    .cs-vid__row {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* One over the other, and the offset goes with them — it is a relationship
+       between two columns and there is only one here. */
+    .cs-vid__pair {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cs-vid__tile--tall {
+      margin-top: 0;
+    }
+
+    /* Back in line with everything else: the 24% indent is the width of a
+       column that no longer exists at this size. */
+    .cs-vid__caption {
+      margin-left: 0;
+      max-width: none;
+    }
+
+    /* Still multiplied by the item's own factor. Written as a flat height, the
+       override dropped it and all five cells came out the same — which is the
+       one thing the rail is not supposed to be. */
+    .cs-vid__cell {
+      height: calc(clamp(11rem, 46vw, 16rem) * var(--cs-vid-size, 1));
     }
   }
 </style>

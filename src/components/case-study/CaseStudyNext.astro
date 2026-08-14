@@ -2,12 +2,17 @@
 /**
  * Case-study CTA — the panel that hands the reader to the next project.
  *
- * A light panel that dissolves at both edges: white squares scatter down out
- * of the page above it, and the footer's black rises into it from below. Same
+ * A black panel that dissolves at both edges: the page's white scatters down
+ * into it from above, and the footer's cream rises into it from below. Same
  * pixel language as the home page's handovers and the founder quote's seam
  * with the footer, and the same rule applies here — the bottom band is painted
  * in the footer's own colour, so this section has to stay directly above the
  * footer or the seam breaks.
+ *
+ * Each band is the colour of what it dissolves *from*, which is why turning
+ * this panel from light to dark needed nothing from either of them — only the
+ * things standing on the ground had to invert with it: the button, the tags and
+ * the rule above them.
  *
  * Below the panel's content sits a rule with the project's tags right-aligned
  * under it, which is what closes the section off before the black.
@@ -60,7 +65,10 @@ const bands = {
 };
 ---
 
-<section class="cs-next" aria-labelledby="cs-next-title">
+{/* data-nav-over: the page's dark ground now, so the fixed bar inverts its
+    wordmark while this is behind it — the same marker the marketing band
+    carried before that section went white. */}
+<section class="cs-next" aria-labelledby="cs-next-title" data-nav-over="dark">
   {/* Decorative — the seams carry no meaning the copy doesn't already. */}
   <div class="cs-next__band cs-next__band--top cs-next__band--wide" aria-hidden="true">
     {bands.wideTop.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
@@ -125,7 +133,13 @@ const bands = {
     padding-top: calc(4 / 48 * 100% + clamp(1.25rem, 2.5vw, 2.5rem));
     padding-bottom: calc(5 / 48 * 100% + clamp(1.5rem, 3vw, 3rem));
     overflow: hidden;
-    background: var(--color-surface);
+    /* Black, and both seams still work off it unchanged: the top band is
+       painted in the page's white and scatters *down* into this, the bottom in
+       the footer's cream and rises *up* out of it. Each band is the colour of
+       what it is dissolving from, which is why turning this ground over needed
+       nothing from either of them. */
+    background: var(--color-bg-invert);
+    color: var(--color-ink-invert);
   }
 
   /* --- Seams ---------------------------------------------------------------
@@ -219,8 +233,10 @@ const bands = {
     align-items: center;
     margin-top: clamp(1.25rem, 2.6vw, 2rem);
     padding: 0.9rem 1.5rem;
-    background: var(--color-ink);
-    color: var(--color-ink-invert);
+    /* Inverted with the ground. It was ink on white, which on black is a
+       button the same colour as the section it sits in. */
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
     font-size: var(--text-caption);
     font-weight: 500;
     letter-spacing: var(--tracking-wide);
@@ -230,7 +246,7 @@ const bands = {
 
   .cs-next__cta:hover,
   .cs-next__cta:focus-visible {
-    background: var(--color-accent-hover);
+    background: var(--color-line);
   }
 
   /* --- Media ---------------------------------------------------------------
@@ -270,14 +286,21 @@ const bands = {
     gap: clamp(0.5rem, 1vw, 0.875rem);
     margin-top: clamp(1.5rem, 3.4vw, 2.75rem);
     padding-top: clamp(1rem, 1.8vw, 1.5rem);
-    border-top: 1px solid var(--color-line-strong);
+    /* Light on the dark ground. The page's line tokens are all drawn for ink
+       on white and vanish here, so both this rule and the pills below are set
+       as a share of the ground's own contrast instead. */
+    border-top: 1px solid rgb(255 255 255 / 0.16);
   }
 
+  /* Outlined rather than filled: on white the pills were white with a grey
+     edge, and the same fill here would be five solid white lozenges — louder
+     than the title above them. */
   .cs-next__tag {
     padding: 0.5rem 1.0625rem;
-    border: 1px solid var(--color-line-strong);
+    border: 1px solid rgb(255 255 255 / 0.28);
     border-radius: 999px;
-    background: var(--color-bg-primary);
+    background: transparent;
+    color: var(--color-ink-invert);
     font-size: var(--text-caption);
     line-height: 1.2;
     white-space: nowrap;

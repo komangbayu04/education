@@ -383,6 +383,92 @@ function initVideos(cleanups: Array<() => void>): void {
 }
 
 /**
+ * The marketing rail — drag to scroll.
+ *
+ * The rail is a native `overflow-x: auto` scroller, so a trackpad flick, a
+ * touch swipe, a shift-wheel and the keyboard all already work and none of them
+ * is reimplemented here. This adds the one thing a scroller does not give a
+ * mouse: dragging it.
+ *
+ * Touch is left alone deliberately — the browser's own scrolling is better than
+ * anything driven off pointer events, and taking it over would cost the fling
+ * and the rubber-banding with it.
+ */
+function initMarketingRail(cleanups: Array<() => void>): void {
+  const rail = document.querySelector<HTMLElement>('[data-cs-mkt-rail]');
+  if (!rail) return;
+
+  const controller = new AbortController();
+  const { signal } = controller;
+
+  /** Pixels before a press counts as a drag rather than a click — below this a
+   *  slightly unsteady hand on a link would cancel it. */
+  const THRESHOLD = 4;
+
+  let down = false;
+  let dragged = false;
+  let startX = 0;
+  let startScroll = 0;
+
+  rail.addEventListener(
+    'pointerdown',
+    (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return;
+      down = true;
+      dragged = false;
+      startX = event.clientX;
+      startScroll = rail.scrollLeft;
+    },
+    { signal },
+  );
+
+  rail.addEventListener(
+    'pointermove',
+    (event: PointerEvent) => {
+      if (!down) return;
+      const delta = event.clientX - startX;
+
+      if (!dragged && Math.abs(delta) > THRESHOLD) {
+        dragged = true;
+        rail.setAttribute('data-dragging', '');
+        /* Captured only once it is a drag, so the pointer can leave the rail
+           mid-gesture without the row stopping dead at the edge. */
+        if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
+      }
+
+      if (dragged) rail.scrollLeft = startScroll - delta;
+    },
+    { signal },
+  );
+
+  const release = (event: PointerEvent) => {
+    down = false;
+    rail.removeAttribute('data-dragging');
+    if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+  };
+
+  rail.addEventListener('pointerup', release, { signal });
+  rail.addEventListener('pointercancel', release, { signal });
+
+  /* A drag that moved must not also open whatever it finished on top of.
+     Captured on the way down so it is stopped before the target sees it, and
+     the flag is cleared here rather than on pointerup — the click arrives
+     after. */
+  rail.addEventListener(
+    'click',
+    (event) => {
+      if (!dragged) return;
+      event.preventDefault();
+      event.stopPropagation();
+      dragged = false;
+    },
+    { signal, capture: true },
+  );
+
+  cleanups.push(() => controller.abort());
+}
+
+/**
  * Core experience — one feature open at a time.
  *
  * The open item is an attribute; the description's reveal and the panel's
@@ -437,6 +523,7 @@ export function initCaseStudy(): () => void {
 
   initRail(cleanups);
   initVideos(cleanups);
+  initMarketingRail(cleanups);
   initExperience(cleanups);
   cleanups.push(initCaseStudyReveal());
 

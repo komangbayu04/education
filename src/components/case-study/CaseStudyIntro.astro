@@ -22,8 +22,10 @@ const { eyebrow = 'Introduction', copy } = Astro.props;
 
 <style>
   .cs-intro {
-    padding-top: clamp(2.5rem, 5.4vw, 3.875rem);
-    padding-bottom: clamp(3rem, 6vw, 5.5rem);
+    /* The page's rhythm, set on .cs — see the page. Less at the head, because
+       the hero above it already ends on its own space. */
+    padding-top: calc(var(--cs-section-y, clamp(2.5rem, 5.4vw, 3.875rem)) * 0.65);
+    padding-bottom: var(--cs-section-y, clamp(3rem, 6vw, 5.5rem));
   }
 
   .cs-intro__eyebrow {
