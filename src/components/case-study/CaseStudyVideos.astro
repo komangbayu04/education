@@ -337,11 +337,20 @@ const labelId = eyebrow || heading ? 'cs-vid-label' : undefined;
       max-width: none;
     }
 
-    /* Still multiplied by the item's own factor. Written as a flat height, the
-       override dropped it and all five cells came out the same — which is the
-       one thing the rail is not supposed to be. */
+    /* One height, and the per-item factor deliberately dropped.
+
+       On a wide rail those factors are the rhythm — a row of equal boxes is the
+       one thing it is not supposed to be. On a phone they are subtraction: the
+       rail is a third of the width it was, the factors take another fifth and a
+       quarter off two items that were already small, and what is left is a pair
+       of thumbnails sitting in a column they do not fill. Measured at 375 they
+       came out 107x143 and 130x130 inside 335 of room.
+
+       At a flat height the same two are 132x176 and 176x176 and the row reads
+       as two pieces of work rather than two stamps. The variation is a
+       wide-screen idea; there is not enough width here for it to be one. */
     .cs-vid__cell {
-      height: calc(clamp(11rem, 46vw, 16rem) * var(--cs-vid-size, 1));
+      height: clamp(11rem, 46vw, 16rem);
     }
   }
 </style>
