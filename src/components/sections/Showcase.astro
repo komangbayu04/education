@@ -36,6 +36,10 @@ interface Props {
   video?: string;
   /** First frame, shown until the video decodes. */
   poster?: string;
+  /** The phone cut. Composed portrait for a portrait box, so the chapter is
+   *  not the wide film cropped to a strip of itself. */
+  videoMobile?: string;
+  posterMobile?: string;
   href?: string;
   viewLabel?: string;
 }
@@ -59,6 +63,8 @@ const {
   image = '/media/showcase-device',
   video = '/media/showcase-cover',
   poster = '/media/showcase-cover-poster.webp',
+  videoMobile = '/media/showcase-cover-mobile',
+  posterMobile = '/media/showcase-cover-mobile-poster.webp',
   imageAlt = 'The Nerd Apply platform running on a phone',
   href = '/work/college-counseling-platform',
   viewLabel = 'View case study',
@@ -92,7 +98,22 @@ const {
         poster={poster}
         aria-hidden="true"
         tabindex="-1"
+        data-video-sources
       >
+        {/* The phone cut first, because a source is chosen by walking this list
+            and taking the first that matches — so the narrower rule has to be
+            met before the unconditional pair below it.
+
+            `media` is only read when the element picks its resource, never
+            again, so a resize past 48rem leaves the wrong cut playing. See
+            initVideoSources, which the attribute above opts into. */}
+        {videoMobile && (
+          <Fragment>
+            <source src={`${videoMobile}.webm`} type="video/webm" media="(max-width: 48rem)" />
+            <source src={`${videoMobile}.mp4`} type="video/mp4" media="(max-width: 48rem)" />
+          </Fragment>
+        )}
+
         <source src={`${video}.webm`} type="video/webm" />
         <source src={`${video}.mp4`} type="video/mp4" />
       </video>
@@ -215,6 +236,16 @@ const {
   .showcase--film .showcase__inner {
     position: relative;
     z-index: 1;
+  }
+
+  /* The phone's still, matching the phone's cut — the `poster` attribute takes
+     one URL at every width, and these two do not share a shape. */
+  @media (max-width: 48rem) {
+    .showcase--film .showcase__film {
+      background-image: url('/media/showcase-cover-mobile-poster.webp');
+      background-size: cover;
+      background-position: center;
+    }
   }
 
   /* Flat, and in the film's own colour rather than the light gradient: the

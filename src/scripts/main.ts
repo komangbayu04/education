@@ -3,6 +3,7 @@ import { initScroll, destroyScroll, scrollToTop } from './scroll';
 import { initMagnetic } from './magnetic';
 import { initNav } from './nav';
 import { initHero } from './hero';
+import { initVideoSources } from './videoSources';
 import { initTimeline } from './timeline';
 import { initWorkCursor } from './workCursor';
 import { initCaseStudy } from './caseStudy';
@@ -28,6 +29,7 @@ function initPage(): void {
     const cleanups = [
       initNav(),
       initHero(),
+      initVideoSources(),
       initMagnetic(),
       initTimeline(),
       initWorkCursor(),
