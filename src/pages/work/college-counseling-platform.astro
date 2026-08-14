@@ -11,7 +11,6 @@ import Base from '../../layouts/Base.astro';
 import CaseStudyHero from '../../components/case-study/CaseStudyHero.astro';
 import CaseStudyIntro from '../../components/case-study/CaseStudyIntro.astro';
 import CaseStudyBand from '../../components/case-study/CaseStudyBand.astro';
-import CaseStudyGallery from '../../components/case-study/CaseStudyGallery.astro';
 import CaseStudyOverview from '../../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../../components/case-study/CaseStudyVideos.astro';
 import CaseStudyApproach from '../../components/case-study/CaseStudyApproach.astro';
@@ -51,30 +50,19 @@ const intro =
         ratio, so nothing below it moves when the film lands. */}
     <CaseStudyBand />
 
-    {/*
-      Three slots, in the frame's order: square, tall, landscape. None of the
-      artwork exists in the repo yet, so all three render as the black blocks
-      the frame itself shows. Adding one is a single `src` (extensionless,
-      .avif + .webp in public/media) plus its alt.
-    */}
-    <CaseStudyGallery
-      tiles={[{}, {}, {}]}
-      caption="The product, the system it is built from, and the material that goes out around it — all of it running on the same de-identified record."
-    />
-
-    {/* Platform. The heading makes the claim; the caption beside it is where
-        it came from, which is the room rather than a strategy deck. */}
+    {/* Platform. The statement alone — the artwork for it is the band below,
+        which is why no tiles are passed. The aside beside the heading is where
+        the claim came from: the room, rather than a strategy deck. */}
     <CaseStudyOverview
       eyebrow="Platform"
       heading="Counselor-facing flows carrying real data density, where every added control costs the user something."
-      caption="Counselors kept saying the same thing at the conference: it is the only platform they can work out how to use. Most of this came out of the room they kept saying it in."
-      wide={{}}
-      side={{}}
+      caption="Counselors told them the same thing at the conference: it's the only platform they can figure out how to use. Beautiful was the word they kept using."
     />
 
-    {/* And the second one under the platform section. Same story: empty for
-        now, sized so the page below it is already in its final position. */}
-    <CaseStudyBand />
+    {/* The platform itself, mounted in the band rather than filling it: this
+        one is a screen recording, so the ground frames it instead of being
+        replaced by it. Empty until the footage arrives. */}
+    <CaseStudyBand inset />
 
     <CaseStudyApproach
       eyebrow="Privacy"

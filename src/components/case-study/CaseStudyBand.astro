@@ -25,37 +25,45 @@ interface Props {
   ratio?: string;
   /** Described for a screen reader only when the band carries meaning. */
   label?: string;
+  /** Sets the film in a panel inside the band rather than filling it, with the
+   *  band's own ground showing around it — the frame does this where the shot
+   *  is a screen recording rather than a scene, so the ground frames it. */
+  inset?: boolean;
+  /** The inset panel's own ratio. Screen captures are 16:9. */
+  insetRatio?: string;
 }
 
-const { video, poster, ratio = '16 / 9', label } = Astro.props;
+const { video, poster, ratio = '16 / 9', label, inset = false, insetRatio = '16 / 9' } = Astro.props;
 ---
 
 <section
-  class="cs-band"
-  style={`--cs-band-ratio: ${ratio}`}
+  class:list={['cs-band', { 'cs-band--inset': inset }]}
+  style={`--cs-band-ratio: ${ratio};--cs-band-inset-ratio: ${insetRatio}`}
   aria-label={label}
   aria-hidden={label ? undefined : 'true'}
   data-cs-band
 >
-  {
-    video ? (
-      <video
-        class="cs-band__film"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="metadata"
-        poster={poster}
-        tabindex="-1"
-      >
-        <source src={`${video}.webm`} type="video/webm" />
-        <source src={`${video}.mp4`} type="video/mp4" />
-      </video>
-    ) : (
-      <span class="cs-band__empty" />
-    )
-  }
+  <div class="cs-band__frame">
+    {
+      video ? (
+        <video
+          class="cs-band__film"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          poster={poster}
+          tabindex="-1"
+        >
+          <source src={`${video}.webm`} type="video/webm" />
+          <source src={`${video}.mp4`} type="video/mp4" />
+        </video>
+      ) : (
+        <span class="cs-band__empty" />
+      )
+    }
+  </div>
 </section>
 
 <style>
@@ -77,6 +85,11 @@ const { video, poster, ratio = '16 / 9', label } = Astro.props;
     background: var(--color-ink);
   }
 
+  .cs-band__frame {
+    width: 100%;
+    height: 100%;
+  }
+
   .cs-band__film,
   .cs-band__empty {
     display: block;
@@ -85,11 +98,62 @@ const { video, poster, ratio = '16 / 9', label } = Astro.props;
     object-fit: cover;
   }
 
+  /* Inset: the band becomes a mount and the film sits in it, with the ground
+     showing all the way round. The panel is centred and sized by its own
+     ratio, capped against the band's height so a tall panel can never grow
+     past the mount it is sitting in. */
+  .cs-band--inset .cs-band__frame {
+    display: grid;
+    place-items: center;
+    padding: clamp(1.25rem, 5.5vw, 5.5rem);
+  }
+
+  /* Height drives, width follows from the ratio.
+
+     The other way round — `width: 100%` with the height left to the ratio —
+     overflows the mount on a wide band and gets clamped by max-height, which
+     silently overrides the aspect-ratio and hands back a panel wider than the
+     shape it was asked for. Sizing from the definite side means the ratio is
+     always the one that holds and it is the ground either side that gives,
+     which is what the frame shows.
+
+     `auto` on both was worse than either: the placeholder is an empty span, so
+     with nothing definite to size from it came out 0x0 and the band rendered
+     as a plain field. */
+  .cs-band--inset .cs-band__film,
+  .cs-band--inset .cs-band__empty {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    aspect-ratio: var(--cs-band-inset-ratio);
+  }
+
+  /* The panel is the only thing in the band, so it is what the placeholder
+     shows — white, as the frame has it, rather than the black the page uses
+     for a missing image elsewhere. */
+  .cs-band--inset .cs-band__empty {
+    background: var(--color-bg-primary);
+  }
+
   /* On a phone a 16:9 band is a 211px sliver on a 375 screen, which reads as a
      rule rather than as a piece of the page. Squarer, so it keeps some
      presence — and capped against the viewport so it can never take the whole
      screen on a tall handset. */
+  /* And on a phone it is width that drives the inset panel instead of height.
+
+     The band is squarer here than the panel in it, so sizing from the height
+     asks for a width the band does not have: at 375 a 16:9 panel off a 240px
+     height wants 427px inside 335px of room, and it is `overflow: hidden` that
+     was quietly cropping it. Driving from the width fits both ways round, and
+     the ground moves from the sides to above and below. */
   @media (max-width: 48rem) {
+    .cs-band--inset .cs-band__film,
+    .cs-band--inset .cs-band__empty {
+      width: 100%;
+      height: auto;
+      max-height: 100%;
+    }
+
     .cs-band {
       aspect-ratio: 4 / 3;
       max-height: 62svh;
