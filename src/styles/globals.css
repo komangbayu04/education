@@ -44,8 +44,15 @@
      it, or the pixels dissolve into a colour the section no longer is. */
   --color-bg-showcase: #061630;
 
-  /* Ground of the third section. */
-  --color-bg-overclock: #e2e2e2;
+  /* Ground of the third section, and what the scene's pixel grid paints itself
+     in as it dissolves into that chapter — so this has to be the colour the
+     chapter actually is, or the dissolve lands on the wrong ground.
+
+     It follows the chapter's own artwork: sampled off Overclock-bg-home.png,
+     whose dominant is rgb(8,8,8) and whose left and right edges are within a
+     few levels of it. It was #e2e2e2, a light grey, from when the chapter had
+     no ground of its own. */
+  --color-bg-overclock: #080b09;
 
   /* Ground of the fourth section (Bedford) — dusty blush, from the reference frame. */
   --color-bg-bedford: #f2e0da;

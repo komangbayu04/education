@@ -241,6 +241,18 @@ const photos = [
      in. */
   { src: `${SRC}/new-two.png`, name: 'two-ways', maxW: 1600, avif: true, quality: 90 },
 
+  /* Overclock's ground on the home page — a full-bleed field, so it is sized
+     for the widest screen it has to fill rather than for a box. 2400 covers a
+     1920 viewport with room for the crop `cover` takes, and the source is
+     2880 wide, so this is a real downscale.
+
+     `avif: true` because the component asks for it first, and quality 82 —
+     the default — is safe here in a way it would not be on the Two ways panel:
+     this is an unlit dark scene, mostly smooth gradient, which is exactly what
+     these codecs are good at. It comes out an order of magnitude under the
+     3.1MB source. */
+  { src: `${SRC}/Overclock-bg-home.png`, name: 'overclock-ground', maxW: 2400, avif: true },
+
   /* Client wordmarks for the marquee above Testimonials.
      `lossless`, unlike everything else here: these are flat two-colour marks
      with hard edges at 62–145px wide, which is exactly what lossy WebP rings

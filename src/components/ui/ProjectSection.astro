@@ -44,6 +44,11 @@ interface Props {
   imageWidth: number;
   imageHeight: number;
   background: string;
+  /** Extensionless path under /media. Given one, it becomes the chapter's
+   *  full-bleed ground, the copy inverts, and `image` is not rendered — the
+   *  ground already carries the product. Bedford and CELPIP pass nothing and
+   *  are untouched. */
+  ground?: string;
   tags?: Tag[];
   /** The chip above the title. Shared by every chapter, hence the defaults. */
   badgeLabel?: string;
@@ -70,6 +75,7 @@ const {
   imageWidth,
   imageHeight,
   background,
+  ground,
   tags = [],
   badgeLabel = 'The Team',
   badgeIcon = 'multi-user',
@@ -81,11 +87,22 @@ const {
 ---
 
 <section
-  class="project"
+  class:list={['project', { 'project--ground': ground }]}
   aria-labelledby={`${id}-title`}
   data-chapter-section={chapter}
   style={`--project-bg:${background};--project-body-w:${bodyMeasure}`}
+  data-nav-over={ground ? 'dark' : undefined}
 >
+  {
+    ground && (
+      /* The chapter's ground. First in source order, so everything after it
+         paints on top without any of them needing a z-index of their own. */
+      <picture class="project__ground">
+        <source srcset={`${ground}.avif`} type="image/avif" />
+        <img src={`${ground}.webp`} alt="" aria-hidden="true" decoding="async" />
+      </picture>
+    )
+  }
   <div class="project__inner u-container">
     <div class="project__text" data-chapter-text>
       {/* Badge, title, body and the mobile-only CTA travel together, and the
@@ -124,12 +141,16 @@ const {
       )}
     </div>
 
-    <figure class="project__media" data-project-media>
-      <picture>
-        <source srcset={`${image}.avif`} type="image/avif" />
-        <img src={`${image}.webp`} alt={imageAlt} width={imageWidth} height={imageHeight} decoding="async" />
-      </picture>
-    </figure>
+    {
+      !ground && (
+        <figure class="project__media" data-project-media>
+          <picture>
+            <source srcset={`${image}.avif`} type="image/avif" />
+            <img src={`${image}.webp`} alt={imageAlt} width={imageWidth} height={imageHeight} decoding="async" />
+          </picture>
+        </figure>
+      )
+    }
 
     {showMarker && (
       <div class="project__marker">
@@ -291,6 +312,62 @@ const {
      rather than to the text row. max-height keeps a tall shot from running off
      the top of the section — object-fit holds it against the bottom, and
      centres it inside the band. */
+  /* The chapter's ground, when one is given.
+
+     `cover` anchored right, for the same reason the Nerd Apply film is: this
+     shot puts its subject on the right and leaves its left half near-black, so
+     what a crop takes is empty ground rather than the machine. The copy sits
+     over that dark half and needs no scrim — measured off the source, the left
+     60px average rgb(4,6,4).
+
+     First in the section and unpositioned in the stack, so every sibling after
+     it paints over it without needing a z-index. */
+  .project--ground .project__ground {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .project--ground .project__ground img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: right center;
+  }
+
+  /* Everything else moves above it. */
+  .project--ground .project__inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- The copy, inverted -------------------------------------------------
+     Set against a light grey ground originally; on this one they are the same
+     weights the other way up. The badge keeps its light chip and dark ink — it
+     is a label on a card, and a card reads on either ground. */
+  .project--ground .project__title {
+    color: var(--color-ink-invert);
+  }
+
+  .project--ground .project__body {
+    /* A step quieter than the title, which is the relationship it has on the
+       light ground too. */
+    color: rgb(255 255 255 / 0.76);
+  }
+
+  .project--ground .project__tag {
+    border-color: rgb(255 255 255 / 0.28);
+    background: rgb(255 255 255 / 0.08);
+    color: rgb(255 255 255 / 0.92);
+  }
+
+  /* Light chip, dark ink — an ink pill on a near-black ground keeps its type
+     legible but stops being a shape. */
+  .project--ground .project__cta {
+    background: var(--color-ink-invert);
+    color: var(--color-ink);
+  }
+
   .project__media {
     position: absolute;
     /* Confined to the band between the copy and the marker, so neither can
