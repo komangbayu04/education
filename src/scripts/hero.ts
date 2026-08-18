@@ -293,6 +293,14 @@ export function initHero(): () => void {
          `const` here would be in its temporal dead zone and throw. */
       let handover: gsap.core.Timeline | undefined;
 
+      /* Assigned once the stepper below exists. A scroll that the stepper did
+         not make — a menu link to a section past the scene, a restored
+         position, a jump — moves through the pin without ever advancing the
+         step, and the timeline would still be showing the chapter the reader
+         left. Declared here only because the trigger is built before the
+         stepper it has to call. */
+      let resync: (() => void) | undefined;
+
       const setSceneDone = (done: boolean) => {
         if (done) {
           handover?.progress(1);
@@ -374,6 +382,9 @@ export function initHero(): () => void {
               if (self.progress >= threshold) slot = num;
             }
             setActiveChapter(slot, true);
+            // Nothing while a step is running — it is the thing moving the
+            // scroll, and `resync` is a no-op then by its own guard.
+            resync?.();
           },
       });
 
@@ -959,6 +970,22 @@ export function initHero(): () => void {
         const at = span > 0 ? (st.scroll() - st.start) / span : 0;
         step = Math.round(Math.min(1, Math.max(0, at)) * STEPS);
         stepTween?.kill();
+        handover.progress(step / STEPS);
+        setChapterFilms(step);
+      };
+
+      /* The scroll is the authority whenever the stepper is not driving it. Kept
+         cheap: it only rewrites the timeline when the scroll has actually
+         crossed into another step's screen, so the common case — a step
+         landing exactly on its own rest point — costs a comparison. */
+      resync = () => {
+        if (busy) return;
+        const span = st ? st.end - st.start : 0;
+        if (span <= 0) return;
+        const at = ((st as ScrollTrigger).scroll() - (st as ScrollTrigger).start) / span;
+        const where = Math.round(Math.min(1, Math.max(0, at)) * STEPS);
+        if (where === step) return;
+        step = where;
         handover.progress(step / STEPS);
         setChapterFilms(step);
       };

@@ -1,5 +1,5 @@
 import { gsap, ScrollTrigger } from './gsap';
-import { getLenis } from './scroll';
+import { getLenis, scrollToTarget } from './scroll';
 import { prefersReducedMotion } from './utils/device';
 
 /** Columns across the panel's ground. Rows follow from the viewport's height. */
@@ -75,7 +75,49 @@ export function initNav(): () => void {
     });
   };
 
+  /**
+   * A menu link that points at a section of the page you are already on.
+   *
+   * Left to the browser, `/#work` from the home page is a jump — an instant cut
+   * to the section with none of the easing every other movement on this site
+   * has, and one that Lenis then has to be told about after the fact. Handled
+   * here it is the same eased scroll as everything else.
+   *
+   * Only when the path matches. From a case study the same link is a real
+   * navigation, and this stands aside for the router to make it — the wipe
+   * covers it, the new page arrives, and main.ts reads the fragment there.
+   *
+   * The header is fixed over the page, so the target is offset by its height:
+   * scrolled flush, a section's first line sits underneath the bar.
+   */
+  const scrollToSection = (link: HTMLAnchorElement, event: MouseEvent) => {
+    // Anything but a plain left click belongs to the browser.
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey) return;
+
+    const url = new URL(link.href, location.href);
+    if (url.pathname !== location.pathname || !url.hash) return;
+
+    const target = document.querySelector<HTMLElement>(url.hash);
+    if (!target) return;
+
+    event.preventDefault();
+    history.pushState(null, '', url.hash);
+    scrollToTarget(target);
+  };
+
+  /* Only on a change, never on a repeat.
+     `close()` releases the lock again from its own onComplete, a fifth of a
+     second after the click that started it — and Lenis's `start()` resets its
+     animation state, which cancels whatever scroll is in flight. A menu link
+     to a section therefore closed the menu, wrote the fragment, and then had
+     its scroll killed halfway by the panel finishing its exit. Latching the
+     state means the second release is the no-op it was always meant to be. */
+  let scrollLocked = false;
+
   const lockScroll = (locked: boolean) => {
+    if (locked === scrollLocked) return;
+    scrollLocked = locked;
+
     const lenis = getLenis();
     if (locked) {
       document.documentElement.setAttribute('data-nav-open', '');
@@ -178,7 +220,12 @@ export function initNav(): () => void {
         if (!link) return;
         if (link.hasAttribute('data-nav-work-link')) return;
         toggle.setAttribute('aria-expanded', 'false');
+        /* Released here rather than left to the close animation, so the page is
+           free to move at the moment the scroll is asked for rather than a
+           fifth of a second later. */
+        lockScroll(false);
         close();
+        scrollToSection(link, event);
       },
       { signal },
     );

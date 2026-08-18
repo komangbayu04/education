@@ -50,11 +50,17 @@ const logo = logoRaw
   .replace('<svg', '<svg aria-hidden="true" focusable="false"');
 
 const {
+  /* Home-page sections, not pages of their own — there are none yet, and these
+     four pointed at routes that do not exist, so every one of them was a dead
+     click. Written as full paths rather than bare `#work` so the same header
+     works from a case study, where the fragment alone would look for a section
+     that is not on that page: nav.ts scrolls when the target is here and lets
+     the router carry the rest. */
   links = [
-    { label: 'Work', href: '/work' },
-    { label: 'How we work', href: '/how-we-work' },
-    { label: 'What founders say', href: '/testimonials' },
-    { label: 'Blog', href: '/blog' },
+    { label: 'Work', href: '/#work' },
+    { label: 'How we work', href: '/#how-we-work' },
+    { label: 'What founders say', href: '/#founders' },
+    { label: 'Blog', href: '/#blog' },
   ],
   /* The two case studies that exist. The copy is the chapters' own — so the
      panel is a way into the work rather than a second description of it — but

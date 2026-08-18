@@ -1,5 +1,5 @@
 import { gsap, ScrollTrigger } from './gsap';
-import { initScroll, destroyScroll, scrollToTop } from './scroll';
+import { initScroll, destroyScroll, scrollToTop, scrollToHash } from './scroll';
 import { initMagnetic } from './magnetic';
 import { initNav } from './nav';
 import { initHero } from './hero';
@@ -46,6 +46,13 @@ function initPage(): void {
   });
 
   ScrollTrigger.refresh();
+
+  /* Only now, after the refresh. Every section below the scene is moved by the
+     pin, so a fragment resolved before that measurement points at where the
+     section used to be — and on a first load the browser has already made that
+     wrong jump itself. Immediate, because this is an arrival: the reader asked
+     for that section, not to watch the page travel to it. */
+  scrollToHash(true);
 }
 
 function destroyPage(): void {
@@ -69,7 +76,11 @@ document.addEventListener('astro:before-swap', () => {
 });
 
 document.addEventListener('astro:after-swap', () => {
-  scrollToTop();
+  /* A fragment is a destination, and the top of the page is not it. Left
+     unconditional this put every `/#section` navigation at the top and then
+     initPage scrolled away from it a moment later, which reads as the page
+     overshooting and correcting itself. */
+  if (!location.hash) scrollToTop();
 });
 
 // Layout shifts on resize invalidate every trigger's measurements.
