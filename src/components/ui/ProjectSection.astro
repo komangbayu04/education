@@ -456,6 +456,17 @@ const {
     will-change: transform;
   }
 
+  /* Cream on the chapters that carry a full-bleed ground — Overclock's is a
+     near-black photograph, and an ink pill on it is a hole rather than a
+     control, which is the one thing the tile cannot be: it is the only sign
+     the artwork is clickable at all. Keyed on `--ground` rather than set for
+     every chapter because Bedford's blush and CELPIP's mint are light, and
+     cream on either of those is the same disappearing act the other way. */
+  .project--ground .project__tile {
+    background: var(--color-cream);
+    color: var(--color-ink);
+  }
+
   .project__media img {
     display: block;
     width: 100%;

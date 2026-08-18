@@ -309,10 +309,51 @@ function initRail(cleanups: Array<() => void>): void {
 
   goTo(index, 0);
 
+  /* --- Off screen ----------------------------------------------------------
+     Everything above runs on a beat of its own: the rail steps itself every
+     few seconds, the shapes float on infinite tweens, and the framed shape is
+     redrawn on every animation frame because the shader breathes. None of that
+     was gated on being visible, so all of it kept running for the whole life of
+     the page — a permanent per-frame cost paid while reading any other part of
+     the case study.
+
+     That is what the scrolling was catching on. A frame that runs long lands
+     as a stutter, and with Lenis interpolating the scroll position between
+     frames a long frame reads as the page lurching or slipping backwards
+     rather than as a dropped frame.
+
+     The margin is generous on purpose: the rail should already be moving by
+     the time it is looked at, not start when it lands. */
+  const section = rail.closest('section') ?? rail;
+  let onScreen = true;
+
+  const watcher = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting === onScreen) return;
+      onScreen = entry.isIntersecting;
+
+      if (onScreen) {
+        floats.forEach((f) => f.resume());
+        goTo(index, 0);
+        return;
+      }
+
+      // frame(-1) hands the shape back to the DOM, which lets the canvas
+      // finish its current frame and stop asking for more.
+      stop();
+      frame(-1);
+      runProgress(false);
+      floats.forEach((f) => f.pause());
+    },
+    { rootMargin: '300px 0px' },
+  );
+  watcher.observe(section);
+
   cleanups.push(() => {
     controller.abort();
     stop();
     observer.disconnect();
+    watcher.disconnect();
     floats.forEach((f) => f.kill());
     frameGL?.destroy();
   });

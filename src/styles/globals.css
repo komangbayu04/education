@@ -69,6 +69,12 @@
      Used by the Journal cards. */
   --color-surface: #f2f0ed;
 
+  /* The palette's warm neutral, named for the colour rather than for a place,
+     because more than one thing wants it and none of them is a section: the
+     "View work" tile that rides the cursor is the first. Same value as
+     --color-bg-twoways, which is a ground that happens to be this colour. */
+  --color-cream: #f4f2ee;
+
   /* Footer ground. The pixel squares that dissolve up out of the footer into
      the quote image above it are painted in this same value — that's what
      makes the two read as one interlocking edge rather than two stacked

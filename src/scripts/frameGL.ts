@@ -174,10 +174,27 @@ export function createFrameGL(well: HTMLElement): FrameGL | null {
   let running = false;
   const started = performance.now();
 
+  /* The well's size, measured when it changes rather than when we draw.
+     `draw` runs on every animation frame for as long as a shape is parked in
+     the frame — the shader has a slow breath in it, so a framed shape is never
+     a still image — and reading clientWidth there forced the browser to flush
+     style and layout on every one of those frames. That is a whole-page cost:
+     it lands in the same frame as Lenis writing the scroll position, so the
+     stutter it causes shows up as the page scrolling unevenly, nowhere near
+     the section responsible. A ResizeObserver knows the same thing without
+     asking for it. */
+  let wellW = well.clientWidth;
+  let wellH = well.clientHeight;
+  const wellSize = new ResizeObserver(() => {
+    wellW = well.clientWidth;
+    wellH = well.clientHeight;
+  });
+  wellSize.observe(well);
+
   const resize = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.round(well.clientWidth * dpr);
-    const height = Math.round(well.clientHeight * dpr);
+    const width = Math.round(wellW * dpr);
+    const height = Math.round(wellH * dpr);
     if (!width || !height) return;
     if (canvas.width === width && canvas.height === height) return;
     canvas.width = width;
@@ -255,6 +272,7 @@ export function createFrameGL(well: HTMLElement): FrameGL | null {
     },
     destroy() {
       cancelAnimationFrame(raf);
+      wellSize.disconnect();
       canvas.remove();
       gl.deleteTexture(texture);
       gl.deleteBuffer(buffer);
