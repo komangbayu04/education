@@ -104,6 +104,15 @@ const { video, poster, ratio = '16 / 9', label, inset = false, insetRatio = '16 
      past the mount it is sitting in. */
   .cs-band--inset .cs-band__frame {
     display: grid;
+    /* Explicit, because the panel below sizes itself in percentages of it.
+       An implicit `auto` row takes its height from what is in it, so a
+       percentage measured against that row is circular and the browser drops
+       it — `height: 100%` and `max-height: 100%` both computed to their
+       declared value and neither had any effect on the used size. Naming the
+       row 100% makes it the frame's own height, which is already definite, and
+       the percentages resolve. Same fix, for the same reason, as the row in
+       ProjectSection.astro. */
+    grid-template-rows: 100%;
     place-items: center;
     padding: clamp(1.25rem, 5.5vw, 5.5rem);
   }
@@ -120,12 +129,29 @@ const { video, poster, ratio = '16 / 9', label, inset = false, insetRatio = '16 
      `auto` on both was worse than either: the placeholder is an empty span, so
      with nothing definite to size from it came out 0x0 and the band rendered
      as a plain field. */
-  .cs-band--inset .cs-band__film,
   .cs-band--inset .cs-band__empty {
     width: auto;
     height: 100%;
     max-width: 100%;
     aspect-ratio: var(--cs-band-inset-ratio);
+  }
+
+  /* Footage takes the whole mount and letterboxes itself inside it, rather
+     than having a box cut to `--cs-band-inset-ratio` the way the placeholder
+     does. That ratio is a guess made before the film exists, and every way of
+     honouring it here was wrong once the film disagreed with it: sized from
+     the width the panel overflowed the band and the section's overflow cropped
+     it, and capped on both axes the caps won and handed back a box that was
+     neither ratio — 1.391 on a phone for a 4:3 recording.
+
+     `contain` needs no guess. The element is the mount, the film is drawn as
+     large as fits inside it, and what shows around it is the band's own
+     ground, which is what the mount is for. The band cannot crop what it is
+     framing. */
+  .cs-band--inset .cs-band__film {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 
   /* The panel is the only thing in the band, so it is what the placeholder
@@ -139,15 +165,18 @@ const { video, poster, ratio = '16 / 9', label, inset = false, insetRatio = '16 
      rule rather than as a piece of the page. Squarer, so it keeps some
      presence — and capped against the viewport so it can never take the whole
      screen on a tall handset. */
-  /* And on a phone it is width that drives the inset panel instead of height.
+  /* And on a phone it is width that drives the inset placeholder instead of
+     height.
 
      The band is squarer here than the panel in it, so sizing from the height
      asks for a width the band does not have: at 375 a 16:9 panel off a 240px
      height wants 427px inside 335px of room, and it is `overflow: hidden` that
      was quietly cropping it. Driving from the width fits both ways round, and
-     the ground moves from the sides to above and below. */
+     the ground moves from the sides to above and below.
+
+     The film is not in here any more: it fills the mount at every width and
+     letterboxes itself, so there is no ratio for the phone to argue with. */
   @media (max-width: 48rem) {
-    .cs-band--inset .cs-band__film,
     .cs-band--inset .cs-band__empty {
       width: 100%;
       height: auto;

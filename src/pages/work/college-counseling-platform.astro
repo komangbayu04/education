@@ -64,8 +64,18 @@ const intro =
 
     {/* The platform itself, mounted in the band rather than filling it: this
         one is a screen recording, so the ground frames it instead of being
-        replaced by it. Empty until the footage arrives. */}
-    <CaseStudyBand inset />
+        replaced by it. `insetRatio`, not `ratio`: the band keeps its 16:9 —
+        that is the shape of the ground and it sets the section's height — and
+        it is the panel inside it that takes the recording's own 4:3. Left at
+        the 16:9 default the panel would have cropped a fifth of the screen
+        away. */}
+    <CaseStudyBand
+      inset
+      video="/media/na-platform"
+      poster="/media/na-platform-poster.webp"
+      insetRatio="4 / 3"
+      label="The platform, counselor view"
+    />
 
     {/* Privacy. The statement and two shots that do not share a baseline: the
         campus frame starts level with the label and runs down the right, the
@@ -76,8 +86,16 @@ const intro =
       layout="lift"
       eyebrow="Privacy you can see"
       heading="De-identification isn't a policy page. It's a visual system inside every profile."
-      wide={{}}
-      side={{}}
+      wide={{
+        video: '/media/na-privacy-wide',
+        poster: '/media/na-privacy-wide-poster.webp',
+        ratio: '1766 / 1080',
+      }}
+      side={{
+        video: '/media/na-privacy-side',
+        poster: '/media/na-privacy-side-poster.webp',
+        ratio: '1080 / 1158',
+      }}
     />
 
     {/* Website. The claim, the line under it, and the same line again beside

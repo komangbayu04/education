@@ -16,10 +16,22 @@
  */
 import { pixelField } from '../../lib/pixelField';
 
+/**
+ * One shot. `video` and `src` are alternatives, the same contract the rest of
+ * the page's slots use: give it footage and it plays itself, give it an image
+ * and it sits still, give it neither and it is a placeholder block. Both are
+ * extensionless — .webm/.mp4 for footage, .avif/.webp for a still.
+ *
+ * `ratio` overrides the shape the layout assumes, so a slot keeps the shape of
+ * whatever lands in it rather than cropping it to the frame's guess.
+ */
 interface Tile {
   /** Extensionless path under /media, or omitted for a placeholder block. */
   src?: string;
+  video?: string;
+  poster?: string;
   alt?: string;
+  ratio?: string;
 }
 
 interface Props {
@@ -90,8 +102,16 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
       inside a grid of their own. */}
   {
     hasMedia && (
-        <figure class="cs-ov__media cs-ov__media--wide">
-          {wide?.src ? (
+        <figure
+          class="cs-ov__media cs-ov__media--wide"
+          style={wide?.ratio && `--cs-ov-ratio:${wide.ratio}`}
+        >
+          {wide?.video ? (
+            <video autoplay muted loop playsinline preload="none" poster={wide.poster} tabindex="-1">
+              <source src={`${wide.video}.webm`} type="video/webm" />
+              <source src={`${wide.video}.mp4`} type="video/mp4" />
+            </video>
+          ) : wide?.src ? (
             <picture>
               <source srcset={`${wide.src}.avif`} type="image/avif" />
               <img src={`${wide.src}.webp`} alt={wide.alt ?? ''} loading="lazy" decoding="async" />
@@ -106,8 +126,16 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
 
   {
     hasMedia && (
-        <figure class="cs-ov__media cs-ov__media--side">
-          {side?.src ? (
+        <figure
+          class="cs-ov__media cs-ov__media--side"
+          style={side?.ratio && `--cs-ov-ratio:${side.ratio}`}
+        >
+          {side?.video ? (
+            <video autoplay muted loop playsinline preload="none" poster={side.poster} tabindex="-1">
+              <source src={`${side.video}.webm`} type="video/webm" />
+              <source src={`${side.video}.mp4`} type="video/mp4" />
+            </video>
+          ) : side?.src ? (
             <picture>
               <source srcset={`${side.src}.avif`} type="image/avif" />
               <img src={`${side.src}.webp`} alt={side.alt ?? ''} loading="lazy" decoding="async" />
@@ -260,26 +288,32 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
     overflow: hidden;
   }
 
+  /* The frame's shape, and the fallback when a shot brings its own — see
+     `ratio` on the tile. The placeholder blocks have to stand at some size, so
+     the layout's guess is what they hold; footage that is a different shape
+     says so and the box follows it rather than cropping it. */
   .cs-ov__media--wide {
-    aspect-ratio: 805 / 537;
+    aspect-ratio: var(--cs-ov-ratio, 805 / 537);
   }
 
   .cs-ov__media--side {
     /* Percentage margins resolve against the grid's width, so the stagger
        stays proportional instead of collapsing at narrow widths. */
     margin-top: 7.3%;
-    aspect-ratio: 587 / 630;
+    aspect-ratio: var(--cs-ov-ratio, 587 / 630);
   }
 
   .cs-ov__media picture,
   .cs-ov__media img,
+  .cs-ov__media video,
   .cs-ov__empty {
     display: block;
     width: 100%;
     height: 100%;
   }
 
-  .cs-ov__media img {
+  .cs-ov__media img,
+  .cs-ov__media video {
     object-fit: cover;
   }
 
