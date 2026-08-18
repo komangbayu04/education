@@ -20,20 +20,22 @@
  *          it, running off the right edge of the screen and scrolling
  *          horizontally. One row open at a time.
  *
- * Four categories have their artwork: Website, Landing Page, Product Design and
- * Pitch Deck each have a folder under image/ named for them, and every file in
- * it becomes a tile in that category's strip — the first four are also its
- * hover deck. The counts live in the `work()` calls below and the output names
- * in tools/prep-images.mjs; the two agree on a convention rather than on a list
- * of filenames each.
+ * Five categories have their artwork: Website, Landing Page, Product Design,
+ * Pitch Deck and Social Media each have a folder under image/ named for them,
+ * and every file in it becomes a tile in that category's strip — four of them
+ * are also its hover deck. The counts live in the `work()` calls below and the
+ * output names in tools/prep-images.mjs; the two agree on a convention rather
+ * than on a list of filenames each.
  *
- * Social Media, Ads and One-pagers have no folder yet and still point at the
- * shared placeholders. A category given neither still renders: silhouettes in
- * the deck, PLACEHOLDER_TILES empty frames in the strip.
+ * Ads and One-pagers have no folder yet and still point at the shared
+ * placeholders. A category given neither still renders: silhouettes in the
+ * deck, PLACEHOLDER_TILES empty frames in the strip.
  *
  * Motion and the accordion live in src/scripts/workCategories.ts. Without JS
  * every strip is open, which is the whole content reachable by scroll alone.
  */
+
+import { rng } from '../../lib/pixelField';
 
 /** Blank frames a category with no artwork yet shows in its strip. */
 const PLACEHOLDER_TILES = 3;
@@ -72,6 +74,18 @@ interface Category {
    * fine and the site screenshots lost their top strip.
    */
   ratio?: string;
+  /**
+   * This category's artwork boxes against everyone else's, as a factor on
+   * their width. 1 — the default — is the shared figure.
+   *
+   * Both boxes are sized by width and take their height from `ratio`, which is
+   * fine while every category is landscape and wrong the moment one is not: at
+   * 1:1 the deck came out 336 x 336 against the others' 336 x 213, and the
+   * open strip 453 square against 453 x 287. Setting it here rather than per
+   * box because the correction is the same one twice — 0.63 is what turns
+   * either width into the height the landscape ones already stand at.
+   */
+  boxScale?: number;
 }
 
 interface Props {
@@ -80,11 +94,11 @@ interface Props {
   viewLabel?: string;
 }
 
-/* Still the placeholders, for the three categories with no folder of their own
-   in image/ yet — Social Media, Ads, One-pagers. One set standing in on all
-   three is honest about that in a way a different arbitrary set each would not
-   be, and the alt text says what they actually are: writing them up as that
-   category's work would be a caption that is not true yet. */
+/* Still the placeholders, for the two categories with no folder of their own
+   in image/ yet — Ads and One-pagers. One set standing in on both is honest
+   about that in a way a different arbitrary set each would not be, and the alt
+   text says what they actually are: writing them up as that category's work
+   would be a caption that is not true yet. */
 const STACK_PLACEHOLDER = [
   { src: '/media/work-hover-1', alt: 'Placeholder artwork' },
   { src: '/media/work-hover-2', alt: 'Placeholder artwork' },
@@ -108,6 +122,8 @@ const STACK_SIZE = SLOTS.length;
    number here can be checked against the file in one look. */
 const SITE_RATIO = '804 / 510';
 const DECK_RATIO = '843 / 474';
+/* Social Media's exports are 2160 x 2160 — the square a feed post is. */
+const SQUARE_RATIO = '1 / 1';
 /** What the shared placeholders are, and the fallback for a category with
  *  neither a folder nor a ratio of its own. */
 const PLACEHOLDER_RATIO = '51 / 30';
@@ -127,17 +143,43 @@ const PLACEHOLDER_RATIO = '51 / 30';
  * shared figure, `cover` took the difference off an edge — which is what was
  * slicing the top off the Overclock screenshot.
  */
-const work = (slug: string, count: number, label: string, ratio: string) => {
+const work = (slug: string, count: number, label: string, ratio: string, deckSeed?: number) => {
   const images = Array.from({ length: count }, (_, i) => ({
     src: `/media/work-${slug}-${i + 1}`,
     alt: `${label} — sample ${i + 1}`,
   }));
 
-  /* Deck back-to-front, so the first file in the folder is the card on top:
-     the markup paints index 0 into the rearmost slot. Fewer than STACK_SIZE
-     files simply leaves the slots behind it as silhouettes. */
-  return { images, stack: images.slice(0, STACK_SIZE).reverse(), ratio };
+  /* Which four the deck shows. By default the front of the strip, which is the
+     folder's own order and so the category's own pick. Given a seed it is a
+     sample of the whole folder instead — for a category whose files are a set
+     of equals with no first four to speak of.
+
+     Seeded, not Math.random(): the deck is rendered once at build, so an
+     unseeded roll would quietly deal a different hand on every deploy and
+     there would be no way to get a particular one back. Change the number to
+     reshuffle on purpose. */
+  const deck = deckSeed === undefined ? images.slice(0, STACK_SIZE) : sample(images, STACK_SIZE, deckSeed);
+
+  /* Deck back-to-front, so the first of those is the card on top: the markup
+     paints index 0 into the rearmost slot. Fewer than STACK_SIZE files simply
+     leaves the slots behind it as silhouettes. */
+  return { images, stack: deck.reverse(), ratio };
 };
+
+/** `n` of `items`, drawn without replacement — a partial Fisher-Yates off the
+ *  shared seeded PRNG. Never returns the same item twice, which a roll per
+ *  slot would. */
+function sample<T>(items: T[], n: number, seed: number): T[] {
+  const random = rng(seed);
+  const pool = [...items];
+  const picked: T[] = [];
+
+  while (picked.length < n && pool.length > 0) {
+    picked.push(...pool.splice(Math.floor(random() * pool.length), 1));
+  }
+
+  return picked;
+}
 
 const {
   title = 'Our work - categorized',
@@ -167,14 +209,20 @@ const {
       href: '/work',
       ...work('pitch-deck', 8, 'Pitch deck', DECK_RATIO),
     },
-    // No folder yet — see the placeholders above.
+    /* Nine posts, and the deck takes four of them at random rather than the
+       first four: unlike a site or a deck folder these are not one project
+       shot from several angles but nine separate pieces, so there is no
+       running order for "the front of the strip" to mean. */
     {
       number: '05',
       label: 'Social Media',
       href: '/work',
-      stack: STACK_PLACEHOLDER,
-      images: STRIP_PLACEHOLDER,
+      ...work('social-media', 9, 'Social media design', SQUARE_RATIO, 20260818),
+      /* Square, so it is sized to the height the landscape categories come out
+         at rather than to their width. */
+      boxScale: 0.63,
     },
+    // No folder yet — see the placeholders above.
     {
       number: '06',
       label: 'Ads',
@@ -216,7 +264,12 @@ const {
             <li
               class="cat__item"
               data-cat-item
-              style={`--cat-ratio:${category.ratio ?? PLACEHOLDER_RATIO}`}
+              style={[
+                `--cat-ratio:${category.ratio ?? PLACEHOLDER_RATIO}`,
+                category.boxScale && `--cat-box-scale:${category.boxScale}`,
+              ]
+                .filter(Boolean)
+                .join(';')}
             >
               <div class="cat__row">
                 {/* The toggle is the number and the label; "See Work" is its
@@ -458,7 +511,10 @@ const {
     top: 50%;
     right: 7.8%;
     z-index: 1;
-    width: clamp(15rem, 30%, 27rem);
+    /* Width, because every deck but one is landscape and this is the figure
+       that reads at the right size for those. A category whose work is a
+       different shape scales it from the item — see `boxScale`. */
+    width: calc(clamp(15rem, 30%, 27rem) * var(--cat-box-scale, 1));
     /* The category's own, set on the item — so the deck is the shape of the
        work in it and `cover` inside each card has nothing to crop. */
     aspect-ratio: var(--cat-ratio, 43 / 29);
@@ -597,7 +653,8 @@ const {
 
   .cat__shot {
     flex: none;
-    width: clamp(16rem, 38%, 32rem);
+    /* Scaled from the item for the same reason the deck is — see `boxScale`. */
+    width: calc(clamp(16rem, 38%, 32rem) * var(--cat-box-scale, 1));
     /* The category's own shape, so `cover` below has nothing to take off. At a
        flat 51/30 the site screenshots — 804 x 510, a shorter frame — were
        being trimmed top and bottom, which took the browser chrome off the top

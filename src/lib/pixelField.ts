@@ -10,8 +10,10 @@
  * every build, so a deploy could silently change the artwork.
  */
 
-/** mulberry32 — small, fast, and stable for a fixed seed. */
-function rng(seed: number): () => number {
+/** mulberry32 — small, fast, and stable for a fixed seed. Exported because the
+ *  work categories draw a seeded sample with it, for the same reason: a build
+ *  must not be able to change what the page shows. */
+export function rng(seed: number): () => number {
   let a = seed;
   return () => {
     a = (a + 0x6d2b79f5) | 0;
