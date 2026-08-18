@@ -578,21 +578,100 @@ function initSeeAll(section: HTMLElement, cleanups: Array<() => void>): void {
   const label = button.querySelector<HTMLElement>('[data-tm-see-all-label]');
   const controller = new AbortController();
 
-  button.addEventListener(
-    'click',
-    () => {
-      const open = more.toggleAttribute('data-open');
-      button.setAttribute('aria-expanded', String(open));
-      if (label) {
-        label.textContent =
-          (open ? button.dataset.labelLess : button.dataset.labelMore) ?? label.textContent;
-      }
-      // Three cards' worth of page just appeared below the fold — everything
-      // under it is measuring against the old layout until this runs.
-      ScrollTrigger.refresh();
-    },
-    { signal: controller.signal },
-  );
+  /* Opening used to be the attribute and nothing else, and the attribute is a
+     `display` switch: three cards went from absent to present between one frame
+     and the next, the block jumped by their height, and the blur band over the
+     first row stopped existing at the same instant. Every part of that was
+     instantaneous, which is what the jump was.
+
+     So the attribute still does the work — what is on the page is still one
+     switch — and this animates around it: the block's height between the two
+     it measures, the cards themselves fading up, and the band left to its own
+     CSS transition now that it is always there to transition. */
+  const REVEAL = 0.62;
+
+  const extras = () => gsap.utils.toArray<HTMLElement>('.tm__grid-item--extra', more);
+
+  const setState = (open: boolean) => {
+    more.toggleAttribute('data-open', open);
+    button.setAttribute('aria-expanded', String(open));
+    if (label) {
+      label.textContent = (open ? button.dataset.labelLess : button.dataset.labelMore) ?? label.textContent;
+    }
+  };
+
+  let reveal: gsap.core.Timeline | null = null;
+
+  const play = (open: boolean) => {
+    reveal?.kill();
+
+    /* Cleared before either measurement, and that is not tidiness. The tween
+       below writes an inline height and the timeline's onComplete takes it off
+       again — but a click that interrupts a running one kills it mid-flight and
+       the height it had written stays. Both reads then return that stale number
+       instead of the content's, so `from` and `to` come out identical and the
+       block animates from where it is to where it already is: no movement at
+       all, which looked exactly like the jump this is meant to remove. */
+    more.style.height = '';
+
+    /* Both heights measured off the real thing rather than guessed: set the
+       state, read it, and put it back. Two forced layouts inside a click, which
+       is the cheapest place in the page to spend them and the only way to know
+       what to animate to — the cards are a grid whose height depends on how the
+       quotes wrap at this width. */
+    const from = more.getBoundingClientRect().height;
+    setState(open);
+    const to = more.getBoundingClientRect().height;
+
+    const cards = extras();
+
+    reveal = gsap.timeline({
+      onComplete: () => {
+        // Height back to the content's own, or the block stops responding to a
+        // resize from here on.
+        more.style.height = '';
+        ScrollTrigger.refresh();
+      },
+    });
+
+    reveal.fromTo(
+      more,
+      { height: from },
+      { height: to, duration: REVEAL, ease: 'power3.inOut' },
+      0,
+    );
+
+    if (open) {
+      /* Behind the height, not with it: the room arrives first and the cards
+         come up into it, rather than three blocks sliding down a page that is
+         still growing under them. */
+      reveal.fromTo(
+        cards,
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.07, ease: 'power3.out' },
+        0.14,
+      );
+    } else {
+      /* Out last-first, so the row closest to the fold is the last to go and
+         the block does not appear to collapse from the bottom. */
+      reveal.to(
+        cards,
+        { opacity: 0, y: 12, duration: 0.26, stagger: { each: 0.05, from: 'end' }, ease: 'power2.in' },
+        0,
+      );
+    }
+
+    /* The button crosses the same moment: it is absolute over the band while
+       shut and in the flow beneath the grid while open, so it has no path
+       between the two positions to travel along. Out and back in, under cover
+       of the height. */
+    reveal.to(button, { autoAlpha: 0, duration: 0.16, ease: 'power2.in' }, 0);
+    reveal.to(button, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 0.3);
+  };
+
+  button.addEventListener('click', () => play(!more.hasAttribute('data-open')), {
+    signal: controller.signal,
+  });
 
   cleanups.push(() => controller.abort());
 }

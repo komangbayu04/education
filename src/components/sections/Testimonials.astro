@@ -1051,6 +1051,11 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     display: none;
   }
 
+  /* Faded out, not removed — see the band's own rule below. */
+  :global(html[data-js='true']) [data-tm-more][data-open]::after {
+    opacity: 0;
+  }
+
   :global(html[data-js='true']) [data-tm-more][data-open] .tm__grid-item--extra {
     display: block;
   }
@@ -1065,8 +1070,14 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
 
      The white on top of it is what finishes the fade: blur alone leaves the
      card legible in outline, and the frame has the row going to nothing. */
-  :global(html[data-js='true']) [data-tm-more]:not([data-open])::after {
+  :global(html[data-js='true']) [data-tm-more]::after {
     content: '';
+    /* Present in both states and faded rather than switched. A pseudo-element
+       gated on `:not([data-open])` stops existing the instant the attribute
+       lands, which is a band disappearing between one frame and the next — the
+       hard edge of the jump this section had. */
+    opacity: 1;
+    transition: opacity 0.4s var(--ease-out-expo);
     position: absolute;
     /* Over the foot of the first row, which is the row it is asking about.
 
