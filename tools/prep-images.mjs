@@ -125,8 +125,8 @@ console.log('NAV NERD', JSON.stringify(navNerdBox));
 const navOverclockBox = await alphaBBox(`${SRC}/Overclock_nav.png`);
 console.log('NAV OVER', JSON.stringify(navOverclockBox));
 
-/* The generic stack/strip placeholders, still here for the two categories
-   that have no folder of their own yet — Ads and One-pagers. The
+/* The generic stack/strip placeholders, still here for the one category
+   that has no folder of its own yet — Ads. The
    sources are numbered, the outputs are named for the job they do: a file
    called `3.png` tells the next person nothing about where it lands. */
 const workCatSources = [
@@ -163,6 +163,8 @@ const WORK_CATEGORY_FOLDERS = {
   'Product Design': 'product-design',
   'Pitch Deck': 'pitch-deck',
   'Social Media': 'social-media',
+  'Branding Design': 'branding-design',
+  'One-Pager': 'one-pagers',
 };
 
 const workCatPhotos = [];

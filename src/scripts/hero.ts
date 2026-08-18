@@ -767,6 +767,45 @@ export function initHero(): () => void {
       let idleAt = 0;
       let stepTween: gsap.core.Tween | null = null;
 
+      /* --- Chapter films -------------------------------------------------
+         A chapter's film starts when you arrive at that chapter, not when the
+         page loads.
+
+         Every layer is in the document from the first frame — they are stacked
+         and faded, not mounted — so a chapter's `autoplay` fired while it was
+         still invisible behind the hero. By the time you reached Nerd Apply
+         its film was most of a minute in, or had looped back to the start at
+         some arbitrary point; either way what opened the chapter was the
+         middle of a shot. The markup keeps `autoplay` so a reader without JS
+         still gets moving footage; this takes it back and hands playback to
+         the step instead.
+
+         Rewound on arrival, so stepping back into a chapter opens it the same
+         way stepping forward did. `play()` is a promise that rejects if the
+         browser declines — a chapter's film is scenery, so a refusal is
+         nothing to recover from. */
+      const stepLayers = [
+        scene.querySelector<HTMLElement>('[data-scene-hero]'),
+        next,
+        overclockLayer,
+      ];
+
+      const setChapterFilms = (index: number) => {
+        stepLayers.forEach((layer, i) => {
+          if (!layer) return;
+          gsap.utils.toArray<HTMLVideoElement>('video', layer).forEach((video) => {
+            if (i !== index) {
+              video.pause();
+              return;
+            }
+            // Only once there is something to seek in: setting currentTime on
+            // a video that has not read its metadata yet throws.
+            if (video.readyState > 0) video.currentTime = 0;
+            void video.play().catch(() => {});
+          });
+        });
+      };
+
       const restScroll = (index: number) =>
         st ? st.start + ((st.end - st.start) * index) / STEPS : 0;
 
@@ -777,6 +816,7 @@ export function initHero(): () => void {
         step = next;
         busy = true;
         stepTween?.kill();
+        setChapterFilms(step);
 
         /* The timeline and the scroll are two separate animations of the same
            length rather than one driving the other — which is the whole point
@@ -920,6 +960,7 @@ export function initHero(): () => void {
         step = Math.round(Math.min(1, Math.max(0, at)) * STEPS);
         stepTween?.kill();
         handover.progress(step / STEPS);
+        setChapterFilms(step);
       };
 
       ScrollTrigger.addEventListener('refresh', syncFromScroll);

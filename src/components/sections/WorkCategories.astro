@@ -7,7 +7,7 @@
  * here and that field has to change with it or the join is a visible band of
  * the wrong colour.
  *
- * A numbered list of seven categories, and two states on top of it:
+ * A numbered list of eight categories, and two states on top of it:
  *
  *   hover  the row lights up — a near-white ground, and its content insets by
  *          the same amount on both sides — and a stack of three preview cards
@@ -20,16 +20,15 @@
  *          it, running off the right edge of the screen and scrolling
  *          horizontally. One row open at a time.
  *
- * Five categories have their artwork: Website, Landing Page, Product Design,
- * Pitch Deck and Social Media each have a folder under image/ named for them,
- * and every file in it becomes a tile in that category's strip — four of them
- * are also its hover deck. The counts live in the `work()` calls below and the
- * output names in tools/prep-images.mjs; the two agree on a convention rather
- * than on a list of filenames each.
+ * Seven of the eight have their artwork: each has a folder under image/ named
+ * for it, and every file in that folder becomes a tile in the category's strip
+ * — four of them are also its hover deck. The counts live in the `work()` calls
+ * below and the output names in tools/prep-images.mjs; the two agree on a
+ * convention rather than on a list of filenames each.
  *
- * Ads and One-pagers have no folder yet and still point at the shared
- * placeholders. A category given neither still renders: silhouettes in the
- * deck, PLACEHOLDER_TILES empty frames in the strip.
+ * Ads is the one left, and still points at the shared placeholders. A category
+ * given neither still renders: silhouettes in the deck, PLACEHOLDER_TILES empty
+ * frames in the strip.
  *
  * Motion and the accordion live in src/scripts/workCategories.ts. Without JS
  * every strip is open, which is the whole content reachable by scroll alone.
@@ -94,11 +93,9 @@ interface Props {
   viewLabel?: string;
 }
 
-/* Still the placeholders, for the two categories with no folder of their own
-   in image/ yet — Ads and One-pagers. One set standing in on both is honest
-   about that in a way a different arbitrary set each would not be, and the alt
-   text says what they actually are: writing them up as that category's work
-   would be a caption that is not true yet. */
+/* Still the placeholders, for the one category with no folder of its own in
+   image/ yet — Ads. The alt text says what they actually are: writing them up
+   as that category's work would be a caption that is not true yet. */
 const STACK_PLACEHOLDER = [
   { src: '/media/work-hover-1', alt: 'Placeholder artwork' },
   { src: '/media/work-hover-2', alt: 'Placeholder artwork' },
@@ -122,6 +119,8 @@ const STACK_SIZE = SLOTS.length;
    number here can be checked against the file in one look. */
 const SITE_RATIO = '804 / 510';
 const DECK_RATIO = '843 / 474';
+/* Branding's exports are 2880 x 1620 — a plain widescreen frame. */
+const FILM_RATIO = '16 / 9';
 /* Social Media's exports are 2160 x 2160 — the square a feed post is. */
 const SQUARE_RATIO = '1 / 1';
 /** What the shared placeholders are, and the fallback for a category with
@@ -205,6 +204,15 @@ const {
     },
     {
       number: '04',
+      label: 'Branding Design',
+      href: '/work',
+      /* Seven of the nine exports are 16:9 and two are 8:5. One ratio per
+         category, so the pair give up a sliver top and bottom to `cover`
+         rather than the seven being letterboxed for them. */
+      ...work('branding-design', 9, 'Branding design', FILM_RATIO),
+    },
+    {
+      number: '05',
       label: 'Pitch Deck',
       href: '/work',
       ...work('pitch-deck', 8, 'Pitch deck', DECK_RATIO),
@@ -214,7 +222,7 @@ const {
        shot from several angles but nine separate pieces, so there is no
        running order for "the front of the strip" to mean. */
     {
-      number: '05',
+      number: '06',
       label: 'Social Media',
       href: '/work',
       ...work('social-media', 9, 'Social media design', SQUARE_RATIO, 20260818),
@@ -224,18 +232,17 @@ const {
     },
     // No folder yet — see the placeholders above.
     {
-      number: '06',
+      number: '07',
       label: 'Ads',
       href: '/work',
       stack: STACK_PLACEHOLDER,
       images: STRIP_PLACEHOLDER,
     },
     {
-      number: '07',
+      number: '08',
       label: 'One-pagers',
       href: '/work',
-      stack: STACK_PLACEHOLDER,
-      images: STRIP_PLACEHOLDER,
+      ...work('one-pagers', 4, 'One-pager design', SITE_RATIO),
     },
   ],
 } = Astro.props;
