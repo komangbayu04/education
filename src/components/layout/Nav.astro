@@ -37,10 +37,14 @@ interface Project {
    *  nothing to cross-fade. Falls back to `image` where there is no film. */
   video?: string;
   poster?: string;
-  /** Pairs this preview with the band at the top of its case study. Astro's
-   *  router morphs one element into the other when both carry the same name,
-   *  which is what makes opening a project read as its frame widening into the
-   *  page rather than as a cut. Omit it and the link is an ordinary one. */
+  /** Pairs this preview with the band at the top of its case study: the router
+   *  morphs one element into the other when both carry the same name, which is
+   *  what makes opening a project read as its frame widening into the page.
+   *
+   *  Held as data rather than set with `transition:name`, and applied by
+   *  nav.ts only while the menu is open — see the note there. A name that is
+   *  always on is a name this same header carries on the destination too, and
+   *  two elements sharing one is not a fallback: it aborts the transition. */
   transitionName?: string;
 }
 
@@ -156,7 +160,7 @@ const {
               data-nav-work-card={i}
               data-active={i === 0 ? '' : undefined}
             >
-              <div class="nav__work-shot" transition:name={project.transitionName}>
+              <div class="nav__work-shot" data-nav-transition-name={project.transitionName}>
                 {
                   project.video ? (
                     /* The case study's own opening, playing in the frame it is

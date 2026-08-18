@@ -70,7 +70,11 @@ const cells = pixelField(20260804, ROWS, DENSITY);
     </div>
   </div>
 
-  <figure class="cs-hero__band" transition:name={transitionName}>
+  <figure
+    class="cs-hero__band"
+    transition:name={transitionName}
+    data-page-transition-name={transitionName}
+  >
     {/* Decorative: the squares carry no meaning the copy doesn't already. */}
     <div class="cs-hero__pixels" aria-hidden="true">
       {

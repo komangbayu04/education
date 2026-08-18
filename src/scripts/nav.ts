@@ -75,6 +75,39 @@ export function initNav(): () => void {
     });
   };
 
+  /* The shared name that pairs a project's frame with the band at the top of
+     its case study, applied only while the menu is open and only to the card
+     on screen.
+
+     It cannot simply live in the markup. This same header renders on the case
+     study too, so a name written there is a name the destination also carries —
+     and two elements sharing one view-transition-name does not degrade, it
+     aborts: `ready` rejects with "Transition was aborted because of invalid
+     state" and nothing animates at all. That is what was happening, and why it
+     looked like the morph was merely rough rather than absent.
+
+     Scoped to the active card for the same reason. Both cards are in the DOM at
+     once, and if they ever shared a name that would abort it too. */
+  const setTransitionName = (el: HTMLElement | null, on: boolean) => {
+    if (!el) return;
+    const name = el.dataset.navTransitionName;
+    if (!name) return;
+
+    /* Not if the page already has it. Open the menu while standing on that
+       project's own case study and its band is holding this very name — taking
+       it here as well would put two on one document, which is the abort this
+       whole arrangement exists to avoid. The frame simply does not morph on the
+       one page where there is nothing to morph into. */
+    const taken = on && document.querySelector(`[data-page-transition-name="${name}"]`);
+    el.style.viewTransitionName = on && !taken ? name : '';
+  };
+
+  const clearTransitionNames = () => {
+    for (const shot of document.querySelectorAll<HTMLElement>('[data-nav-transition-name]')) {
+      shot.style.viewTransitionName = '';
+    }
+  };
+
   const lockScroll = (locked: boolean) => {
     const lenis = getLenis();
     if (locked) {
@@ -124,6 +157,9 @@ export function initNav(): () => void {
 
     const done = () => {
       panel.hidden = true;
+      /* Given back on the way out: a closed menu must not be holding a name the
+         page it is sitting on also uses. */
+      clearTransitionNames();
       panel.removeAttribute('data-filled');
       blocks?.replaceChildren();
       field = [];
@@ -209,7 +245,12 @@ export function initNav(): () => void {
   if (workLinks.length && workCards.length) {
     const show = (index: number) => {
       workLinks.forEach((link, i) => link.toggleAttribute('data-active', i === index));
-      workCards.forEach((card, i) => card.toggleAttribute('data-active', i === index));
+      workCards.forEach((card, i) => {
+        const active = i === index;
+        card.toggleAttribute('data-active', active);
+        // Only the card being looked at is the one that can morph.
+        setTransitionName(card.querySelector<HTMLElement>('[data-nav-transition-name]'), active);
+      });
     };
 
     workLinks.forEach((link, i) => {
