@@ -75,39 +75,6 @@ export function initNav(): () => void {
     });
   };
 
-  /* The shared name that pairs a project's frame with the band at the top of
-     its case study, applied only while the menu is open and only to the card
-     on screen.
-
-     It cannot simply live in the markup. This same header renders on the case
-     study too, so a name written there is a name the destination also carries —
-     and two elements sharing one view-transition-name does not degrade, it
-     aborts: `ready` rejects with "Transition was aborted because of invalid
-     state" and nothing animates at all. That is what was happening, and why it
-     looked like the morph was merely rough rather than absent.
-
-     Scoped to the active card for the same reason. Both cards are in the DOM at
-     once, and if they ever shared a name that would abort it too. */
-  const setTransitionName = (el: HTMLElement | null, on: boolean) => {
-    if (!el) return;
-    const name = el.dataset.navTransitionName;
-    if (!name) return;
-
-    /* Not if the page already has it. Open the menu while standing on that
-       project's own case study and its band is holding this very name — taking
-       it here as well would put two on one document, which is the abort this
-       whole arrangement exists to avoid. The frame simply does not morph on the
-       one page where there is nothing to morph into. */
-    const taken = on && document.querySelector(`[data-page-transition-name="${name}"]`);
-    el.style.viewTransitionName = on && !taken ? name : '';
-  };
-
-  const clearTransitionNames = () => {
-    for (const shot of document.querySelectorAll<HTMLElement>('[data-nav-transition-name]')) {
-      shot.style.viewTransitionName = '';
-    }
-  };
-
   const lockScroll = (locked: boolean) => {
     const lenis = getLenis();
     if (locked) {
@@ -157,9 +124,6 @@ export function initNav(): () => void {
 
     const done = () => {
       panel.hidden = true;
-      /* Given back on the way out: a closed menu must not be holding a name the
-         page it is sitting on also uses. */
-      clearTransitionNames();
       panel.removeAttribute('data-filled');
       blocks?.replaceChildren();
       field = [];
@@ -248,8 +212,6 @@ export function initNav(): () => void {
       workCards.forEach((card, i) => {
         const active = i === index;
         card.toggleAttribute('data-active', active);
-        // Only the card being looked at is the one that can morph.
-        setTransitionName(card.querySelector<HTMLElement>('[data-nav-transition-name]'), active);
       });
     };
 
@@ -263,37 +225,30 @@ export function initNav(): () => void {
     /**
      * Opens a case study.
      *
-     * The move itself is not built here. The panel's shot and the band at the
-     * top of the case study carry the same `transition:name`, so Astro's router
-     * morphs one into the other — the frame widens into the page, with the
-     * destination already inside it, which is the whole point: what opens is
-     * what arrives.
+     * The move itself is not built here — it belongs to the router, with the
+     * pixel wipe in src/scripts/pageTransition.ts over the top of it.
      *
      * This used to do it by hand: clone the shot, scale it until it covered the
      * screen, then `window.location.href`. Two things were wrong with that. The
      * thing that grew was a photograph of a phone and the thing that arrived was
      * the case study's own opening, so the two never met — the zoom ended and
      * the page cut. And that assignment is a full document load, which tears
-     * down the router and takes every shared-element transition with it.
+     * down the router and takes the transition with it.
      *
      * So the click does exactly two things: closes the menu, and lets the link
-     * be a link. Everything else is the router's.
+     * be a link. Everything else is the router's, and the wipe over the top of
+     * it is src/scripts/pageTransition.ts.
      */
     const openProject = () => {
-      /* The panel is left standing, and that is the point.
+      /* The panel is left standing, and nothing here is animated.
 
-         It is `position: fixed`, so it is in the outgoing snapshot — and it
-         should be: the frame is lifted out of that snapshot as a named element
-         and rendered above it, so what happens is the menu fading away while
-         the frame flies out of it. Closing it here instead put a GSAP fade on
-         the panel at the same moment the router was photographing it, and the
-         frame the morph started from was already going transparent. That is
-         what stopped it opening cleanly.
-
-         Nothing is animated. The state is corrected — the toggle is shut, the
-         scroll lock is released so the next page does not inherit it — and the
-         panel itself is left exactly as the reader last saw it, because the
-         next page renders its own, closed. */
+         The wipe covers the screen before the swap, so the menu is behind a
+         full field of squares by the time the page changes — closing it with
+         an animation would only be a second thing moving under something
+         nobody can see. The state is corrected instead: the toggle is shut and
+         the scroll lock released so the next page does not inherit it. The
+         panel is left exactly as the reader last saw it, because the next page
+         renders its own, closed. */
       animation?.kill();
       toggle?.setAttribute('aria-expanded', 'false');
       lockScroll(false);

@@ -356,59 +356,48 @@ ul {
 }
 
 /* ---------------------------------------------------------------------------
-   Opening a project — the frame in the menu widening into the page.
+   Between pages — the pixel wipe.
 
-   Both ends carry one `transition:name`, so the browser pairs them and gives
-   the pair a `::view-transition-group` whose default animation interpolates
-   position and size. That group is the movement: 472x649 in the menu to
-   1440x774 at the top of the case study, travelling and growing.
+   The squares are the whole transition. The router's own cross-fade is
+   cancelled underneath them: it is a second thing happening at the same time
+   as the wipe, and two dissolves over each other is what made a page change
+   read as unsettled rather than as one move. With the fade off, the swap is an
+   instant cut that happens while the screen is completely covered, which is
+   the point — there is nothing to see it against.
 
-   What was missing is that Astro fades a named pair — `astroFadeOut` on the
-   outgoing snapshot, `astroFadeIn` on the incoming one — so the frame dissolved
-   where it should have moved. Those two rules are all it emits, and it leaves
-   the group alone, so cancelling them here is enough to leave the move on its
-   own. Cancelled rather than overridden: Astro writes its rules into
-   `@layer astro`, and an unlayered rule beats a layered one whatever their
-   selectors, which is the only reason this works from a plain stylesheet.
+   Cancelled rather than overridden: Astro writes its rules into `@layer astro`,
+   and an unlayered rule beats a layered one whatever their selectors, which is
+   the only reason this works from a plain stylesheet.
 
-   `transition:animate="none"` looks like the way to do this and is not: it
-   silences the group as well, and the group is the part worth keeping. It set
-   `animation-name: none` there, so there was nothing left to run and the frame
-   simply appeared at its destination.
-
-   The snapshots are told to fill the group and cover, rather than being
-   letterboxed inside it: the two boxes are different shapes — 0.73 against 1.86
-   — and without this the picture would be squashed from one into the other
-   while the box grew correctly underneath it.
+   The overlay itself is built in src/scripts/pageTransition.ts.
 --------------------------------------------------------------------------- */
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-group(work-nerd-apply) {
-    animation-duration: 720ms;
-    /* Out, not in-out. The quart S-curve holds still at the start, so a click
-       bought nothing for its first tenth of a second and then the box lurched
-       across the middle of the move — which is what read as "not smooth" on a
-       travel this large. Expo-out leaves immediately and settles, so the frame
-       answers the click and arrives without a stop in the middle. */
-    animation-timing-function: var(--ease-out-expo);
-  }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
 
-  ::view-transition-old(work-nerd-apply),
-  ::view-transition-new(work-nerd-apply) {
-    /* No cross-fade between them. Both ends are the same film, so the incoming
-       snapshot simply covers the outgoing one and what is left to see is the
-       box moving. */
-    animation: none;
-    mix-blend-mode: normal;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+#page-wipe {
+  position: fixed;
+  inset: 0;
+  /* Over everything, including the fixed nav — it is covering the page, not
+     sitting in it. */
+  z-index: 2000;
+  display: grid;
+  grid-template-columns: repeat(var(--page-wipe-cols, 24), 1fr);
+  grid-template-rows: repeat(var(--page-wipe-rows, 14), 1fr);
+  /* Swallows clicks for the length of the wipe, so a second impatient click
+     cannot start a navigation on a page that is halfway out of the door. */
+  pointer-events: auto;
+}
 
-  /* The rest of the page still cross-fades, and it has to outlast the move —
-     finish the ground first and the frame is left travelling over a page that
-     has already arrived. */
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 720ms;
+#page-wipe span {
+  background: var(--color-ink);
+}
+
+/* No wipe, and nothing left behind if one was somehow mid-flight. */
+@media (prefers-reduced-motion: reduce) {
+  #page-wipe {
+    display: none;
   }
 }

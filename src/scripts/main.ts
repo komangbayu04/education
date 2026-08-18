@@ -13,6 +13,7 @@ import { initTwoWays } from './twoWays';
 import { initTestimonials } from './testimonials';
 import { initJournal } from './journal';
 import { initFounderQuote } from './founderQuote';
+import { initPageTransition } from './pageTransition';
 import { debounce, prefersReducedMotion } from './utils/device';
 
 /**
@@ -53,6 +54,10 @@ function destroyPage(): void {
   ScrollTrigger.getAll().forEach((t) => t.kill());
   destroyScroll();
 }
+
+/* Once for the tab, not once per page: its listeners are the router's own and
+   registering them again on every load would stack a wipe per navigation. */
+initPageTransition();
 
 // Astro fires astro:page-load on first load and after every view transition.
 document.addEventListener('astro:page-load', () => {

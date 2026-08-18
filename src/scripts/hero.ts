@@ -1,5 +1,6 @@
 import { gsap, ScrollTrigger, SplitText } from './gsap';
 import { setActiveChapter } from './timeline';
+import { getLenis } from './scroll';
 import { isTouch, prefersReducedMotion } from './utils/device';
 
 /**
@@ -8,36 +9,37 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  * Intro    — the video clips open from the bottom, headline lines unmask, aside
  *            rows fade up and their rules draw in.
  * Handover — the scene pins once (so nothing in it ever scrolls away on its
- *            own) for every transition across all three sections, all sharing
- *            that one pin:
+ *            own) and every transition across all three sections happens
+ *            inside that one pin, one scroll at a time:
  *
  *              A. hero → Showcase        THE bespoke transition: pixel reveal
  *                                         spreading from the hero photo,
  *                                         photo pushes in, Showcase crossfades
- *                                         in late underneath the tiles. Kept
- *                                         exactly as originally tuned.
- *              B. Showcase holds          nothing is scheduled; scroll room
- *                                         for a finished chapter.
- *              C. Showcase → Overclock    the same pixel language, scattered
+ *                                         in late underneath the tiles.
+ *              B. Showcase → Overclock    the same pixel language, scattered
  *                                         rather than spreading from a point:
  *                                         a field of tiles in Overclock's own
  *                                         ground colour lands in random order,
  *                                         then the layer swaps in behind the
  *                                         finished field, same colour, no seam.
- *              D. Overclock holds
- *              The pin ends there, on Overclock.
- *              E. Overclock → the page    the same field again, in the ground
+ *              C. Overclock → the page    the same field again, in the ground
  *                                         colour of the section below the
- *                                         scene — but on its own trigger,
- *                                         outside the pin, running across the
- *                                         viewport of scroll the scene takes
- *                                         to leave. Overclock dissolves as it
- *                                         goes, with Credibility already
- *                                         rising into view behind it.
+ *                                         scene. The pin ends as it finishes,
+ *                                         and the scene is hidden in the same
+ *                                         frame — the field is already that
+ *                                         section's colour, so there is no
+ *                                         seam to see.
  *
- *            Nothing is scheduled inside the pin after the last chapter, and
- *            nothing can be: a pinned scene cannot show the section under it,
- *            so any phase there is scroll that produces no movement.
+ *            One scroll plays one of those end to end and lands on the chapter
+ *            after it; anything that arrives while one is playing is swallowed.
+ *            See "Stepping" below for why it is not scrubbed, and what the
+ *            scroll position is still for.
+ *
+ *            The chapters used to have a dwell phase each — scroll room a
+ *            finished chapter held the screen for. A stepped scene has no use
+ *            for one: a chapter holds until the next scroll, however long that
+ *            is. They are gone, and the three phases above are one viewport
+ *            each.
  *
  *            Bedford and CELPIP were chapters here until their case studies
  *            were ready; see index.astro for what putting them back involves.
@@ -54,12 +56,10 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  *
  *            Every phase length is in viewports (`VIEWPORTS` below); the pin
  *            is their sum, and every tween's position is a fraction of that
- *            total (computed once into `at`/`dur` — see `cursor()`). Phase
- *            A's own internal tuning (0–82% pixels in, 0–35% type fade, etc.)
- *            is unchanged from when the pin was exactly one viewport — it's
- *            rescaled by `at.a` so phase A still finishes at the same
- *            absolute scroll distance it always did; everything after it is
- *            genuinely new scroll runway, not a retiming of anything.
+ *            total (computed once into `at`/`dur`). They are equal, which is
+ *            what makes one step worth exactly one viewport of the pin and
+ *            lets the step index and the scroll position stay in agreement
+ *            without any arithmetic between them.
  *
  *            Only transform and opacity are touched, so nothing re-lays-out
  *            and nothing can jump.
@@ -194,14 +194,18 @@ export function initHero(): () => void {
       // adding a 6th section later is "add two more numbers here", not a
       // rewrite of the fraction math below.
       const VIEWPORTS = {
-        heroToShowcase: 1, // phase A — unchanged absolute timing
-        // The *Dwell phases used to carry that chapter's text sliding up and
-        // out. With the copy no longer moving they schedule nothing; they are
-        // the scroll a finished chapter holds the screen for before the next
-        // one swaps in.
-        showcaseDwell: 0.6,
-        overclockArrival: 0.5,
-        overclockDwell: 0.5,
+        heroToShowcase: 1,
+        /* The *Dwell phases are gone. They were the scroll a finished chapter
+           held the screen for before the next one swapped in, which is a thing
+           only a scrubbed scene needs: with the handover stepped rather than
+           scrubbed (see "Stepping" below) a chapter holds the screen until the
+           next scroll, however long that is, and a stretch of scroll that
+           schedules nothing is just distance to get through.
+
+           One viewport each now, and equal, so each step owns exactly one
+           screen of the pin and the scroll position and the step index stay in
+           step with each other without any arithmetic. */
+        overclockArrival: 1,
         /* The way out, and it belongs in here: Overclock has to hold still
            while the field lands on it, the same way every other chapter does.
            Run outside the pin instead, the field scattered over a section that
@@ -215,7 +219,7 @@ export function initHero(): () => void {
            and the scene is hidden the moment the pin lets go, so the field
            finishing and the next section being fully on screen are the same
            moment. */
-        exitReveal: 0.5,
+        exitReveal: 1,
       } as const;
 
       const PIN_VIEWPORTS = Object.values(VIEWPORTS).reduce((a, b) => a + b, 0);
@@ -229,15 +233,15 @@ export function initHero(): () => void {
         return start;
       };
 
-      // The dwell phases are advanced through, not stored: nothing is
-      // scheduled in them, but the cursor still has to walk past them so every
-      // later phase keeps its position.
       const atHeroToShowcase = at(VIEWPORTS.heroToShowcase);
-      at(VIEWPORTS.showcaseDwell);
       const atOverclockArrival = at(VIEWPORTS.overclockArrival);
-      at(VIEWPORTS.overclockDwell);
       const atExitReveal = at(VIEWPORTS.exitReveal);
       // cursor is now at the end of the pin: the exit reveal is the last phase
+
+      /** Rest points, one per phase boundary — 0, 1/3, 2/3, 1. Step 0 is the
+       *  hero, 1 is Nerd Apply, 2 is Overclock, 3 is the finished exit field,
+       *  which is also the end of the pin. */
+      const STEPS = Object.keys(VIEWPORTS).length;
 
       const durHeroToShowcase = VIEWPORTS.heroToShowcase / PIN_VIEWPORTS;
       const durOverclockArrival = VIEWPORTS.overclockArrival / PIN_VIEWPORTS;
@@ -298,21 +302,28 @@ export function initHero(): () => void {
         }
       };
 
-      handover = gsap.timeline({
-        defaults: { ease: 'none' },
-        scrollTrigger: {
+      /* Paused, and deliberately not handed to the trigger.
+         A timeline passed as a ScrollTrigger's `animation` without a `scrub`
+         is a timeline the trigger owns: it gets the default toggleActions and
+         is played on enter, start to finish, at its own speed. That is not a
+         detail to work around — it means the playhead has two authors. It was
+         measured doing exactly that: `paused: false`, `toggleActions: "play"`,
+         sitting at progress 1 with the exit field fully laid while the step
+         tweens tried to put it back. Built standalone instead, so the only
+         thing that ever moves it is `goToStep`. */
+      handover = gsap.timeline({ defaults: { ease: 'none' }, paused: true });
+
+      const st = ScrollTrigger.create({
           trigger: scene,
           start: 'top top',
           end: () => `+=${window.innerHeight * PIN_VIEWPORTS}`,
           pin: true,
           anticipatePin: 1,
-          /* 0.3, not 1. Lenis already eases the scroll position itself (see
-             scroll.ts, duration 1.2), so a second full second of catch-up here
-             put two smoothing stages in series: measured, the scene took just
-             over a second to finish reacting to a single flick, which reads as
-             lag rather than smoothness. This keeps a little smoothing of its
-             own without re-damping what Lenis has already damped. */
-          scrub: 0.3,
+          /* No scrub. The handover is not tied to the scroll position any
+             more — one scroll plays one whole chapter change at its own speed,
+             and the trigger's job is reduced to holding the scene still,
+             telling us when it is the thing on screen, and keeping the scroll
+             position honest either side of it. See "Stepping" below. */
           invalidateOnRefresh: true,
           /* The scene has nothing left to show once the exit field has covered
              it, and it is a full screen tall — so it is hidden the instant the
@@ -364,7 +375,6 @@ export function initHero(): () => void {
             }
             setActiveChapter(slot, true);
           },
-        },
       });
 
       // --- Phase A: hero → Showcase, the bespoke pixel reveal ------------------
@@ -722,8 +732,205 @@ export function initHero(): () => void {
       const rebuildTileFields = () => tileFields.forEach((build) => build());
       ScrollTrigger.addEventListener('refreshInit', rebuildTileFields);
 
+      /* --- Stepping -----------------------------------------------------------
+         One scroll, one chapter.
+
+         The scene used to be scrubbed: the handover's progress was the pin's
+         progress, so a chapter change was three viewports of scrolling and you
+         got as much of it as you scrolled. Half a gesture left half a pixel
+         field on screen, and a flick threw the whole thing away at once.
+
+         Now the scroll is a trigger, not a dial. A gesture inside the pin
+         plays the next transition end to end at its own speed and lands on the
+         chapter after it; anything that arrives while it is playing is
+         swallowed, so a burst of wheel events — which is what one flick of a
+         trackpad actually is — advances one chapter and not three.
+
+         The scroll position still travels with the step, and that is not
+         decoration: the pin releases at a scroll position, so the last step
+         has to leave the reader standing at the end of it. Each step is worth
+         exactly one viewport because every phase in VIEWPORTS is one viewport,
+         which is why that list is equal now. */
+      /** Seconds one chapter change takes, whatever the gesture was. */
+      const STEP_SECONDS = 0.9;
+      /** Ignored after a step lands. A trackpad keeps sending momentum events
+       *  for some time after the fingers have left it, and without this the
+       *  tail of one flick starts the next chapter the moment the last one
+       *  arrives. */
+      const COOLDOWN = 220;
+      /** A gesture has to mean it. Momentum tails and stray horizontal-ish
+       *  scrolls come in well under this. */
+      const THRESHOLD = 8;
+
+      let step = 0;
+      let busy = false;
+      let idleAt = 0;
+      let stepTween: gsap.core.Tween | null = null;
+
+      const restScroll = (index: number) =>
+        st ? st.start + ((st.end - st.start) * index) / STEPS : 0;
+
+      const goToStep = (target: number) => {
+        const next = Math.min(STEPS, Math.max(0, target));
+        if (next === step) return;
+
+        step = next;
+        busy = true;
+        stepTween?.kill();
+
+        /* The timeline and the scroll are two separate animations of the same
+           length rather than one driving the other — which is the whole point
+           of dropping the scrub. They start together and finish together, so
+           what is on screen and where the page thinks it is agree at both
+           ends, and in between the transition plays at the speed it was
+           designed at instead of the speed of somebody's thumb. */
+        stepTween = gsap.to(handover, {
+          progress: step / STEPS,
+          duration: STEP_SECONDS,
+          ease: 'power2.inOut',
+          overwrite: true,
+          onComplete: () => {
+            busy = false;
+            idleAt = performance.now();
+          },
+        });
+
+        const lenis = getLenis();
+        if (lenis) {
+          /* `force`, because the reader's own scrolling is locked for the
+             length of the step and Lenis refuses a scrollTo while it is
+             stopped; `lock`, so nothing else can move the page underneath the
+             one that is running. */
+          lenis.scrollTo(restScroll(step), {
+            duration: STEP_SECONDS,
+            force: true,
+            lock: true,
+          });
+        } else {
+          window.scrollTo(0, restScroll(step));
+        }
+      };
+
+      /* Inside the pin, ends included — not `st.isActive`, which is false at
+         exactly the end. That one pixel matters because the end is where every
+         reader stands after the last chapter: from there a scroll back up is
+         how they return to Overclock, and with `isActive` the gesture was not
+         the scene's, so it scrolled the page a little instead and the chapter
+         only came back on the one after it. */
+      const inScene = () => {
+        if (!st) return false;
+        const y = st.scroll();
+        return y >= st.start && y <= st.end;
+      };
+
+      /** Whether this gesture is the scene's to answer, or the page's.
+       *
+       *  At either end of the scene it is the page's: forward from the last
+       *  chapter is how the reader leaves, backward from the hero is how they
+       *  get back to the top. Taking those would trap them in it. */
+      const owns = (direction: number) =>
+        inScene() && !(direction > 0 && step >= STEPS) && !(direction < 0 && step <= 0);
+
+      const advance = (direction: number, event: Event) => {
+        if (!inScene()) return;
+
+        // Mid-step, or in the moment after one: eaten, so the gesture cannot
+        // stack up. Still cancelled, or the page would scroll under the pin.
+        if (busy || performance.now() - idleAt < COOLDOWN) {
+          if (owns(direction) || busy) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          return;
+        }
+
+        if (!owns(direction)) return;
+
+        /* Cancelled and stopped, not just cancelled. Lenis has its own wheel
+           listener and it is registered first — initScroll runs before
+           initHero — so bubbling on would let it scroll the page through the
+           pin while this plays a chapter over the top. Capture phase plus
+           stopPropagation is what gets there before it. */
+        event.preventDefault();
+        event.stopPropagation();
+        goToStep(step + direction);
+      };
+
+      const controller = new AbortController();
+      const { signal } = controller;
+      const listen = { signal, passive: false, capture: true } as const;
+
+      window.addEventListener(
+        'wheel',
+        (event: WheelEvent) => {
+          if (Math.abs(event.deltaY) < THRESHOLD) return;
+          advance(event.deltaY > 0 ? 1 : -1, event);
+        },
+        listen,
+      );
+
+      let touchY = 0;
+      window.addEventListener(
+        'touchstart',
+        (event: TouchEvent) => void (touchY = event.touches[0]?.clientY ?? 0),
+        { signal, passive: true, capture: true },
+      );
+
+      window.addEventListener(
+        'touchmove',
+        (event: TouchEvent) => {
+          const y = event.touches[0]?.clientY ?? 0;
+          const delta = touchY - y;
+          if (Math.abs(delta) < THRESHOLD * 2) return;
+          advance(delta > 0 ? 1 : -1, event);
+        },
+        listen,
+      );
+
+      const KEYS: Record<string, number> = {
+        ArrowDown: 1,
+        PageDown: 1,
+        ' ': 1,
+        ArrowUp: -1,
+        PageUp: -1,
+      };
+
+      window.addEventListener(
+        'keydown',
+        (event: KeyboardEvent) => {
+          const direction = KEYS[event.key];
+          // Not while something else is reading the keystroke.
+          const target = event.target as HTMLElement | null;
+          if (!direction || event.metaKey || event.ctrlKey) return;
+          if (target?.closest('input, textarea, select, [contenteditable]')) return;
+          advance(direction, event);
+        },
+        listen,
+      );
+
+      /* Where the step index comes from when the reader did not step: a
+         reload part way down, a resize moving the pin, or arriving at the
+         scene from below. The scroll position is the authority there — it is
+         the one thing that survives all three — and the timeline is put where
+         that position says it should be. */
+      const syncFromScroll = () => {
+        if (!st) return;
+        const span = st.end - st.start;
+        const at = span > 0 ? (st.scroll() - st.start) / span : 0;
+        step = Math.round(Math.min(1, Math.max(0, at)) * STEPS);
+        stepTween?.kill();
+        handover.progress(step / STEPS);
+      };
+
+      ScrollTrigger.addEventListener('refresh', syncFromScroll);
+      syncFromScroll();
+
       // Runs when the query stops matching, and on mm.revert()
       return () => {
+        controller.abort();
+        stepTween?.kill();
+        getLenis()?.start();
+        ScrollTrigger.removeEventListener('refresh', syncFromScroll);
         ScrollTrigger.removeEventListener('refreshInit', rebuildTileFields);
         pixels?.replaceChildren();
         delete scene.dataset.sceneMode;

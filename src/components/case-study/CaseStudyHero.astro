@@ -25,10 +25,6 @@ interface Props {
    *  `video` is given. */
   image: string;
   imageAlt: string;
-  /** Pairs this band with the nav preview that opens it — see Nav.astro. Both
-   *  carrying one name is what lets the router widen the frame into the page
-   *  instead of cutting to it. */
-  transitionName?: string;
   /** The opening. Extensionless under /media: .webm and .mp4 are both offered.
    *  Given one, it takes the band and plays itself — muted and looping, since
    *  it is the page's first impression rather than something to be started. */
@@ -36,7 +32,7 @@ interface Props {
   poster?: string;
 }
 
-const { title, summary, tags = [], image, imageAlt, video, poster, transitionName } = Astro.props;
+const { title, summary, tags = [], image, imageAlt, video, poster } = Astro.props;
 
 /* Rows of the cell grid. The 22 columns are declared in the CSS below, where
    the grid actually lives — at the reference width that puts each square at
@@ -70,11 +66,7 @@ const cells = pixelField(20260804, ROWS, DENSITY);
     </div>
   </div>
 
-  <figure
-    class="cs-hero__band"
-    transition:name={transitionName}
-    data-page-transition-name={transitionName}
-  >
+  <figure class="cs-hero__band">
     {/* Decorative: the squares carry no meaning the copy doesn't already. */}
     <div class="cs-hero__pixels" aria-hidden="true">
       {
