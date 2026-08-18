@@ -49,7 +49,7 @@ const DENSITY = [0.5, 0.34, 0.3, 0.2, 0.14, 0.09, 0.05];
 const cells = pixelField(20260804, ROWS, DENSITY);
 ---
 
-<section class="cs-hero">
+<section class:list={['cs-hero', { 'cs-hero--film': video }]}>
   <div class="cs-hero__head u-container">
     <div class="cs-hero__head-inner">
       <h1 class="cs-hero__title">{title}</h1>
@@ -275,9 +275,24 @@ const cells = pixelField(20260804, ROWS, DENSITY);
       aspect-ratio: 1 / 1;
     }
 
-    .cs-hero__device {
+    /* A film is not a cutout and must not be seated like one. `:not()` rather
+       than another override further down: these two lines are the desktop
+       cutout's seating restated for a phone, and applied to a frame that fills
+       the band they push it sideways and shrink it — measured at 375, the film
+       sat at 54% of the width at 88% of the height, with the grey field and its
+       pixels showing down the left. Same specificity as the film's own rule and
+       later in the sheet, so it won.
+
+       The band opens up for it too. A 1:1 crop of a 16:9 frame throws away 39%
+       of its width; 4:3 is as square as this can go before the composition
+       stops surviving it. */
+    .cs-hero__device:not(.cs-hero__device--film) {
       left: 54%;
       height: 88%;
+    }
+
+    .cs-hero--film .cs-hero__band {
+      aspect-ratio: 4 / 3;
     }
   }
 </style>
