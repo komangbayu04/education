@@ -301,6 +301,10 @@ export function initHero(): () => void {
          stepper it has to call. */
       let resync: (() => void) | undefined;
 
+      /* Called when the scroll crosses back up over the pin's end — see the
+         trigger's onEnterBack, and `stepBackIn` where it is defined. */
+      let enterBack: (() => void) | undefined;
+
       const setSceneDone = (done: boolean) => {
         if (done) {
           handover?.progress(1);
@@ -358,7 +362,10 @@ export function initHero(): () => void {
              either side of this; it is only being told where it was always
              heading. */
           onLeave: () => setSceneDone(true),
-          onEnterBack: () => setSceneDone(false),
+          onEnterBack: () => {
+            setSceneDone(false);
+            enterBack?.();
+          },
           /* And the same state re-derived whenever the trigger re-measures,
              which is the case the two callbacks above cannot cover.
 
@@ -637,6 +644,10 @@ export function initHero(): () => void {
        *  so what is on screen at the moment of the cut is a complete field and
        *  nothing else. */
       const EXIT_CUT_AT = 0.86;
+
+      /** Where that cut falls on the whole timeline, rather than within its own
+       *  phase — see stepBackIn, which has to land just short of it. */
+      const exitCut = atExitReveal + durExitReveal * EXIT_CUT_AT;
 
       /* The scatter gets the whole phase now, not 55% of it.
 
@@ -989,6 +1000,50 @@ export function initHero(): () => void {
         handover.progress(step / STEPS);
         setChapterFilms(step);
       };
+
+      /* Coming back up out of the section below.
+       *
+       * The pin's last step leaves the scene finished: the exit field is
+       * complete and the scene has been cut to invisible, because at that
+       * point the section pulled up underneath it is the only thing that
+       * should be on screen. Scrolling back up put the reader inside the pin
+       * again with the scene still in that state — a full-height invisible box
+       * across the top of the screen, with the section it covers sliding down
+       * away from it. What showed in the space between was nothing: measured
+       * at 2360 the work section had already moved 40px down the screen, and
+       * by 2000 it was 400px down with bare page above it.
+       *
+       * Rounding is what left that band dead. The step is derived from the
+       * scroll, and every position from 2000 up to the pin's end rounds to the
+       * last step — so the timeline sat at its end through 400px of scrolling
+       * that had visibly left it.
+       *
+       * So crossing the end upwards is a step, the same one a scroll inside
+       * the pin would make: the exit undoes itself, Overclock comes back, and
+       * the scroll is carried to that chapter's own resting place rather than
+       * being left in between. It is the transition running backwards, which
+       * is what the way in looks like in reverse. */
+      const stepBackIn = () => {
+        if (busy || step < STEPS) return;
+
+        /* Put the playhead just under the exit's cut before easing away from
+           it, rather than easing across it.
+           The last 14% of the exit phase is the frame where the scene stops
+           being painted at all, and going backwards the timeline has to travel
+           through it before anything is drawn again. Eased, that took about a
+           fifth of a second — during which the scene was still an invisible
+           full-height box and the section below it slid 700px down the screen
+           behind it, which is the gap.
+           Landing under the cut first costs nothing to look at: the exit field
+           is complete there, and a complete field is painted in the ground
+           colour of the very section that was on screen. So the frame that
+           replaces it is the same flat colour, and what the reader sees is the
+           field starting to scatter — the way in, backwards. */
+        handover.progress(Math.min(handover.progress(), exitCut - 0.001));
+        goToStep(STEPS - 1);
+      };
+
+      enterBack = stepBackIn;
 
       ScrollTrigger.addEventListener('refresh', syncFromScroll);
       syncFromScroll();
