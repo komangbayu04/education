@@ -198,13 +198,19 @@ const {
             the artwork's composition in this file. It is drawn, so it lives in
             a drawing.
 
-            Cream squares only. The export arrived with a 4096 x 1300 bitmap
-            embedded in it — 108KB of base64, every visible pixel of it #161616
-            and nothing else — laid under seven cream vector squares. On this
-            block's own near-black ground that bitmap was a second set of
-            squares in a slightly different dark, which read as holes punched in
-            the panel rather than as a pixel edge. Only the seven remain, and
-            the file went from 145KB to under a kilobyte with them. */}
+            It is the block's whole background, panel included, which is why
+            the block's own colour matches it exactly.
+
+            Redrawn as vectors from the supplied frame. The export arrived with
+            a 4096 x 1300 bitmap embedded in it — 108KB of base64, every visible
+            pixel of it #161616 with the squares knocked out of it as
+            transparent holes. That worked only while something the right colour
+            sat behind it, and against this block's near-black ground the holes
+            read as a second set of dark squares. The frame has those two
+            squares light, so they are light, and the panel they sit on is
+            painted rather than implied. Nine rects and a ground: 700 bytes
+            against 145KB, and no raster to go soft when the block is wider than
+            the drawing. */}
         <img
           class="two__pattern"
           src="/media/two-pattern.svg"
@@ -619,7 +625,13 @@ const {
 
     position: relative;
     margin-top: auto;
-    background: var(--color-bg-invert);
+    /* The artwork's own ground, not the page's black. two-pattern.svg carries
+       a #161616 panel behind its squares, and it is the whole background of
+       this block — so the block underneath it has to be the same value or the
+       difference shows anywhere the drawing does not reach. Six levels off
+       --color-bg-invert, which is enough to read as a seam on a flat dark
+       panel. */
+    background: #161616;
     color: var(--color-ink-invert);
     /* Clips the pattern, which is sized to cover and so overspills. */
     overflow: hidden;
@@ -667,34 +679,30 @@ const {
      edge and thinning inward, so the dark ends by breaking up rather than on a
      straight line. aspect-ratio on the cells is what keeps them square: the
      track they don't set sizes itself to one cell of the one they do. */
-  /* The supplied edge treatment, laid over the block's own black.
+  /* `cover`, anchored right — which keeps the squares square.
+     `fill` was here because an earlier version of this drawing had artwork
+     along its whole width, and cropping it lost a third of the composition.
+     It does not any more: everything is in the right quarter and the rest is
+     plain panel, so the only thing a horizontal crop can take is empty ground.
+     What `fill` cost was the one thing a pixel edge cannot afford — stretched
+     into this block the squares came out 23% off square, wider than they were
+     tall, which is visible on a shape whose whole point is being a square.
 
-     `cover` with a right-top anchor, not a stretch: the drawing is 708x235 and
-     the block is whatever the column gives it, so stretching it to fit would
-     put the squares out of square — which is the one thing a pixel edge cannot
-     survive. Anchored right because that is where its artwork is; the left of
-     the drawing is plain dark and the block's own background carries on under
-     it seamlessly.
+     Anchored right because that is where the artwork is. The block is squarer
+     than the drawing at every width this layout produces, so the crop is
+     horizontal and lands entirely on the empty side; past roughly a 1660px
+     window it would begin trimming the top and bottom instead, and what it
+     trims there are squares already drawn bleeding off those edges.
 
      Sits under the copy (.two__cta-content is positioned above it) and takes
      no pointer events, so the button beneath is untouched. */
-  /* `fill`, which is the one value here that shows the whole drawing.
-     two-pattern.svg is a composition, not a texture: notches along the top
-     edge, a staircase down the right, a cluster in the bottom-right corner.
-     `cover` was cropping whichever of those did not fit the block's ratio —
-     at a wide window it fits the width and takes the bottom-right cluster off,
-     and the top edge was left reading as five large notches and nothing else.
-
-     The cost is that the squares are not exactly square: the artwork is drawn
-     at 708 x 235 and the block is about 699 x 250, so they come out around 8%
-     tall at the size this was drawn for. Against losing a third of the
-     composition, that is the cheaper of the two. */
   .two__pattern {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: cover;
+    object-position: 100% 50%;
     pointer-events: none;
   }
 
