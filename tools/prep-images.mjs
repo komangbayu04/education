@@ -253,7 +253,13 @@ const photos = [
      the default — is safe here in a way it would not be on the Two ways panel:
      this is an unlit dark scene, mostly smooth gradient, which is exactly what
      these codecs are good at. It comes out an order of magnitude under the
-     3.1MB source. */
+     3.1MB source.
+
+     The chapter carries a film now (public/media/overclock-cover.*, from
+     image/Monitor_Full.mp4, which this script does not touch) and takes its
+     poster from that film's own first frame — so nothing reads this any more.
+     Kept because it is still the still of that scene, and putting the chapter
+     back on a static ground is one prop rather than a re-export. */
   { src: `${SRC}/Overclock-bg-home.png`, name: 'overclock-ground', maxW: 2400, avif: true },
 
   /* Client wordmarks for the marquee above Testimonials.

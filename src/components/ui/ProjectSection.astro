@@ -49,6 +49,12 @@ interface Props {
    *  ground already carries the product. Bedford and CELPIP pass nothing and
    *  are untouched. */
   ground?: string;
+  /** The same ground as footage. Extensionless under /media — .webm and .mp4
+   *  are both offered. Given one it replaces `ground`'s still, and it is
+   *  scenery rather than a player: muted, looping, no controls, and nothing
+   *  depends on it having started. `ground` stays the poster, so the chapter
+   *  is never a blank rectangle while the film decodes. */
+  groundVideo?: string;
   tags?: Tag[];
   /** The chip above the title. Shared by every chapter, hence the defaults. */
   badgeLabel?: string;
@@ -76,6 +82,7 @@ const {
   imageHeight,
   background,
   ground,
+  groundVideo,
   tags = [],
   badgeLabel = 'Retainer',
   badgeIcon = 'multi-user',
@@ -97,10 +104,33 @@ const {
     ground && (
       /* The chapter's ground. First in source order, so everything after it
          paints on top without any of them needing a z-index of their own. */
-      <picture class="project__ground">
-        <source srcset={`${ground}.avif`} type="image/avif" />
-        <img src={`${ground}.webp`} alt="" aria-hidden="true" decoding="async" />
-      </picture>
+      groundVideo ? (
+        /* Scenery, not a player: no controls, muted so it is allowed to start
+           itself, and looping because it has no end to arrive at. The chapter
+           it belongs to is the one that starts it — every layer is in the
+           document from the first frame, so a film left to its own `autoplay`
+           would be well into itself by the time anyone reached it. See
+           setChapterFilms in src/scripts/hero.ts. */
+        <video
+          class="project__ground"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          poster={`${ground}.webp`}
+          aria-hidden="true"
+          tabindex="-1"
+        >
+          <source src={`${groundVideo}.webm`} type="video/webm" />
+          <source src={`${groundVideo}.mp4`} type="video/mp4" />
+        </video>
+      ) : (
+        <picture class="project__ground">
+          <source srcset={`${ground}.avif`} type="image/avif" />
+          <img src={`${ground}.webp`} alt="" aria-hidden="true" decoding="async" />
+        </picture>
+      )
     )
   }
   <div class="project__inner u-container">
@@ -328,6 +358,9 @@ const {
     display: block;
   }
 
+  /* The film is the ground itself rather than something inside it, so it takes
+     the same box the <picture> does and is sized here too. */
+  .project--ground video.project__ground,
   .project--ground .project__ground img {
     width: 100%;
     height: 100%;
