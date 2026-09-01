@@ -24,10 +24,9 @@
  * still reads: every note is visible (stacked) and the rail is a plain
  * scrollable row.
  *
- * ASSETS: no portraits or client logos were supplied. `photo` and `logo` are
- * optional on every entry — pass them and the placeholders disappear. The
- * play control only renders as a real link when a `video` URL is given, so no
- * dead button ever ships.
+ * ASSETS: `photo` and `logo` are optional on every entry — pass them and the
+ * placeholders disappear. The play control only renders as a real link when a
+ * `video` URL is given, so no dead button ever ships.
  */
 
 interface Featured {
@@ -75,6 +74,7 @@ const {
       role: 'Founder, Overclock',
       company: 'Overclock',
       photo: '/media/portrait-ahmed.webp',
+      logo: '/media/logo-overclock.svg',
       video: 'https://framerusercontent.com/assets/ILZGTX3cqunlS3P895UeRWpIIM.mp4',
       headline: 'Design stopped being something we had to think about all the time.',
       quote:
@@ -85,26 +85,27 @@ const {
       role: 'Co-Founder, Nerd Apply',
       company: 'Nerd Apply',
       photo: '/media/portrait-braden.webp',
+      logo: '/media/logo-nerd-apply.svg',
       video: 'https://framerusercontent.com/assets/2ISOfafB7v8BKAWqxuBoY16FiM.mp4',
       headline: 'They shipped faster than our own team could have.',
       quote:
         '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
     },
     {
-      name: 'Wei Sun',
-      role: 'Founder, EMOD',
-      company: 'EMOD',
-      photo: '/media/portrait-wei-sun.webp',
-      video: 'https://framerusercontent.com/assets/KpOMySA3GroAMs2O9J0C6uMhKkc.mp4',
-      headline: 'This is top-tier design.',
+      name: 'Bhaumik Patel',
+      role: 'CEO, Atrium Academy',
+      company: 'Atrium Academy',
+      logo: '/media/logo-atrium.svg',
+      headline: 'Are you kidding me? This was a no\u00a0brainer retainer.',
       quote:
-        '"I\'ve worked with some incredibly talented designers at a very high level, from senior to staff, and honestly, your design work is right up there at the same level."',
+        '"We basically get the output of a full time design team without the overhead of having to hire, manage, and train them. I don\'t know how to manage designers. I don\'t know how to give them good design feedback. And it feels like I\'ve basically outsourced that part of my brain to Tribe. Design is the last thing I have to worry about, thanks to Tribe."',
     },
     {
       name: 'Geoffrey Langford',
       role: 'Sr. Product Manager, Studeo',
       company: 'Studeo',
       photo: '/media/portrait-geoffrey.webp',
+      logo: '/media/logo-studeo.svg',
       video: 'https://framerusercontent.com/assets/Xhyv0KqZjfypMH4uE3Lso4dIZM.mp4',
       headline: 'Absolutely great working with Tribe.',
       quote:
@@ -122,12 +123,11 @@ const {
       variant: 'lead',
     },
     {
-      name: 'Wei Sun',
-      role: 'Founder, EMOD',
-      photo: '/media/portrait-wei-sun.webp',
-      headline: 'This is top-tier design.',
+      name: 'Bhaumik Patel',
+      role: 'CEO, Atrium Academy',
+      headline: 'Are you kidding me? This was a no\u00a0brainer retainer.',
       quote:
-        '"I\'ve worked with some incredibly talented designers at a very high level, from senior to staff, and honestly, your design work is right up there at the same level."',
+        '"We basically get the output of a full time design team without the overhead of having to hire, manage, and train them. I don\'t know how to manage designers. I don\'t know how to give them good design feedback. And it feels like I\'ve basically outsourced that part of my brain to Tribe. Design is the last thing I have to worry about, thanks to Tribe."',
       variant: 'trail',
     },
     {
@@ -172,7 +172,7 @@ const {
       variant: 'trail',
     },
   ],
-  seeAllLabel = 'See all',
+  seeAllLabel = 'Read More Testimonials',
   seeLessLabel = 'See less',
 } = Astro.props;
 
@@ -480,9 +480,12 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
 
 <style>
   .tm {
+    /* Project body face rather than the Figma display cut. */
+    font-family: var(--font-body);
+
     /* One knob for the open note's width. The note's inner wrapper is pinned
        to the same value so the copy never re-wraps mid-animation. */
-    --tm-note-w: min(38vw, 34rem);
+    --tm-note-w: min(38vw, 42rem);
 
     /* --- Quote-grid geometry ---------------------------------------------
        Three numbers the grid's spacing is derived from rather than guessed at,
@@ -762,16 +765,18 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     padding: clamp(1.25rem, 2.4vw, 2.25rem) clamp(1.25rem, 2.2vw, 2rem);
   }
 
+  /* Full panel width — a 20ch / 46ch cap left short, uneven lines in a
+     column that still had room. `pretty` (from `p`) keeps orphans in check
+     without `balance` rewriting the breaks. */
   .tm__headline {
-    max-width: 20ch;
+    width: 100%;
     font-size: clamp(1.125rem, 1.9vw, 1.75rem);
     line-height: 1.28;
     letter-spacing: -0.015em;
-    text-wrap: balance;
   }
 
   .tm__quote {
-    max-width: 46ch;
+    width: 100%;
     margin: auto 0 0;
     font-size: var(--text-body);
     line-height: 1.62;
@@ -937,7 +942,6 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
   }
 
   .tm__spot-copy .tm__headline {
-    max-width: none;
     font-size: clamp(1.25rem, 5.4vw, 1.75rem);
     line-height: 1.22;
   }
@@ -1060,6 +1064,13 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     display: block;
   }
 
+  /* Room for the fade and the button to sit under the quotes rather than
+     on them. The overlay is pinned to the block's foot, so without this it
+     starts halfway up the cards and the copy reads as truncated. */
+  :global(html[data-js='true']) [data-tm-more]:not([data-open]) .tm__grid {
+    padding-bottom: clamp(6rem, 12vw, 9rem);
+  }
+
   /* The blur, laid over the foot of the block rather than applied to the cards.
 
      `backdrop-filter` on an overlay, not `filter` on the row: a filter blurs
@@ -1079,19 +1090,12 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     opacity: 1;
     transition: opacity 0.4s var(--ease-out-expo);
     position: absolute;
-    /* Over the foot of the first row, which is the row it is asking about.
-
-       Taller than it was — 12rem at the floor and 19rem at the cap, up from 8
-       and 13. The band is where the row goes to nothing, so its height is how
-       long that takes: at 208px on a desktop the card was still fully legible
-       a line above the button and then gone, which reads as a panel laid over
-       the text rather than as the column fading out.
-
-       Both ends move, and the floor is the one that matters on a phone: 15vw
-       of 375 is 56px, so mobile never saw the fluid value at all — it sat on
-       the floor, and raising it is the only way the band grows there. */
+    /* Over the foot of the first row, which is the row it is asking about. */
     inset: auto 0 0;
-    height: clamp(12rem, 22vw, 19rem);
+    /* Short enough that the first row's quotes stay readable. The collapsed
+       grid also grows a foot of padding below so this band sits on the card
+       feet and the button, not on the copy. */
+    height: clamp(8rem, 16vw, 13rem);
     backdrop-filter: blur(7px);
     background: linear-gradient(
       to bottom,
@@ -1209,6 +1213,14 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     text-wrap: balance;
   }
 
+  /* The 18ch measure is a marquee-card idea: a short title next to a
+     hanging portrait. In the grid the column *is* the measure, so the same
+     cap left a strip of empty card to the right of every headline — and
+     the quote under it looked like it was sitting in a half-used box. */
+  .tm__grid .tm__quote-headline {
+    max-width: none;
+  }
+
   .tm__quote-text {
     margin: 0;
     font-size: 0.9375rem;
@@ -1243,13 +1255,16 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
     object-fit: cover;
   }
 
-  /* Keep the copy clear of the portrait it overlaps */
-  .tm__quote-card--lead .tm__quote-who {
+  /* Keep the copy clear of the portrait it overlaps — and only then.
+     The gutter used to live on the variant itself, so a trail card
+     without a photo (or a lead card whose portrait had not been supplied)
+     still reserved a 12rem column and the quote never filled the card. */
+  .tm__quote-card--lead:has(.tm__quote-portrait) .tm__quote-who {
     padding-right: clamp(7.5rem, 14vw, 12rem);
     min-height: clamp(3rem, 5vw, 4.5rem);
   }
 
-  .tm__quote-card--trail .tm__quote-text {
+  .tm__quote-card--trail:has(.tm__quote-portrait) .tm__quote-text {
     padding-right: clamp(7.5rem, 14vw, 12rem);
   }
 
@@ -1370,8 +1385,8 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
       --tm-quote-stagger: 0px;
     }
 
-    .tm__quote-card--lead .tm__quote-who,
-    .tm__quote-card--trail .tm__quote-text {
+    .tm__quote-card--lead:has(.tm__quote-portrait) .tm__quote-who,
+    .tm__quote-card--trail:has(.tm__quote-portrait) .tm__quote-text {
       padding-right: 0;
       min-height: 0;
     }

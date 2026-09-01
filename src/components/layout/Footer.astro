@@ -45,12 +45,12 @@ const {
 
 <footer class="ft">
   <div class="ft__inner u-container">
-    <div class="ft__brand">
-      <p class="ft__wordmark">{wordmark}</p>
-      <p class="ft__tagline">{tagline}</p>
-    </div>
-
     <div class="ft__cols">
+      <div class="ft__brand">
+        <p class="ft__wordmark">{wordmark}</p>
+        <p class="ft__tagline">{tagline}</p>
+      </div>
+
       <nav class="ft__nav" aria-label="Footer">
         <ul>
           {
@@ -82,14 +82,20 @@ const {
 <style>
   .ft {
     background: var(--color-bg-footer);
-    color: var(--color-ink);
+    color: var(--color-ink-invert);
   }
 
   .ft__inner {
     padding-block: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 3vw, 2.5rem);
   }
 
-  /* --- Brand --------------------------------------------------------------- */
+  /* --- Brand ---------------------------------------------------------------
+     Sits on the left of the columns row; nav + contact stay grouped on the
+     right via margin-right: auto on this block. */
+  .ft__brand {
+    margin-right: auto;
+  }
+
   .ft__wordmark {
     font-size: clamp(2rem, 5.2vw, 4.25rem);
     font-weight: 400;
@@ -105,20 +111,18 @@ const {
     padding-left: 0.15em;
     font-size: var(--text-body);
     line-height: 1.5;
-    color: var(--color-ink-secondary);
+    color: var(--color-ink-muted);
   }
 
   /* --- Columns -------------------------------------------------------------
-     Pushed to the right, with the whole left side left open — as in the
-     reference frame. */
+     Brand on the left, nav + contact grouped on the right. */
   .ft__cols {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     justify-content: flex-end;
     gap: clamp(2rem, 6vw, 7rem);
-    margin-top: clamp(1.75rem, 3.5vw, 3rem);
     padding-top: clamp(1.75rem, 3.5vw, 3rem);
-    border-top: 1px solid var(--color-line);
   }
 
   .ft__nav ul {
@@ -155,11 +159,8 @@ const {
   }
 
   /* --- CTA -----------------------------------------------------------------
-     Same shape and hover mechanic as every other CTA on the page (see
-     Hero.astro's .btn) — dark fill, white label, a light fill sweeping up on
-     hover. The footer used to run the inverse of that (light on dark) because
-     its ground was dark; now that the ground is the page's own cream, this
-     button is the ordinary one, not a special case. */
+     Inverse of Hero.astro's .btn: the footer ground is dark, so this starts
+     white-on-ink and a dark fill sweeps up on hover. */
   .ft__cta {
     position: relative;
     display: inline-flex;
@@ -169,8 +170,8 @@ const {
     padding: 0.8125rem 1.75rem;
     border-radius: 0.5rem;
     overflow: hidden;
-    background: var(--color-ink);
-    color: var(--color-ink-invert);
+    background: var(--color-ink-invert);
+    color: var(--color-ink);
     font-family: var(--font-display);
     font-size: 0.75rem;
     font-weight: 500;
@@ -183,7 +184,7 @@ const {
   .ft__cta-fill {
     position: absolute;
     inset: 0;
-    background: var(--color-bg-primary);
+    background: var(--color-ink);
     transform: scaleY(0);
     transform-origin: bottom center;
     transition: transform 0.55s var(--ease-out-expo);
@@ -196,7 +197,7 @@ const {
 
   .ft__cta:hover,
   .ft__cta:focus-visible {
-    box-shadow: inset 0 0 0 1px var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-ink-invert);
   }
 
   .ft__cta:hover .ft__cta-fill,
@@ -206,14 +207,14 @@ const {
 
   .ft__cta:hover .ft__cta-label,
   .ft__cta:focus-visible .ft__cta-label {
-    color: var(--color-ink);
+    color: var(--color-ink-invert);
   }
 
   /* --- Legal --------------------------------------------------------------- */
   .ft__legal {
     margin-top: clamp(1.75rem, 3.5vw, 3rem);
     padding-top: clamp(1.25rem, 2.4vw, 2rem);
-    border-top: 1px solid var(--color-line);
+    border-top: 1px solid color-mix(in srgb, var(--color-ink-invert) 14%, transparent);
     font-size: 0.8125rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -231,6 +232,11 @@ const {
     .ft__cols {
       justify-content: flex-start;
       gap: clamp(1.75rem, 8vw, 2.75rem);
+    }
+
+    .ft__brand {
+      flex: 1 1 100%;
+      margin-right: 0;
     }
 
     .ft__contact {

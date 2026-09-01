@@ -36,11 +36,9 @@ import Footer from '../components/layout/Footer.astro';
     other) and drives every handover as phases of the same extended pin:
       hero → Overclock       pixel reveal, scattered, in Overclock's ground
                               colour — then the layer swaps in behind it
-      Overclock holds
-      Overclock → the page   pixel reveal, scattered, in the ground colour of
-                              the section below the scene — so the pin ends on
-                              a screen that is already that section's colour
-                              and hands over with no seam
+      Overclock → Our work   the same arrival: Overclock recedes, a cream
+                              field scatters, then Our work fades in on it.
+                              The pin ends as that finishes.
     Without JS — or with reduced motion — the chapters stay in normal flow and
     read top to bottom, no pin, no crossfades.
   */}
@@ -101,11 +99,12 @@ import Footer from '../components/layout/Footer.astro';
   <div data-scene-after aria-hidden="true"></div>
 
   {/*
-    First out of the scene. Outside it on purpose: the pin ends with the scene,
-    so the handover into this is plain document scroll — no pin, no crossfade,
-    no scrub (explicit direction). What covers the join is the exit field
-    above, laid in this section's own ground colour — which is why this section
-    and the one below it share `--color-bg-twoways`.
+    First out of the scene. Outside it on purpose: it is taller than one
+    viewport once a row is open, so it cannot live as a stacked layer. The
+    handover into it is the same arrival as hero → Overclock — cream tiles,
+    then this section fading in on that field — driven by src/scripts/hero.ts,
+    which parks it over the viewport for that step. After the pin, it scrolls
+    as itself.
 
     Its reveal and its accordion live in src/scripts/workCategories.ts. The
     per-category artwork is not in yet; see the component's docstring for where

@@ -27,13 +27,13 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  *                                         in random order, then the layer
  *                                         swaps in behind the finished field,
  *                                         same colour, no seam.
- *              C. Overclock → the page    the same field again, in the ground
- *                                         colour of the section below the
- *                                         scene. The pin ends as it finishes,
- *                                         and the scene is hidden in the same
- *                                         frame — the field is already that
- *                                         section's colour, so there is no
- *                                         seam to see.
+ *              C. Overclock → Our work    the same arrival as B: Overclock
+ *                                         recedes (copy up, ground zooms), a
+ *                                         field of tiles in Our work's cream
+ *                                         lands in random order, then that
+ *                                         section swaps in on top of the
+ *                                         finished field — same colour, no
+ *                                         seam. The pin ends as it finishes.
  *
  *            One scroll plays one of those end to end and lands on the chapter
  *            after it; anything that arrives while one is playing is swallowed.
@@ -176,6 +176,11 @@ export function initHero(): () => void {
      no siblings — a sibling lookup returns null on any run where the pin
      already exists, and then the exit field gets built and never animated. */
   const afterScene = document.querySelector<HTMLElement>('[data-scene-after]');
+  /* Our work sits outside the scene (it has to, so it can scroll at its own
+     height after the pin). During the last step it is pinned over the
+     viewport like a scene layer so it can fade in on the cream field the
+     same way Overclock fades in on its own. */
+  const workSection = document.querySelector<HTMLElement>('[data-cat]');
 
   if (scene && overclockLayer && stage) {
     // Every width. This used to be desktop-only because the hero and Showcase
@@ -294,13 +299,54 @@ export function initHero(): () => void {
       /* Called when the scroll crosses back up over the pin's end — see the
          trigger's onEnterBack, and `stepBackIn` where it is defined. */
       let enterBack: (() => void) | undefined;
-      let releasedAt = 0;
+      /* Declared before the trigger: onLeave/onEnterBack close over them, and
+         the trigger refreshes as it is created. */
+      let step = 0;
+      let busy = false;
+
+      /* Our work is not a scene layer — it lives in the page so it can be
+         taller than one viewport once the pin is over. For the arrival it
+         has to occupy the same box the Overclock layer does, so it is
+         parked over the viewport for the length of that step and released
+         the moment the scene is marked done. */
+      const WORK_OVERLAY = {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        zIndex: 6,
+        overflow: 'hidden',
+        margin: 0,
+      } as const;
+
+      const overlayWork = (visible: boolean) => {
+        if (!workSection) return;
+        gsap.set(workSection, { ...WORK_OVERLAY, autoAlpha: visible ? 1 : 0 });
+      };
+
+      const releaseWork = () => {
+        if (!workSection) return;
+        gsap.set(workSection, {
+          clearProps: 'position,top,left,right,bottom,width,zIndex,overflow,margin,pointerEvents',
+          autoAlpha: 1,
+        });
+      };
 
       const setSceneDone = (done: boolean) => {
         if (done) {
-          handover?.progress(1);
+          /* Snapping the timeline to 1 while the exit is still playing is
+             the missing handover: the field never lands, the scene hides, and
+             Our work is just there. The tween marks this itself when it
+             finishes. */
+          if (!busy) handover?.progress(1);
+          releaseWork();
           scene.setAttribute('data-scene-done', '');
         } else {
+          /* Cover the scene with Our work before it is shown again, or
+             Overclock flashes through for a frame. */
+          if (step >= STEPS) overlayWork(true);
           scene.removeAttribute('data-scene-done');
         }
       };
@@ -360,15 +406,19 @@ export function initHero(): () => void {
              either side of this; it is only being told where it was always
              heading. */
           onLeave: () => {
+            /* The last step plays the exit field first and only then moves
+               the scroll to the pin's end. If this fires while that tween is
+               still running, snapping the timeline to 1 is what cut the
+               handover to a hard join with Our work. Leave the tween to
+               finish; it marks the scene done itself. */
+            if (busy && step >= STEPS) return;
             setSceneDone(true);
-            releasedAt = performance.now();
           },
-          onEnterBack: () => {
+          onEnterBack: (self) => {
             /* iOS rubber-bands a few pixels back over the pin's end the
-               instant it releases. That is not a request to restore Overclock,
-               and treating it as one is the freeze after the case study:
-               the scene comes back, eats the next swipe, and sits there. */
-            if (performance.now() - releasedAt < 480) {
+               instant it releases. That is not a request to restore Overclock.
+               A real swipe up from Our work overshoots by more than a bounce. */
+            if (self.end - self.scroll() < 40) {
               setSceneDone(true);
               return;
             }
@@ -640,7 +690,14 @@ export function initHero(): () => void {
           handover.fromTo(
             arriving,
             { autoAlpha: 0 },
-            { autoAlpha: 1, ease: 'none', duration: fade },
+            {
+              autoAlpha: 1,
+              ease: 'none',
+              duration: fade,
+              /* Overclock is already hidden by CSS; Our work is in the page
+                 and must stay visible until this phase actually starts. */
+              immediateRender: false,
+            },
             swapAt,
           );
           // Tied to the swap, not to the end of the phase: the layer is fully
@@ -654,52 +711,56 @@ export function initHero(): () => void {
 
       addArrival(overclockLayer, atOverclockArrival, durOverclockArrival, 'overclock');
 
-      /* --- The way out ------------------------------------------------------
-         Same mechanic as the way between chapters, and in the same timeline:
-         Overclock holds still while the field lands on it, exactly as every
-         chapter before it did. Run on a trigger of its own, outside the pin,
-         the field scattered over a section that was already sliding out of
-         frame — the section moving and the effect playing at once.
+      /* --- Overclock → Our work -------------------------------------------
+         Same arrival as hero → Overclock, not a cut onto the page. Overclock
+         recedes the way the hero does (copy up, ground zooms), the cream
+         field scatters over it, then Our work fades in on that field.
 
-         No `addArrival`: the field is not covering for a layer about to swap
-         in. It is the last thing the scene paints, and once it has, the pin is
-         over and the scene is hidden — see the trigger's onLeave, and the pull
-         that puts the next section exactly where the scene was. */
+         Our work is not a scene layer — see overlayWork. It is parked over
+         the viewport for this phase so addArrival can treat it like one, and
+         released when the scene is marked done. */
+
+      const ocText = overclockLayer.querySelector<HTMLElement>('[data-chapter-text]');
+      const ocGround = overclockLayer.querySelector<HTMLElement>('.project__ground');
+
+      if (ocText) {
+        handover.to(
+          ocText,
+          { opacity: 0, y: -40, ease: 'power1.in', duration: durExitReveal * 0.35 },
+          atExitReveal,
+        );
+      }
+      if (ocGround) {
+        handover.to(
+          ocGround,
+          { scale: 1.22, ease: 'power1.in', duration: durExitReveal, transformOrigin: '50% 50%' },
+          atExitReveal,
+        );
+      }
+
+      if (workSection) {
+        /* Just after Overclock's rest, not on it — landing on Overclock is
+           progress === atExitReveal, and a set there would park Our work
+           over the viewport for the whole time that chapter is on screen. */
+        handover.set(workSection, { ...WORK_OVERLAY, autoAlpha: 0 }, atExitReveal + 1e-4);
+        addArrival(workSection, atExitReveal, durExitReveal, 'exit');
+      } else {
+        addTileReveal('exit', atExitReveal, durExitReveal);
+      }
 
       /** Where in the exit phase the scene stops being painted at all.
 
-       *  It is a cut, not a fade. Everything before it is the field landing;
-       *  at it, the scene goes and the section under it is simply what is
-       *  there. 0.86 because that is where the scatter finishes — see below —
-       *  so what is on screen at the moment of the cut is a complete field and
-       *  nothing else. */
-      const EXIT_CUT_AT = 0.86;
+       *  It is a cut, not a fade, and it waits until Our work has finished
+       *  fading in on the field — REVEAL_DONE, the same moment Overclock
+       *  itself is fully on screen after its own arrival. Cutting any
+       *  earlier hides the tiles while Our work is still coming in, and
+       *  the cream field is gone before the section that matches it is
+       *  opaque. */
+      const EXIT_CUT_AT = REVEAL_DONE;
 
       /** Where that cut falls on the whole timeline, rather than within its own
        *  phase — see stepBackIn, which has to land just short of it. */
       const exitCut = atExitReveal + durExitReveal * EXIT_CUT_AT;
-
-      /* The scatter gets the whole phase now, not 55% of it.
-
-         It used to get 55% and the scene then cross-faded out over the
-         remaining 45%. That fade is what put two chapters on screen together:
-         for a third of a viewport of scroll the scene sat at a low opacity
-         with Overclock still legible through the thinning tiles while the next
-         section's rows were already crisp underneath. Reported twice, and both
-         times the complaint was the same — the transition had not finished but
-         the section below was already up.
-
-         There is nothing to fade to. The exit field is painted in the next
-         section's own ground colour (see the note in WorkCategories.astro), so
-         a complete field and that section's empty ground are the same flat
-         colour. Cutting between them shows no seam, which is what makes the
-         fade unnecessary rather than merely unwanted.
-
-         The scatter ends at 0.86 of whatever duration it is given — 0.72 of it
-         staggering the tiles in, plus the 0.14 the last tile takes to arrive —
-         so handing it the whole phase puts the finished field exactly at the
-         cut. */
-      addTileReveal('exit', atExitReveal, durExitReveal);
 
       /* And then the scene is gone, in one frame.
 
@@ -816,8 +877,6 @@ export function initHero(): () => void {
        *  scrolls come in well under this. */
       const THRESHOLD = 8;
 
-      let step = 0;
-      let busy = false;
       let idleAt = 0;
       let stepTween: gsap.core.Tween | null = null;
       /* A finger is down. iOS will not honour scrollTo until it lifts, and
@@ -873,10 +932,24 @@ export function initHero(): () => void {
         const next = Math.min(STEPS, Math.max(0, target));
         if (next === step) return;
 
-        step = next;
+        /* Only one chapter at a time. Native momentum through the pin used to
+           ask for hero from Overclock in a single leap, and `progress()` would
+           cut there with nothing in between. */
+        const from = step;
+        const clamped = next > step ? step + 1 : step - 1;
+        const goingOut = clamped === STEPS;
+
+        if (clamped < STEPS) setSceneDone(false);
+        if (from === STEPS && clamped === STEPS - 1) {
+          handover.progress(Math.min(handover.progress(), exitCut - 0.001));
+        }
+
+        step = clamped;
         busy = true;
         stepTween?.kill();
-        setChapterFilms(step);
+        /* Keep Overclock's film running under the exit field — there is no
+           chapter at STEPS, and pausing it mid-handover flashes a still. */
+        setChapterFilms(Math.min(step, STEPS - 1));
 
         /* The timeline and the scroll are two separate animations of the same
            length rather than one driving the other — which is the whole point
@@ -890,13 +963,25 @@ export function initHero(): () => void {
           ease: 'power2.inOut',
           overwrite: true,
           onComplete: () => {
+            /* Last step: jump to the pin's end while Our work is still
+               parked over the viewport, then release it into flow and hide
+               the scene. Releasing first leaves a frame of the pin spacer
+               showing through; scrolling first while `busy` is still true
+               is what stops onLeave from hiding the scene mid-jump. */
+            if (step >= STEPS) {
+              scrollToRest(STEPS, true);
+              setSceneDone(true);
+            }
             busy = false;
             idleAt = performance.now();
             getLenis()?.start();
           },
         });
 
-        scrollToRest(step);
+        /* Do not move the scroll to the pin's end until the field has landed.
+           Jumping there at the start is what fired onLeave mid-tween, hid the
+           scene, and left Overclock → Our work with no handover at all. */
+        if (!goingOut) scrollToRest(step);
       };
 
       const scrollToRest = (index: number, immediate = false) => {
@@ -958,18 +1043,34 @@ export function initHero(): () => void {
       const owns = (direction: number) =>
         inScene() && !(direction > 0 && step >= STEPS) && !(direction < 0 && step <= 0);
 
-      const advance = (direction: number, event: Event) => {
-        if (!inScene()) return;
+      /** Cancel native scroll so a chapter change can play.
+       *
+       *  `owns` is false going forward once the last step has started, because
+       *  that swipe is how the reader leaves. While the exit field is still
+       *  playing, though, native scroll would race the tween, fire onLeave,
+       *  and cut to Our work with the field never seen. Catch until `busy`
+       *  clears; after that the page is theirs. */
+      const catching = (direction: number) => {
+        if (busy) return !(direction < 0 && step <= 0);
+        return owns(direction);
+      };
 
-        // Mid-step, or in the moment after one: eaten, so the gesture cannot
-        // stack up. Still cancelled, or the page would scroll under the pin.
-        // Not cancelled once the last step has started: that swipe is the
-        // way onto the page, and eating it for the rest of the 1.45s tween
-        // is the freeze after Overclock.
+      const holdPin = () => {
+        if (!busy || !isTouch()) return;
+        /* Last step holds Overclock's rest until the field has landed. Any
+           other step holds the rest it is travelling to. */
+        const index = step >= STEPS ? STEPS - 1 : step;
+        window.scrollTo({ top: restScroll(index), left: 0, behavior: 'auto' });
+      };
+
+      const advance = (direction: number, event: Event) => {
+        if (!inScene() && !busy) return;
+
         if (busy || performance.now() - idleAt < COOLDOWN) {
-          if (owns(direction)) {
+          if (catching(direction)) {
             event.preventDefault();
             event.stopPropagation();
+            holdPin();
           }
           return;
         }
@@ -994,7 +1095,23 @@ export function initHero(): () => void {
         'wheel',
         (event: WheelEvent) => {
           if (Math.abs(event.deltaY) < THRESHOLD) return;
-          advance(event.deltaY > 0 ? 1 : -1, event);
+          const direction = event.deltaY > 0 ? 1 : -1;
+          if (
+            direction < 0 &&
+            step >= STEPS &&
+            !busy &&
+            st &&
+            st.scroll() > st.end &&
+            st.scroll() <= st.end + stepLength()
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            setSceneDone(false);
+            handover.progress(Math.min(handover.progress(), exitCut - 0.001));
+            goToStep(STEPS - 1);
+            return;
+          }
+          advance(direction, event);
         },
         listen,
       );
@@ -1013,27 +1130,46 @@ export function initHero(): () => void {
       window.addEventListener(
         'touchmove',
         (event: TouchEvent) => {
-          if (!inScene()) return;
-
           const y = event.touches[0]?.clientY ?? 0;
           const delta = touchY - y;
           if (Math.abs(delta) < 2) return;
 
           const direction = delta > 0 ? 1 : -1;
 
+          /* A swipe that starts on Our work and re-enters the pin has already
+             committed to native scroll before `inScene` is true. Claim it as
+             soon as it is heading back in, or the momentum skips Overclock
+             and lands on the hero. */
+          const reentering =
+            direction < 0 &&
+            step >= STEPS &&
+            !!st &&
+            st.scroll() > st.end &&
+            st.scroll() <= st.end + stepLength();
+
+          if (!inScene() && !busy && !reentering) return;
+
           /* Claim the gesture on the first real move. iOS locks in a native
              scroll if the first `touchmove` is not cancelled, and after that
              `preventDefault` is ignored — which is how a swipe scrolled the
-             pin *and* advanced a step, then skipped the one in between.
-             Once the last step has started, `owns` is false going forward:
-             that is the page's gesture, and cancelling it is the freeze. */
-          if (owns(direction)) {
+             pin *and* advanced a step, then skipped the one in between. */
+          if (catching(direction) || reentering) {
             event.preventDefault();
             event.stopPropagation();
+            holdPin();
           }
 
           if (touchUsed || Math.abs(delta) < THRESHOLD * 2) return;
           if (busy || performance.now() - idleAt < COOLDOWN) return;
+
+          if (reentering) {
+            touchUsed = true;
+            setSceneDone(false);
+            handover.progress(Math.min(handover.progress(), exitCut - 0.001));
+            goToStep(STEPS - 1);
+            return;
+          }
+
           if (!owns(direction)) return;
 
           touchUsed = true;
@@ -1101,15 +1237,13 @@ export function initHero(): () => void {
         const at = ((st as ScrollTrigger).scroll() - (st as ScrollTrigger).start) / span;
         const where = Math.round(Math.min(1, Math.max(0, at)) * STEPS);
         if (where === step) return;
-        /* iOS often has not applied the programmatic scroll yet when the
-           exit lands. Snapping the timeline back to whatever rest the page
-           is still sitting on is Overclock returning on its own. Leave the
-           step where goToStep put it; the next native swipe will carry
-           the scroll the rest of the way. */
-        if (where < step && step >= STEPS) return;
-        step = where;
-        handover.progress(step / STEPS);
-        setChapterFilms(step);
+        /* After the exit, the page owns the scroll. Pulling the timeline back
+           from whatever rest iOS has not applied yet is Overclock returning
+           on its own; jumping from there to 0 is the snap to the hero. */
+        if (step >= STEPS) return;
+        /* One chapter, not a leap. Native momentum through the pin used to
+           round from Overclock's rest all the way to the hero. */
+        goToStep(where > step ? step + 1 : step - 1);
       };
 
       /* Coming back up out of the section below.

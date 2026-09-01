@@ -11,9 +11,10 @@ import { prefersReducedMotion } from './utils/device';
  *              like its neighbours — see `Hold` below for why this section is
  *              the exception.
  *
- *   reveal     a one-shot entrance the first time the section scrolls in —
- *              same contract as journal.ts / twoWays.ts: not scrubbed and
- *              `once: true`.
+ *   reveal     a one-shot entrance the first time the section scrolls in,
+ *              skipped when the scene hands this section in — that arrival
+ *              *is* the reveal. Same contract as journal.ts / twoWays.ts
+ *              on the reduced-motion / no-scene path.
  *
  *   accordion  clicking a row opens its strip and closes whichever was open.
  *              This half runs under reduced motion too — it is the section's
@@ -469,8 +470,15 @@ export function initWorkCategories(): () => void {
    * Not under reduced motion. Holding the scrollbar is the strongest thing on
    * this page and it is exactly what that preference is about — there, the
    * section is simply a section.
+   *
+   * Wait for the scene to finish handing over. hero.ts parks this section
+   * over the viewport for that arrival, and a pin that starts while it is
+   * still a layer is the freeze after Overclock.
    */
-  if (!reduced) {
+  const scene = document.querySelector<HTMLElement>('[data-scene]');
+
+  const startHold = () => {
+    if (reduced) return;
     const mm = gsap.matchMedia();
 
     /* Hover too: an iPhone in landscape is wider than 48rem, and a pin
@@ -496,14 +504,38 @@ export function initWorkCategories(): () => void {
     });
 
     cleanups.push(() => mm.revert());
+  };
+
+  if (!scene || scene.hasAttribute('data-scene-done')) {
+    startHold();
+  } else {
+    const holdWhenDone = new MutationObserver(() => {
+      if (!scene.hasAttribute('data-scene-done')) return;
+      holdWhenDone.disconnect();
+      startHold();
+      ScrollTrigger.refresh();
+    });
+    holdWhenDone.observe(scene, { attributes: true, attributeFilter: ['data-scene-done'] });
+    cleanups.push(() => holdWhenDone.disconnect());
   }
 
   // --- Reveal -------------------------------------------------------------
   // The CSS pre-reveal state is neutralised under the same query, so the
   // section already renders finished and a timeline here would only re-do it.
-  if (!reduced) {
-    const heading = section.querySelector<HTMLElement>('[data-cat-reveal]');
+  //
+  // When the scene hands this section in, that arrival *is* the reveal —
+  // the whole section fades in on the cream field, the way Overclock does.
+  // A second fade of the heading and rows on top of that would play after
+  // the section was already on screen, which is a different beat. Skip it
+  // there and show the list finished; keep the staggered entrance for the
+  // reduced-motion / no-scene path, where nothing else brings it in.
+  const heading = section.querySelector<HTMLElement>('[data-cat-reveal]');
+  const handedOff = !!scene && !reduced;
 
+  if (handedOff) {
+    if (heading) gsap.set(heading, { opacity: 1, y: 0 });
+    if (items.length) gsap.set(items, { opacity: 1, y: 0 });
+  } else if (!reduced) {
     const tl = gsap.timeline({
       defaults: { ease: 'power3.out' },
       scrollTrigger: { trigger: section, start: 'top 75%', once: true },
