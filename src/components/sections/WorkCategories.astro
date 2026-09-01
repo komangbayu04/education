@@ -7,7 +7,7 @@
  * here and that field has to change with it or the join is a visible band of
  * the wrong colour.
  *
- * A numbered list of eight categories, and two states on top of it:
+ * A numbered list of five categories, and two states on top of it:
  *
  *   hover  the row lights up — a near-white ground, and its content insets by
  *          the same amount on both sides — and a stack of three preview cards
@@ -20,15 +20,14 @@
  *          it, running off the right edge of the screen and scrolling
  *          horizontally. One row open at a time.
  *
- * Seven of the eight have their artwork: each has a folder under image/ named
- * for it, and every file in that folder becomes a tile in the category's strip
- * — four of them are also its hover deck. The counts live in the `work()` calls
- * below and the output names in tools/prep-images.mjs; the two agree on a
- * convention rather than on a list of filenames each.
+ * Each has a folder under image/ named for it, and every file in that folder
+ * becomes a tile in the category's strip — four of them are also its hover
+ * deck. The counts live in the `work()` calls below and the output names in
+ * tools/prep-images.mjs; the two agree on a convention rather than on a list
+ * of filenames each.
  *
- * Ads is the one left, and still points at the shared placeholders. A category
- * given neither still renders: silhouettes in the deck, PLACEHOLDER_TILES empty
- * frames in the strip.
+ * A category given neither still renders: silhouettes in the deck,
+ * PLACEHOLDER_TILES empty frames in the strip.
  *
  * Motion and the accordion live in src/scripts/workCategories.ts. Without JS
  * every strip is open, which is the whole content reachable by scroll alone.
@@ -92,21 +91,6 @@ interface Props {
   categories?: Category[];
   viewLabel?: string;
 }
-
-/* Still the placeholders, for the one category with no folder of its own in
-   image/ yet — Ads. The alt text says what they actually are: writing them up
-   as that category's work would be a caption that is not true yet. */
-const STACK_PLACEHOLDER = [
-  { src: '/media/work-hover-1', alt: 'Placeholder artwork' },
-  { src: '/media/work-hover-2', alt: 'Placeholder artwork' },
-  { src: '/media/work-hover-3', alt: 'Placeholder artwork' },
-];
-
-const STRIP_PLACEHOLDER = [
-  { src: '/media/work-shot-1', alt: 'Placeholder work sample' },
-  { src: '/media/work-shot-2', alt: 'Placeholder work sample' },
-  { src: '/media/work-shot-3', alt: 'Placeholder work sample' },
-];
 
 /** The deck's slots, rear to front — so the last one is the card on top. Its
  *  length is how many shots a category's deck takes off the front of its
@@ -192,19 +176,13 @@ const {
     },
     {
       number: '02',
-      label: 'Landing Page Design & Development',
-      href: '/work',
-      ...work('landing-page', 7, 'Landing page design', SITE_RATIO),
-    },
-    {
-      number: '03',
       label: 'Product Design',
       href: '/work',
       ...work('product-design', 5, 'Product design', SITE_RATIO),
     },
     {
-      number: '04',
-      label: 'Branding Design',
+      number: '03',
+      label: 'Brand Design',
       href: '/work',
       /* Seven of the nine exports are 16:9 and two are 8:5. One ratio per
          category, so the pair give up a sliver top and bottom to `cover`
@@ -212,7 +190,7 @@ const {
       ...work('branding-design', 9, 'Branding design', FILM_RATIO),
     },
     {
-      number: '05',
+      number: '04',
       label: 'Pitch Deck',
       href: '/work',
       ...work('pitch-deck', 8, 'Pitch deck', DECK_RATIO),
@@ -222,27 +200,13 @@ const {
        shot from several angles but nine separate pieces, so there is no
        running order for "the front of the strip" to mean. */
     {
-      number: '06',
-      label: 'Social Media',
+      number: '05',
+      label: 'Marketing Design',
       href: '/work',
-      ...work('social-media', 9, 'Social media design', SQUARE_RATIO, 20260818),
+      ...work('social-media', 9, 'Marketing design', SQUARE_RATIO, 20260818),
       /* Square, so it is sized to the height the landscape categories come out
          at rather than to their width. */
       boxScale: 0.63,
-    },
-    // No folder yet — see the placeholders above.
-    {
-      number: '07',
-      label: 'Ads',
-      href: '/work',
-      stack: STACK_PLACEHOLDER,
-      images: STRIP_PLACEHOLDER,
-    },
-    {
-      number: '08',
-      label: 'One-pagers',
-      href: '/work',
-      ...work('one-pagers', 4, 'One-pager design', SITE_RATIO),
     },
   ],
 } = Astro.props;

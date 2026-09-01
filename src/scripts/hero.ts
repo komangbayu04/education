@@ -9,19 +9,24 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  * Intro    — the video clips open from the bottom, headline lines unmask, aside
  *            rows fade up and their rules draw in.
  * Handover — the scene pins once (so nothing in it ever scrolls away on its
- *            own) and every transition across all three sections happens
- *            inside that one pin, one scroll at a time:
+ *            own) and every transition happens inside that one pin, one
+ *            scroll at a time. Showcase (Nerd Apply) is out of the page for
+ *            now, so the live sequence is two beats:
  *
  *              A. hero → Showcase        THE bespoke transition: pixel reveal
  *                                         spreading from the hero photo,
  *                                         photo pushes in, Showcase crossfades
  *                                         in late underneath the tiles.
- *              B. Showcase → Overclock    the same pixel language, scattered
- *                                         rather than spreading from a point:
- *                                         a field of tiles in Overclock's own
- *                                         ground colour lands in random order,
- *                                         then the layer swaps in behind the
- *                                         finished field, same colour, no seam.
+ *                                         Skipped while `[data-scene-next]` is
+ *                                         not in the page.
+ *              B. hero → Overclock        (or Showcase → Overclock, when A
+ *                                         runs) the same pixel language,
+ *                                         scattered rather than spreading from
+ *                                         a point: a field of tiles in
+ *                                         Overclock's own ground colour lands
+ *                                         in random order, then the layer
+ *                                         swaps in behind the finished field,
+ *                                         same colour, no seam.
  *              C. Overclock → the page    the same field again, in the ground
  *                                         colour of the section below the
  *                                         scene. The pin ends as it finishes,
@@ -38,21 +43,21 @@ import { isTouch, prefersReducedMotion } from './utils/device';
  *            The chapters used to have a dwell phase each — scroll room a
  *            finished chapter held the screen for. A stepped scene has no use
  *            for one: a chapter holds until the next scroll, however long that
- *            is. They are gone, and the three phases above are one viewport
- *            each.
+ *            is. They are gone, and each live phase is one viewport.
  *
  *            Bedford and CELPIP were chapters here until their case studies
- *            were ready; see index.astro for what putting them back involves.
+ *            were ready; Showcase is parked the same way. See index.astro for
+ *            what putting any of them back involves.
  *
- *            Chapter marker: 2 slots, NOT 3 — hero and Showcase share slot 1
- *            (an earlier explicit direction), so slot 2 = Overclock. See
- *            Timeline.astro's docstring for why this doesn't line up 1:1 with
- *            each section's own `data-chapter-section` index. Switching slots
- *            requires an `onUpdate` threshold check (not a single
- *            onLeave/onEnterBack) because the transition points are *internal*
- *            to one continuous pin, not pin boundaries — `setActiveChapter`
- *            no-ops once already on the target slot, so re-evaluating this on
- *            every scroll tick is cheap.
+ *            Chapter marker: 2 slots, NOT 3 — hero (and Showcase, when it is
+ *            in) share slot 1, so slot 2 = Overclock. See Timeline.astro's
+ *            docstring for why this doesn't line up 1:1 with each section's
+ *            own `data-chapter-section` index. Switching slots requires an
+ *            `onUpdate` threshold check (not a single onLeave/onEnterBack)
+ *            because the transition points are *internal* to one continuous
+ *            pin, not pin boundaries — `setActiveChapter` no-ops once already
+ *            on the target slot, so re-evaluating this on every scroll tick
+ *            is cheap.
  *
  *            Every phase length is in viewports (`VIEWPORTS` below); the pin
  *            is their sum, and every tween's position is a fraction of that
@@ -165,7 +170,7 @@ export function initHero(): () => void {
      already exists, and then the exit field gets built and never animated. */
   const afterScene = document.querySelector<HTMLElement>('[data-scene-after]');
 
-  if (scene && next && overclockLayer && stage) {
+  if (scene && overclockLayer && stage) {
     // Every width. This used to be desktop-only because the hero and Showcase
     // were content-height below 1200px and would have been clipped by a
     // viewport-tall pinned scene; both are one viewport at every width now
@@ -193,34 +198,12 @@ export function initHero(): () => void {
       // flat list (rather than named constants per phase) specifically so
       // adding a 6th section later is "add two more numbers here", not a
       // rewrite of the fraction math below.
-      const VIEWPORTS = {
-        heroToShowcase: 1,
-        /* The *Dwell phases are gone. They were the scroll a finished chapter
-           held the screen for before the next one swapped in, which is a thing
-           only a scrubbed scene needs: with the handover stepped rather than
-           scrubbed (see "Stepping" below) a chapter holds the screen until the
-           next scroll, however long that is, and a stretch of scroll that
-           schedules nothing is just distance to get through.
-
-           One viewport each now, and equal, so each step owns exactly one
-           screen of the pin and the scroll position and the step index stay in
-           step with each other without any arithmetic. */
-        overclockArrival: 1,
-        /* The way out, and it belongs in here: Overclock has to hold still
-           while the field lands on it, the same way every other chapter does.
-           Run outside the pin instead, the field scattered over a section that
-           was already sliding away — two things moving at once.
-
-           What used to make this phase unusable was the viewport of scroll
-           that followed it: the scene is a full screen tall, so the pin
-           releasing still left that screen — by then flat colour — to be
-           scrolled past before anything new arrived. That viewport is gone
-           now; the section below is pulled up over it (`data-scene-pulled`)
-           and the scene is hidden the moment the pin lets go, so the field
-           finishing and the next section being fully on screen are the same
-           moment. */
-        exitReveal: 1,
-      } as const;
+      //
+      // Showcase is optional: when `[data-scene-next]` is missing, the first
+      // scroll is hero → Overclock and the pin is one viewport shorter.
+      const VIEWPORTS = next
+        ? { heroToShowcase: 1, overclockArrival: 1, exitReveal: 1 }
+        : { overclockArrival: 1, exitReveal: 1 };
 
       const PIN_VIEWPORTS = Object.values(VIEWPORTS).reduce((a, b) => a + b, 0);
 
@@ -233,17 +216,17 @@ export function initHero(): () => void {
         return start;
       };
 
-      const atHeroToShowcase = at(VIEWPORTS.heroToShowcase);
+      const atHeroToShowcase = next ? at(1) : 0;
       const atOverclockArrival = at(VIEWPORTS.overclockArrival);
       const atExitReveal = at(VIEWPORTS.exitReveal);
       // cursor is now at the end of the pin: the exit reveal is the last phase
 
-      /** Rest points, one per phase boundary — 0, 1/3, 2/3, 1. Step 0 is the
-       *  hero, 1 is Nerd Apply, 2 is Overclock, 3 is the finished exit field,
-       *  which is also the end of the pin. */
+      /** Rest points, one per phase boundary. With Showcase: 0, 1/3, 2/3, 1
+       *  (hero, Nerd Apply, Overclock, exit). Without it: 0, 1/2, 1 (hero,
+       *  Overclock, exit). */
       const STEPS = Object.keys(VIEWPORTS).length;
 
-      const durHeroToShowcase = VIEWPORTS.heroToShowcase / PIN_VIEWPORTS;
+      const durHeroToShowcase = next ? 1 / PIN_VIEWPORTS : 0;
       const durOverclockArrival = VIEWPORTS.overclockArrival / PIN_VIEWPORTS;
       const durExitReveal = VIEWPORTS.exitReveal / PIN_VIEWPORTS;
 
@@ -396,59 +379,62 @@ export function initHero(): () => void {
       });
 
       // --- Phase A: hero → Showcase, the bespoke pixel reveal ------------------
-      handover.to(
-        textCols,
-        { opacity: 0, y: -40, ease: 'power1.in', duration: durHeroToShowcase * 0.35 },
-        atHeroToShowcase,
-      );
-
-      if (pixels) {
-        // Tile size tied to the hero photo's own baked squares (roughly an
-        // eighth of its width), spreading outward from its centre.
-        const size = Math.max(36, Math.round(stage.getBoundingClientRect().width / 8));
-        // +2 on each axis for the one-tile overspill the CSS insets rely on
-        const cols = Math.ceil(window.innerWidth / size) + 2;
-        const rows = Math.ceil(window.innerHeight / size) + 2;
-
-        pixels.style.setProperty('--px-size', `${size}px`);
-        pixels.style.setProperty('--px-cols', String(cols));
-
-        const frag = document.createDocumentFragment();
-        for (let i = 0; i < cols * rows; i++) {
-          const tile = document.createElement('span');
-          tile.className = 'scene__pixel';
-          frag.appendChild(tile);
-        }
-        pixels.replaceChildren(frag);
-
-        const c = pixels.getBoundingClientRect();
-        const s = stage.getBoundingClientRect();
-        const col = Math.floor((s.left + s.width / 2 - c.left) / size);
-        const row = Math.floor((s.top + s.height / 2 - c.top) / size);
-        const from = Math.min(cols * rows - 1, Math.max(0, row * cols + col));
-        const tiles = Array.from(pixels.children) as HTMLElement[];
-
-        // Each tile pops in over a short window of its own; the stagger
-        // spreads those windows across the phase, so they arrive one by one
-        // and the field is complete by ~82% of the way through it.
-        handover.fromTo(
-          tiles,
-          { scale: 0.55, opacity: 0 },
-          {
-            // Slightly over 1 so neighbours overlap instead of meeting on a
-            // fractional pixel boundary and letting the artwork behind show
-            // through as a hairline.
-            scale: 1.04,
-            opacity: 1,
-            duration: durHeroToShowcase * 0.22,
-            ease: 'power2.out',
-            stagger: { grid: [rows, cols], from, amount: durHeroToShowcase * 0.6 },
-          },
+      // Skipped while Showcase is out of the page. The hero still recedes on
+      // the first scroll — that motion is attached to Overclock's arrival
+      // below, so the photo does not sit still under the scatter.
+      if (next) {
+        handover.to(
+          textCols,
+          { opacity: 0, y: -40, ease: 'power1.in', duration: durHeroToShowcase * 0.35 },
           atHeroToShowcase,
         );
-      }
 
-      if (next) {
+        if (pixels) {
+          // Tile size tied to the hero photo's own baked squares (roughly an
+          // eighth of its width), spreading outward from its centre.
+          const size = Math.max(36, Math.round(stage.getBoundingClientRect().width / 8));
+          // +2 on each axis for the one-tile overspill the CSS insets rely on
+          const cols = Math.ceil(window.innerWidth / size) + 2;
+          const rows = Math.ceil(window.innerHeight / size) + 2;
+
+          pixels.style.setProperty('--px-size', `${size}px`);
+          pixels.style.setProperty('--px-cols', String(cols));
+
+          const frag = document.createDocumentFragment();
+          for (let i = 0; i < cols * rows; i++) {
+            const tile = document.createElement('span');
+            tile.className = 'scene__pixel';
+            frag.appendChild(tile);
+          }
+          pixels.replaceChildren(frag);
+
+          const c = pixels.getBoundingClientRect();
+          const s = stage.getBoundingClientRect();
+          const col = Math.floor((s.left + s.width / 2 - c.left) / size);
+          const row = Math.floor((s.top + s.height / 2 - c.top) / size);
+          const from = Math.min(cols * rows - 1, Math.max(0, row * cols + col));
+          const tiles = Array.from(pixels.children) as HTMLElement[];
+
+          // Each tile pops in over a short window of its own; the stagger
+          // spreads those windows across the phase, so they arrive one by one
+          // and the field is complete by ~82% of the way through it.
+          handover.fromTo(
+            tiles,
+            { scale: 0.55, opacity: 0 },
+            {
+              // Slightly over 1 so neighbours overlap instead of meeting on a
+              // fractional pixel boundary and letting the artwork behind show
+              // through as a hairline.
+              scale: 1.04,
+              opacity: 1,
+              duration: durHeroToShowcase * 0.22,
+              ease: 'power2.out',
+              stagger: { grid: [rows, cols], from, amount: durHeroToShowcase * 0.6 },
+            },
+            atHeroToShowcase,
+          );
+        }
+
         // Onto the finished pixel field — same colour, so the swap is
         // invisible.
         handover.fromTo(
@@ -464,26 +450,37 @@ export function initHero(): () => void {
         handover
           .set(next, { pointerEvents: 'none' }, atHeroToShowcase)
           .set(next, { pointerEvents: 'auto' }, atHeroToShowcase + durHeroToShowcase * 0.94);
-      }
 
-      // Eased in rather than linear so the zoom accelerates as the pixel field
-      // closes over it. Ends at the end of phase A and holds at 1.22 for the
-      // rest of the pin — the photo doesn't keep zooming once it's no longer
-      // the thing in focus.
-      handover.to(
-        stage,
-        { scale: 1.22, ease: 'power1.in', duration: durHeroToShowcase },
-        atHeroToShowcase,
-      );
-
-      // Counter-zoom on the arriving section: it settles to 1 exactly as the
-      // phase finishes, so the reveal has depth instead of being a flat wipe.
-      if (showcase) {
-        handover.fromTo(
-          showcase,
-          { scale: 1.06 },
-          { scale: 1, duration: durHeroToShowcase },
+        // Eased in rather than linear so the zoom accelerates as the pixel field
+        // closes over it. Ends at the end of phase A and holds at 1.22 for the
+        // rest of the pin — the photo doesn't keep zooming once it's no longer
+        // the thing in focus.
+        handover.to(
+          stage,
+          { scale: 1.22, ease: 'power1.in', duration: durHeroToShowcase },
           atHeroToShowcase,
+        );
+
+        // Counter-zoom on the arriving section: it settles to 1 exactly as the
+        // phase finishes, so the reveal has depth instead of being a flat wipe.
+        if (showcase) {
+          handover.fromTo(
+            showcase,
+            { scale: 1.06 },
+            { scale: 1, duration: durHeroToShowcase },
+            atHeroToShowcase,
+          );
+        }
+      } else {
+        handover.to(
+          textCols,
+          { opacity: 0, y: -40, ease: 'power1.in', duration: durOverclockArrival * 0.35 },
+          atOverclockArrival,
+        );
+        handover.to(
+          stage,
+          { scale: 1.22, ease: 'power1.in', duration: durOverclockArrival },
+          atOverclockArrival,
         );
       }
 
@@ -808,7 +805,7 @@ export function initHero(): () => void {
          nothing to recover from. */
       const stepLayers = [
         scene.querySelector<HTMLElement>('[data-scene-hero]'),
-        next,
+        ...(next ? [next] : []),
         overclockLayer,
       ];
 
