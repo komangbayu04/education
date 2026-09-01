@@ -319,4 +319,13 @@ import Footer from '../components/layout/Footer.astro';
     background: var(--color-bg-showcase);
     outline: 1px solid var(--color-bg-showcase);
   }
+
+  @media (max-width: 48rem) {
+    /* The hero film's canopy has to paint out of its row. Clip here was
+       the last box shearing the crown, even with overflow visible on the
+       stage itself. */
+    .scene[data-scene-mode='pinned'] {
+      overflow: visible;
+    }
+  }
 </style>

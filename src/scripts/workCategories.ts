@@ -473,7 +473,11 @@ export function initWorkCategories(): () => void {
   if (!reduced) {
     const mm = gsap.matchMedia();
 
-    mm.add('(min-width: 48rem)', () => {
+    /* Hover too: an iPhone in landscape is wider than 48rem, and a pin
+       waiting at the top of this section is the freeze after Overclock on
+       that orientation. The hold is for a trackpad flick carrying through
+       a short list, which a thumb does not do. */
+    mm.add('(min-width: 48rem) and (hover: hover)', () => {
       ScrollTrigger.create({
         trigger: section,
         start: 'top top',

@@ -125,12 +125,19 @@ export function initHero(): () => void {
   });
 
   if (base) {
-    tl.fromTo(
-      base,
-      { clipPath: 'inset(100% 0 0 0)' },
-      { clipPath: 'inset(0% 0 0 0)', duration: 1.4, ease: 'power3.inOut' },
-      0,
-    );
+    if (isTouch()) {
+      /* The phone cut's canopy sits above the sky-box. A clip-path, even
+         `inset(0%)`, shears it — so the intro does not clip on touch. */
+      gsap.set(base, { clipPath: 'none' });
+    } else {
+      tl.fromTo(
+        base,
+        { clipPath: 'inset(100% 0 0 0)' },
+        { clipPath: 'inset(0% 0 0 0)', duration: 1.4, ease: 'power3.inOut' },
+        0,
+      );
+      tl.set(base, { clipPath: 'none' }, 1.4);
+    }
   }
 
   if (title) {
@@ -287,6 +294,7 @@ export function initHero(): () => void {
       /* Called when the scroll crosses back up over the pin's end — see the
          trigger's onEnterBack, and `stepBackIn` where it is defined. */
       let enterBack: (() => void) | undefined;
+      let releasedAt = 0;
 
       const setSceneDone = (done: boolean) => {
         if (done) {
@@ -308,10 +316,17 @@ export function initHero(): () => void {
          thing that ever moves it is `goToStep`. */
       handover = gsap.timeline({ defaults: { ease: 'none' }, paused: true });
 
+      /* Length of one step, and of the pin. Taken off the scene itself
+         (100svh) rather than `window.innerHeight`: on iOS those diverge when
+         the URL bar shows or hides, and a pin measured in innerHeight against
+         a scene measured in svh is how a flick skipped Overclock or got stuck
+         on the hero — the rest points were not where the stepper thought. */
+      const stepLength = () => scene.offsetHeight || window.innerHeight;
+
       const st = ScrollTrigger.create({
           trigger: scene,
           start: 'top top',
-          end: () => `+=${window.innerHeight * PIN_VIEWPORTS}`,
+          end: () => `+=${stepLength() * PIN_VIEWPORTS}`,
           pin: true,
           anticipatePin: 1,
           /* No scrub. The handover is not tied to the scroll position any
@@ -344,8 +359,19 @@ export function initHero(): () => void {
              transition at all to look at. The scrub still owns the value
              either side of this; it is only being told where it was always
              heading. */
-          onLeave: () => setSceneDone(true),
+          onLeave: () => {
+            setSceneDone(true);
+            releasedAt = performance.now();
+          },
           onEnterBack: () => {
+            /* iOS rubber-bands a few pixels back over the pin's end the
+               instant it releases. That is not a request to restore Overclock,
+               and treating it as one is the freeze after the case study:
+               the scene comes back, eats the next swipe, and sits there. */
+            if (performance.now() - releasedAt < 480) {
+              setSceneDone(true);
+              return;
+            }
             setSceneDone(false);
             enterBack?.();
           },
@@ -540,10 +566,17 @@ export function initHero(): () => void {
         let builtRows = 0;
 
         const build = () => {
-          const size = Math.max(40, Math.round(window.innerWidth / 14));
+          /* Coarser on a phone: a 40px grid is ~280 tweens, and they all
+             start together as the pin releases — a long frame that reads as
+             the page freezing after Overclock. Larger tiles are the same
+             language with less work. Height comes off the scene (100svh),
+             not innerHeight, so the URL bar showing or hiding cannot change
+             the count and rebuild the field mid-scroll. */
+          const touch = isTouch();
+          const size = Math.max(touch ? 64 : 40, Math.round(window.innerWidth / (touch ? 9 : 14)));
           // +2 on each axis for the one-tile overspill the CSS insets rely on
           const cols = Math.ceil(window.innerWidth / size) + 2;
-          const rows = Math.ceil(window.innerHeight / size) + 2;
+          const rows = Math.ceil((scene.offsetHeight || window.innerHeight) / size) + 2;
           // Refreshes are frequent — every accordion click below calls one —
           // and almost none of them change the viewport. Rebuilding a few
           // hundred spans on each would be work for nothing.
@@ -770,8 +803,10 @@ export function initHero(): () => void {
          has to leave the reader standing at the end of it. Each step is worth
          exactly one viewport because every phase in VIEWPORTS is one viewport,
          which is why that list is equal now. */
-      /** Seconds one chapter change takes, whatever the gesture was. */
-      const STEP_SECONDS = 0.9;
+      /** Seconds one chapter change takes, whatever the gesture was.
+          Touch is slower: 0.9s reads as a cut on a phone, where a swipe is
+          one deliberate beat rather than a trackpad flick. */
+      const STEP_SECONDS = isTouch() ? 1.45 : 0.9;
       /** Ignored after a step lands. A trackpad keeps sending momentum events
        *  for some time after the fingers have left it, and without this the
        *  tail of one flick starts the next chapter the moment the last one
@@ -785,6 +820,12 @@ export function initHero(): () => void {
       let busy = false;
       let idleAt = 0;
       let stepTween: gsap.core.Tween | null = null;
+      /* A finger is down. iOS will not honour scrollTo until it lifts, and
+         `touchmove` fires many times per swipe — without these, one gesture
+         either stacks two chapters or native-scrolls through the pin. */
+      let touching = false;
+      let touchUsed = false;
+      let pendingRest: number | null = null;
 
       /* --- Chapter films -------------------------------------------------
          A chapter's film starts when you arrive at that chapter, not when the
@@ -851,23 +892,50 @@ export function initHero(): () => void {
           onComplete: () => {
             busy = false;
             idleAt = performance.now();
+            getLenis()?.start();
           },
         });
 
+        scrollToRest(step);
+      };
+
+      const scrollToRest = (index: number, immediate = false) => {
+        const y = restScroll(index);
         const lenis = getLenis();
-        if (lenis) {
-          /* `force`, because the reader's own scrolling is locked for the
-             length of the step and Lenis refuses a scrollTo while it is
-             stopped; `lock`, so nothing else can move the page underneath the
-             one that is running. */
-          lenis.scrollTo(restScroll(step), {
-            duration: STEP_SECONDS,
-            force: true,
-            lock: true,
-          });
-        } else {
-          window.scrollTo(0, restScroll(step));
+
+        /* iOS ignores programmatic scroll while a finger is down. Remember
+           where we need to be and apply it on touchend; doing it now would
+           no-op, leave the pin at the previous rest, and `resync` would snap
+           the timeline back — the "stuck on hero" case. */
+        if (touching) {
+          pendingRest = index;
+          return;
         }
+
+        pendingRest = null;
+
+        /* Native on touch. Lenis.scrollTo with `lock` preventDefaults every
+           subsequent swipe for the length of the tween, which is the freeze
+           after Overclock; even without lock, mixing it with a cancelled
+           touchmove leaves iOS native scrolling dead until the next gesture
+           settles. */
+        if (!lenis || isTouch()) {
+          window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+          return;
+        }
+
+        /* `force`, because the reader's own scrolling is locked for the
+           length of the step and Lenis refuses a scrollTo while it is
+           stopped; `lock`, so nothing else can move the page underneath the
+           one that is running. Immediate on touchend: the timeline has
+           already been playing during the swipe, and a second 0.9s scroll
+           would land late. */
+        lenis.scrollTo(y, {
+          duration: immediate ? 0 : STEP_SECONDS,
+          immediate,
+          force: true,
+          lock: !immediate,
+        });
       };
 
       /* Inside the pin, ends included — not `st.isActive`, which is false at
@@ -895,8 +963,11 @@ export function initHero(): () => void {
 
         // Mid-step, or in the moment after one: eaten, so the gesture cannot
         // stack up. Still cancelled, or the page would scroll under the pin.
+        // Not cancelled once the last step has started: that swipe is the
+        // way onto the page, and eating it for the rest of the 1.45s tween
+        // is the freeze after Overclock.
         if (busy || performance.now() - idleAt < COOLDOWN) {
-          if (owns(direction) || busy) {
+          if (owns(direction)) {
             event.preventDefault();
             event.stopPropagation();
           }
@@ -931,20 +1002,57 @@ export function initHero(): () => void {
       let touchY = 0;
       window.addEventListener(
         'touchstart',
-        (event: TouchEvent) => void (touchY = event.touches[0]?.clientY ?? 0),
+        (event: TouchEvent) => {
+          touchY = event.touches[0]?.clientY ?? 0;
+          touching = true;
+          touchUsed = false;
+        },
         { signal, passive: true, capture: true },
       );
 
       window.addEventListener(
         'touchmove',
         (event: TouchEvent) => {
+          if (!inScene()) return;
+
           const y = event.touches[0]?.clientY ?? 0;
           const delta = touchY - y;
-          if (Math.abs(delta) < THRESHOLD * 2) return;
-          advance(delta > 0 ? 1 : -1, event);
+          if (Math.abs(delta) < 2) return;
+
+          const direction = delta > 0 ? 1 : -1;
+
+          /* Claim the gesture on the first real move. iOS locks in a native
+             scroll if the first `touchmove` is not cancelled, and after that
+             `preventDefault` is ignored — which is how a swipe scrolled the
+             pin *and* advanced a step, then skipped the one in between.
+             Once the last step has started, `owns` is false going forward:
+             that is the page's gesture, and cancelling it is the freeze. */
+          if (owns(direction)) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+
+          if (touchUsed || Math.abs(delta) < THRESHOLD * 2) return;
+          if (busy || performance.now() - idleAt < COOLDOWN) return;
+          if (!owns(direction)) return;
+
+          touchUsed = true;
+          goToStep(step + direction);
         },
         listen,
       );
+
+      const endTouch = () => {
+        touching = false;
+        if (pendingRest === null) return;
+        const index = pendingRest;
+        pendingRest = null;
+        /* Next frame, not this one: iOS still treats scrollTo as a no-op
+           inside the touchend handler itself. */
+        requestAnimationFrame(() => scrollToRest(index, true));
+      };
+      window.addEventListener('touchend', endTouch, { signal, capture: true });
+      window.addEventListener('touchcancel', endTouch, { signal, capture: true });
 
       const KEYS: Record<string, number> = {
         ArrowDown: 1,
@@ -973,7 +1081,7 @@ export function initHero(): () => void {
          the one thing that survives all three — and the timeline is put where
          that position says it should be. */
       const syncFromScroll = () => {
-        if (!st) return;
+        if (!st || busy || touching) return;
         const span = st.end - st.start;
         const at = span > 0 ? (st.scroll() - st.start) / span : 0;
         step = Math.round(Math.min(1, Math.max(0, at)) * STEPS);
@@ -987,12 +1095,18 @@ export function initHero(): () => void {
          crossed into another step's screen, so the common case — a step
          landing exactly on its own rest point — costs a comparison. */
       resync = () => {
-        if (busy) return;
+        if (busy || touching) return;
         const span = st ? st.end - st.start : 0;
         if (span <= 0) return;
         const at = ((st as ScrollTrigger).scroll() - (st as ScrollTrigger).start) / span;
         const where = Math.round(Math.min(1, Math.max(0, at)) * STEPS);
         if (where === step) return;
+        /* iOS often has not applied the programmatic scroll yet when the
+           exit lands. Snapping the timeline back to whatever rest the page
+           is still sitting on is Overclock returning on its own. Leave the
+           step where goToStep put it; the next native swipe will carry
+           the scroll the rest of the way. */
+        if (where < step && step >= STEPS) return;
         step = where;
         handover.progress(step / STEPS);
         setChapterFilms(step);

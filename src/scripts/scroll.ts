@@ -1,6 +1,6 @@
 import Lenis from 'lenis';
 import { gsap, ScrollTrigger } from './gsap';
-import { prefersReducedMotion } from './utils/device';
+import { isTouch, prefersReducedMotion } from './utils/device';
 
 let lenis: Lenis | null = null;
 let rafHandler: ((time: number) => void) | null = null;
@@ -15,10 +15,18 @@ export function initScroll(): Lenis | null {
   // Reduced motion: leave the browser's native scrolling completely alone.
   if (prefersReducedMotion()) return null;
 
+  /* Touch too. Lenis with `syncTouch: false` still listens to every
+     touchmove, and `scrollTo({ lock: true })` — which the scene stepper
+     uses — preventDefaults the lot for the length of the tween. On a phone
+     that is the page freezing after Overclock: the exit has 1.45s left to
+     play, and nothing the thumb does moves the page until it ends. Native
+     scroll does not have that lock, and ScrollTrigger already listens to it. */
+  if (isTouch()) return null;
+
   lenis = new Lenis({
     duration: 1.2,
     easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    syncTouch: false, // native scroll on touch devices
+    syncTouch: false,
     touchMultiplier: 2,
   });
 

@@ -14,7 +14,7 @@ import { initTestimonials } from './testimonials';
 import { initJournal } from './journal';
 import { initFounderQuote } from './founderQuote';
 import { initPageTransition } from './pageTransition';
-import { debounce, prefersReducedMotion } from './utils/device';
+import { debounce, isTouch, prefersReducedMotion } from './utils/device';
 
 /**
  * Single entry point. Everything per-page is created inside a gsap.context()
@@ -84,9 +84,18 @@ document.addEventListener('astro:after-swap', () => {
 });
 
 // Layout shifts on resize invalidate every trigger's measurements.
+let viewportWidth = window.innerWidth;
 window.addEventListener(
   'resize',
   debounce(() => {
-    if (!prefersReducedMotion()) ScrollTrigger.refresh();
+    if (prefersReducedMotion()) return;
+    /* iOS fires resize when the URL bar shows or hides. Width does not
+       change; height does, by ~80px. Refreshing every pin and rebuilding the
+       scene's tile fields on that is a long frame right as the reader leaves
+       Overclock — the scroll freezes until the work finishes. */
+    const next = window.innerWidth;
+    if (isTouch() && next === viewportWidth) return;
+    viewportWidth = next;
+    ScrollTrigger.refresh();
   }, 200),
 );

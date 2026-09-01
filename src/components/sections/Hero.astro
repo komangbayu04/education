@@ -88,12 +88,12 @@ const {
               the copy, and on a phone that framing has nowhere to go. This one
               is cut portrait for it. */}
           <source
-            src="/media/hero-video-mobile.webm"
+            src="/media/hero-video-mobile.webm?v=2"
             type="video/webm"
             media="(max-width: 48rem)"
           />
           <source
-            src="/media/hero-video-mobile.mp4"
+            src="/media/hero-video-mobile.mp4?v=2"
             type="video/mp4"
             media="(max-width: 48rem)"
           />
@@ -196,6 +196,10 @@ const {
        painting unscaled however the scale was set. */
     --hero-media-x: -4px;
     --hero-media-y: -12px;
+    /* A short feather on the film's own left edge — enough that a bird is
+       not a hard slice, not so long that the canopy washes out. */
+    --hero-media-fade-from: 0%;
+    --hero-media-fade-to: 4%;
     --hero-copy-x: -28px;
     /* Was 38px, a downward nudge against the film. It is 0 because the copy is
        centred vertically now, and a nudge is the one thing that cannot survive
@@ -645,6 +649,20 @@ const {
        centre first, then move the result. */
     transform: translate(var(--hero-media-x), var(--hero-media-y)) scale(var(--hero-media-scale));
     transform-origin: 50% 50%;
+
+    /* On the film itself, not an overlay: the scale and shift above move this
+       box, so a gradient sitting on the stage would miss the edge the birds
+       actually arrive at. */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent var(--hero-media-fade-from),
+      #000 var(--hero-media-fade-to)
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent var(--hero-media-fade-from),
+      #000 var(--hero-media-fade-to)
+    );
   }
 
   /* --- Buttons ------------------------------------------------------------- */
@@ -749,117 +767,87 @@ const {
     .hero {
       --hero-pad-top: clamp(1rem, 3vw, 2rem);
       padding-bottom: clamp(1rem, 3vw, 2rem);
+      /* The recut already insets the tree inside the 402×874 frame. Fit the
+         whole frame; shrinking it further just stamps a complete picture. */
+      --hero-mobile-fit: 1;
     }
 
-    /* One column: the reserved track that keeps the copy clear of the tree is
-       a desktop concern. Here the video is contained against a much taller
-       viewport, so it sits as a band across the middle with clear page above
-       and below it, and the copy has the full width. */
     .hero__grid {
       grid-template-columns: minmax(0, 1fr);
-      align-content: space-between;
+      align-content: start;
+      height: auto;
+      position: relative;
+      z-index: 2;
     }
 
     .hero__col--text {
       grid-column: 1;
+      left: auto;
+      top: auto;
     }
 
-    /* Pinned to the foot of the column on the desktop row; here the column is
-       the section, and the auto margin still does the work. */
-    .hero__lede {
-      margin-top: auto;
-    }
-
-    /* And the elastic gaps stand down, because this layout does not have the
-       problem they solve: the phone stacks into one column that grows to fit
-       its copy rather than being pinned to one viewport, so nothing here gets
-       cut off. Leaving them in would also fight the auto margin above — an
-       auto margin claims the free space before flex-grow sees any of it, so
-       the gap would collapse to its min and simply add 24px. */
     .hero__gap {
       display: none;
     }
 
-    /* Back to filling the section, and centred in it. Seating the frame on the
-       floor is a desktop composition: there the copy is a column beside the
-       artwork, so the space the shorter box frees is above the video and
-       nothing is standing in it. Here the copy is the full width with
-       `space-between` holding its lede at the section's foot — a video pushed
-       down into that corner lands under the buttons. */
+    /* Full section. Do not put the film in a leftover row under the copy:
+       that box's top edge landed on the sky, and anything peeking above it
+       (the rounded crown) was sheared into a hard line, overflow:visible
+       or not — parents still clip. */
     .hero__stage {
+      position: absolute;
       inset: 0;
-      height: 100%;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+      z-index: 0;
+      will-change: auto;
+      container-type: size;
     }
 
-    /* Neither the growth nor the shift. Both are desktop-row moves: they exist
-       because the copy is a column beside the artwork and the pair can travel
-       together into the space on the left. Here the copy is the full width
-       with the video behind it, so shifting it sideways only pushes it out of
-       its own gutter, and scaling a frame that is already width-bound at this
-       size just crops it. */
-    .hero__video {
-      object-position: center;
-      transform: none;
+    .hero__zoom,
+    .hero__base {
+      overflow: visible;
+      will-change: auto;
     }
 
-    .hero__col--text {
-      left: auto;
-      top: auto;
-    }
-  }
-
-  @media (max-width: 48rem) {
-    /* The phone cut, seated on the section's floor and never reaching the copy.
-
-       The copy stands on this film rather than beside it, and it can only do
-       that because the film has a clear band at the top: measured off a decoded
-       frame, the top 44.4% of this cut is the same near-white as the section —
-       the tree does not begin until row 388 of 874. That band is the whole
-       licence for the overlay, and everything here exists to keep it under the
-       copy.
-
-       `cover` used to do the fitting, on the reasoning that its crop comes off
-       the top where the composition can afford it. That holds while the box is
-       the shape the file was cut for, and fails as the box gets wider: `cover`
-       sizes the frame by the box's WIDTH, so a wider box means a taller frame,
-       and every pixel of that extra height is taken off the top — out of the
-       band. At 731x1078 it scaled a 402x874 file to 731x1589, cropped 511px
-       off the top, and the canopy came up 141px into the body copy.
-
-       `contain` cannot do it either, on its own: it caps the frame at the box's
-       height, which keeps the band at 44.4% of the section, but on a short
-       screen the copy is taller than that — at 360x640 the copy runs to 49% and
-       the tree still reaches 31px into it.
-
-       So the height is capped by what is actually left under the copy. 22rem is
-       the copy's own measured height plus air (315px at 360 wide, 335px at 731,
-       and it barely moves between), and dividing the remainder by the 55.6% of
-       the frame the artwork occupies gives the tallest frame whose tree still
-       starts below the last button. Above roughly 830px of viewport the cap
-       stops binding and the film simply fills the section, which is every phone
-       held upright — so this changes nothing there and everything on the sizes
-       where the copy was being covered.
-
-       The poster follows the same rules, so the frame before the first decoded
-       frame is framed identically. */
-    .hero__video {
-      object-fit: contain;
-      object-position: 50% 100%;
-      height: min(100%, calc((100% - 22rem) * 1.8));
-      /* Same frame, same rule as the video over it. */
-      background-image: url('/media/hero-video-mobile-poster.webp');
-      background-size: contain;
-      background-position: 50% 100%;
-    }
-
-    /* Which leaves seating it. The video's box is shorter than the stage once
-       the cap bites, and a shorter box in an inset-0 parent sits at the top —
-       the film would float with its tree in mid-air. */
+    /* Size the element to the 402×874 frame fitted in the section, then
+       paint the film into that box. iOS Safari often ignores object-fit on
+       <video> and covers instead, which is another way the crown gets cut. */
     .hero__base {
       display: flex;
       align-items: flex-end;
       justify-content: center;
     }
+
+    .hero__video {
+      position: relative;
+      inset: auto;
+      width: min(
+        calc(100cqw * var(--hero-mobile-fit)),
+        calc(100cqh * 402 / 874 * var(--hero-mobile-fit))
+      );
+      height: min(
+        calc(100cqh * var(--hero-mobile-fit)),
+        calc(100cqw * 874 / 402 * var(--hero-mobile-fit))
+      );
+      max-width: 100%;
+      object-fit: fill;
+      object-position: 50% 100%;
+      transform: none;
+      -webkit-mask-image: none;
+      mask-image: none;
+      background-image: url('/media/hero-video-mobile-poster.webp?v=2');
+      background-size: 100% 100%;
+      background-position: 50% 100%;
+    }
+
+    :global(html[data-js='true']) .hero__base {
+      clip-path: none;
+    }
+  }
+
+  @media (max-width: 48rem) {
 
     /* --- The copy, as two blocks ---------------------------------------
        The headline and its tagline are one thing and the body and its
@@ -924,27 +912,21 @@ const {
       padding-top: 0.5rem;
     }
 
-    /* Bled past both gutters to the screen edges — the widest the frame can be
-       on a phone, and width is the dimension that decides its size now that the
-       artwork is landscape.
-
-       In flow, unlike the collage this replaces: that one was taken out of flow
-       so it could be as tall as the row allowed, which a 864 : 496 frame never
-       is. Keeping it in flow keeps its box exactly the video's own ratio, which
-       is what makes the reveal's clip-path open on the picture rather than on
-       empty letterbox. */
-    /* Nothing to bleed out to: the stage is absolutely positioned against the
-       section itself now, so it is already edge to edge at every width. */
-
-    /* Every pixel this block gives back goes to the artwork, which is the one
-       thing on this screen that is short of room: the hero is exactly one
-       viewport, so the picture's row is whatever the headline and these two
-       blocks leave. */
+    /* Every pixel this block gives back goes to the artwork: the hero is
+       exactly one viewport, so the film's row is whatever the copy leaves. */
     .hero__lede {
       gap: 0.75rem;
-      margin-bottom: 12px;
+      margin-bottom: 0.75rem;
     }
+  }
 
+  /* Short phones (Safari with the chrome up — iPhone 15 lands around 664svh).
+     The pad is the only room left to give the film; fitting is already handled
+     by max-height above. */
+  @media (max-width: 48rem) and (max-height: 720px) {
+    .hero {
+      --hero-pad-top: 0.5rem;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -954,7 +936,7 @@ const {
     }
 
     :global(html[data-js='true']) .hero__base {
-      clip-path: inset(0%);
+      clip-path: none;
     }
   }
 </style>

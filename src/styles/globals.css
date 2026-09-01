@@ -236,6 +236,13 @@ html.lenis body {
   overflow: hidden;
 }
 
+/* Menu open. Lenis's `stop()` does this on desktop via `.lenis-stopped`;
+   phones never create Lenis, so the attribute has to mean the same thing
+   on its own. */
+html[data-nav-open] {
+  overflow: hidden;
+}
+
 h1,
 h2,
 h3,
