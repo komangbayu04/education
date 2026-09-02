@@ -24,7 +24,6 @@ import Testimonials from '../components/sections/Testimonials.astro';
    src/components/sections/, and src/scripts/journal.ts already returns a
    no-op when it cannot find `[data-jr]`. Putting it back is this import and
    the block below. The nav "Blog" link comes back with it. */
-import FounderQuote from '../components/sections/FounderQuote.astro';
 import Footer from '../components/layout/Footer.astro';
 ---
 
@@ -81,7 +80,14 @@ import Footer from '../components/layout/Footer.astro';
         then the cream of Two ways in, and is still that cream now that Our work
         — categorized has come in above it — the two share the token, which is
         the only reason inserting a section here didn't move this. Get it wrong
-        and the join is a visible band of the wrong colour. */}
+        and the join is a visible band of the wrong colour.
+
+        Our work carries a full-bleed photograph over that cream now, so what
+        arrives on this field is the section's ground *and* its first category's
+        artwork. The field is still the right colour to land on — the wash over
+        every photograph is this same token — but the handover is a crossfade
+        onto artwork rather than onto a flat colour, the way Overclock arrives
+        on its own. */}
     <div class="scene__grid" data-scene-grid="exit" style="--grid-bg: var(--color-bg-twoways)" aria-hidden="true"></div>
   </div>
 
@@ -99,16 +105,18 @@ import Footer from '../components/layout/Footer.astro';
   <div data-scene-after aria-hidden="true"></div>
 
   {/*
-    First out of the scene. Outside it on purpose: it is taller than one
-    viewport once a row is open, so it cannot live as a stacked layer. The
-    handover into it is the same arrival as hero → Overclock — cream tiles,
-    then this section fading in on that field — driven by src/scripts/hero.ts,
-    which parks it over the viewport for that step. After the pin, it scrolls
-    as itself.
+    First out of the scene. Outside it on purpose: it runs to about eight
+    screens of its own, so it cannot live as a stacked layer inside it. The
+    handover into it is the same arrival as hero → Overclock — cream tiles, then
+    this section fading in on that field — driven by src/scripts/hero.ts, which
+    parks it over the viewport for that step. After the scene's pin it is
+    ordinary page, scrolled at whatever rate the reader scrolls.
 
-    Its reveal and its accordion live in src/scripts/workCategories.ts. The
-    per-category artwork is not in yet; see the component's docstring for where
-    it goes.
+    One category at a time, full screen, from the Figma "Animation" frame: a
+    sticky photograph per category with the copy scrolling in front of it. It
+    holds nothing — the scene's pin is the last thing on this page that takes
+    the scrollbar. The ground crossfade lives in
+    src/scripts/workCategories.ts; the sticking is the stylesheet's.
   */}
   <WorkCategories />
 
@@ -127,18 +135,15 @@ import Footer from '../components/layout/Footer.astro';
   <Clients />
 
   {/*
-    Chapter 8. Same plain-scroll treatment as the two sections above it. Its
-    hover accordion, the videos, and the quote grid's "See all" live in
-    src/scripts/testimonials.ts.
+    Chapter 8. Pins itself for a few screens: one film alone, then the title
+    over it, then a wall of testimonials that scrolls up under the title. The
+    scene, the silent previews and the lightbox live in
+    src/scripts/testimonials.ts. Without JS, or under reduced motion, it is a
+    title over a grid in ordinary flow.
   */}
   <Testimonials />
 
-  {/*
-    Chapter 10 and the footer. These two must stay adjacent: FounderQuote
-    dissolves its bottom edge into the footer's background colour with a band
-    of pixel squares, so anything placed between them would break that seam.
-  */}
-  <FounderQuote />
+  {/* Closing block. The founder quote lives inside the footer. */}
   <Footer />
 </Base>
 

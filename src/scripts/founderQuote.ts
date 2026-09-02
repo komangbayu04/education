@@ -2,16 +2,16 @@ import { gsap, ScrollTrigger } from './gsap';
 import { prefersReducedMotion } from './utils/device';
 
 /**
- * Founder quote (chapter 10) — a single one-shot reveal, fired the first time
- * the section scrolls into view.
+ * Footer quote — a single one-shot reveal, fired the first time the quote
+ * itself scrolls into view.
  *
  * Same contract as the other post-scene sections: not scrubbed, not pinned,
- * `once: true`.
+ * `once: true`. Triggered on the figure rather than the footer: the footer is
+ * tall (the overlay and the photograph) and firing from its top would start
+ * the tween before the copy is on screen.
  *
- * Only the copy and the portrait animate. The two pixel bands are deliberately
- * left static: the bottom one is the seam this section shares with the footer,
- * and animating a structural edge would read as the page still loading rather
- * than as an effect.
+ * Only the copy and the portrait animate. The overlay is a structural
+ * edge and stays static.
  *
  * Returns a cleanup function.
  */
@@ -26,9 +26,11 @@ export function initFounderQuote(): () => void {
   const items = gsap.utils.toArray<HTMLElement>('[data-quote-reveal]', section);
   if (!items.length) return () => {};
 
+  const trigger = section.querySelector<HTMLElement>('.ft__figure') ?? section;
+
   const tl = gsap.timeline({
     defaults: { ease: 'power3.out' },
-    scrollTrigger: { trigger: section, start: 'top 70%', once: true },
+    scrollTrigger: { trigger, start: 'top 80%', once: true },
   });
 
   tl.fromTo(items, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.9, stagger: 0.12 }, 0);

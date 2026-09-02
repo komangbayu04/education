@@ -1,89 +1,80 @@
 ---
 /**
  * Our work — categorized. Sits between the scene and Two ways in, so it is the
- * first section out of the pin: the exit pixel field in index.astro is painted
- * in this section's ground colour, which is why it shares
- * `--color-bg-twoways` rather than taking a token of its own. Change the ground
- * here and that field has to change with it or the join is a visible band of
- * the wrong colour.
+ * first section out of the pin.
  *
- * A numbered list of five categories, and two states on top of it:
+ * One category at a time, full screen. The layout and the motion are the
+ * "Animation" frame in Tribe World 2026 (node 2458:7645), built the way
+ * fantasy.co builds its numbered services list — which is the same thing twice.
+ * Three layers, and only one of them travels:
  *
- *   hover  the row lights up — a near-white ground, and its content insets by
- *          the same amount on both sides — and a stack of three preview cards
- *          fans out over the rows above and below it. Each card is a photo in
- *          a white frame; a card with no photo falls back to the flat
- *          silhouette the whole stack used to be, so the effect still stands
- *          up for a category nothing has been shot for.
+ *   the ground    one photograph per category, full bleed. Sticky. Crossfades.
  *
- *   open   clicking the row expands a strip of that category's work beneath
- *          it, running off the right edge of the screen and scrolling
- *          horizontally. One row open at a time.
+ *   the headline  the number and the label. Ordinary flow content, in front of
+ *                 that ground — so the scroll is what carries one up and off
+ *                 the top of the window while the next rises from the bottom.
+ *                 Nothing tweens it. This is the only thing on the screen that
+ *                 moves.
  *
- * Each has a folder under image/ named for it, and every file in that folder
- * becomes a tile in the category's strip — four of them are also its hover
- * deck. The counts live in the `work()` calls below and the output names in
- * tools/prep-images.mjs; the two agree on a convention rather than on a list
- * of filenames each.
+ *   the pitch     the paragraph and the button. Sticky, at the foot of the
+ *                 window, in front of the headline. They never move: they
+ *                 crossfade in place as the scroll crosses between categories.
  *
- * A category given neither still renders: silhouettes in the deck,
- * PLACEHOLDER_TILES empty frames in the strip.
+ * That split is exactly what the frame draws, and it is worth being explicit
+ * about because it is easy to read the other way round. In node 2458:7645 the
+ * three headlines carry a translate (448 → 0 → −624) and the three paragraphs
+ * and the three buttons carry *only* opacity, pinned at 694 and 796 of its 900.
+ * An earlier cut of this section scrolled the whole block together and pinned
+ * the page to scrub it; the copy rode up the screen with the headline and the
+ * scrollbar stopped for four screens. Both were wrong for the same reason.
  *
- * Motion and the accordion live in src/scripts/workCategories.ts. Without JS
- * every strip is open, which is the whole content reachable by scroll alone.
+ * The rhythm is the reference's: a screen holding the category, then a gap of
+ * bare ground before the next headline arrives. `--cat-gap` is that gap and the
+ * one number to turn if the section reads as hurried or as a march.
+ *
+ * The ground is the whole of the artwork. The hover deck and the horizontal
+ * strip this section used to carry are gone with the list they hung off; each
+ * category names one shot out of its folder and that shot is the screen. The
+ * rest of the folders are still in public/media and still built by
+ * tools/prep-images.mjs — nothing on the page references them.
+ *
+ * `--color-bg-twoways` is still the section's ground colour under the artwork,
+ * and it still has to be: the scene's exit pixel field in index.astro is
+ * painted in it, and the wash over every photograph is that same value. Change
+ * it here and that field has to change with it.
+ *
+ * One layout at every width, and it is the no-JS layout too — the sticking and
+ * the flow are both CSS. All src/scripts/workCategories.ts does is run the
+ * crossfades; without it the first category's photograph and pitch stand behind
+ * the whole list and every headline is still on the page.
  */
-
-import { rng } from '../../lib/pixelField';
-
-/** Blank frames a category with no artwork yet shows in its strip. */
-const PLACEHOLDER_TILES = 3;
 
 interface Category {
   /** Rendered as-is — the frame sets these zero-padded. */
   number: string;
   label: string;
-  /** Where "See Work" goes. */
+  /** One line about the category, under the headline. */
+  blurb: string;
+  /** Where "See work" goes. */
   href: string;
   /**
-   * The cards of the hover deck, back to front — so the last entry is the one
-   * on top. Its own list rather than a slice taken in the markup, because a
-   * category can want a different set here from the one its strip opens with.
+   * The one shot that becomes this category's screen, without an extension:
+   * rendered as a <picture> with an avif source and a webp fallback, the same
+   * contract the strip used, so '/media/work-website-4' wants work-website-4.avif
+   * and work-website-4.webp beside it.
    *
-   * Fewer than four leaves the slots behind them as the bare silhouettes they
-   * started as, which is what an artwork-less category still looks like.
+   * Named per category rather than derived, because which of the seven-to-nine
+   * shots stands for the whole category is a choice — swapping one is this
+   * line and nothing else.
    */
-  stack?: { src: string; alt: string }[];
+  ground: string;
   /**
-   * The strip the row opens, in order.
-   *
-   * Paths without an extension: each is rendered as a <picture> with an avif
-   * source and a webp fallback, the same contract as the device shots — so
-   * '/media/work-shot-1' wants work-shot-1.avif and work-shot-1.webp beside
-   * it.
+   * `object-position` for that shot. The sources do not agree on shape — the
+   * site and product screenshots are 804 x 510, branding is 16:9 and the social
+   * posts are square — and a square cropped to a landscape screen loses about
+   * half its height, so the ones that need their crop steering say so here.
    */
-  images?: { src: string; alt: string }[];
-  /**
-   * The shape every tile and card in this category is cut to, as a CSS
-   * `aspect-ratio` value — the source files' own, so `cover` has nothing to
-   * take off an edge.
-   *
-   * Per category rather than one figure for the section, because the folders
-   * do not agree with each other: cut to a shared 51/30 the deck slides were
-   * fine and the site screenshots lost their top strip.
-   */
-  ratio?: string;
-  /**
-   * This category's artwork boxes against everyone else's, as a factor on
-   * their width. 1 — the default — is the shared figure.
-   *
-   * Both boxes are sized by width and take their height from `ratio`, which is
-   * fine while every category is landscape and wrong the moment one is not: at
-   * 1:1 the deck came out 336 x 336 against the others' 336 x 213, and the
-   * open strip 453 square against 453 x 287. Setting it here rather than per
-   * box because the correction is the same one twice — 0.63 is what turns
-   * either width into the height the landscape ones already stand at.
-   */
-  boxScale?: number;
+  focus?: string;
 }
 
 interface Props {
@@ -92,671 +83,475 @@ interface Props {
   viewLabel?: string;
 }
 
-/** The deck's slots, rear to front — so the last one is the card on top. Its
- *  length is how many shots a category's deck takes off the front of its
- *  strip. */
-const SLOTS = ['rear', 'back', 'mid', 'front'] as const;
-const STACK_SIZE = SLOTS.length;
-
-/* The two shapes the sources come in, written as the pixel dimensions they
-   actually are rather than reduced — so the day a folder is re-exported, the
-   number here can be checked against the file in one look. */
-const SITE_RATIO = '804 / 510';
-const DECK_RATIO = '843 / 474';
-/* Branding's exports are 2880 x 1620 — a plain widescreen frame. */
-const FILM_RATIO = '16 / 9';
-/* Social Media's exports are 2160 x 2160 — the square a feed post is. */
-const SQUARE_RATIO = '1 / 1';
-/** What the shared placeholders are, and the fallback for a category with
- *  neither a folder nor a ratio of its own. */
-const PLACEHOLDER_RATIO = '51 / 30';
-
-/**
- * A category's artwork, built from the count of files in its folder.
- *
- * The names are the ones tools/prep-images.mjs writes — `work-<slug>-<n>`,
- * numbered from 1 in the folder's own sorted order — so this and that script
- * agree on one convention rather than on a list of filenames each. Adding a
- * shot is dropping it in the folder, re-running `npm run images`, and moving
- * the number here.
- *
- * `ratio` is the source files' own, and every tile and card in that category is
- * cut to it. Per category because the folders do not agree: the site, landing
- * and product shots are 804 x 510 and the deck slides 843 x 474. Cut to one
- * shared figure, `cover` took the difference off an edge — which is what was
- * slicing the top off the Overclock screenshot.
- */
-const work = (slug: string, count: number, label: string, ratio: string, deckSeed?: number) => {
-  const images = Array.from({ length: count }, (_, i) => ({
-    src: `/media/work-${slug}-${i + 1}`,
-    alt: `${label} — sample ${i + 1}`,
-  }));
-
-  /* Which four the deck shows. By default the front of the strip, which is the
-     folder's own order and so the category's own pick. Given a seed it is a
-     sample of the whole folder instead — for a category whose files are a set
-     of equals with no first four to speak of.
-
-     Seeded, not Math.random(): the deck is rendered once at build, so an
-     unseeded roll would quietly deal a different hand on every deploy and
-     there would be no way to get a particular one back. Change the number to
-     reshuffle on purpose. */
-  const deck = deckSeed === undefined ? images.slice(0, STACK_SIZE) : sample(images, STACK_SIZE, deckSeed);
-
-  /* Deck back-to-front, so the first of those is the card on top: the markup
-     paints index 0 into the rearmost slot. Fewer than STACK_SIZE files simply
-     leaves the slots behind it as silhouettes. */
-  return { images, stack: deck.reverse(), ratio };
-};
-
-/** `n` of `items`, drawn without replacement — a partial Fisher-Yates off the
- *  shared seeded PRNG. Never returns the same item twice, which a roll per
- *  slot would. */
-function sample<T>(items: T[], n: number, seed: number): T[] {
-  const random = rng(seed);
-  const pool = [...items];
-  const picked: T[] = [];
-
-  while (picked.length < n && pool.length > 0) {
-    picked.push(...pool.splice(Math.floor(random() * pool.length), 1));
-  }
-
-  return picked;
-}
-
 const {
   title = 'Our work - categorized',
-  viewLabel = 'See Work',
+  viewLabel = 'See work',
   categories = [
     {
       number: '01',
       label: 'Website Design & Development',
+      blurb:
+        'Marketing sites and platforms, designed and built end to end — so what ships is what was drawn, at the speed the launch actually needs.',
       href: '/work',
-      ...work('website', 7, 'Website design', SITE_RATIO),
+      ground: '/media/work-website-4',
     },
     {
       number: '02',
       label: 'Product Design',
+      blurb:
+        'The screens people use every day: flows, states, and the systems underneath them, drawn so the product stays coherent as it grows.',
       href: '/work',
-      ...work('product-design', 5, 'Product design', SITE_RATIO),
+      ground: '/media/work-product-design-2',
     },
     {
       number: '03',
       label: 'Brand Design',
+      blurb:
+        'Marks, type, colour and motion, with the rules that keep them holding together everywhere the brand turns up.',
       href: '/work',
-      /* Seven of the nine exports are 16:9 and two are 8:5. One ratio per
-         category, so the pair give up a sliver top and bottom to `cover`
-         rather than the seven being letterboxed for them. */
-      ...work('branding-design', 9, 'Branding design', FILM_RATIO),
+      ground: '/media/work-branding-design-3',
     },
     {
       number: '04',
       label: 'Pitch Deck',
+      blurb:
+        'The story a room has to follow in twenty minutes — cut, structured and designed so the argument carries without you narrating it.',
       href: '/work',
-      ...work('pitch-deck', 8, 'Pitch deck', DECK_RATIO),
+      /* The cover rather than a body slide. Every deck in the folder sets its
+         argument in three columns of text, and behind a headline and a pitch of
+         our own that is two paragraphs fighting each other — the cover is the
+         one page in a deck that is mostly drawing. */
+      ground: '/media/work-pitch-deck-1',
     },
-    /* Nine posts, and the deck takes four of them at random rather than the
-       first four: unlike a site or a deck folder these are not one project
-       shot from several angles but nine separate pieces, so there is no
-       running order for "the front of the strip" to mean. */
     {
       number: '05',
       label: 'Marketing Design',
+      blurb:
+        'Campaign and social work that keeps the brand recognisable at the size a feed actually shows it, in the volume a calendar actually needs.',
       href: '/work',
-      ...work('social-media', 9, 'Marketing design', SQUARE_RATIO, 20260818),
-      /* Square, so it is sized to the height the landscape categories come out
-         at rather than to their width. */
-      boxScale: 0.63,
+      /* Square source. Centred, so the columns survive the crop to a landscape
+         screen; left to the default it is the top third that is kept. */
+      ground: '/media/work-social-media-3',
+      focus: '50% 50%',
     },
   ],
 } = Astro.props;
+
+const total = String(categories.length).padStart(2, '0');
 ---
 
 <section class="cat" id="work" aria-labelledby="cat-title" data-cat>
-  <div class="cat__inner u-container">
-    <h2 class="cat__title" id="cat-title" data-cat-reveal>{title}</h2>
+  {/*
+    The ground. One screen, stuck to the top of the window for as long as the
+    list is passing, with every category's photograph stacked inside it.
 
-    <ul class="cat__list">
+    `position: sticky`, not a pinned ScrollTrigger: sticky is the browser
+    holding an element still inside a scroll it is not otherwise touching, which
+    is exactly what is wanted and is why nothing in this section can take the
+    scrollbar away from the reader. It also means the layout stands up with the
+    stylesheet alone.
+  */}
+  <div class="cat__stage cat__stage--ground" aria-hidden="true">
+    <div class="cat__stick">
       {
-        categories.map((category, i) => {
-          const panelId = `cat-panel-${category.number}`;
-          const images = category.images ?? [];
-          /* Rear, back, mid, front — the last entry is the card on top, so the
-             list reads in paint order and the one written last is the one
-             seen. */
-          const stack = category.stack ?? [];
-          /* Right-aligned against the front of the deck: a category with fewer
-             shots than slots leaves its *rear* slots empty, not its front one.
-             Filled from the rear instead, Product Design's three shots put the
-             empty silhouette on top and covered all three. */
-          const stackOffset = SLOTS.length - Math.min(stack.length, SLOTS.length);
+        categories.map((category, i) => (
+          <div class="cat__ground" data-cat-ground>
+            <picture>
+              <source srcset={`${category.ground}.avif`} type="image/avif" />
+              <img
+                src={`${category.ground}.webp`}
+                alt=""
+                decoding="async"
+                loading={i === 0 ? 'eager' : 'lazy'}
+                style={category.focus ? `object-position:${category.focus}` : undefined}
+              />
+            </picture>
+          </div>
+        ))
+      }
 
-          return (
-            <li
-              class="cat__item"
-              data-cat-item
-              style={[
-                `--cat-ratio:${category.ratio ?? PLACEHOLDER_RATIO}`,
-                category.boxScale && `--cat-box-scale:${category.boxScale}`,
-              ]
-                .filter(Boolean)
-                .join(';')}
-            >
-              <div class="cat__row">
-                {/* The toggle is the number and the label; "See Work" is its
-                    own link beside it. One control each, because they go two
-                    different places — one opens the strip in place, the other
-                    leaves for the work itself. */}
-                <button
-                  class="cat__toggle"
-                  type="button"
-                  aria-expanded="false"
-                  aria-controls={panelId}
-                  data-cat-toggle
-                >
-                  <span class="cat__num">{category.number}</span>
-                  <span class="cat__label">{category.label}</span>
-                </button>
+      {/* One wash over every ground rather than one each: two crossfading veils
+          thin out where they overlap, so the artwork would flare halfway
+          through every change. */}
+      <div class="cat__wash"></div>
+    </div>
+  </div>
 
-                <a class="cat__link" href={category.href}>
-                  {viewLabel}
+  {/*
+    The headlines, and the only thing here that travels. Plain flow between the
+    two sticky layers, so the scroll moves them and nothing else has to.
+  */}
+  <ul class="cat__list">
+    {
+      categories.map((category) => (
+        <li class="cat__cat" data-cat-panel>
+          <h3 class="cat__headline" data-cat-reveal>
+            <span class="cat__num">
+              {category.number}
+              <span class="cat__of">/{total}</span>
+            </span>
+            <span class="cat__label">{category.label}</span>
+          </h3>
+        </li>
+      ))
+    }
+  </ul>
+
+  {/*
+    The furniture: the section's title at the head of the window and the pitch
+    and the button at its foot. Sticky like the ground and in front of the
+    headlines, which is the frame's own paint order — a headline rising from the
+    bottom of the screen passes *behind* the paragraph it is arriving under.
+
+    A second sticky layer rather than one, because `position: sticky` makes its
+    own stacking context: everything inside the ground layer is behind the list,
+    and this has to be in front of it.
+  */}
+  <div class="cat__stage cat__stage--front">
+    <div class="cat__stick">
+      <div class="cat__front">
+        <div class="cat__head" data-cat-reveal>
+          <h2 class="cat__title" id="cat-title">{title}</h2>
+        </div>
+
+        {/* Stacked in one grid cell and aligned to the bottom, so the button
+            keeps the same line whichever category is up even when the pitch
+            above it runs to a different number of lines. */}
+        <div class="cat__copies">
+          {
+            categories.map((category) => (
+              <div class="cat__copy" data-cat-copy>
+                <p class="cat__blurb">{category.blurb}</p>
+
+                <a class="cat__cta" href={category.href} data-magnetic="0.2">
+                  <span class="cat__cta-fill" aria-hidden="true" />
+                  <span class="cat__cta-label" data-magnetic-inner>
+                    {viewLabel}
+                  </span>
                   <span class="u-sr-only">{` — ${category.label}`}</span>
                 </a>
-
-                {/* Decorative: it is a preview of the strip the row opens, and
-                    the strip is the thing that carries the alt text. */}
-                <div class="cat__stack" aria-hidden="true">
-                  {SLOTS.map((position, layer) => {
-                    const shot = stack[layer - stackOffset];
-
-                    return (
-                      <span class:list={['cat__card', `cat__card--${position}`]}>
-                        {shot && (
-                          <picture>
-                            <source srcset={`${shot.src}.avif`} type="image/avif" />
-                            <img src={`${shot.src}.webp`} alt="" decoding="async" loading="lazy" />
-                          </picture>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
               </div>
-
-              <div class="cat__panel" id={panelId} data-cat-panel>
-                {/* Runs off the right edge of the screen — the gutter is put
-                    back as padding so the last tile can be scrolled to. */}
-                <ul class="cat__strip" data-cat-strip>
-                  {/* Rendered twice so the drift in workCategories.ts can wrap
-                      without a seam — the same trick as the testimonials rail.
-                      The second copy is aria-hidden, so a screen reader hears
-                      each piece of work once. */}
-                  {images.length > 0
-                    ? [0, 1].flatMap((copy) =>
-                        images.map((image) => (
-                        <li class="cat__shot" aria-hidden={copy === 1 ? 'true' : undefined}>
-                          <picture>
-                            <source srcset={`${image.src}.avif`} type="image/avif" />
-                            <img
-                              src={`${image.src}.webp`}
-                              alt={image.alt}
-                              decoding="async"
-                              loading="lazy"
-                            />
-                          </picture>
-                        </li>
-                        )),
-                      )
-                    : Array.from({ length: PLACEHOLDER_TILES }).map(() => (
-                        <li class="cat__shot cat__shot--empty" aria-hidden="true" />
-                      ))}
-                </ul>
-              </div>
-            </li>
-          );
-        })
-      }
-    </ul>
+            ))
+          }
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
 <style>
   .cat {
-    /* How far the row's content insets when it lights up. One knob: the number
-       moves in by it on the left, "See Work" by the same on the right, and the
-       two have to stay equal or the lit row reads as off-centre. */
-    --cat-inset: clamp(0.75rem, 1.95vw, 1.75rem);
+    /* The column's inset from the left edge — 112 of the frame's 1440, which is
+       wider than the shared page gutter on purpose: this is a column, not a row
+       of content stretched across the screen. */
+    --cat-inset-x: clamp(1.25rem, 7.8vw, 7rem);
+
+    /* Where a headline comes to rest, as a share of the window: its foot lands
+       here. 622 of the frame's 900, which is what puts it clear of the pitch
+       below without leaving the two looking unrelated. */
+    --cat-rest: 69svh;
+
+    /* Bare ground between one category and the next — the reference leaves
+       about a window of it. Every category costs a screen plus this, so five of
+       them at 155svh is a shade under eight windows of scroll.
+
+       Turn this one number to change the pace. Nothing else is timed against
+       it: the headline travel is the scroll itself, and the crossfades hang off
+       the next headline's block rather than off a clock. */
+    --cat-gap: 55svh;
 
     position: relative;
-    padding-block: clamp(2.5rem, 4.5vw, 4.5rem);
-    /* Shared with Two ways in, and with the scene's exit field — see the
-       docstring. */
+    /* The three layers sort themselves out inside the section and nowhere else:
+       the scene sets a z-index on this element inline while it hands over, and
+       without a context of its own they would be competing with that number.
+
+       Deliberately not `overflow: clip`. Any overflow other than `visible` on
+       an ancestor makes that ancestor the scrollport a sticky child sticks
+       inside — and this one does not scroll, so both layers would simply sit at
+       the top of the section and leave with it. */
+    isolation: isolate;
+    /* Still the ground under the artwork, and still shared with Two ways in and
+       with the scene's exit field — see the docstring. */
     background: var(--color-bg-twoways);
     color: var(--color-ink);
   }
 
-  .cat__inner {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1.75rem, 3.8vw, 3.4375rem);
-  }
-
-  .cat__title {
-    font-size: clamp(1.875rem, 3.1vw, 2.875rem);
-    font-weight: 400;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-
-  /* --- The list ------------------------------------------------------------
-     Rules above every row and below the last, so the list reads as a table of
-     contents rather than as seven separate blocks. They are borders on the
-     items, not free-standing elements, so they cannot drift from what they
-     divide. */
-  .cat__list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    border-bottom: 1px solid var(--color-line);
-  }
-
-  .cat__item {
-    border-top: 1px solid var(--color-line);
-  }
-
-  /* The row the hover stack hangs off. `position: relative` here rather than on
-     the item: the stack is anchored to the row's own centre, and once the item
-     is open the item is several hundred pixels taller than the row is. */
-  .cat__row {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 1rem;
-    transition:
-      background-color 0.4s var(--ease-out-expo),
-      padding 0.4s var(--ease-out-expo);
-  }
-
-  /* Lit. Not opaque white: this ground is warm, and a pure white row on it
-     reads blue by comparison — the translucent white takes the cream with it.
-
-     `:has(:focus-visible)`, not `:focus-within`. A mouse click leaves the
-     toggle focused, so focus-within kept the row lit after it had been clicked
-     shut — the strip closed and the row stayed white, reading as still open.
-     focus-visible ignores that click and answers only to keyboard focus, which
-     is the case the rule was there for. */
-  .cat__item:has(:focus-visible) .cat__row,
-  .cat__item[data-open] .cat__row {
-    background: rgb(255 255 255 / 0.72);
-    padding-inline: var(--cat-inset);
-  }
-
-  /* The hover half of that, and it is gated on the device actually having a
-     pointer. A tap leaves :hover applied until the next tap lands somewhere
-     else, so on a phone the row stayed lit after its strip had been clicked
-     shut — the panel closed and the row went on reading as selected. There is
-     nothing hovering on a touch screen; this state is for a cursor. */
-  @media (hover: hover) {
-    .cat__item:hover .cat__row {
-      background: rgb(255 255 255 / 0.72);
-      padding-inline: var(--cat-inset);
-    }
-  }
-
-  /* Lifted over its neighbours, so the hover stack can hang out of the row it
-     belongs to and still be seen. Only while the row is lit — a permanent
-     z-index would put every row's (invisible) stack over the rows after it and
-     nothing below the first row would be clickable. */
-  .cat__item[data-open] {
-    position: relative;
-    z-index: 2;
-  }
-
-  /* A step above the open row, and deliberately not the same number.
-     Both used to be 2, which left the tie to be broken by document order: an
-     open row *below* the hovered one won it, and its strip of screenshots
-     painted straight over the cards hanging down from the row above. Hover is
-     a preview and it is transient — it belongs over everything in the list,
-     wherever the open row happens to be. */
-  .cat__item:has(:focus-visible) {
-    position: relative;
-    z-index: 3;
-  }
-
-  /* Pointer devices only, for the same reason as the lit ground above. */
-  @media (hover: hover) {
-    .cat__item:hover {
-      position: relative;
-      z-index: 3;
-    }
-  }
-
-  /* --- Row content --------------------------------------------------------
-     26%, from the frame: the labels start about a quarter of the way across,
-     which leaves the number sitting alone in a column of its own rather than
-     tucked against it. */
-  .cat__toggle {
-    display: grid;
-    grid-template-columns: minmax(0, 26%) minmax(0, 1fr);
-    align-items: center;
-    gap: 1rem;
-    padding-block: clamp(1.25rem, 1.95vw, 1.75rem);
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .cat__num,
-  .cat__label {
-    font-size: clamp(1rem, 1.32vw, 1.1875rem);
-    line-height: 1.3;
-  }
-
-  .cat__num {
-    color: var(--color-ink);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .cat__link {
-    justify-self: end;
-    font-size: clamp(0.8125rem, 0.97vw, 0.875rem);
-    line-height: 1.3;
-    text-decoration: underline;
-    text-underline-offset: 0.35em;
-    /* The underline is the design; thickening it on hover is what says the row
-       and the link are two different targets. */
-    transition: text-decoration-thickness 0.3s var(--ease-out-expo);
-  }
-
-  .cat__link:hover,
-  .cat__link:focus-visible {
-    text-decoration-thickness: 2px;
-  }
-
-  /* --- Hover stack ---------------------------------------------------------
-     Anchored to the row's centre and free to overflow it in both directions —
-     that overflow is the effect. Never a pointer target: it sits over the rows
-     either side, and catching their hovers would make the list unusable. */
-  .cat__stack {
-    position: absolute;
-    top: 50%;
-    right: 7.8%;
-    z-index: 1;
-    /* Width, because every deck but one is landscape and this is the figure
-       that reads at the right size for those. A category whose work is a
-       different shape scales it from the item — see `boxScale`. */
-    width: calc(clamp(15rem, 30%, 27rem) * var(--cat-box-scale, 1));
-    /* The category's own, set on the item — so the deck is the shape of the
-       work in it and `cover` inside each card has nothing to crop. */
-    aspect-ratio: var(--cat-ratio, 43 / 29);
-    opacity: 0;
-    transform: translateY(-50%) scale(0.94);
-    transition:
-      opacity 0.45s var(--ease-out-expo),
-      transform 0.45s var(--ease-out-expo);
-    pointer-events: none;
-  }
-
-  /* Only on hover, and deliberately not on focus or while open: it is a preview
-     of the strip, so once the strip itself is on screen it is showing the same
-     thing twice, over the top of it. */
-  .cat__item:not([data-open]) .cat__row:hover .cat__stack {
-    opacity: 1;
-    transform: translateY(-50%) scale(1);
-  }
-
-  /* Every card is a photo in a white frame — the frame is the padding, so it
-     is there whether or not there is an image inside it yet. */
-  .cat__card {
+  /* --- The two sticky layers ----------------------------------------------- */
+  .cat__stage {
     position: absolute;
     inset: 0;
-    display: block;
-    padding: 4%;
-    border-radius: 2px;
-    background: #fff;
-    box-shadow: 0 18px 40px rgb(10 10 10 / 0.18);
   }
 
-  .cat__card picture,
-  .cat__card img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  /* Only the rotation differs between the three — the fan is what makes it
-     read as a stack.
-
-     These are the resting fan, and the no-JS one. While a row is hovered
-     workCategories.ts takes the transform over and cycles the cards through
-     these same three places, so the numbers here are mirrored in its SLOTS —
-     change one and the stack jumps at the moment the shuffle starts. */
-  /* A stepped deck rather than a rotated fan: same size card three times, each
-     one set back up and to the left of the one in front of it and scaled down
-     by the same ratio, so the steps read as distance rather than as three
-     cards laid out on a table.
-
-     z-index is declared rather than left to DOM order because the cycle in
-     workCategories.ts moves cards between these places — paint order has to be
-     a property of the slot, not of where the element happens to sit in the
-     markup. */
-  .cat__card--front {
-    transform: none;
-    z-index: 3;
-  }
-
-  .cat__card--mid {
-    transform: translate(-7%, -7%) scale(0.93);
-    z-index: 2;
-  }
-
-  .cat__card--back {
-    transform: translate(-14%, -14%) scale(0.86);
-    z-index: 1;
-  }
-
-  /* The fourth step, same ratio again — four because that is how many shots
-     the deck shows, and every category with a folder now has at least that
-     many. A category with fewer leaves its rear slots as silhouettes; see
-     stackOffset in the markup for why the gap sits at the back and not on
-     top. */
-  .cat__card--rear {
-    transform: translate(-21%, -21%) scale(0.79);
+  .cat__stage--ground {
     z-index: 0;
   }
 
-  /* No artwork in that slot yet: a flat silhouette rather than an empty white
-     frame, which is what let the stack read as a stack before any of this was
-     shot. Scoped with :has() so it applies to exactly the cards that have no
-     image, rather than to the two positions that used to have none. */
-  .cat__card--back:not(:has(img)) {
-    background: #8f8f8f;
+  /* Over the headlines. It spans the whole section, so only the button in it is
+     allowed to take the pointer. */
+  .cat__stage--front {
+    z-index: 2;
+    pointer-events: none;
   }
 
-  .cat__card--mid:not(:has(img)) {
-    background: #a8a8a8;
+  .cat__stick {
+    position: sticky;
+    top: 0;
+    height: 100svh;
   }
 
-  .cat__card--rear:not(:has(img)) {
-    background: #7d7d7d;
-  }
-
-  /* --- The strip -----------------------------------------------------------
-     The open height is written inline by workCategories.ts, not by a rule
-     here, and that is deliberate — see the closed state at the foot of this
-     file for the two things that were tried first and what each did. This side
-     owns the clipping and the easing; the script owns only the number. */
-  .cat__panel {
+  .cat__stage--ground .cat__stick {
     overflow: hidden;
   }
 
-  .cat__strip {
-    display: flex;
-    /* Not the default `stretch`. The panel above is a grid whose row is sized
-       from this strip, and a stretched item takes its height back from that
-       row — the two then resolve each other to nothing, which is exactly what
-       happened: 510px-wide tiles two pixels tall. Aligned to the start, each
-       tile keeps the height its own aspect-ratio gives it and the row has
-       something real to size to. */
-    align-items: flex-start;
-    gap: clamp(0.75rem, 1.4vw, 1.25rem);
-    margin: 0;
-    /* Its own vertical rhythm, inside a panel that is otherwise flush with the
-       rows above and below it. */
-    padding: clamp(1.25rem, 1.95vw, 1.75rem) 0;
-    /* Off the right edge of the screen, with the gutter given back as padding
-       so the last tile can still be scrolled all the way in. */
-    margin-right: calc(-1 * var(--section-padding-x));
-    padding-right: var(--section-padding-x);
-    list-style: none;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity;
-    /* The scrollbar is not part of the design and the strip is one flick wide
-       on a trackpad; the tiles running off the edge are the affordance. */
-    scrollbar-width: none;
+  /* --- The ground ----------------------------------------------------------
+     Stacked, so a category's photograph fades in over the one before it and the
+     scroll running backwards fades it out again to reveal that same one. The
+     first is always on: it is the ground the section arrives on, and the only
+     one there is if the script never runs. */
+  .cat__ground {
+    position: absolute;
+    inset: 0;
   }
 
-  .cat__strip::-webkit-scrollbar {
-    display: none;
+  .cat__ground:not(:first-child) {
+    opacity: 0;
+    /* Paired with opacity, and kept in step by GSAP's autoAlpha: four
+       transparent full-screen photographs are still four composited surfaces on
+       every scrolled frame, four hidden ones are not. */
+    visibility: hidden;
   }
 
-  .cat__shot {
-    flex: none;
-    /* Scaled from the item for the same reason the deck is — see `boxScale`. */
-    width: calc(clamp(16rem, 38%, 32rem) * var(--cat-box-scale, 1));
-    /* The category's own shape, so `cover` below has nothing to take off. At a
-       flat 51/30 the site screenshots — 804 x 510, a shorter frame — were
-       being trimmed top and bottom, which took the browser chrome off the top
-       of the Overclock shot. */
-    aspect-ratio: var(--cat-ratio, 51 / 30);
-    overflow: hidden;
-    scroll-snap-align: start;
-    background: var(--color-surface);
-  }
-
-  .cat__shot picture,
-  .cat__shot img {
+  .cat__ground picture,
+  .cat__ground img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
   }
 
-  /* What a category with no artwork yet shows. A plain frame and nothing in it
-     — no label, no caption: a placeholder that says it is a placeholder is a
-     thing that ships to production. */
-  .cat__shot--empty {
-    border: 1px solid var(--color-line);
-    background: rgb(255 255 255 / 0.5);
+  .cat__wash {
+    position: absolute;
+    inset: 0;
+    /* Heaviest under the copy and thinning across to the right, so black type
+       has a ground to sit on and the artwork still has somewhere to be seen.
+       The section's own colour, mixed rather than written out, so the wash and
+       the ground under it cannot drift apart. */
+    background: linear-gradient(
+      97deg,
+      color-mix(in srgb, var(--color-bg-twoways) 90%, transparent) 0%,
+      color-mix(in srgb, var(--color-bg-twoways) 84%, transparent) 32%,
+      color-mix(in srgb, var(--color-bg-twoways) 62%, transparent) 66%,
+      color-mix(in srgb, var(--color-bg-twoways) 46%, transparent) 100%
+    );
+  }
+
+  /* --- The headlines -------------------------------------------------------
+     Between the two sticky layers. Every category is a block whose foot is
+     where its headline rests, and the gap after it is the rest of the window
+     plus the bare ground before the next one arrives. */
+  .cat__list {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: calc(100svh - var(--cat-rest) + var(--cat-gap));
+
+    /* After the last headline: the rest of the window under it, and pointedly
+       *not* the gap as well.
+
+       This is what ends the section on the frame its final headline lands in.
+       The sticky layers hold for as long as their container is taller than the
+       window, so every svh of slack here is a stretch where the last category's
+       title has already scrolled off the top while the ground and the pitch are
+       still held — the section finishing twice, once quietly and once for real.
+       At exactly the window's remainder the container runs out on the frame the
+       last headline arrives, both layers let go, and title, ground, pitch and
+       the section under it all travel together from there. */
+    padding-bottom: calc(100svh - var(--cat-rest));
+  }
+
+  .cat__cat {
+    display: flex;
+    align-items: flex-end;
+    min-height: var(--cat-rest);
+  }
+
+  .cat__headline,
+  .cat__front {
+    width: 100%;
+    max-width: var(--content-max-width);
+    margin-inline: auto;
+    padding-inline: var(--cat-inset-x);
+  }
+
+  .cat__headline {
+    font-size: clamp(2.25rem, 5.55vw, 5rem);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+  }
+
+  /* 473 of the frame's 1440, in a column starting at 112. The longest label
+     takes three lines at this size, which is the block the frame draws — and
+     the measure has to sit on the label rather than on the block above,
+     because that block is now what carries the page gutter. */
+  .cat__label {
+    display: block;
+    max-width: clamp(18rem, 33vw, 31rem);
+  }
+
+  .cat__num {
+    display: block;
+    margin-bottom: clamp(0.75rem, 1.6vw, 1.25rem);
+    font-size: clamp(0.8125rem, 0.97vw, 0.875rem);
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-secondary);
+  }
+
+  .cat__of {
+    color: var(--color-ink-muted);
+  }
+
+  /* --- The furniture ------------------------------------------------------- */
+  .cat__front {
+    display: flex;
+    flex-direction: column;
+    /* Title at the head of the window, pitch and button at its foot. */
+    justify-content: space-between;
+    height: 100%;
+    padding-top: calc(var(--nav-height) + clamp(0.75rem, 2.6vh, 2rem));
+    /* 56 of the frame's 900, under the button. */
+    padding-bottom: clamp(2.25rem, 6.2vh, 3.5rem);
+  }
+
+  .cat__title {
+    font-size: clamp(0.8125rem, 0.97vw, 0.875rem);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink-secondary);
+  }
+
+  /* One cell, five children in it. Grid rather than absolute positioning so the
+     block keeps a real height — it is what holds the button off the foot of the
+     window — and `end` is what keeps that button on one line across five
+     pitches of different lengths. */
+  .cat__copies {
+    display: grid;
+  }
+
+  .cat__copy {
+    grid-area: 1 / 1;
+    align-self: end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(1rem, 1.6vw, 1.5rem);
+  }
+
+  .cat__copy:not(:first-child) {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .cat__blurb {
+    /* 471 of 1440 — the frame sets the pitch to the same measure as the
+       headline above it. */
+    max-width: clamp(18rem, 33vw, 29.5rem);
+    font-size: clamp(0.9375rem, 1.11vw, 1rem);
+    line-height: 1.625;
+    letter-spacing: -0.02em;
+    color: var(--color-ink-secondary);
+  }
+
+  /* The frame's black pill, at the site's own button proportions — the label
+     is set the way every other button on the page is set rather than at the
+     wireframe's 16px, which is the font note in the brief. */
+  .cat__cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: 0.625rem;
+    overflow: hidden;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    /* The layer around it is inert — see .cat__stage--front. */
+    pointer-events: auto;
+    will-change: transform;
+  }
+
+  .cat__cta-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-primary);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .cat__cta:hover .cat__cta-fill,
+  .cat__cta:focus-visible .cat__cta-fill {
+    transform: scaleY(1);
+  }
+
+  .cat__cta-label {
+    position: relative;
+    z-index: 1;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .cat__cta:hover .cat__cta-label,
+  .cat__cta:focus-visible .cat__cta-label {
+    color: var(--color-ink);
   }
 
   /* --- Responsive ---------------------------------------------------------- */
   @media (max-width: 48rem) {
-    /* The shared mobile rhythm — see --section-gap-y in globals.css. */
     .cat {
-      padding-block: var(--section-gap-y);
+      /* Less bare ground between categories. The gap is a beat on a desktop and
+         a scroll on a phone, and five of them is the difference between a
+         section and a journey. */
+      --cat-gap: 22svh;
+      /* And the pitch takes more of the window at this measure, so the headline
+         rests a little higher to stay clear of it. */
+      --cat-rest: 62svh;
     }
 
-    /* Still two columns, but the number's is only as wide as the number.
-       The desktop 26% is a proportion read off the frame, and at a phone's
-       width it spent a quarter of the row on two characters and wrapped the
-       longer labels to three lines beside them. `auto` keeps the label on the
-       same line as its number, which is the point of the pairing, without
-       giving the number a column it does not need. */
-    .cat__toggle {
-      grid-template-columns: auto minmax(0, 1fr);
-      gap: 0.625rem;
-      align-items: baseline;
+    /* The copy runs the full width of the screen here, so a wash that thins out
+       to the right would let the artwork through the end of every line. Flat,
+       and a shade lighter than the left edge of the gradient it replaces. */
+    .cat__wash {
+      background: color-mix(in srgb, var(--color-bg-twoways) 84%, transparent);
     }
 
-    .cat__num {
-      font-size: 0.8125rem;
-      color: var(--color-ink-secondary);
-    }
-
-    /* Stacked under the number rather than beside it, the label is the row's
-       only line of any weight, and at the desktop 1rem it sat heavier than the
-       "See Work" beside it. */
+    .cat__blurb,
     .cat__label {
-      font-size: 0.875rem;
-    }
-
-    /* A finger-sized target, without moving the words.
-
-       This is the control that opens a row on a phone — there is no hover
-       here, so "See Work" is how the strip gets seen at all. It was 58x17,
-       under even the 24px floor WCAG asks for and a quarter the height of the
-       row it sits in, because it is a grid item centred in that row rather
-       than filling it.
-
-       Stretching it to the row's own height gives it 58x58 and the flex
-       centring keeps the text on the line it was already on, so nothing moves.
-       Its own row is also exactly what it grows into — no padding reaching
-       into the rows above and below, where a near-miss would open the wrong
-       one.
-
-       Mobile only. On a desktop the link goes to /work and the pointer is
-       precise; a taller box there would only mean the underline thickening
-       whenever the cursor entered the column. */
-    .cat__link {
-      align-self: stretch;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-    }
-
-    /* No room for it, and nothing to hover with. The strip is the preview
-       here. */
-    .cat__stack {
-      display: none;
-    }
-
-    .cat__shot {
-      width: 78%;
+      max-width: none;
     }
   }
 
-  /* --- Pre-reveal and closed states ---------------------------------------
-     JS-only, both of them. Without JS the strips are open and the rows are
-     visible, which is the whole section reachable by scroll alone. */
-  :global(html[data-js='true']) [data-cat-reveal],
-  :global(html[data-js='true']) [data-cat-item] {
+  /* --- Pre-reveal ----------------------------------------------------------
+     JS-only, and only on the two things a script animates in. The pitches are
+     left alone: their opacity is the crossfade's, and a reveal on top of it
+     would be two things writing the same property. */
+  :global(html[data-js='true']) [data-cat-reveal] {
     opacity: 0;
   }
 
-  /* Open and closed, both of them, off the one attribute the script sets. The
-     script measures nothing — so nothing goes stale when the strip reflows,
-     the viewport changes, or an image finally loads.
-
-     max-height with a ceiling rather than the 0fr → 1fr grid-track technique:
-     this panel's child is a horizontal scroll container, and in an auto-height
-     grid the flexible track and the stretched item inside it size each other
-     to zero. 40rem clears the strip at every width — a tile is capped at 32rem
-     wide and 30/51 of that tall — and stays close enough that the open row
-     does not sit through a long empty tail of easing. */
-  :global(html[data-js='true']) .cat__panel {
-    max-height: 0;
-    transition: max-height 0.55s var(--ease-out-expo);
-  }
-
-  :global(html[data-js='true']) .cat__item[data-open] .cat__panel {
-    max-height: 40rem;
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) [data-cat-reveal],
-    :global(html[data-js='true']) [data-cat-item] {
+    :global(html[data-js='true']) [data-cat-reveal] {
       opacity: 1;
       transform: none;
-    }
-
-    /* The row still opens and closes under reduced motion — it just does it
-       instantly. workCategories.ts writes the height either way. */
-    .cat__row,
-    .cat__stack {
-      transition: none;
     }
   }
 </style>

@@ -229,7 +229,10 @@ const photos = [
   { src: `${SRC}/braden.png`, name: 'portrait-braden', maxW: 640 },
   { src: `${SRC}/Geoffrey Langford.png`, name: 'portrait-geoffrey', maxW: 640 },
   { src: `${SRC}/Wei Sun.png`, name: 'portrait-wei-sun', maxW: 640 },
-  { src: `${SRC}/yarik.png`, name: 'portrait-yarik', maxW: 640 },
+  /* Footer portrait. yarik-cut.png is the Figma cutout (transparent around
+     the figure) — yarik.png is the same shot on a studio white, kept as the
+     source for anywhere a rectangular portrait is still wanted. */
+  { src: `${SRC}/yarik-cut.png`, name: 'portrait-yarik', maxW: 640 },
   { src: `${SRC}/blog1.png`, name: 'journal-1', maxW: 900 },
   { src: `${SRC}/blog2.png`, name: 'journal-2', maxW: 900 },
   { src: `${SRC}/blog3.png`, name: 'journal-3', maxW: 900 },

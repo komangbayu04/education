@@ -1,260 +1,57 @@
 import { gsap, ScrollTrigger } from './gsap';
-import { isTouch, prefersReducedMotion } from './utils/device';
-
-/** Pixels per second the rail drifts on its own. */
-const AUTO_SPEED = 42;
-/** How long after a manual interaction before the drift picks back up. */
-const RESUME_DELAY = 1400;
+import { getLenis } from './scroll';
+import { prefersReducedMotion } from './utils/device';
 
 /**
- * Featured accordion — exactly one note open at a time.
+ * Silent previews — every film on the wall plays itself, muted and looping,
+ * while it is on screen, and stops the moment it is not. Two remote clips
+ * decoding under a section nobody is looking at is a cost with nothing to show
+ * for it, and on a phone it is battery.
  *
- * The open state is an attribute on the person, and the width change is a CSS
- * transition on flex-basis (see Testimonials.astro); this only decides *which*
- * one is open. Index 0 is the default, and releasing returns to it.
+ * The tile reads `data-playing` off this, which is what swaps its badge
+ * between the pause mark (preview running) and the play mark (not).
  *
- * Hover is the stated interaction, but focus is wired to the same path so the
- * notes are reachable by keyboard — every other hover state in this project
- * has a focus equivalent.
- *
- * Skipped entirely on touch: there is no hover there, and the CSS at that
- * width already lays every note out open.
+ * The lightbox holds every preview while it is up and lets go when it closes;
+ * the ones that are still on screen pick up again.
  */
-function initFeature(section: HTMLElement, cleanups: Array<() => void>): void {
-  const feature = section.querySelector<HTMLElement>('[data-tm-feature]');
-  if (!feature || isTouch()) return;
-
-  const people = gsap.utils.toArray<HTMLElement>('[data-tm-person]', feature);
-  if (people.length < 2) return;
-
-  const controller = new AbortController();
-  const { signal } = controller;
-
-  /* One open note per ROW, not per section. The open note takes its width
-     from the person beside it, so the accordion only ever balances within a
-     row — clearing every other row on hover would collapse rows the pointer
-     is nowhere near, and they would sit there noteless until hovered. */
-  const rowOf = (person: HTMLElement) => person.parentElement;
-
-  const apply = (index: number) => {
-    const target = people[index];
-    const row = rowOf(target);
-    if (!row) return;
-
-    people.forEach((person) => {
-      if (rowOf(person) !== row) return;
-      if (person === target) person.setAttribute('data-open', '');
-      else person.removeAttribute('data-open');
-    });
-  };
-
-  /* Which person a row falls back to. Starts as the first in each row — the
-     state the markup ships in — and moves to whoever was last *chosen* there,
-     by pressing play, pause or the sound. Hover still opens whatever it is
-     over; this is only what the row returns to when the pointer leaves.
-
-     Clicking a control is a stronger signal than passing over a card: it means
-     that person is the one being watched, and their quote has to stay up
-     rather than snap back to a neighbour's the moment the pointer moves. */
-  const chosen = new Map<Element, HTMLElement>();
-
-  const applyDefaults = () => {
-    const seen = new Set<Element>();
-    people.forEach((person) => {
-      const row = rowOf(person);
-      if (!row) return;
-
-      const wanted = chosen.get(row) ?? (seen.has(row) ? null : person);
-      seen.add(row);
-
-      if (wanted === person) person.setAttribute('data-open', '');
-      else person.removeAttribute('data-open');
-    });
-  };
-
-  people.forEach((person, i) => {
-    person.addEventListener('pointerenter', () => apply(i), { signal });
-    person.addEventListener('focusin', () => apply(i), { signal });
-
-    /* Pressing play, pause or the sound makes this the row's active card:
-       opened right away, and stays open once the pointer has gone. Watching
-       someone with their quote hidden is the wrong way round. */
-    person.addEventListener(
-      'click',
-      (event) => {
-        const control = (event.target as HTMLElement).closest('[data-tm-toggle], [data-tm-sound]');
-        if (!control) return;
-
-        const row = rowOf(person);
-        if (row) chosen.set(row, person);
-        apply(i);
-      },
-      { signal },
-    );
-
-    const video = person.querySelector<HTMLVideoElement>('[data-tm-video]');
-    if (!video) return;
-
-    /* Turning the sound on makes this the row's active card too — the same
-       thing pressing play does, and for the same reason. It does NOT stop
-       hover from working while it plays: the note closing does not touch the
-       video, and `chosen` brings this card back the moment the pointer
-       leaves. An audible card used to lock the whole row, which meant one
-       press on the sound left every card in it unable to open. */
-    video.addEventListener(
-      'volumechange',
-      () => {
-        if (video.muted) return;
-        const row = rowOf(person);
-        if (row) chosen.set(row, person);
-        apply(i);
-      },
-      { signal },
-    );
-  });
-
-  const reset = () => applyDefaults();
-
-  feature.addEventListener('pointerleave', reset, { signal });
-  feature.addEventListener(
-    'focusout',
-    (event: FocusEvent) => {
-      // Only reset once focus has actually left the whole row, not when it
-      // moves between two controls inside it.
-      if (!feature.contains(event.relatedTarget as Node | null)) reset();
-    },
-    { signal },
-  );
-
-  cleanups.push(() => controller.abort());
+interface Previews {
+  hold(): void;
+  release(): void;
 }
 
-/**
- * Featured video — plays itself, silently; this is the switch for the sound.
- *
- * The markup autoplays every featured video muted and looping, which is the
- * only kind of autoplay a browser allows. So the question a control here
- * answers is no longer "start it" but "let me hear it", and that is all this
- * does: it unmutes, and hands over the native controls at the same time, since
- * from the moment someone wants the audio they want to be able to scrub and
- * pause it too.
- *
- * Only one is ever audible: turning on the sound for one mutes the other,
- * which otherwise leaves two people talking over each other on the same row.
- *
- * Off-screen videos are paused. Two remote clips decoding for the whole life
- * of the page is a cost with nothing to show for it while the section is
- * nowhere near the viewport — and on a phone it is battery. They pick up where
- * they left off when the section comes back.
- */
-function initVideos(section: HTMLElement, cleanups: Array<() => void>): void {
+function initPreviews(section: HTMLElement, cleanups: Array<() => void>): Previews {
   const videos = gsap.utils.toArray<HTMLVideoElement>('[data-tm-video]', section);
-  if (!videos.length) return;
-
   const controller = new AbortController();
   const { signal } = controller;
-  const buttons = gsap.utils.toArray<HTMLButtonElement>('[data-tm-sound]', section);
 
-  /* Videos the viewer stopped by hand. The observer below resumes anything
-     that comes back on screen, and without this it would override that
-     decision the first time the section scrolled out and back. */
-  const held = new WeakSet<HTMLVideoElement>();
+  const inView = new Set<HTMLVideoElement>();
+  let held = false;
 
-  gsap.utils.toArray<HTMLButtonElement>('[data-tm-toggle]', section).forEach((button) => {
-    const media = button.closest<HTMLElement>('[data-tm-media]');
-    const video = media?.querySelector<HTMLVideoElement>('[data-tm-video]');
-    if (!media || !video) return;
+  const sync = (video: HTMLVideoElement) => {
+    video.closest('[data-tm-tile]')?.toggleAttribute('data-playing', !video.paused);
+  };
 
-    /* aria-pressed carries "is playing" and the CSS swaps the mark off it, so
-       the badge always offers the other state. The label is the action. */
-    const sync = () => {
-      const playing = !video.paused;
-      button.setAttribute('aria-pressed', String(playing));
-      button.setAttribute('aria-label', playing ? 'Pause this testimonial' : 'Play this testimonial');
-    };
-
-    button.addEventListener(
-      'click',
-      () => {
-        if (video.paused) {
-          held.delete(video);
-          void video.play().catch(() => {});
-        } else {
-          held.add(video);
-          video.pause();
-        }
-        sync();
-      },
-      { signal },
-    );
-
-    // Covers the native controls, and the observer pausing it off-screen.
-    video.addEventListener('play', sync, { signal });
-    video.addEventListener('pause', sync, { signal });
-    sync();
-  });
-
-  buttons.forEach((button) => {
-    const media = button.closest<HTMLElement>('[data-tm-media]');
-    const video = media?.querySelector<HTMLVideoElement>('[data-tm-video]');
-    if (!media || !video) return;
-
-    /* The label is the action, not the state — "Turn on sound" while it is
-       off, "Mute" while it is on. aria-pressed carries the state, and the CSS
-       reads the same attribute to swap the slash for the waves. */
-    const label = button.getAttribute('aria-label') ?? 'Turn on sound';
-
-    const sync = () => {
-      const on = !video.muted;
-      button.setAttribute('aria-pressed', String(on));
-      button.setAttribute('aria-label', on ? 'Mute this testimonial' : label);
-      video.controls = on;
-    };
-
-    button.addEventListener(
-      'click',
-      () => {
-        const turningOn = video.muted;
-
-        if (turningOn) {
-          videos.forEach((other) => {
-            if (other !== video) other.muted = true;
-          });
-        }
-
-        video.muted = !turningOn;
-        // The click is the gesture that lets an unmuted video keep playing;
-        // it may be paused — off-screen, or stopped by hand — and asking to
-        // hear something is asking for it to be running.
-        if (turningOn) {
-          held.delete(video);
-          void video.play().catch(() => {});
-        }
-        sync();
-      },
-      { signal },
-    );
-
-    // Also covers the other button muting this one, and the native controls.
-    video.addEventListener('volumechange', sync, { signal });
-    sync();
-  });
-
-  /* The attribute is in the markup, but a video restored from the back/forward
-     cache can come back with the property out of step with it — and an
-     unmuted video is exactly what autoplay is not allowed to be. */
   videos.forEach((video) => {
+    /* The attribute is in the markup, but a video restored from the
+       back/forward cache can come back with the property out of step with it —
+       and an unmuted video is exactly what autoplay is not allowed to be. */
     video.muted = true;
+    video.addEventListener('play', () => sync(video), { signal });
+    video.addEventListener('pause', () => sync(video), { signal });
+    sync(video);
   });
 
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         const video = entry.target as HTMLVideoElement;
-        // Never restarts one the viewer stopped by hand.
         if (entry.isIntersecting) {
-          if (!held.has(video)) void video.play().catch(() => {});
-        } else video.pause();
+          inView.add(video);
+          if (!held) void video.play().catch(() => {});
+        } else {
+          inView.delete(video);
+          video.pause();
+        }
       });
     },
     { rootMargin: '200px 0px' },
@@ -267,424 +64,386 @@ function initVideos(section: HTMLElement, cleanups: Array<() => void>): void {
     observer.disconnect();
     videos.forEach((v) => v.pause());
   });
+
+  return {
+    hold() {
+      held = true;
+      videos.forEach((v) => v.pause());
+    },
+    release() {
+      held = false;
+      inView.forEach((v) => void v.play().catch(() => {}));
+    },
+  };
 }
 
-/** How long each person holds the spotlight before it moves on. */
-const SPOTLIGHT_INTERVAL = 10_000;
-
 /**
- * Featured spotlight — the mobile face of the same two people.
+ * The lightbox — the full testimonial, with sound, over a white ground.
  *
- * One is shown at a time and the rail of thumbnails chooses between them. It
- * advances on its own every ten seconds, and the first manual pick stops that
- * for good: once someone has said which one they want to look at, moving it
- * out from under them is the wrong answer. There is no restart timer, on
- * purpose — a rotation that comes back after a pause is the same surprise,
- * just delayed.
+ * One <dialog> for every film. Pressing a tile points it at that tile's
+ * source and the client's mark, holds the wall's previews and the page's
+ * scroll, and opens it modally; the browser handles focus, Escape and putting
+ * focus back on the tile afterwards. The source is dropped again on close so
+ * the film is not left buffering behind the page.
  */
-function initSpotlight(section: HTMLElement, cleanups: Array<() => void>): void {
-  const spot = section.querySelector<HTMLElement>('[data-tm-spot]');
-  if (!spot) return;
-
-  const panels = gsap.utils.toArray<HTMLElement>('[data-tm-spot-panel]', spot);
-  const copies = gsap.utils.toArray<HTMLElement>('[data-tm-spot-copy]', spot);
-  const picks = gsap.utils.toArray<HTMLButtonElement>('[data-tm-spot-pick]', spot);
-  if (panels.length < 2) return;
+function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<() => void>): void {
+  const dialog = section.querySelector<HTMLDialogElement>('[data-tm-lightbox]');
+  const frame = section.querySelector<HTMLElement>('[data-tm-lightbox-frame]');
+  const video = section.querySelector<HTMLVideoElement>('[data-tm-lightbox-video]');
+  const logo = section.querySelector<HTMLImageElement>('[data-tm-lightbox-logo]');
+  const close = section.querySelector<HTMLButtonElement>('[data-tm-lightbox-close]');
+  if (!dialog || !frame || !video || !logo || !close) return;
+  // No modal dialog, no lightbox — the previews still play in place.
+  if (typeof dialog.showModal !== 'function') return;
 
   const controller = new AbortController();
   const { signal } = controller;
-  let index = 0;
-  let timer: number | undefined;
+  const reduced = prefersReducedMotion();
 
-  const show = (next: number) => {
-    index = ((next % panels.length) + panels.length) % panels.length;
-    const mark = (els: HTMLElement[]) =>
-      els.forEach((el, i) => {
-        if (i === index) el.setAttribute('data-active', '');
-        else el.removeAttribute('data-active');
-      });
-    mark(panels);
-    mark(copies);
-    mark(picks);
-    // A video left playing in a panel nobody can see would keep talking.
-    gsap.utils.toArray<HTMLVideoElement>('[data-tm-video]', spot).forEach((v, i) => {
-      if (i !== index) v.pause();
-    });
-  };
+  const open = (button: HTMLElement) => {
+    const tile = button.closest<HTMLElement>('[data-tm-tile]');
+    const preview = tile?.querySelector<HTMLVideoElement>('[data-tm-video]');
+    if (!preview) return;
 
-  const stop = () => {
-    if (timer !== undefined) window.clearInterval(timer);
-    timer = undefined;
-  };
+    // Back to the default shape until this film says what shape it is.
+    frame.style.removeProperty('--tm-ar');
+    video.src = preview.currentSrc || preview.src;
+    if (preview.poster) video.poster = preview.poster;
+    else video.removeAttribute('poster');
 
-  if (!prefersReducedMotion()) {
-    timer = window.setInterval(() => show(index + 1), SPOTLIGHT_INTERVAL);
-  }
-
-  picks.forEach((button, i) => {
-    button.addEventListener(
-      'click',
-      () => {
-        stop();
-        show(i);
-      },
-      { signal },
-    );
-  });
-
-  // Asking to hear one is a choice too — the rotation would cut it off
-  // mid-word.
-  gsap.utils.toArray<HTMLElement>('[data-tm-sound]', spot).forEach((button) => {
-    button.addEventListener('click', stop, { signal });
-  });
-
-  cleanups.push(() => {
-    stop();
-    controller.abort();
-  });
-}
-
-/**
- * Marquee — a native scroller that also drifts on its own.
- *
- * Native `overflow-x: auto` does the heavy lifting, so trackpad, touch and
- * scrollbar all work for free and correctly. On top of that:
- *   - the card list is rendered twice, and scrollLeft wraps at the halfway
- *     point, so the loop is seamless in both directions
- *   - a ticker callback adds the drift, paused only while the user is actually
- *     moving the rail — dragging it, or scrolling it sideways — and resumed a
- *     beat after they stop. Hovering does NOT pause it (explicit direction):
- *     the rail keeps travelling under a resting cursor.
- *   - pointer drag is added by hand, because a mouse otherwise has no way to
- *     scroll a horizontal rail
- *
- * Under reduced motion the drift never starts; the rail stays fully scrollable
- * by hand.
- */
-function initMarquee(section: HTMLElement, cleanups: Array<() => void>): void {
-  const rail = section.querySelector<HTMLElement>('[data-tm-rail]');
-  const track = section.querySelector<HTMLElement>('[data-tm-track]');
-  if (!rail || !track) return;
-
-  const segments = gsap.utils.toArray<HTMLElement>('[data-tm-seg]', section);
-  const controller = new AbortController();
-  const { signal } = controller;
-
-  /** Width of one copy of the list — the point scrollLeft wraps at. */
-  let loopWidth = 0;
-  const measure = () => {
-    loopWidth = track.scrollWidth / 2;
-  };
-  measure();
-
-  // Guard so the wrap, which writes scrollLeft, doesn't recurse through its
-  // own scroll event.
-  let wrapping = false;
-  const wrap = () => {
-    if (wrapping || loopWidth <= 0) return;
-    if (rail.scrollLeft >= loopWidth) {
-      wrapping = true;
-      rail.scrollLeft -= loopWidth;
-      wrapping = false;
-    } else if (rail.scrollLeft <= 0) {
-      wrapping = true;
-      rail.scrollLeft += loopWidth;
-      wrapping = false;
-    }
-  };
-
-  const syncProgress = () => {
-    if (!segments.length || loopWidth <= 0) return;
-    const ratio = (rail.scrollLeft % loopWidth) / loopWidth;
-    const active = Math.min(segments.length - 1, Math.floor(ratio * segments.length));
-    segments.forEach((seg, i) => {
-      if (i === active) seg.setAttribute('data-active', '');
-      else seg.removeAttribute('data-active');
-    });
-  };
-
-  rail.addEventListener(
-    'scroll',
-    () => {
-      wrap();
-      syncProgress();
-    },
-    { signal, passive: true },
-  );
-
-  syncProgress();
-
-  // --- Manual drag ---------------------------------------------------------
-  let dragging = false;
-  let startX = 0;
-  let startScroll = 0;
-  let moved = false;
-
-  rail.addEventListener(
-    'pointerdown',
-    (event: PointerEvent) => {
-      // Let touch use the native scroller; this is for mouse and pen.
-      if (event.pointerType === 'touch') return;
-      dragging = true;
-      moved = false;
-      startX = event.clientX;
-      startScroll = rail.scrollLeft;
-      rail.setAttribute('data-dragging', '');
-    },
-    { signal },
-  );
-
-  rail.addEventListener(
-    'pointermove',
-    (event: PointerEvent) => {
-      if (!dragging) return;
-      const delta = event.clientX - startX;
-      if (Math.abs(delta) > 3) {
-        moved = true;
-        // Only capture once it's clearly a drag, so a plain click on a link
-        // inside the rail still behaves like a click.
-        if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
-      }
-      if (moved) rail.scrollLeft = startScroll - delta;
-    },
-    { signal },
-  );
-
-  const endDrag = (event: PointerEvent) => {
-    if (!dragging) return;
-    dragging = false;
-    rail.removeAttribute('data-dragging');
-    if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
-  };
-
-  rail.addEventListener('pointerup', endDrag, { signal });
-  rail.addEventListener('pointercancel', endDrag, { signal });
-
-  // Suppress the click that follows a drag, so dragging across a card never
-  // triggers something inside it.
-  rail.addEventListener(
-    'click',
-    (event: MouseEvent) => {
-      if (moved) {
-        event.preventDefault();
-        event.stopPropagation();
-        moved = false;
-      }
-    },
-    { signal, capture: true },
-  );
-
-  // --- Jump to a quote -----------------------------------------------------
-  // The marks under the rail are buttons: pressing one scrolls that quote into
-  // place. Their position is the same ratio syncProgress reads back, so this
-  // is that calculation inverted — and it stays inside the copy the rail is
-  // currently in, so the jump is never a whole loop long.
-  let resumeAt = 0;
-
-  const hold = () => {
-    resumeAt = performance.now() + RESUME_DELAY;
-  };
-
-  segments.forEach((segment, i) => {
-    segment.addEventListener(
-      'click',
-      () => {
-        if (loopWidth <= 0 || !segments.length) return;
-        hold();
-        const base = Math.floor(rail.scrollLeft / loopWidth) * loopWidth;
-        gsap.to(rail, {
-          scrollLeft: base + (i / segments.length) * loopWidth,
-          duration: 0.6,
-          ease: 'power2.inOut',
-          overwrite: true,
-          onUpdate: syncProgress,
-          onComplete: () => {
-            wrap();
-            syncProgress();
-          },
-        });
-      },
-      { signal },
-    );
-  });
-
-  // --- Auto drift ----------------------------------------------------------
-  if (prefersReducedMotion()) {
-    cleanups.push(() => controller.abort());
-    return;
-  }
-
-  // Sideways wheels only. This listener fires for *every* wheel over the rail,
-  // including the plain vertical ones that are just scrolling the page past
-  // this section — holding on those stopped the marquee for as long as the
-  // cursor happened to rest here, which is the same complaint as the hover
-  // pause, arriving by a different route.
-  rail.addEventListener(
-    'wheel',
-    (event: WheelEvent) => {
-      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) hold();
-    },
-    { signal, passive: true },
-  );
-  rail.addEventListener('touchstart', hold, { signal, passive: true });
-  rail.addEventListener('touchmove', hold, { signal, passive: true });
-
-  let last = performance.now();
-  const tick = (time: number) => {
-    const dt = Math.min(64, time - last);
-    last = time;
-
-    if (dragging || time < resumeAt || loopWidth <= 0) return;
-
-    rail.scrollLeft += (AUTO_SPEED * dt) / 1000;
-    wrap();
-  };
-
-  // gsap.ticker passes elapsed time in seconds; performance.now() is what the
-  // hold timestamps use, so the callback reads the clock itself rather than
-  // mixing the two units.
-  const tickerHandler = () => tick(performance.now());
-  gsap.ticker.add(tickerHandler);
-
-  // The loop width depends on layout, so it has to be re-measured whenever
-  // that changes.
-  const observer = new ResizeObserver(() => {
-    measure();
-    syncProgress();
-  });
-  observer.observe(track);
-
-  cleanups.push(() => {
-    controller.abort();
-    gsap.ticker.remove(tickerHandler);
-    observer.disconnect();
-  });
-}
-
-/**
- * The quote grid's "See all" — unfolds the second row of cards.
- *
- * Runs under reduced motion like every other control here, because it is the
- * only way to those cards and hiding content behind a preference is not a
- * motion decision. There is nothing to soften anyway: which rows are on the
- * page is a `display` switch in the component's CSS, off one attribute, with
- * no transition on either side of it.
- */
-function initSeeAll(section: HTMLElement, cleanups: Array<() => void>): void {
-  const more = section.querySelector<HTMLElement>('[data-tm-more]');
-  const button = section.querySelector<HTMLButtonElement>('[data-tm-see-all]');
-  if (!more || !button) return;
-
-  const label = button.querySelector<HTMLElement>('[data-tm-see-all-label]');
-  const controller = new AbortController();
-
-  /* Opening used to be the attribute and nothing else, and the attribute is a
-     `display` switch: three cards went from absent to present between one frame
-     and the next, the block jumped by their height, and the blur band over the
-     first row stopped existing at the same instant. Every part of that was
-     instantaneous, which is what the jump was.
-
-     So the attribute still does the work — what is on the page is still one
-     switch — and this animates around it: the block's height between the two
-     it measures, the cards themselves fading up, and the band left to its own
-     CSS transition now that it is always there to transition. */
-  const REVEAL = 0.62;
-
-  const extras = () => gsap.utils.toArray<HTMLElement>('.tm__grid-item--extra', more);
-
-  const setState = (open: boolean) => {
-    more.toggleAttribute('data-open', open);
-    button.setAttribute('aria-expanded', String(open));
-    if (label) {
-      label.textContent = (open ? button.dataset.labelLess : button.dataset.labelMore) ?? label.textContent;
-    }
-  };
-
-  let reveal: gsap.core.Timeline | null = null;
-
-  const play = (open: boolean) => {
-    reveal?.kill();
-
-    /* Cleared before either measurement, and that is not tidiness. The tween
-       below writes an inline height and the timeline's onComplete takes it off
-       again — but a click that interrupts a running one kills it mid-flight and
-       the height it had written stays. Both reads then return that stale number
-       instead of the content's, so `from` and `to` come out identical and the
-       block animates from where it is to where it already is: no movement at
-       all, which looked exactly like the jump this is meant to remove. */
-    more.style.height = '';
-
-    /* Both heights measured off the real thing rather than guessed: set the
-       state, read it, and put it back. Two forced layouts inside a click, which
-       is the cheapest place in the page to spend them and the only way to know
-       what to animate to — the cards are a grid whose height depends on how the
-       quotes wrap at this width. */
-    const from = more.getBoundingClientRect().height;
-    setState(open);
-    const to = more.getBoundingClientRect().height;
-
-    const cards = extras();
-
-    reveal = gsap.timeline({
-      onComplete: () => {
-        // Height back to the content's own, or the block stops responding to a
-        // resize from here on.
-        more.style.height = '';
-        ScrollTrigger.refresh();
-      },
-    });
-
-    reveal.fromTo(
-      more,
-      { height: from },
-      { height: to, duration: REVEAL, ease: 'power3.inOut' },
-      0,
-    );
-
-    if (open) {
-      /* Behind the height, not with it: the room arrives first and the cards
-         come up into it, rather than three blocks sliding down a page that is
-         still growing under them. */
-      reveal.fromTo(
-        cards,
-        { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.5, stagger: 0.07, ease: 'power3.out' },
-        0.14,
-      );
+    const mark = button.dataset.logo;
+    if (mark) {
+      logo.src = mark;
+      logo.alt = button.dataset.company ?? '';
+      logo.hidden = false;
     } else {
-      /* Out last-first, so the row closest to the fold is the last to go and
-         the block does not appear to collapse from the bottom. */
-      reveal.to(
-        cards,
-        { opacity: 0, y: 12, duration: 0.26, stagger: { each: 0.05, from: 'end' }, ease: 'power2.in' },
-        0,
+      logo.hidden = true;
+    }
+
+    previews.hold();
+    getLenis()?.stop();
+    document.documentElement.setAttribute('data-tm-open', '');
+
+    dialog.showModal();
+    if (reduced) gsap.set(frame, { autoAlpha: 1, scale: 1 });
+    else {
+      gsap.fromTo(
+        frame,
+        { autoAlpha: 0, scale: 0.97 },
+        { autoAlpha: 1, scale: 1, duration: 0.5, ease: 'power3.out', overwrite: true },
       );
     }
 
-    /* The button crosses the same moment: it is absolute over the band while
-       shut and in the flow beneath the grid while open, so it has no path
-       between the two positions to travel along. Out and back in, under cover
-       of the height. */
-    reveal.to(button, { autoAlpha: 0, duration: 0.16, ease: 'power2.in' }, 0);
-    reveal.to(button, { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 0.3);
+    // The press is the gesture that lets it play with sound.
+    void video.play().catch(() => {});
   };
 
-  button.addEventListener('click', () => play(!more.hasAttribute('data-open')), {
-    signal: controller.signal,
+  /* Out, then closed — the dialog's own close is a cut, and the frame is the
+     thing on screen. */
+  let closing = false;
+  const requestClose = () => {
+    if (closing || !dialog.open) return;
+    closing = true;
+    if (reduced) {
+      dialog.close();
+      return;
+    }
+    gsap.to(frame, {
+      autoAlpha: 0,
+      scale: 0.98,
+      duration: 0.25,
+      ease: 'power2.in',
+      overwrite: true,
+      onComplete: () => dialog.close(),
+    });
+  };
+
+  dialog.addEventListener(
+    'close',
+    () => {
+      closing = false;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      frame.removeAttribute('data-playing');
+      document.documentElement.removeAttribute('data-tm-open');
+      getLenis()?.start();
+      previews.release();
+    },
+    { signal },
+  );
+
+  // Escape. Prevented so it goes out the same way the button takes it.
+  dialog.addEventListener(
+    'cancel',
+    (event) => {
+      event.preventDefault();
+      requestClose();
+    },
+    { signal },
+  );
+
+  close.addEventListener('click', requestClose, { signal });
+
+  // The backdrop. A click on the dialog element itself, rather than on
+  // anything inside the frame, is a click outside the film.
+  dialog.addEventListener(
+    'click',
+    (event) => {
+      if (event.target === dialog) requestClose();
+    },
+    { signal },
+  );
+
+  /* The frame takes the film's own shape, so a 4:3 recording is not shown
+     pillarboxed inside a 16:9 box on a white ground. */
+  video.addEventListener(
+    'loadedmetadata',
+    () => {
+      if (video.videoWidth && video.videoHeight) {
+        frame.style.setProperty('--tm-ar', String(video.videoWidth / video.videoHeight));
+      }
+    },
+    { signal },
+  );
+
+  // The mark stands down while the film is paused — the controls are up then.
+  video.addEventListener('play', () => frame.setAttribute('data-playing', ''), { signal });
+  video.addEventListener('pause', () => frame.removeAttribute('data-playing'), { signal });
+
+  gsap.utils.toArray<HTMLElement>('[data-tm-open]', section).forEach((button) => {
+    button.addEventListener('click', () => open(button), { signal });
   });
 
-  cleanups.push(() => controller.abort());
+  cleanups.push(() => {
+    if (dialog.open) dialog.close();
+    controller.abort();
+  });
+}
+
+/* --- The scene, in screens --------------------------------------------------
+   Each beat's length is a fraction of the stage's height, so the scroll it
+   takes reads the same on any screen. The last beat — the wall scrolling up —
+   is measured off the wall itself, one pixel of scroll per pixel of travel. */
+/** The film alone, before anything moves. */
+const HOLD = 0.35;
+/** The film drawing in and the title coming up over it. */
+const DRAW_IN = 0.5;
+/** The film landing on the wall, the wall rising, the title parking. */
+const LAND = 0.6;
+
+/** Where the featured tile's top rests once landed — under the title, in the
+ *  wash. A fraction of the stage's height (frame: 90 of 640). */
+const ARRIVE = 0.14;
+/** The drawn-in film's width as a fraction of its opening width (frame: 450
+ *  of 725 at 1024 wide). */
+const MID = 0.62;
+
+interface Geometry {
+  W: number;
+  H: number;
+  big: { w: number; h: number };
+  mid: { w: number; h: number };
+  slot: { left: number; top: number; width: number; height: number };
+  /** The wall's y when the film has landed, and where the scroll leaves it. */
+  arriveY: number;
+  endY: number;
+  /** The title's y while it is centred on the screen, relative to its rest. */
+  titleCentreY: number;
+  /** Scroll distance of the whole scene, in px. */
+  distance: number;
 }
 
 /**
- * Testimonials (chapter 8) — the hover accordion, the spotlight, the videos,
- * the marquee, the quote grid's "See all", and a one-shot reveal of the
- * featured row when the section first scrolls into view.
+ * The scroll scene. The stage is pinned for the scene's length and one paused
+ * timeline is driven straight off the pin's progress. Not a scrub: the
+ * timeline is rebuilt from fresh measurements on every refresh — the wall's
+ * height, the slot's cell, the screen — and a scrub owns its timeline in a
+ * way that makes swapping it out under it awkward. Driving progress by hand
+ * costs nothing (Lenis is already smoothing the scroll it reads) and keeps
+ * every number in it honest after a resize.
  *
- * Same contract as the other post-scene sections: the reveal is not scrubbed
- * and not pinned, because the handover into this section is plain document
- * scroll. The quote grid under the featured row has no entrance at all — it is
- * a static block of cards by design.
+ * Beats, in order (see the fractions above):
+ *   hold      the featured film, large and alone, centred
+ *   draw in   it shrinks in place; a white veil comes over it and the title
+ *             comes up, centred, on top
+ *   land      it shrinks the rest of the way into its cell as the wall rises
+ *             from below the fold; the title travels to the top; the veil
+ *             clears and the wash under the title comes on
+ *   scroll    the wall travels up under the wash until its last row is on
+ *             screen
+ */
+function initScene(section: HTMLElement, cleanups: Array<() => void>): void {
+  const stage = section.querySelector<HTMLElement>('[data-tm-stage]');
+  const wall = section.querySelector<HTMLElement>('[data-tm-wall]');
+  const title = section.querySelector<HTMLElement>('[data-tm-title]');
+  const fade = section.querySelector<HTMLElement>('[data-tm-fade]');
+  const slot = section.querySelector<HTMLElement>('[data-tm-slot]');
+  const featured = section.querySelector<HTMLElement>('[data-tm-featured]');
+  const veil = section.querySelector<HTMLElement>('[data-tm-veil]');
+  if (!stage || !wall || !title || !fade || !slot || !featured || !veil) return;
+
+  const tiles = gsap.utils
+    .toArray<HTMLElement>('.tm__tile', wall)
+    .filter((tile) => tile !== featured);
+
+  /* The stylesheet lays the scene's first frame out on its own — the wall a
+     screen below, the film large in the middle — so nothing flashes before
+     this runs. From here those are this script's to move, as transforms and
+     box values, so the stylesheet's own are switched off. */
+  wall.style.translate = 'none';
+  featured.style.translate = 'none';
+  featured.style.aspectRatio = 'auto';
+
+  let geo: Geometry | null = null;
+  let tl: gsap.core.Timeline | null = null;
+
+  const measure = () => {
+    // At rest, so the wall and title measure where the layout puts them.
+    gsap.set([wall, title], { clearProps: 'transform' });
+
+    const W = stage.clientWidth;
+    const H = stage.clientHeight;
+    const wallRect = wall.getBoundingClientRect();
+    const slotRect = slot.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(wall).columnGap) || 16;
+
+    /* The foot of the wall, column shifts included — the lowest tile is what
+       has to clear the bottom of the screen at the end. */
+    let foot = 0;
+    tiles.forEach((tile) => {
+      foot = Math.max(foot, tile.getBoundingClientRect().bottom - wallRect.top);
+    });
+
+    /* Opening size: most of the width, or as much as fits in most of the
+       height, in the shape the films were shot in. */
+    const bigW = Math.min(W * (W < 768 ? 0.9 : 0.7), H * 0.7 * (16 / 9));
+    const midW = bigW * MID;
+
+    /* Under the title, in the wash — but never with most of a tile beneath
+       the copy. On a phone the title is three lines and reaches further down
+       the screen than the fraction allows for, so the landing point gives way
+       to it, leaving no more than a third of the tile under the title. */
+    const slotH = slotRect.height;
+    const titleBottom = title.offsetTop + title.offsetHeight;
+    const arriveY = Math.max(H * ARRIVE, titleBottom - slotH * 0.3 - slotRect.top + wallRect.top);
+    const endY = Math.min(arriveY, H - 2 * gap - foot);
+
+    const titleCentreY = (H - title.offsetHeight) / 2 - title.offsetTop;
+
+    const distance = H * (HOLD + DRAW_IN + LAND) + (arriveY - endY);
+
+    geo = {
+      W,
+      H,
+      big: { w: bigW, h: bigW * (9 / 16) },
+      mid: { w: midW, h: midW * (9 / 16) },
+      slot: {
+        left: slotRect.left - wallRect.left,
+        top: slotRect.top - wallRect.top,
+        width: slotRect.width,
+        height: slotRect.height,
+      },
+      arriveY,
+      endY,
+      titleCentreY,
+      distance,
+    };
+  };
+
+  const build = () => {
+    tl?.kill();
+    if (!geo) return;
+    const { W, H, big, mid, slot: cell, arriveY, endY, titleCentreY } = geo;
+
+    const hold = H * HOLD;
+    const drawIn = H * DRAW_IN;
+    const land = H * LAND;
+    const travel = arriveY - endY;
+
+    const atDrawIn = hold;
+    const atLand = hold + drawIn;
+    const atScroll = hold + drawIn + land;
+
+    /* The featured tile is a child of the wall, so its `top` is measured from
+       the wall's own top — which is a whole screen below the stage while the
+       wall waits under the fold. Hence the `- H` on everything centred. */
+    const centred = (size: { w: number; h: number }) => ({
+      left: (W - size.w) / 2,
+      top: (H - size.h) / 2 - H,
+      width: size.w,
+      height: size.h,
+    });
+
+    tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } });
+
+    /* Every tween states both ends, and the first tween on each property
+       renders its start the moment it is built. That is what parks the scene
+       in its first frame — the hold — with nothing at time 0 to be un-done
+       when the playhead comes back to it: a set() there is reverted when the
+       scroll lands exactly on the pin's start, to whatever the element held
+       when the timeline was built, which after a rebuild is mid-scene.
+       Tweens that carry a property on from an earlier one do not render on
+       build, or they would overwrite that earlier start. */
+    const first = { immediateRender: true };
+    const next = { immediateRender: false };
+
+    // Beat 2 — draw in. (Beat 1, the hold, is the stretch before this.)
+    tl.fromTo(featured, centred(big), { ...centred(mid), duration: drawIn, ...first }, atDrawIn)
+      .fromTo(veil, { opacity: 0 }, { opacity: 0.6, duration: drawIn * 0.5, ...first }, atDrawIn + drawIn * 0.5)
+      .fromTo(title, { autoAlpha: 0 }, { autoAlpha: 1, duration: drawIn * 0.5, ...first }, atDrawIn + drawIn * 0.5);
+
+    // Beat 3 — land.
+    tl.fromTo(featured, centred(mid), { ...cell, duration: land, ...next }, atLand)
+      .fromTo(wall, { y: H }, { y: arriveY, duration: land, ...first }, atLand)
+      .fromTo(title, { y: titleCentreY }, { y: 0, duration: land, ...first }, atLand)
+      .fromTo(veil, { opacity: 0.6 }, { opacity: 0, duration: land * 0.7, ...next }, atLand)
+      .fromTo(fade, { autoAlpha: 0 }, { autoAlpha: 1, duration: land * 0.4, ...first }, atLand + land * 0.6);
+
+    // Beat 4 — scroll. Only if the wall is taller than the screen leaves it.
+    if (travel > 0) tl.fromTo(wall, { y: arriveY }, { y: endY, duration: travel, ...next }, atScroll);
+  };
+
+  const render = (progress: number) => {
+    tl?.progress(progress);
+  };
+
+  measure();
+  build();
+
+  const trigger = ScrollTrigger.create({
+    trigger: stage,
+    start: 'top top',
+    end: () => `+=${geo?.distance ?? stage.clientHeight * 3}`,
+    pin: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+    /* Fresh numbers on every refresh — a resize changes the wall's height,
+       the slot's cell and the screen, and every value in the timeline is one
+       of those. Rebuilt whole rather than patched. */
+    onRefreshInit: () => {
+      measure();
+      build();
+    },
+    onRefresh: (self) => render(self.progress),
+    onUpdate: (self) => render(self.progress),
+  });
+
+  render(trigger.progress);
+
+  cleanups.push(() => {
+    trigger.kill();
+    tl?.kill();
+  });
+}
+
+/**
+ * Testimonials (chapter 8) — the scroll scene, the wall's silent previews, and
+ * the lightbox that opens a film in full.
+ *
+ * Under reduced motion the scene is skipped: the stylesheet lays the section
+ * out finished under the same query — title, then wall — and the previews and
+ * the lightbox still work, because those are content, not motion.
  *
  * Returns a cleanup function.
  */
@@ -694,35 +453,10 @@ export function initTestimonials(): () => void {
 
   const cleanups: Array<() => void> = [];
 
-  initFeature(section, cleanups);
-  initSpotlight(section, cleanups);
-  initVideos(section, cleanups);
-  initMarquee(section, cleanups);
-  initSeeAll(section, cleanups);
+  const previews = initPreviews(section, cleanups);
+  initLightbox(section, previews, cleanups);
 
-  if (prefersReducedMotion()) {
-    // CSS already renders the finished section under the same query.
-    return () => cleanups.forEach((fn) => fn());
-  }
-
-  const people = gsap.utils.toArray<HTMLElement>('[data-tm-person]', section);
-
-  /* The featured row only. The quote grid under it has no entrance by design —
-     it is a static block of cards, and the CSS does not park it at opacity 0,
-     so there is nothing here to put back. */
-  const tl = gsap.timeline({
-    defaults: { ease: 'power3.out' },
-    scrollTrigger: { trigger: section, start: 'top 75%', once: true },
-  });
-
-  if (people.length) {
-    tl.fromTo(people, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.9, stagger: 0.12 }, 0);
-  }
-
-  cleanups.push(() => {
-    tl.scrollTrigger?.kill();
-    tl.kill();
-  });
+  if (!prefersReducedMotion()) initScene(section, cleanups);
 
   return () => {
     cleanups.forEach((fn) => fn());

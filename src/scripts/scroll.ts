@@ -1,4 +1,5 @@
 import Lenis from 'lenis';
+import 'lenis/dist/lenis.css';
 import { gsap, ScrollTrigger } from './gsap';
 import { isTouch, prefersReducedMotion } from './utils/device';
 
@@ -8,6 +9,13 @@ let rafHandler: ((time: number) => void) | null = null;
 /**
  * Single smooth-scroll engine for the site. Lenis owns the scroll position,
  * GSAP's ticker owns the RAF loop — one loop total (PRD §4.6).
+ *
+ * Lerp, not duration. Duration restarts a 1.2s tween on every wheel tick,
+ * which on a trackpad (many small deltas) reads as the page lagging behind
+ * the fingers rather than as inertia. Lerp damps toward the target each
+ * frame, so a flick has a visible settle without stealing the gesture.
+ * Programmatic jumps still pass their own duration — nav links, the scene
+ * stepper — and those are one motion, not a stream of ticks.
  */
 export function initScroll(): Lenis | null {
   if (lenis) return lenis;
@@ -24,10 +32,11 @@ export function initScroll(): Lenis | null {
   if (isTouch()) return null;
 
   lenis = new Lenis({
-    duration: 1.2,
-    easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    lerp: 0.075,
+    wheelMultiplier: 0.85,
     syncTouch: false,
     touchMultiplier: 2,
+    stopInertiaOnNavigate: true,
   });
 
   lenis.on('scroll', ScrollTrigger.update);
@@ -56,6 +65,23 @@ export function destroyScroll(): void {
 export function scrollToTop(): void {
   if (lenis) lenis.scrollTo(0, { immediate: true });
   else window.scrollTo(0, 0);
+}
+
+/**
+ * Run just before an in-page jump. The scene uses this to finish and release
+ * itself when the destination is a section below it — otherwise the stepper
+ * treats the travel as a gesture, plays the next chapter, and the reader
+ * lands on Overclock with `#work` in the address bar.
+ */
+type BeforeScrollTo = (target: HTMLElement) => void;
+const beforeScrollTo: BeforeScrollTo[] = [];
+
+export function onBeforeScrollTo(fn: BeforeScrollTo): () => void {
+  beforeScrollTo.push(fn);
+  return () => {
+    const i = beforeScrollTo.indexOf(fn);
+    if (i >= 0) beforeScrollTo.splice(i, 1);
+  };
 }
 
 /**
@@ -110,7 +136,20 @@ function settle(target: HTMLElement, offset: number): void {
  * fallback to be apologised for.
  */
 export function scrollToTarget(target: HTMLElement, immediate = false): void {
-  const offset = -navHeight();
+  beforeScrollTo.forEach((fn) => fn(target));
+
+  /* Our work is a full-viewport sticky section whose own padding already
+     clears the bar, and the testimonials pin a full screen whose title is
+     placed under the bar itself. Offsetting either by the header height
+     leaves a strip of the section above it. Everything else is ordinary
+     flow. */
+  const offset = target.hasAttribute('data-cat') || target.hasAttribute('data-tm') ? 0 : -navHeight();
+  const dest = target.getBoundingClientRect().top + window.scrollY + offset;
+
+  if (Math.abs(window.scrollY - dest) < 4) {
+    settle(target, offset);
+    return;
+  }
 
   if (lenis) {
     /* `force`, because the commonest caller is a menu link and the menu still

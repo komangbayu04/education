@@ -369,9 +369,9 @@ export function initNav(): () => void {
  *
  * So the dark grounds are declared rather than detected, with
  * `data-nav-over="dark"`, and this watches whether one of them is behind the
- * mark. Declared because they cannot be read: the founder quote's darkness is
- * a photograph under a scrim, and no computed background colour anywhere in
- * that section says so.
+ * mark. Declared because they cannot be read: the footer's darkness is
+ * a photograph under a black overlay, and no computed background colour
+ * anywhere in that section says so.
  *
  * Both axes are tested, which is not fussiness — the "Ready to get going?"
  * block is dark at every width but sits in the right-hand column on a desktop,

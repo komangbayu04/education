@@ -1,6 +1,6 @@
 import { gsap, ScrollTrigger, SplitText } from './gsap';
 import { setActiveChapter } from './timeline';
-import { getLenis } from './scroll';
+import { getLenis, onBeforeScrollTo } from './scroll';
 import { isTouch, prefersReducedMotion } from './utils/device';
 
 /**
@@ -321,8 +321,31 @@ export function initHero(): () => void {
         margin: 0,
       } as const;
 
+      /* Taking Our work out of flow (position: fixed) collapses the eight
+         screens it occupies. Everything below it jumps up into the viewport
+         for the length of the last step — Two ways' `once` reveal fires
+         behind the overlay, then the section is gone again when the space
+         comes back. A spacer of the same height keeps the page the shape it
+         was. */
+      let workPlaceholder: HTMLElement | null = null;
+      let releasingWork = false;
+
+      const holdWorkSpace = () => {
+        if (!workSection || workPlaceholder) return;
+        workPlaceholder = document.createElement('div');
+        workPlaceholder.setAttribute('aria-hidden', 'true');
+        workPlaceholder.style.cssText = `display:block;height:${workSection.offsetHeight}px;pointer-events:none`;
+        workSection.after(workPlaceholder);
+      };
+
+      const dropWorkSpace = () => {
+        workPlaceholder?.remove();
+        workPlaceholder = null;
+      };
+
       const overlayWork = (visible: boolean) => {
         if (!workSection) return;
+        holdWorkSpace();
         gsap.set(workSection, { ...WORK_OVERLAY, autoAlpha: visible ? 1 : 0 });
       };
 
@@ -332,6 +355,17 @@ export function initHero(): () => void {
           clearProps: 'position,top,left,right,bottom,width,zIndex,overflow,margin,pointerEvents',
           autoAlpha: 1,
         });
+        dropWorkSpace();
+        /* The overlay is `position: fixed`, so every panel's start/end was
+           cached against the viewport rather than the page. A jump to #work
+           then sits past those ends: the first headline is on screen and the
+           second pitch is the one showing. Remeasure now the section is back
+           in flow. Guarded, because this refresh re-enters the pin's
+           onRefresh, which calls setSceneDone, which would call this again. */
+        if (releasingWork) return;
+        releasingWork = true;
+        ScrollTrigger.refresh();
+        releasingWork = false;
       };
 
       const setSceneDone = (done: boolean) => {
@@ -742,6 +776,7 @@ export function initHero(): () => void {
         /* Just after Overclock's rest, not on it — landing on Overclock is
            progress === atExitReveal, and a set there would park Our work
            over the viewport for the whole time that chapter is on screen. */
+        handover.call(holdWorkSpace, undefined, atExitReveal + 1e-4);
         handover.set(workSection, { ...WORK_OVERLAY, autoAlpha: 0 }, atExitReveal + 1e-4);
         addArrival(workSection, atExitReveal, durExitReveal, 'exit');
       } else {
@@ -1290,13 +1325,38 @@ export function initHero(): () => void {
 
       enterBack = stepBackIn;
 
+      /* A menu link to a section below the scene is not a gesture. Without
+         this the stepper sees the scroll moving through the pin, plays the
+         next chapter, and the reader stops on Overclock with `#work` in the
+         bar. Finish the scene first, stand at its end, then let the jump
+         measure a page that is already the right shape. */
+      const unBeforeScroll = onBeforeScrollTo((target) => {
+        if (scene.contains(target)) return;
+        if (step >= STEPS && scene.hasAttribute('data-scene-done')) return;
+
+        stepTween?.kill();
+        step = STEPS;
+        busy = false;
+        handover.progress(1);
+        setSceneDone(true);
+        getLenis()?.start();
+
+        if (st.scroll() < st.end) {
+          const lenis = getLenis();
+          if (lenis) lenis.scrollTo(st.end, { immediate: true, force: true });
+          else window.scrollTo({ top: st.end, left: 0, behavior: 'auto' });
+        }
+      });
+
       ScrollTrigger.addEventListener('refresh', syncFromScroll);
       syncFromScroll();
 
       // Runs when the query stops matching, and on mm.revert()
       return () => {
+        unBeforeScroll();
         controller.abort();
         stepTween?.kill();
+        dropWorkSpace();
         getLenis()?.start();
         ScrollTrigger.removeEventListener('refresh', syncFromScroll);
         ScrollTrigger.removeEventListener('refreshInit', rebuildTileFields);

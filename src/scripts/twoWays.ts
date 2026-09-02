@@ -9,9 +9,9 @@ import { prefersReducedMotion } from './utils/device';
  * backwards. `once: true` means the timeline runs to its end and the trigger
  * kills itself; scrolling back up leaves the section finished.
  *
- * Order: the left column's heading and copy, then the two cards, then the
- * "both models include" rows, then the note under the cards, the disclosure,
- * and the ask — reading order, left to right, top to bottom.
+ * Order: the title, then the two stages, then the "both models include"
+ * label, the iconed cells, and the coverage note — reading order, top to
+ * bottom, left to right.
  *
  * Every `[data-two-reveal]` name below has to be animated by this file: the
  * component's CSS parks all of them at opacity 0 when JS is live, so a hook
@@ -28,7 +28,7 @@ export function initTwoWays(): () => void {
   if (prefersReducedMotion()) return () => {};
 
   const cards = gsap.utils.toArray<HTMLElement>('[data-two-card]', section);
-  /* The "both models include" rows. Still `data-two-ritual` — the attribute
+  /* The "both models include" cells. Still `data-two-ritual` — the attribute
      outlived the pills it was named for, and renaming it would touch the
      component's pre-reveal CSS for nothing. */
   const rituals = gsap.utils.toArray<HTMLElement>('[data-two-ritual]', section);
@@ -68,15 +68,12 @@ export function initTwoWays(): () => void {
   const title = pick('title');
   if (title) tl.fromTo(title, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.9 }, 0);
 
-  const intro = pick('intro');
-  if (intro) tl.fromTo(intro, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.8 }, 0.12);
-
   if (cards.length) {
     tl.fromTo(
       cards,
       { opacity: 0, y: 24 },
       { opacity: 1, y: 0, duration: 0.85, stagger: 0.12 },
-      0.2,
+      0.16,
     );
   }
 
@@ -94,26 +91,8 @@ export function initTwoWays(): () => void {
     );
   }
 
-  const note = pick('note');
-  if (note) tl.fromTo(note, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, 0.6);
-
-  /* The disclosure animates as one block, open or closed — its body is inside
-     it, so a separate hook on the copy would fight <details>' own hiding. */
   const details = pick('details');
   if (details) tl.fromTo(details, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, 0.66);
-
-  const ctaTitle = pick('cta-title');
-  if (ctaTitle) {
-    tl.fromTo(ctaTitle, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.7 }, 0.7);
-  }
-
-  const ctaCopy = pick('cta-copy');
-  if (ctaCopy) {
-    tl.fromTo(ctaCopy, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, 0.78);
-  }
-
-  const cta = pick('cta');
-  if (cta) tl.fromTo(cta, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, 0.86);
 
   return () => {
     tl.scrollTrigger?.kill();

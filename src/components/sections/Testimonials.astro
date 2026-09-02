@@ -1,35 +1,38 @@
 ---
 /**
- * Testimonials — chapter 8. Two independent pieces:
+ * Testimonials — chapter 8. One scroll scene, then a wall.
  *
- * 1. Featured (top). A horizontal accordion. Each person is a fixed card plus
- *    a note panel that animates between 0 and full width. Exactly one note is
- *    open at a time; the first person's is open by default and hovering any
- *    other card moves the open state there, releasing returns it to the
- *    default. Because one note opens exactly as another closes, the row's
- *    total width never changes — the cards just share whatever is left.
+ * The section pins itself for a few screens and the scroll drives it through
+ * four beats (src/scripts/testimonials.ts):
  *
- * 2. Quote grid (bottom). Three cards across, standing still — no entrance, no
- *    drift, nothing that moves — with a second three folded away behind "See
- *    all". Which rows are on the page is a `display` switch off one attribute;
- *    the script sets the attribute and nothing else.
+ *   1. one testimonial film, large and alone in the middle of the screen
+ *   2. it draws in towards the middle and the title comes up over it
+ *   3. it lands as the top tile of a three-column wall, the title parks at the
+ *      top of the screen, and the rest of the wall rises in from below
+ *   4. the wall scrolls up under the title, fading out as it passes beneath it
  *
- *    The cards are the same `.tm__quote-card` the marquee was built from, so
- *    the two faces of this section cannot drift apart in styling. The marquee's
- *    own markup is gone; its CSS (`.tm__rail` / `.tm__track`) and the
- *    `initMarquee` half of the script are still here and both no-op without
- *    `[data-tm-rail]` in the DOM, so putting a moving rail back is markup only.
+ * Any film tile opens the full testimonial — sound, controls, the client's
+ * mark in the corner — in a lightbox over a white ground.
  *
- * Both behaviours live in src/scripts/testimonials.ts. Without JS the section
- * still reads: every note is visible (stacked) and the rail is a plain
- * scrollable row.
+ * LAYOUT. The wall is one flat grid, three across (two on a phone), and the
+ * column rhythm — left half a tile down, right most of a tile down — is a
+ * `translate` picked off `data-c3` / `data-c2`, which the markup writes per
+ * tile, so the same tiles fall into either column count without being re-laid
+ * by hand. The featured tile is the last child of the wall and positioned
+ * absolutely while the scene runs, so it can be any size and anywhere; an
+ * empty `.tm__slot` holds its cell in the grid, and the script lands it there.
+ * Without JS, or under reduced motion, the slot is gone, the featured tile is
+ * an ordinary tile put back in its place by `order`, and the section is a
+ * title over a grid — every film still plays its silent preview and still
+ * opens.
  *
- * ASSETS: `photo` and `logo` are optional on every entry — pass them and the
- * placeholders disappear. The play control only renders as a real link when a
- * `video` URL is given, so no dead button ever ships.
+ * CONTENT. Every entry is one person. A `video` makes it a film tile that
+ * opens the lightbox; without one it is a quote tile on the cream ground,
+ * which is how the wall stays full while there are more quotes than films.
+ * The featured tile is the first film in the centre column.
  */
 
-interface Featured {
+interface Testimonial {
   name: string;
   role: string;
   company: string;
@@ -38,37 +41,29 @@ interface Featured {
   photo?: string;
   logo?: string;
   /** A video file the browser can play inline — mp4/webm, same-origin or CORS
-   *  enabled. Supplying it turns the play mark into a real control. */
+   *  enabled. Makes this a film tile. */
   video?: string;
-  /** Frame shown before playback. Falls back to `photo`. */
+  /** Frame shown before the preview plays. Falls back to `photo`. */
   poster?: string;
 }
 
-interface Quote {
-  name: string;
-  role: string;
-  headline: string;
-  quote: string;
-  photo?: string;
-  /** 'lead' puts the attribution first and hangs the portrait above the card;
-      'trail' puts it last and hangs the portrait below. Alternating the two
-      is what gives the rail its staggered rhythm. */
-  variant?: 'lead' | 'trail';
-}
-
 interface Props {
-  featured?: Featured[];
-  quotes?: Quote[];
-  seeAllLabel?: string;
-  seeLessLabel?: string;
+  title?: string;
+  items?: Testimonial[];
 }
-
-/** Quotes on screen before "See all". The rest are folded away behind it — one
- *  row of three, and one row of three more. */
-const VISIBLE_QUOTES = 3;
 
 const {
-  featured = [
+  title = 'Hear what our clients said about their experiences with us!',
+  items = [
+    {
+      name: 'Bhaumik Patel',
+      role: 'CEO, Atrium Academy',
+      company: 'Atrium Academy',
+      logo: '/media/logo-atrium.svg',
+      headline: 'Are you kidding me? This was a no\u00a0brainer retainer.',
+      quote:
+        '"We basically get the output of a full time design team without the overhead of having to hire, manage, and train them. Design is the last thing I have to worry about, thanks to Tribe."',
+    },
     {
       name: 'Ahmed F. Haque',
       role: 'Founder, Overclock',
@@ -92,15 +87,6 @@ const {
         '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
     },
     {
-      name: 'Bhaumik Patel',
-      role: 'CEO, Atrium Academy',
-      company: 'Atrium Academy',
-      logo: '/media/logo-atrium.svg',
-      headline: 'Are you kidding me? This was a no\u00a0brainer retainer.',
-      quote:
-        '"We basically get the output of a full time design team without the overhead of having to hire, manage, and train them. I don\'t know how to manage designers. I don\'t know how to give them good design feedback. And it feels like I\'ve basically outsourced that part of my brain to Tribe. Design is the last thing I have to worry about, thanks to Tribe."',
-    },
-    {
       name: 'Geoffrey Langford',
       role: 'Sr. Product Manager, Studeo',
       company: 'Studeo',
@@ -111,115 +97,69 @@ const {
       quote:
         '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
     },
-  ],
-  quotes = [
-    {
-      name: 'Geoffrey Langford',
-      role: 'Sr. Product Manager, Studeo',
-      photo: '/media/portrait-geoffrey.webp',
-      headline: 'Absolutely great working with Tribe.',
-      quote:
-        '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
-      variant: 'lead',
-    },
-    {
-      name: 'Bhaumik Patel',
-      role: 'CEO, Atrium Academy',
-      headline: 'Are you kidding me? This was a no\u00a0brainer retainer.',
-      quote:
-        '"We basically get the output of a full time design team without the overhead of having to hire, manage, and train them. I don\'t know how to manage designers. I don\'t know how to give them good design feedback. And it feels like I\'ve basically outsourced that part of my brain to Tribe. Design is the last thing I have to worry about, thanks to Tribe."',
-      variant: 'trail',
-    },
+    /* PLACEHOLDER — carried over from the previous cut of this section. Real
+       names, roles and quotes to come. */
     {
       name: 'Nova',
       role: 'Vice President, CELPIP',
-      // Placeholder: no portrait of their own in image/ yet.
-      photo: '/media/portrait-ahmed.webp',
-      headline: 'Absolutely great working with Tribe.',
+      company: 'CELPIP',
+      headline: 'It felt like one team, not two.',
       quote:
-        '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
-      variant: 'lead',
+        '"Every handoff was already anticipated. We stopped writing briefs halfway through the engagement because they were reading the roadmap better than we were."',
     },
     {
       name: 'Marta Reyes',
       role: 'Head of Growth, Kinfolk',
-      // Placeholder: no portrait of their own in image/ yet.
-      photo: '/media/portrait-braden.webp',
-      headline: 'It felt like one team, not two.',
+      company: 'Kinfolk',
+      headline: 'The work moved the business, not a concept deck.',
       quote:
-        '"Every handoff was already anticipated. We stopped writing briefs halfway through the engagement because they were reading the roadmap better than we were."',
-      variant: 'trail',
-    },
-    /* Five and six complete the second row — "See all" opens three at a time,
-       so the list wants a multiple of three or the row it reveals comes out
-       short. */
-    {
-      name: 'Ahmed F. Haque',
-      role: 'Founder, Overclock',
-      photo: '/media/portrait-ahmed.webp',
-      headline: 'Design stopped being a thing we had to think about.',
-      quote:
-        '"Speed to production was a huge difference. We came out with work that moved the business, not a concept deck."',
-      variant: 'lead',
-    },
-    {
-      name: 'Braden Weissman',
-      role: 'Co-Founder, Nerd Apply',
-      photo: '/media/portrait-braden.webp',
-      headline: 'They shipped faster than our own team could have.',
-      quote:
-        '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
-      variant: 'trail',
+        '"We came out with something customers could use, and a team that understood why it mattered. That is rarer than it should be."',
     },
   ],
-  seeAllLabel = 'Read More Testimonials',
-  seeLessLabel = 'See less',
 } = Astro.props;
 
-/* One speaker, drawn once and used by both faces of this section. The slash
-   and the waves are both in the markup and CSS shows one or the other off
-   `aria-pressed`, so the icon answers to the button's own state rather than
-   needing the script to redraw it. */
-const soundIcon = `<svg viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
-  <path d="M9 3.4 5.2 6.6H2.9v6.8h2.3L9 16.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
-  <g class="tm__sound-wave" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-    <path d="M12.6 7.6a3.4 3.4 0 0 1 0 4.8" />
-    <path d="M15 5.2a6.8 6.8 0 0 1 0 9.6" />
-  </g>
-  <g class="tm__sound-slash" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-    <path d="M13.4 8.4 17 12" />
-    <path d="M17 8.4 13.4 12" />
-  </g>
-</svg>`;
+/* The film that opens the scene: the first one that sits in the centre column
+   of the three-across wall, so it lands where it started from — straight under
+   the title. Any film at all if none does. Second in the list is the place for
+   it: that is the centre column at three across and the flush column at two,
+   so it leads the wall on a phone as well. */
+const featuredIndex = (() => {
+  const centre = items.findIndex((item, i) => item.video && i % 3 === 1);
+  if (centre >= 0) return centre;
+  return items.findIndex((item) => item.video);
+})();
 
-/* The featured people, two to a row — see the markup for why rows are real
-   elements rather than a wrapping flex container. */
-const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
-  if (i % 2 === 0) acc.push([person]);
-  else acc[acc.length - 1].push(person);
-  return acc;
-}, []);
+const featured = featuredIndex >= 0 ? items[featuredIndex] : undefined;
+
+/* Per-tile column attributes, for both column counts. */
+const cols = (i: number) => ({ 'data-c3': i % 3, 'data-c2': i % 2, style: `--i:${i}` });
+
+const badge = `<span class="tm__badge" aria-hidden="true">
+  <svg class="tm__badge-play" viewBox="0 0 12 14" fill="none"><path d="M12 7 0 14V0z" fill="currentColor" /></svg>
+  <svg class="tm__badge-pause" viewBox="0 0 12 14" fill="none"><path d="M1 0h3v14H1zM8 0h3v14H8z" fill="currentColor" /></svg>
+</span>`;
 ---
 
 <section class="tm" id="founders" aria-labelledby="tm-title" data-tm>
-  <h2 class="u-sr-only" id="tm-title">What founders say</h2>
+  <div class="tm__stage" data-tm-stage>
+    <h2 class="tm__title" id="tm-title" data-tm-title>{title}</h2>
 
-  {/* ================= Featured: spotlight (mobile) =================
-      The accordion needs two cards and an open note side by side; a phone has
-      room for one. So below the breakpoint the same people are shown one at a
-      time, chosen from a rail of thumbnails, with the copy underneath. Same
-      data, different instrument — see the CSS for which one is displayed. */}
-  <div class="tm__spot" data-tm-spot>
-    <div class="tm__spot-stage">
-      {featured.map((person, i) => (
-        <figure class="tm__spot-panel" data-tm-spot-panel data-active={i === 0 ? '' : undefined}>
-          <div class="tm__spot-media" data-tm-media>
-            {person.video ? (
-              /* Same treatment as the accordion card above — see there. */
+    {/* The wash the wall fades out under as it passes beneath the title. */}
+    <div class="tm__fade" data-tm-fade aria-hidden="true"></div>
+
+    <ul class="tm__wall" data-tm-wall>
+      {
+        items.map((item, i) =>
+          i === featuredIndex ? (
+            /* Holds the featured tile's cell while that tile is off being the
+               scene. Gone whenever the tile is back in the flow. */
+            <li class="tm__tile tm__slot" data-tm-slot aria-hidden="true" {...cols(i)} />
+          ) : item.video ? (
+            <li class="tm__tile tm__tile--film" data-tm-tile {...cols(i)}>
               <video
-                class="tm__video"
-                src={person.video}
-                poster={person.poster ?? person.photo}
+                class="tm__preview"
+                src={item.video}
+                poster={item.poster ?? item.photo}
                 preload="metadata"
                 autoplay
                 muted
@@ -227,1211 +167,544 @@ const rows: Featured[][] = featured.reduce<Featured[][]>((acc, person, i) => {
                 playsinline
                 data-tm-video
               />
-            ) : person.photo ? (
-              <img src={person.photo} alt={`Portrait of ${person.name}`} loading="lazy" decoding="async" />
-            ) : (
-              <span class="tm__portrait-fallback" aria-hidden="true" />
-            )}
-
-            {person.video ? (
-              <Fragment>
-                {/* Same pair as the accordion card — see there. */}
-                <button
-                  class="tm__toggle"
-                  type="button"
-                  data-tm-toggle
-                  aria-pressed="true"
-                  aria-label={`Pause ${person.name}'s testimonial`}
-                >
-                  <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none" aria-hidden="true">
-                    <path d="M12 7 0 14V0z" fill="currentColor" />
-                  </svg>
-                  <svg class="tm__toggle-pause" viewBox="0 0 12 14" fill="none" aria-hidden="true">
-                    <path d="M1 0h3v14H1zM8 0h3v14H8z" fill="currentColor" />
-                  </svg>
-                </button>
-
-                <button
-                  class="tm__sound"
-                  type="button"
-                  data-tm-sound
-                  aria-pressed="false"
-                  aria-label={`Turn on sound for ${person.name}'s testimonial`}
-                >
-                  <Fragment set:html={soundIcon} />
-                </button>
-              </Fragment>
-            ) : (
-              <span class="tm__toggle" aria-hidden="true">
-                <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none">
-                  <path d="M12 7 0 14V0z" fill="currentColor" />
-                </svg>
-              </span>
-            )}
-          </div>
-        </figure>
-      ))}
-
-      <ol class="tm__spot-rail" style={`--spot-count:${featured.length}`}>
-        {featured.map((person, i) => (
-          <li class="tm__spot-slot">
-            <span class="tm__spot-index" aria-hidden="true">/{i + 1}</span>
-            <button
-              class="tm__spot-thumb"
-              type="button"
-              data-tm-spot-pick={i}
-              data-active={i === 0 ? '' : undefined}
-              aria-label={`Show the testimonial from ${person.name}`}
-            >
-              {person.photo ? (
-                <img src={person.photo} alt="" loading="lazy" decoding="async" />
-              ) : (
-                <span class="tm__portrait-fallback" aria-hidden="true" />
-              )}
-            </button>
-          </li>
-        ))}
-      </ol>
-    </div>
-
-    {featured.map((person, i) => (
-      <div class="tm__spot-copy" data-tm-spot-copy data-active={i === 0 ? '' : undefined}>
-        <div class="tm__spot-who">
-          <div>
-            <p class="tm__name">{person.name}</p>
-            <p class="tm__role">{person.role}</p>
-          </div>
-          {person.logo ? (
-            <img class="tm__logo-img" src={person.logo} alt={person.company} loading="lazy" decoding="async" />
-          ) : (
-            <span class="tm__logo">{person.company}</span>
-          )}
-        </div>
-        <p class="tm__headline">{person.headline}</p>
-        <blockquote class="tm__quote">{person.quote}</blockquote>
-      </div>
-    ))}
-  </div>
-
-  <!-- ================= Featured: hover accordion =================
-       Two to a row. The accordion's whole trick is that the open note takes
-       its width from the person beside it, so a row is the unit it works in —
-       hence real row elements rather than one wrapping flex container. Each
-       row runs its own accordion: one note open in it at a time, defaulting to
-       the first person in that row. -->
-  <div class="tm__feature u-container" data-tm-feature>
-    {
-      rows.map((row) => (
-        <div class="tm__row" data-tm-row>
-          {row.map((person, i) => (
-        <figure class="tm__person" data-tm-person data-open={i === 0 ? '' : undefined}>
-          <div class="tm__card">
-            <div class="tm__portrait" data-tm-media>
-              {person.video ? (
-                /* Plays by itself, silently, on a loop — the card is a moving
-                   portrait rather than something waiting to be started.
-                   `muted` is not a style choice: every browser blocks
-                   autoplay with sound, so without it nothing would play at
-                   all. Sound is one press of the control below away.
-
-                   The poster still carries the first frame, so a slow
-                   connection sees the portrait rather than a black box. */
-                <video
-                  class="tm__video"
-                  src={person.video}
-                  poster={person.poster ?? person.photo}
-                  preload="metadata"
-                  autoplay
-                  muted
-                  loop
-                  playsinline
-                  data-tm-video
-                />
-              ) : person.photo ? (
-                <img src={person.photo} alt={`Portrait of ${person.name}`} loading="lazy" decoding="async" />
-              ) : (
-                /* PLACEHOLDER — pass `photo` to replace */
-                <span class="tm__portrait-fallback" aria-hidden="true" />
-              )}
-
-              {person.video ? (
-                <Fragment>
-                  {/* Two controls, because there are two things to decide.
-                      The badge stops and starts the picture; the small mark
-                      below it decides whether you hear it. */}
-                  <button
-                    class="tm__toggle"
-                    type="button"
-                    data-tm-toggle
-                    aria-pressed="true"
-                    aria-label={`Pause ${person.name}'s testimonial`}
-                  >
-                    <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none" aria-hidden="true">
-                      <path d="M12 7 0 14V0z" fill="currentColor" />
-                    </svg>
-                    <svg class="tm__toggle-pause" viewBox="0 0 12 14" fill="none" aria-hidden="true">
-                      <path d="M1 0h3v14H1zM8 0h3v14H8z" fill="currentColor" />
-                    </svg>
-                  </button>
-
-                  <button
-                    class="tm__sound"
-                    type="button"
-                    data-tm-sound
-                    aria-pressed="false"
-                    aria-label={`Turn on sound for ${person.name}'s testimonial`}
-                  >
-                    <Fragment set:html={soundIcon} />
-                  </button>
-                </Fragment>
-              ) : (
-                /* No video URL supplied — decorative only, never a dead control */
-                <span class="tm__toggle" aria-hidden="true">
-                  <svg class="tm__toggle-play" viewBox="0 0 12 14" fill="none">
-                    <path d="M12 7 0 14V0z" fill="currentColor" />
-                  </svg>
-                </span>
-              )}
-            </div>
-
-            <figcaption class="tm__meta">
-              <div class="tm__who">
-                <p class="tm__name">{person.name}</p>
-                <p class="tm__role">{person.role}</p>
-              </div>
-              {person.logo ? (
-                <img class="tm__logo-img" src={person.logo} alt={person.company} loading="lazy" decoding="async" />
-              ) : (
-                /* PLACEHOLDER wordmark — pass `logo` to replace */
-                <span class="tm__logo">{person.company}</span>
-              )}
-            </figcaption>
-          </div>
-
-          <div class="tm__note" data-tm-note>
-            <div class="tm__note-inner">
-              <p class="tm__headline">{person.headline}</p>
-              <blockquote class="tm__quote">{person.quote}</blockquote>
-            </div>
-          </div>
-        </figure>
-          ))}
-        </div>
-      ))
-    }
-  </div>
-
-  {
-    quotes.length > 0 && (
-      <div class="tm__more u-container" data-tm-more>
-        <ul class="tm__grid" id="tm-quote-grid">
-          {quotes.map((entry, i) => (
-            <li
-              class:list={['tm__grid-item', { 'tm__grid-item--extra': i >= VISIBLE_QUOTES }]}
-            >
-              <figure
-                class:list={['tm__quote-card', `tm__quote-card--${entry.variant ?? 'lead'}`]}
+              <button
+                class="tm__open"
+                type="button"
+                data-tm-open={i}
+                data-logo={item.logo}
+                data-company={item.company}
+                aria-label={`Watch ${item.name}'s testimonial`}
               >
-                <div class="tm__quote-body">
-                  <div class="tm__quote-who">
-                    <p class="tm__name">{entry.name}</p>
-                    <p class="tm__role">{entry.role}</p>
-                  </div>
-
-                  <p class="tm__quote-headline">{entry.headline}</p>
-                  <blockquote class="tm__quote-text">{entry.quote}</blockquote>
-                </div>
-
-                {entry.photo && (
-                  /* Empty alt: the name is right beside it in the card, so a
-                     screen reader announcing the portrait as well says the
-                     same person twice. */
-                  <div class="tm__quote-portrait">
-                    <img src={entry.photo} alt="" loading="lazy" decoding="async" />
-                  </div>
-                )}
+                <Fragment set:html={badge} />
+              </button>
+            </li>
+          ) : (
+            <li class="tm__tile tm__tile--quote" data-tm-tile {...cols(i)}>
+              <figure class="tm__quote">
+                <blockquote class="tm__quote-body">
+                  <p class="tm__quote-headline">{item.headline}</p>
+                  <p class="tm__quote-text">{item.quote}</p>
+                </blockquote>
+                <figcaption class="tm__quote-who">
+                  <span>
+                    <span class="tm__name">{item.name}</span>
+                    <span class="tm__role">{item.role}</span>
+                  </span>
+                  {item.logo && (
+                    <img class="tm__quote-logo" src={item.logo} alt={item.company} loading="lazy" decoding="async" />
+                  )}
+                </figcaption>
               </figure>
             </li>
-          ))}
-        </ul>
+          ),
+        )
+      }
 
-        {/* Only ever rendered when there is something folded away behind it,
-            and only ever *shown* when JS is live — with the script off every
-            card is already on the page (see the closed state at the foot of
-            this file), and a control whose whole job is to reveal what you can
-            already see is a dead button. */}
-        {quotes.length > VISIBLE_QUOTES && (
-          <button
-            class="tm__see-all"
-            type="button"
-            data-tm-see-all
-            data-label-more={seeAllLabel}
-            data-label-less={seeLessLabel}
-            aria-expanded="false"
-            aria-controls="tm-quote-grid"
+      {
+        featured && (
+          /* Last in the DOM so it can leave the grid without moving anyone
+             else's cell. `order` puts it back in its place when it is in the
+             flow — see the closed state at the foot of the stylesheet. */
+          <li
+            class="tm__tile tm__tile--film tm__tile--featured"
+            data-tm-tile
+            data-tm-featured
+            {...cols(featuredIndex)}
           >
-            <span data-tm-see-all-label>{seeAllLabel}</span>
-          </button>
-        )}
-      </div>
-    )
-  }
+            <video
+              class="tm__preview"
+              src={featured.video}
+              poster={featured.poster ?? featured.photo}
+              preload="auto"
+              autoplay
+              muted
+              loop
+              playsinline
+              data-tm-video
+            />
+            {/* White wash for the moment the title is drawn over this film. */}
+            <span class="tm__veil" data-tm-veil aria-hidden="true"></span>
+            <button
+              class="tm__open"
+              type="button"
+              data-tm-open={featuredIndex}
+              data-logo={featured.logo}
+              data-company={featured.company}
+              aria-label={`Watch ${featured.name}'s testimonial`}
+            >
+              <Fragment set:html={badge} />
+            </button>
+          </li>
+        )
+      }
+    </ul>
+  </div>
+
+  {/* The full testimonial. One dialog for every film; the script points it at
+      whichever tile was pressed. */}
+  <dialog class="tm__lightbox" data-tm-lightbox aria-label="Testimonial">
+    <div class="tm__lightbox-frame" data-tm-lightbox-frame>
+      <video class="tm__lightbox-video" data-tm-lightbox-video controls playsinline preload="none"></video>
+      <img class="tm__lightbox-logo" data-tm-lightbox-logo alt="" hidden />
+      <button class="tm__close" type="button" data-tm-lightbox-close aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M2 2l12 12M14 2 2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+  </dialog>
 </section>
 
 <style>
   .tm {
-    /* Project body face rather than the Figma display cut. */
-    font-family: var(--font-body);
-
-    /* One knob for the open note's width. The note's inner wrapper is pinned
-       to the same value so the copy never re-wraps mid-animation. */
-    --tm-note-w: min(38vw, 42rem);
-
-    /* --- Quote-grid geometry ---------------------------------------------
-       Three numbers the grid's spacing is derived from rather than guessed at,
-       because two of them are what made the cards touch: each portrait hangs
-       most of its own height outside its card, and each 'trail' card is lifted
-       by the stagger — so the space between two cards is nothing like the gap
-       you write. */
-    /* Down from clamp(7rem, 13vw, 11rem). The row gap is 2*hang before any
-       clearance, and hang is ~49% of this — so this number, not the gap, is
-       what set the 131px trough between the two rows of cards. At 10vw the
-       portraits are still the largest thing in the block and the rows close up
-       by about a third. */
-    --tm-quote-portrait: clamp(6rem, 10vw, 9rem);
-    --tm-quote-stagger: clamp(2rem, 4vw, 3.5rem);
-    /** The clearance asked for: 24px between anything and anything. */
-    --tm-quote-gap: 1.5rem;
-    /** What hangs outside the card: 46% of the portrait's height, and its
-     *  height is 1.06 x its width. */
-    --tm-quote-hang: calc(0.4876 * var(--tm-quote-portrait));
+    /* Gutter between tiles, and the wall's inset from the screen edge — the
+       frames run the wall edge to edge with the same gap between columns. */
+    --tm-gap: clamp(0.625rem, 1.4vw, 1.25rem);
+    /* Where the title's top sits while the scene runs. Under the fixed header,
+       and never above it. */
+    --tm-title-top: max(calc(var(--nav-height) + 0.5rem), 8.5svh);
+    /* How far down the screen the wash under the title reaches. */
+    --tm-fade-h: 38svh;
 
     position: relative;
-    padding-block: clamp(3rem, 6vw, 5rem);
-    overflow: hidden;
     background: var(--color-bg-primary);
     color: var(--color-ink);
+    font-family: var(--font-body);
   }
 
-  /* ===================== Featured ===================== */
-  .tm__feature {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1rem, 2vw, 1.75rem);
-  }
-
-  /* The accordion's unit. Two people share a row's width, and the open note
-     takes its width from the other one — which only works if "the other one"
-     is a fixed set. */
-  .tm__row {
-    display: flex;
-    gap: clamp(1rem, 2vw, 1.75rem);
-    align-items: stretch;
-  }
-
-  /* Card + note are one surface, so they share the background.
-     The open person carries the note's width as its own flex-basis, and both
-     people grow equally from there — so whatever is left over splits evenly
-     and the two *cards* come out the same width no matter which note is open.
-     That is what keeps the portraits the same size (they were 75px apart in
-     height, since .tm__portrait takes its height from its own width via
-     aspect-ratio) and what stops the row resizing mid-transition: the two
-     bases move by equal and opposite amounts on the same easing, so their sum
-     — and therefore the space the cards share — never changes. */
-  .tm__person {
-    display: flex;
-    flex: 1 1 0;
-    min-width: 0;
-    margin: 0;
-    background: var(--color-bg-twoways);
-    transition: flex-basis 0.55s var(--ease-out-expo);
-  }
-
-  .tm__person[data-open] {
-    flex-basis: var(--tm-note-w);
-  }
-
-  .tm__card {
-    display: flex;
-    flex: 1 1 0;
-    min-width: 0;
-    flex-direction: column;
-    gap: clamp(0.75rem, 1.2vw, 1rem);
-    padding: clamp(0.75rem, 1.1vw, 1rem);
-  }
-
-  .tm__portrait {
+  /* ===================== Static layout =====================
+     What the section is without the scene: the title, then the wall. The
+     scene layout further down only applies with JS live and motion allowed;
+     everything here is the fallback and the reduced-motion cut. */
+  .tm__stage {
     position: relative;
-    aspect-ratio: 4 / 3.4;
+    /* The wall's cqw arithmetic below resolves against this box. */
+    container-type: inline-size;
+    padding-block: clamp(3rem, 6vw, 5rem) 0;
+  }
+
+  .tm__title {
+    /* Two lines, broken after "about" — the frames' own break. */
+    max-width: 34ch;
+    margin: 0 auto clamp(2rem, 4vw, 3.5rem);
+    padding-inline: var(--section-padding-x);
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.9vw, 2.75rem);
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .tm__fade {
+    display: none;
+  }
+
+  .tm__wall {
+    /* One tile's height, worked out from the column it sits in — the shifts
+       below are fractions of this, so the ragged foot they leave under the
+       last row can be reserved for. */
+    --tm-tile-h: calc((100cqw - 2 * var(--tm-gap)) / 3 * 0.9);
+
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--tm-gap);
+    margin: 0;
+    padding: 0 0 calc(0.8 * var(--tm-tile-h) + var(--tm-gap));
+    list-style: none;
+  }
+
+  .tm__tile {
+    position: relative;
+    order: var(--i);
+    aspect-ratio: 10 / 9;
     overflow: hidden;
     background: var(--color-line);
   }
 
-  .tm__portrait img,
-  .tm__video {
+  /* The column rhythm — left half a tile down, right most of one. Percentages
+     of the tile's own height, so it holds at any width. */
+  .tm__tile[data-c3='0'] {
+    translate: 0 50%;
+  }
+
+  .tm__tile[data-c3='2'] {
+    translate: 0 80%;
+  }
+
+  .tm__slot {
+    display: none;
+  }
+
+  .tm__preview {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-
-  /* Neutral stand-in — deliberately flat, not a fake face */
-  .tm__portrait-fallback {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background:
-      linear-gradient(150deg, rgb(0 0 0 / 0.05), transparent 60%),
-      var(--color-line);
-  }
-
-  /* Play/pause. The badge in the middle of the portrait, as it always was —
-     the difference is that it now reports the state it is in rather than
-     always offering to start something already running. */
-  .tm__toggle {
+  /* The whole tile is the control: pressing anywhere opens the film. */
+  .tm__open {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    inset: 0;
     display: grid;
     place-items: center;
-    width: clamp(2.25rem, 3vw, 2.75rem);
-    aspect-ratio: 1;
-    translate: -50% -50%;
-    /* <button> resets — this rule is shared with the decorative <span>. */
     padding: 0;
     border: 0;
-    font: inherit;
-    background: var(--color-bg-primary);
-    color: var(--color-ink);
-    /* Out of the way until asked for: the card is a moving portrait, and a
-       control parked over the face is the first thing you see instead of the
-       person. */
-    opacity: 0;
-    transition:
-      scale 0.4s var(--ease-out-expo),
-      opacity 0.3s var(--ease-out-expo);
-  }
-
-  /* Hover is the only thing that brings it up. Playing or paused makes no
-     difference: a card that is not being pointed at shows the person, not a
-     button.
-
-     `:focus-visible` on the button itself, NOT `:focus-within` on the card.
-     A mouse click leaves the button focused, so focus-within kept the badge up
-     on whatever card was last pressed long after the pointer had gone — which
-     is exactly the "it stays visible once you press play" case. focus-visible
-     ignores that click and only answers to keyboard focus, which is the case
-     it was there for. */
-  .tm__person:hover .tm__toggle,
-  .tm__spot-panel:hover .tm__toggle,
-  .tm__toggle:focus-visible {
-    opacity: 1;
-  }
-
-  /* No hover to reveal it with. */
-  @media (hover: none) {
-    .tm__toggle {
-      opacity: 1;
-    }
-  }
-
-  button.tm__toggle {
+    background: transparent;
+    color: inherit;
     cursor: pointer;
   }
 
-  .tm__toggle svg {
-    grid-area: 1 / 1;
-    width: 0.6875rem;
+  .tm__open:focus-visible {
+    outline-offset: -3px;
   }
 
-  .tm__toggle-play {
+  /* The badge in the middle of the film — a pause mark while the silent
+     preview runs, a play mark when it is not. Decorative: the button around
+     it carries the label.
+
+     :global throughout — the badge arrives through set:html, so it carries no
+     scoping attribute and a plain scoped selector matches none of it. */
+  .tm__open :global(.tm__badge) {
+    display: grid;
+    place-items: center;
+    width: clamp(1.875rem, 2.4vw, 2.5rem);
+    aspect-ratio: 1;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    transition: scale 0.4s var(--ease-out-expo);
+  }
+
+  .tm__open :global(.tm__badge svg) {
+    grid-area: 1 / 1;
+    width: 0.625rem;
+  }
+
+  .tm__open :global(.tm__badge-play) {
     margin-left: 2px;
   }
 
-  /* aria-pressed carries "is playing", so the mark is the one you would press
-     for the other state. The decorative <span> has no attribute at all and
-     keeps the play mark. */
-  .tm__toggle[aria-pressed='true'] .tm__toggle-play,
-  .tm__toggle[aria-pressed='false'] .tm__toggle-pause {
+  .tm__tile:not([data-playing]) :global(.tm__badge-pause),
+  .tm__tile[data-playing] :global(.tm__badge-play) {
     display: none;
   }
 
-  button.tm__toggle:hover,
-  button.tm__toggle:focus-visible {
+  .tm__open:hover :global(.tm__badge),
+  .tm__open:focus-visible :global(.tm__badge) {
     scale: 1.08;
   }
 
-  /* Sound switch. Bottom-left, and deliberately smaller than the badge above:
-     it is the secondary of the two decisions, and at the badge's size the two
-     competed. */
-  .tm__sound {
+  .tm__veil {
     position: absolute;
-    bottom: 0.625rem;
-    left: 0.625rem;
-    display: grid;
-    place-items: center;
-    width: clamp(1.5rem, 2vw, 1.75rem);
-    aspect-ratio: 1;
-    padding: 0;
-    border: 0;
-    font: inherit;
-    cursor: pointer;
+    inset: 0;
     background: var(--color-bg-primary);
-    color: var(--color-ink);
-    transition:
-      scale 0.4s var(--ease-out-expo),
-      opacity 0.3s var(--ease-out-expo);
+    opacity: 0;
+    pointer-events: none;
   }
 
-  /* :global — the icon arrives through set:html, so it carries no scoping
-     attribute and a plain descendant selector matches none of it. Without
-     this the svg simply filled the button. */
-  .tm__sound :global(svg) {
-    width: 0.75rem;
-    height: auto;
+  /* --- Quote tiles --------------------------------------------------------- */
+  .tm__tile--quote {
+    background: var(--color-bg-twoways);
   }
 
-  /* Muted is the resting state, so the slash is what shows until the button
-     is pressed. */
-  .tm__sound[aria-pressed='false'] :global(.tm__sound-wave),
-  .tm__sound:not([aria-pressed]) :global(.tm__sound-wave) {
-    display: none;
-  }
-
-  .tm__sound[aria-pressed='true'] :global(.tm__sound-slash) {
-    display: none;
-  }
-
-  button.tm__sound:hover,
-  button.tm__sound:focus-visible {
-    scale: 1.08;
-  }
-
-  .tm__meta {
+  .tm__quote {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: space-between;
     gap: 1rem;
-    margin-top: auto;
+    height: 100%;
+    margin: 0;
+    padding: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .tm__quote-body {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.625rem, 1vw, 1rem);
+    margin: 0;
+  }
+
+  .tm__quote-headline {
+    font-family: var(--font-display);
+    font-size: clamp(1.0625rem, 1.55vw, 1.5rem);
+    line-height: 1.24;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .tm__quote-text {
+    font-size: clamp(0.8125rem, 0.95vw, 0.9375rem);
+    line-height: 1.55;
+    color: var(--color-ink-secondary);
+    /* The tile is a fixed shape; a long quote runs out of it rather than
+       stretching it. Clamped to the lines that fit. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    overflow: hidden;
+  }
+
+  .tm__quote-who {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
   }
 
   .tm__name {
+    display: block;
     font-size: var(--text-body);
     font-weight: 500;
     line-height: 1.3;
   }
 
   .tm__role {
-    font-size: 0.875rem;
+    display: block;
+    font-size: 0.8125rem;
     line-height: 1.4;
     color: var(--color-ink-secondary);
   }
 
-  .tm__logo {
-    font-size: clamp(0.9375rem, 1.3vw, 1.125rem);
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-  }
-
-  .tm__logo-img {
-    max-width: clamp(6rem, 10vw, 9rem);
+  .tm__quote-logo {
+    flex: none;
+    max-width: clamp(5rem, 7vw, 6.5rem);
     height: auto;
   }
 
-  /* --- The note ------------------------------------------------------------
-     flex-basis is what animates, not width: the card next to it is
-     `flex: 1 1 0`, so it absorbs the change automatically and the row's
-     total width stays put. overflow:hidden clips the fixed-width inner
-     wrapper as the basis shrinks. */
-  .tm__note {
-    flex: 0 0 0;
-    overflow: hidden;
-    transition: flex-basis 0.55s var(--ease-out-expo);
-  }
-
-  .tm__person[data-open] .tm__note {
-    flex-basis: var(--tm-note-w);
-  }
-
-  .tm__note-inner {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(2rem, 6vw, 5rem);
-    /* Pinned so the copy keeps its line breaks while the panel animates */
-    width: var(--tm-note-w);
-    height: 100%;
-    padding: clamp(1.25rem, 2.4vw, 2.25rem) clamp(1.25rem, 2.2vw, 2rem);
-  }
-
-  /* Full panel width — a 20ch / 46ch cap left short, uneven lines in a
-     column that still had room. `pretty` (from `p`) keeps orphans in check
-     without `balance` rewriting the breaks. */
-  .tm__headline {
-    width: 100%;
-    font-size: clamp(1.125rem, 1.9vw, 1.75rem);
-    line-height: 1.28;
-    letter-spacing: -0.015em;
-  }
-
-  .tm__quote {
-    width: 100%;
-    margin: auto 0 0;
-    font-size: var(--text-body);
-    line-height: 1.62;
-  }
-
-  /* ===================== Featured: spotlight (mobile) ===================== */
-  /* Desktop keeps the accordion; this replaces it below 61.25rem, where the
-     accordion has no room. Exactly one of the two is ever displayed. */
-  .tm__spot {
-    display: none;
-  }
-
-  /* The rail and the portrait are one block, and the portrait is what sets its
-     height: the stage carries the portrait's own aspect ratio, worked out from
-     the column it sits in, and the rail simply fills that height.
-
-     It used to be four thumbs at a fixed 24% column with nothing tying their
-     total height to the portrait beside them — so they ran past the bottom of
-     it by about 145px on a 375 screen and the block read as lopsided. The
-     thumbs now divide whatever height the portrait gives them.
-
-     15%, down from 24%, is not arbitrary. Solving thumbW/thumbH for the 74:81
-     the reference draws — where the height each thumb inherits is the stage's
-     height less the index labels and gaps, divided four ways — puts it at
-     0.151 on a 375 screen. So they stay the portraits they were rather than
-     turning square, which is what 16% gave (0.98, near enough a square).
-     Wider phones drift a little more portrait, because the labels and gaps are
-     fixed pixels and count for less of the height as the stage grows.
-
-     The three fractions are unitless on purpose — the columns, the gap and the
-     aspect ratio are all derived from them, so they cannot fall out of step. */
-  .tm__spot-stage {
-    --spot-rail: 0.15;
-    --spot-gap: 0.013;
-    /* The portrait's own ratio, 230 : 284 off the reference. */
-    --spot-portrait: calc(284 / 230);
-
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) calc(var(--spot-rail) * 100%);
-    gap: calc(var(--spot-gap) * 100%);
-    aspect-ratio: 1 / calc((1 - var(--spot-rail) - var(--spot-gap)) * var(--spot-portrait));
-    align-items: stretch;
-  }
-
-  /* Every panel occupies the same cell, so switching never re-lays the page
-     out — only which one is visible changes. */
-  .tm__spot-panel {
-    grid-area: 1 / 1;
+  /* ===================== Lightbox ===================== */
+  .tm__lightbox {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    max-width: none;
+    max-height: none;
     margin: 0;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 0.45s var(--ease-out-expo),
-      visibility 0.45s;
-  }
-
-  .tm__spot-panel[data-active] {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  /* Portrait, not landscape — 230 : 284 off the reference. */
-  .tm__spot-media {
-    position: relative;
-    aspect-ratio: 230 / 284;
-    overflow: hidden;
-    background: var(--color-line);
-  }
-
-  .tm__spot-media img,
-  .tm__spot-media .tm__video {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  /* Rows rather than a flex column: every slot gets an equal share of the
-     height the stage hands down, whatever that turns out to be, and none of
-     them can push the rail past it. `--spot-count` comes from the markup, so
-     adding a fifth founder needs no change here. */
-  .tm__spot-rail {
-    grid-area: 1 / 2;
-    /* Zero height, then filled by min-height. Both are needed: a plain
-       `height: 100%` is an indefinite percentage while the row is being sized,
-       so the rail fell back to its content height and pushed the row 14px past
-       the portrait — the row it was supposed to be measuring itself against.
-       At height 0 it contributes nothing to that sizing, and min-height then
-       resolves against the finished row. */
-    height: 0;
-    min-height: 100%;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    grid-template-rows: repeat(var(--spot-count, 4), minmax(0, 1fr));
-    gap: clamp(0.5rem, 2vw, 0.875rem);
-  }
-
-  /* The index label takes what it needs; the thumb takes the rest. */
-  .tm__spot-slot {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    min-height: 0;
-  }
-
-  .tm__spot-index {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.8125rem;
-    color: var(--color-ink-secondary);
-  }
-
-  .tm__spot-thumb {
-    display: block;
-    width: 100%;
-    /* Sized by the slot, not by a ratio of its own — that is what keeps the
-       rail inside the portrait. The 74:81 the reference draws is what the
-       16% rail column produces here anyway; see .tm__spot-stage. */
-    height: 100%;
-    min-height: 0;
     padding: 0;
     border: 0;
-    overflow: hidden;
-    background: var(--color-line);
-    cursor: pointer;
-    /* The unselected ones sit back rather than disappear — they are the rest
-       of the list, not disabled controls. */
-    opacity: 0.45;
-    transition: opacity 0.4s var(--ease-out-expo);
+    background: transparent;
+    color: var(--color-ink);
   }
 
-  .tm__spot-thumb[data-active] {
-    opacity: 1;
-  }
-
-  .tm__spot-thumb img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  /* Same trick as the panels: one cell, one visible. */
-  .tm__spot-copy {
-    display: none;
-    flex-direction: column;
-    /* Wider steps than the desktop card: the reference gives the name block,
-       the headline and the quote real air between them. */
-    gap: clamp(1.25rem, 5vw, 2rem);
-    margin-top: clamp(1rem, 4vw, 1.5rem);
-  }
-
-  .tm__spot-copy[data-active] {
-    display: flex;
-  }
-
-  .tm__spot-who {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .tm__spot-copy .tm__headline {
-    font-size: clamp(1.25rem, 5.4vw, 1.75rem);
-    line-height: 1.22;
-  }
-
-  .tm__spot-copy .tm__quote {
-    margin: 0;
-  }
-
-  .tm__spot-copy .tm__name {
-    font-size: clamp(1rem, 4.4vw, 1.25rem);
-    font-weight: 600;
-  }
-
-  @media (max-width: 61.25rem) {
-    .tm__feature {
-      display: none;
-    }
-
-    .tm__spot {
-      display: block;
-      padding-inline: var(--section-padding-x);
-    }
-  }
-
-  /* ===================== Quote grid =====================
-     The same card the marquee below was built from, stood still: three across,
-     a second three folded away behind "See all", and no motion of any kind on
-     any of it. The cards keep their own classes, so the two faces of this
-     section cannot drift apart in styling. */
-  .tm__more {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    /* Purely the break between the founders above and the quotes below — it is
-       not clearance for the hanging portraits, which is what it used to say.
-       .tm__grid's own padding-top already reserves `hang + gap` for exactly
-       those, so the two were reserving the same space one after the other:
-       86px here on top of 94px there, for a single row of portraits that needs
-       94. Halved, which is what closed the trough between the two blocks. */
-    margin-top: clamp(1.5rem, 3vw, 2.75rem);
-  }
-
-  /* The gaps are derived, not picked. Sideways is simply the clearance, because
-     the portraits sit inside their cards horizontally. Downwards is not: two
-     cards in one column can face each other with a portrait hanging out of
-     both, and the lower one may also be lifted by the stagger — so the row gap
-     has to cover both hangs, give back the lift, and still leave the clearance.
-
-     Written as a gap of 30px, the second row landed *on* the first: the cards
-     touched, and one portrait ran across the card below it. That is the case
-     this arithmetic is for. */
-  .tm__grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-    column-gap: var(--tm-quote-gap);
-    row-gap: calc(
-      2 * var(--tm-quote-hang) + var(--tm-quote-gap) - var(--tm-quote-stagger)
-    );
-    width: 100%;
-    margin: 0;
-    /* The same clearance at the row's own ends, where the first row's portraits
-       hang up out of the grid and the last row's hang down out of it. */
-    /* Asymmetric, because the two edges have different work to do. The top
-       clears a lead card's portrait, which hangs a full `hang` above it. The
-       bottom only has to clear a *trail* card's, and trail cards are lifted by
-       the stagger — so what hangs below the last row is `hang - stagger`, not
-       `hang`. Measured at 1440 that is 29px against the 115px this used to
-       reserve, which is most of the empty band that stood between the cards
-       and the "See all" button. max() keeps it sane if the stagger ever grows
-       past the hang. */
-    padding-block: calc(var(--tm-quote-hang) + var(--tm-quote-gap))
-      max(
-        var(--tm-quote-gap),
-        calc(var(--tm-quote-hang) - var(--tm-quote-stagger) + var(--tm-quote-gap))
-      );
-    padding-inline: 0;
-    list-style: none;
-  }
-
-  /* The card sizes itself from this cell rather than from the fixed width the
-     marquee gave it — that width was a rail's business, and here the column
-     is. */
-  .tm__grid .tm__quote-card {
-    width: 100%;
-  }
-
-  /* Shown, not hidden, and cut off under a blur.
-
-     The extra row used to be `display: none`, so the only sign anything was
-     folded away was the button itself. The frame keeps the row on screen and
-     takes it away instead — a band of it visible, going out of focus and out
-     of sight as it falls — which says "there is more of this" in a way a
-     button on its own cannot.
-
-     Only when JS is live. With the script off nothing is folded and every card
-     is already on the page, so none of this applies — see the closed state at
-     the foot of this file. */
-  .tm__more {
-    position: relative;
-  }
-
-  /* The second row is not shown at all — not even a band of it.
-
-     Letting a sliver through put a whole second row of cards on screen below
-     the grid's own 108px row gap, which read as another row that happened to
-     be faded rather than as the first row running out. What invites the click
-     is the fade landing on the row you are already reading, so the extras stay
-     out of the flow entirely and the blur below does the work. */
-  :global(html[data-js='true']) .tm__grid-item--extra {
+  .tm__lightbox:not([open]) {
     display: none;
   }
 
-  /* Faded out, not removed — see the band's own rule below. */
-  :global(html[data-js='true']) [data-tm-more][data-open]::after {
-    opacity: 0;
-  }
-
-  :global(html[data-js='true']) [data-tm-more][data-open] .tm__grid-item--extra {
-    display: block;
-  }
-
-  /* Room for the fade and the button to sit under the quotes rather than
-     on them. The overlay is pinned to the block's foot, so without this it
-     starts halfway up the cards and the copy reads as truncated. */
-  :global(html[data-js='true']) [data-tm-more]:not([data-open]) .tm__grid {
-    padding-bottom: clamp(6rem, 12vw, 9rem);
-  }
-
-  /* The blur, laid over the foot of the block rather than applied to the cards.
-
-     `backdrop-filter` on an overlay, not `filter` on the row: a filter blurs
-     the element evenly, and what this wants is a blur that comes on as the
-     eye travels down. Masking the overlay is what grades it — the backdrop is
-     sampled through the mask, so the blur arrives with the fade rather than
-     switching on at an edge.
-
-     The white on top of it is what finishes the fade: blur alone leaves the
-     card legible in outline, and the frame has the row going to nothing. */
-  :global(html[data-js='true']) [data-tm-more]::after {
-    content: '';
-    /* Present in both states and faded rather than switched. A pseudo-element
-       gated on `:not([data-open])` stops existing the instant the attribute
-       lands, which is a band disappearing between one frame and the next — the
-       hard edge of the jump this section had. */
-    opacity: 1;
-    transition: opacity 0.4s var(--ease-out-expo);
-    position: absolute;
-    /* Over the foot of the first row, which is the row it is asking about. */
-    inset: auto 0 0;
-    /* Short enough that the first row's quotes stay readable. The collapsed
-       grid also grows a foot of padding below so this band sits on the card
-       feet and the button, not on the copy. */
-    height: clamp(8rem, 16vw, 13rem);
-    backdrop-filter: blur(7px);
-    background: linear-gradient(
-      to bottom,
-      rgb(255 255 255 / 0) 0%,
-      rgb(255 255 255 / 0.72) 55%,
-      rgb(255 255 255 / 0.98) 100%
-    );
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 45%);
-    mask-image: linear-gradient(to bottom, transparent 0%, #000 45%);
-    pointer-events: none;
-  }
-
-  /* Same shape as the hero's button, on this section's white ground. */
-  .tm__see-all {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 0.9375rem 2.5rem;
-    border-radius: 0.5rem;
-    background: var(--color-bg-invert);
-    color: var(--color-ink-invert);
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background-color 0.4s var(--ease-out-expo);
-  }
-
-  /* It only has a job once something is hidden, and nothing is hidden without
-     JS to hide it. */
-  :global(html[data-js='true']) .tm__see-all {
-    display: inline-flex;
-  }
-
-  /* Sat over the fade while there is one, so the button reads as the lid on
-     the row it is holding down rather than as a control parked underneath it.
-     Above the overlay, which takes no pointer events of its own. */
-  :global(html[data-js='true']) [data-tm-more]:not([data-open]) .tm__see-all {
-    position: absolute;
-    left: 50%;
-    bottom: clamp(1.5rem, 3vw, 2.75rem);
-    translate: -50% 0;
-    z-index: 1;
-  }
-
-  .tm__see-all:hover,
-  .tm__see-all:focus-visible {
-    background: var(--color-accent-hover);
-  }
-
-  /* ===================== Marquee ===================== */
-  .tm__rail {
-    margin-top: clamp(3rem, 6vw, 5.5rem);
-    overflow-x: auto;
-    overflow-y: visible;
-    /* The rail is dragged and auto-scrolled; a snap would fight both */
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    cursor: grab;
-  }
-
-  .tm__rail::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tm__rail[data-dragging] {
-    cursor: grabbing;
-  }
-
-  .tm__track {
-    display: flex;
-    align-items: flex-start;
-    gap: clamp(1.25rem, 2vw, 1.875rem);
-    width: max-content;
-    /* Room for the portraits that hang above and below the cards */
-    padding: clamp(4rem, 7vw, 6.5rem) var(--section-padding-x);
-  }
-
-  .tm__quote-card {
-    position: relative;
-    display: flex;
-    flex: none;
-    width: clamp(19rem, 34vw, 33rem);
-    margin: 0;
-    padding: clamp(1.25rem, 2vw, 1.875rem);
-    border: 1px solid var(--color-line);
+  .tm__lightbox::backdrop {
     background: var(--color-bg-primary);
   }
 
-  /* The two variants sit at different heights — that offset is the rhythm */
-  .tm__quote-card--trail {
-    translate: 0 calc(-1 * var(--tm-quote-stagger));
+  .tm__lightbox[open] {
+    display: grid;
+    place-items: center;
   }
 
-  .tm__quote-body {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(0.875rem, 1.4vw, 1.25rem);
-    width: 100%;
-  }
+  /* The film's frame — sized by width until the screen is too short, then by
+     height, in the film's own shape so it runs edge to edge with no bars.
+     16:9 until the script has read the real ratio off the file. */
+  .tm__lightbox-frame {
+    --tm-ar: calc(16 / 9);
 
-  /* 'trail' reads headline first and attribution last */
-  .tm__quote-card--trail .tm__quote-who {
-    order: 2;
-    margin-top: clamp(0.5rem, 1vw, 1rem);
-  }
-
-  .tm__quote-headline {
-    max-width: 18ch;
-    font-size: clamp(1.0625rem, 1.6vw, 1.4375rem);
-    line-height: 1.26;
-    letter-spacing: -0.015em;
-    text-wrap: balance;
-  }
-
-  /* The 18ch measure is a marquee-card idea: a short title next to a
-     hanging portrait. In the grid the column *is* the measure, so the same
-     cap left a strip of empty card to the right of every headline — and
-     the quote under it looked like it was sitting in a half-used box. */
-  .tm__grid .tm__quote-headline {
-    max-width: none;
-  }
-
-  .tm__quote-text {
-    margin: 0;
-    font-size: 0.9375rem;
-    line-height: 1.6;
-  }
-
-  /* Hangs outside the card — the card must not clip it */
-  /* The width is the knob at the top of this file, and the row gap is worked
-     out from it — change it there, not here, or the grid stops clearing it. */
-  .tm__quote-portrait {
-    position: absolute;
-    right: clamp(0.75rem, 1.4vw, 1.25rem);
-    width: var(--tm-quote-portrait);
-    aspect-ratio: 1 / 1.06;
+    position: relative;
+    width: min(86vw, calc(84svh * var(--tm-ar)));
+    aspect-ratio: var(--tm-ar);
+    background: #000;
     overflow: hidden;
-    background: var(--color-line);
   }
 
-  .tm__quote-card--lead .tm__quote-portrait {
-    top: 0;
-    translate: 0 -46%;
-  }
-
-  .tm__quote-card--trail .tm__quote-portrait {
-    bottom: 0;
-    translate: 0 46%;
-  }
-
-  .tm__quote-portrait img {
+  .tm__lightbox-video {
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 
-  /* Keep the copy clear of the portrait it overlaps — and only then.
-     The gutter used to live on the variant itself, so a trail card
-     without a photo (or a lead card whose portrait had not been supplied)
-     still reserved a 12rem column and the quote never filled the card. */
-  .tm__quote-card--lead:has(.tm__quote-portrait) .tm__quote-who {
-    padding-right: clamp(7.5rem, 14vw, 12rem);
-    min-height: clamp(3rem, 5vw, 4.5rem);
-  }
-
-  .tm__quote-card--trail:has(.tm__quote-portrait) .tm__quote-text {
-    padding-right: clamp(7.5rem, 14vw, 12rem);
-  }
-
-  /* --- Progress ------------------------------------------------------------ */
-  .tm__progress {
-    display: flex;
-    gap: 0.375rem;
-    margin-top: clamp(1rem, 2vw, 1.75rem);
-  }
-
-  .tm__progress-seg {
-    position: relative;
-    width: 0.875rem;
-    height: 0.625rem;
-    background: var(--color-line-strong);
+  .tm__close {
+    position: absolute;
+    top: 0.875rem;
+    right: 0.875rem;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.28);
+    color: #fff;
     cursor: pointer;
     transition:
-      width 0.45s var(--ease-out-expo),
-      background-color 0.45s var(--ease-out-expo);
+      background-color 0.3s var(--ease-out-expo),
+      scale 0.3s var(--ease-out-expo);
   }
 
-  /* A 14 x 10 mark is well under any sane touch target; the hit area is grown
-     around it instead of the mark, which has to stay this size. */
-  .tm__progress-seg::before {
-    content: '';
+  .tm__close svg {
+    width: 0.75rem;
+  }
+
+  .tm__close:hover,
+  .tm__close:focus-visible {
+    background: rgb(0 0 0 / 0.5);
+    scale: 1.06;
+  }
+
+  /* The client's mark, bottom right of the film, drawn white over it. The
+     marks are dark on file; brightness(0) then invert is what turns any of
+     them white. Kept out of the way of the controls: when the film is paused
+     the controls are up, and the mark stands down. */
+  .tm__lightbox-logo {
     position: absolute;
-    inset: -0.75rem -0.25rem;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1;
+    max-width: clamp(5.5rem, 8vw, 7.5rem);
+    height: auto;
+    filter: brightness(0) invert(1) drop-shadow(0 1px 6px rgb(0 0 0 / 0.35));
+    opacity: 0.94;
+    pointer-events: none;
+    transition: opacity 0.35s var(--ease-out-expo);
   }
 
-  .tm__progress-seg:hover:not([data-active]) {
-    background: var(--color-ink-muted);
-  }
-
-  .tm__progress-seg[data-active] {
-    width: 2.25rem;
-    background: var(--color-ink);
-  }
-
-  /* ===================== Responsive ===================== */
-  /* The accordion needs two cards and an open note side by side; below this
-     there isn't room, so it unrolls and every note is simply always open. */
-  @media (max-width: 61.25rem) {
-    .tm__feature {
-      flex-direction: column;
-    }
-
-    .tm__person {
-      flex-direction: column;
-    }
-
-    /* Static, so the transition never runs and nothing depends on hover —
-       which does not exist on the devices this width mostly means. */
-    .tm__note,
-    .tm__person[data-open] .tm__note,
-    .tm__person,
-    .tm__person[data-open] {
-      flex-basis: auto;
-      transition: none;
-    }
-
-    .tm__note-inner {
-      width: auto;
-      gap: clamp(1rem, 3vw, 1.75rem);
-    }
-
-    .tm__quote {
-      margin-top: 0;
-    }
-  }
-
-  /* Two across before one: three columns of a card carrying a hanging portrait
-     stop working well before the section does. */
-  @media (max-width: 61.25rem) {
-    .tm__grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 48rem) {
-    /* The shared mobile rhythm — see --section-gap-y in globals.css. Same
-       number this section already used; stated through the token so it
-       moves with the rest rather than by coincidence. */
-    .tm {
-      /* 16 off the top only. The section reads as sitting too low under the
-         client strip; its foot is where the shared rhythm still applies. */
-      padding-block: calc(var(--section-gap-y) - 1rem) var(--section-gap-y);
-    }
-
-    .tm__quote-card {
-      width: min(80vw, 22rem);
-    }
-
-    .tm__grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    /* Full column width — the fixed measure above is the rail's, and there is
-       no rail here. */
-    .tm__grid .tm__quote-card {
-      width: 100%;
-    }
-
-    /* Same shape as desktop, just smaller: the portrait keeps hanging off the
-       card's corner rather than dropping inside it. Only the sizes come down.
-
-       The stagger goes entirely: the offset that gives a row its rhythm is a
-       row's idea, and stacked it only pulls one card into the gap above it.
-       Both are set here as the knobs rather than as overrides further down, so
-       the grid's own spacing arithmetic follows them — one column of cards
-       whose portraits hang 37px needs a different gap from three columns whose
-       portraits hang 86px, and it now works that out for itself. */
-    .tm {
-      /* The floor is the number that matters here, not the vw term: at 375
-         the preferred size falls under it, so lowering 4.5rem is the only
-         thing that actually moves the stack. Every gap in this column is
-         `hang + clearance` and hang is ~49% of this. */
-      --tm-quote-portrait: clamp(3.75rem, 16vw, 5.5rem);
-      --tm-quote-stagger: 0px;
-    }
-
-    .tm__quote-card--lead:has(.tm__quote-portrait) .tm__quote-who,
-    .tm__quote-card--trail:has(.tm__quote-portrait) .tm__quote-text {
-      padding-right: 0;
-      min-height: 0;
-    }
-
-    .tm__quote-card {
-      flex-direction: column;
-    }
-
-    /* Every portrait hangs from the top, including the trail cards' — which
-       hang from the bottom everywhere else.
-
-       Stacked, the cards alternate lead / trail / lead, so the gaps alternate
-       too: one has nothing in it at all, the next has two portraits facing
-       each other across it. A single row-gap has to cover the worst of those,
-       which put 97px between every pair of cards and left the empty ones
-       reading as a hole in the column. Hanging them all the same way makes
-       every gap carry exactly one portrait, so the gap that fits is the same
-       gap everywhere — and it is 37px smaller. */
-    .tm__grid .tm__quote-card--trail .tm__quote-portrait {
-      top: 0;
-      bottom: auto;
-      translate: 0 -46%;
-    }
-
-    /* One hang, not two — see above. */
-    .tm__grid {
-      row-gap: calc(var(--tm-quote-hang) + var(--tm-quote-gap));
-      /* Nothing hangs below the last card any more, so the bottom only needs
-         the plain clearance the top of the block already gets from the hang. */
-      padding-bottom: var(--tm-quote-gap);
-    }
-  }
-
-  /* ===================== Pre-reveal =====================
-     The featured row only. The quote grid below it is deliberately not here:
-     it has no entrance, so parking it at opacity 0 would need a timeline to
-     put it back — and the whole point of that block is that nothing animates
-     it. */
-  :global(html[data-js='true']) [data-tm-person] {
+  /* ...and while the pointer is over the film, which is what brings the
+     controls up in the first place. */
+  .tm__lightbox-frame:not([data-playing]) .tm__lightbox-logo,
+  .tm__lightbox-frame:hover .tm__lightbox-logo {
     opacity: 0;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) [data-tm-person] {
-      opacity: 1;
+  /* Scroll held while the film is up — the same rule the open menu uses. */
+  :global(html[data-tm-open]) {
+    overflow: hidden;
+  }
+
+  /* ===================== Responsive ===================== */
+  @media (max-width: 48rem) {
+    .tm__stage {
+      padding-top: var(--section-gap-y);
+    }
+
+    .tm__title {
+      font-size: clamp(1.375rem, 6.4vw, 1.75rem);
+    }
+
+    /* Two across. The rhythm moves with it: the left-hand column half a tile
+       down, the right flush — the right is where the second tile, the
+       featured film, falls, and it is the one that has to sit at the top
+       under the title in either column count. */
+    .tm__wall {
+      --tm-tile-h: calc((100cqw - var(--tm-gap)) / 2 * 0.9);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding-bottom: calc(0.5 * var(--tm-tile-h) + var(--tm-gap));
+    }
+
+    .tm__tile[data-c3='0'],
+    .tm__tile[data-c3='2'] {
+      translate: none;
+    }
+
+    .tm__tile[data-c2='0'] {
+      translate: 0 50%;
+    }
+
+    /* Headline and name only: the tile is a hand wide. */
+    .tm__quote-text {
+      display: none;
+    }
+
+    .tm__quote-logo {
+      display: none;
+    }
+
+    .tm__lightbox-frame {
+      width: min(94vw, calc(84svh * var(--tm-ar)));
+    }
+
+    .tm__close {
+      top: 0.5rem;
+      right: 0.5rem;
+    }
+
+    .tm__lightbox-logo {
+      right: 0.875rem;
+      bottom: 0.875rem;
+      max-width: 4.5rem;
+    }
+  }
+
+  /* ===================== The scene =====================
+     JS live and motion allowed. The stage is a screen, and the script pins it
+     and moves what is in it; this is that screen at rest, laid out to match
+     the scene's first frame so the film is already large and alone before the
+     script has run. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html[data-js='true']) .tm__stage {
+      height: 100svh;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    :global(html[data-js='true']) .tm__title {
+      position: absolute;
+      top: var(--tm-title-top);
+      left: 50%;
+      z-index: 3;
+      width: max-content;
+      max-width: min(34ch, calc(100% - 2 * var(--section-padding-x)));
+      margin: 0;
+      padding: 0;
+      translate: -50% 0;
+      /* Not there until the film has drawn in. */
+      opacity: 0;
+    }
+
+    :global(html[data-js='true']) .tm__fade {
+      display: block;
+      position: absolute;
+      inset: 0 0 auto;
+      z-index: 2;
+      height: var(--tm-fade-h);
+      background: linear-gradient(
+        to bottom,
+        var(--color-bg-primary) 0%,
+        rgb(255 255 255 / 0.92) 30%,
+        rgb(255 255 255 / 0) 100%
+      );
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Below the fold until the film lands, so the screen is the film alone.
+       The script replaces this with its own transform. */
+    :global(html[data-js='true']) .tm__wall {
+      position: absolute;
+      inset: 0 0 auto;
+      padding-bottom: 0;
+      translate: 0 100svh;
+    }
+
+    :global(html[data-js='true']) .tm__slot {
+      display: block;
+      visibility: hidden;
+    }
+
+    /* Out of the grid, and large in the middle of the screen: the wall is a
+       screen below, so the middle of the screen is half a screen above the
+       wall's own top. The script takes over every one of these. */
+    :global(html[data-js='true']) .tm__tile--featured {
+      position: absolute;
+      top: -50svh;
+      left: 50cqw;
+      width: min(70cqw, calc(70svh * 16 / 9));
+      aspect-ratio: 16 / 9;
+      translate: -50% -50%;
+    }
+
+    @media (max-width: 48rem) {
+      :global(html[data-js='true']) .tm__tile--featured {
+        width: min(90cqw, calc(70svh * 16 / 9));
+      }
     }
   }
 </style>
