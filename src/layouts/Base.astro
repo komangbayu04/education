@@ -2,6 +2,8 @@
 import { Font } from 'astro:assets';
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/layout/Nav.astro';
+import VariationSwitch from '../components/layout/VariationSwitch.astro';
+import { VARIATIONS, STORAGE_KEY } from '../config/variations';
 import '../styles/globals.css';
 
 interface Props {
@@ -38,12 +40,37 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin);
     <script is:inline>
       document.documentElement.dataset.js = 'true';
     </script>
+
+    <!-- Alternative-version picks written onto <html> before the first paint,
+         so CSS and scripts can branch with no flash. See
+         src/config/variations.ts and src/components/layout/VariationSwitch.astro. -->
+    <script is:inline define:vars={{ VARIATIONS, STORAGE_KEY }}>
+      (function () {
+        var saved = {};
+        try {
+          saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        } catch (e) {
+          /* no-op */
+        }
+        VARIATIONS.forEach(function (axis) {
+          var pick = saved[axis.id];
+          var valid = axis.options.some(function (o) {
+            return o.id === pick;
+          });
+          document.documentElement.setAttribute(
+            'data-var-' + axis.id,
+            valid ? pick : axis.options[0].id,
+          );
+        });
+      })();
+    </script>
   </head>
 
   <body>
     <a class="u-skip-link" href="#main">Skip to main content</a>
 
     <Nav />
+    <VariationSwitch />
 
     <main id="main">
       <slot />

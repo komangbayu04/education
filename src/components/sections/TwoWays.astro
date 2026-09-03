@@ -3,9 +3,11 @@
  * Two ways in — chapter 7, the section after Our work.
  *
  * Lives outside <div data-scene> in index.astro: the handover into it is
- * plain document scroll — no pin, no crossfade, no scrub. The only motion is
- * a one-shot reveal when the section first enters the viewport, in
- * src/scripts/twoWays.ts.
+ * plain document scroll — no pin and no crossfade. Motion is in
+ * src/scripts/twoWays.ts: a one-shot reveal for the include row, and two
+ * scrubbed gestures — the title's line reveal and the stages' parallax drift.
+ * Scrubbed, but never pinned: the scrollbar is not held anywhere in here, so
+ * both run backwards on the way up.
  *
  * Layout is three rows on a 404 / 740 split (the Figma frame at 1440):
  *   the title sits only in the right column, so the left is empty above Sprint
@@ -134,17 +136,90 @@ const {
     --two-right: 740fr;
     --two-gutter: 2rem;
     --two-band: clamp(2.5rem, 5.56vw, 5rem);
+    /* The rhythm between rows inside the section — title to stages, and stages
+       to the include rule. Held apart from `--two-band` so the internal air
+       can breathe wider than the padding that sets the section's own top and
+       bottom. 120px at 1440, which is the frame's own measurement twice over
+       (title bottom 79 to stages top 199, stages bottom 633 to the rule 753).
+
+       Not a free number any more: the stages drift up into their resting row
+       and Retainer's lag is 90px of it (src/scripts/twoWays.ts). This gap is
+       what it drifts through, so the 30px the frame leaves between the two is
+       the whole clearance — cut it to 88 and the black stage crosses the rule
+       on its way up. */
+    --two-row: clamp(2.5rem, 8.333vw, 7.5rem);
+
+    /* How much of the arriving white edge is gradient rather than flat: the
+       length of the dissolve, and fenced under `--two-headroom` rather than
+       under the overlap. The headroom is the white above the title; a feather
+       longer than it would still be ramping where the words start, and the
+       title would sit on 90% white over a photograph. Just under it, so the
+       ground under the first line is flat. */
+    --two-feather: calc(var(--two-headroom) * 0.9);
 
     position: relative;
-    background: var(--color-bg-primary);
+    /* Over Our work — categorized, not after it.
+
+       `--work-outro` is the stretch that section holds its last frame still
+       for (it buys the slack as tail on its headline column — see
+       WorkCategories.astro). Taking the same number back as a negative margin
+       puts this section's ground across that held frame, and giving it
+       straight back as padding leaves every line of the content exactly where
+       it was: what moved is the white, not the words.
+
+       Read on the page: the grey behind stops dead, the white in front keeps
+       travelling, and the two are on screen together for two-thirds of a
+       window. That difference in rate is the parallax, and it is the reader's
+       own scroll driving it — nothing is pinned and nothing is scrubbed.
+
+       Pointedly no z-index. This section and Our work are both positioned with
+       `z-index: auto`, so tree order alone already paints this one over it. A
+       `z-index: 1` here would also tie with the pinned scene's, and on a tie
+       the later element in the document wins — which would put this white
+       sheet over the hero. */
+    margin-top: calc(-1 * var(--work-outro));
+    padding-top: var(--two-headroom);
     color: var(--color-ink);
+    /* The join itself. The section's ground is not flat white but white that
+       arrives — transparent at its very top and opaque by `--two-feather`, so
+       the grey behind is closed over rather than cut off by a horizontal rule
+       travelling up the screen.
+
+       The clear stop is a 1% mix and not the `transparent` keyword, and not a
+       0% mix either. `transparent` is rgba(0,0,0,0), so interpolating towards
+       it in sRGB drags the gradient through a grey shadow — a dark band across
+       the join, on exactly the light ground that shows it worst. And
+       color-mix at exactly 0% collapses to that same black-with-no-alpha,
+       which is the trap: it reads as the fix and computes as the bug (checked
+       on the page — it resolved to `color(srgb 0 0 0 / 0)`). One per cent of
+       white keeps the hue and is a single level of change over the grey
+       behind, which is to say none.
+
+       A background gradient rather than a mask or a veil element: it is one
+       opaque surface painted in a single pass, and what it is painted over is
+       a sticky layer still running its own crossfade. Two composited
+       transparencies over each other is where the flicker would come from. */
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-bg-primary) 1%, transparent) 0,
+      color-mix(in srgb, var(--color-bg-primary) 24%, transparent) calc(var(--two-feather) * 0.3),
+      color-mix(in srgb, var(--color-bg-primary) 58%, transparent) calc(var(--two-feather) * 0.55),
+      color-mix(in srgb, var(--color-bg-primary) 88%, transparent) calc(var(--two-feather) * 0.8),
+      var(--color-bg-primary) var(--two-feather),
+      var(--color-bg-primary) 100%
+    );
+    /* That padding is a box lying over the tail of the section above, and the
+       "See work" button is under it. An invisible sheet still takes clicks, so
+       the ground is made inert and the content given the pointer back. */
+    pointer-events: none;
   }
 
   .two__inner {
+    pointer-events: auto;
     display: grid;
     grid-template-columns: minmax(0, var(--two-left)) minmax(0, var(--two-right));
     column-gap: var(--two-gutter);
-    row-gap: var(--two-band);
+    row-gap: var(--two-row);
     width: 100%;
     max-width: var(--content-max-width);
     margin-inline: auto;
@@ -236,6 +311,10 @@ const {
     grid-column: 1 / -1;
     grid-template-columns: minmax(0, var(--two-left)) minmax(0, var(--two-right));
     column-gap: var(--two-gutter);
+    /* Deliberately NOT `--two-row`: the frame draws the rule off-centre in its
+       band — 120px of air above it, 80px below — so the line reads as the top
+       of what follows rather than as a divider floating between two blocks.
+       80px is `--two-band`. */
     padding-top: var(--two-band);
     border-top: 1px solid var(--color-line);
   }
@@ -322,6 +401,7 @@ const {
   @media (max-width: 48rem) {
     .two {
       --two-band: var(--section-gap-y);
+      --two-row: var(--section-gap-y);
     }
 
     .two__inner {
@@ -357,8 +437,14 @@ const {
      JS-only, so no-JS renders the finished section. twoWays.ts animates these
      back to their resting values once the section scrolls in. */
   :global(html[data-js='true']) [data-two-reveal],
-  :global(html[data-js='true']) [data-two-card],
   :global(html[data-js='true']) [data-two-ritual] {
+    opacity: 0;
+  }
+
+  /* The stages are translated far below their grid row by twoWays.ts and
+     scrubbed up as the section scrolls in. Opacity 0 prevents a flash before
+     GSAP has set the initial transform. */
+  :global(html[data-js='true']) [data-two-card] {
     opacity: 0;
   }
 

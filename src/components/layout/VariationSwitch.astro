@@ -1,0 +1,280 @@
+---
+/**
+ * The "Variation" tab on the left edge of every page, and the panel it opens.
+ *
+ * A workbench control, not part of the site's design: it lets us switch between
+ * alternative takes on the scroll feel, the hero, the testimonials — see
+ * src/config/variations.ts for the axes and how to consume them. The pick is
+ * saved to localStorage and written onto <html> before first paint by the
+ * inline script in Base.astro; choosing a new one here saves it and reloads,
+ * because most of what these switch is wired at page build (GSAP scenes, the
+ * scroll engine) and a reload is the honest way to swap it.
+ */
+import { VARIATIONS } from '../../config/variations';
+---
+
+<div class="vswitch" data-vswitch>
+  <button class="vswitch__tab" type="button" aria-expanded="false" aria-controls="vswitch-panel" data-vswitch-toggle>
+    <span class="vswitch__tab-label">Variation</span>
+  </button>
+
+  <div class="vswitch__panel" id="vswitch-panel" role="dialog" aria-label="Alternative switch" data-vswitch-panel hidden>
+    <div class="vswitch__head">
+      <span class="vswitch__eyebrow">Alternative switch</span>
+      <button class="vswitch__close" type="button" aria-label="Close" data-vswitch-close>
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 2l12 12M14 2L2 14" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="vswitch__groups">
+      {VARIATIONS.map((axis) => (
+        <div class="vswitch__group" data-vswitch-group={axis.id}>
+          <h3 class="vswitch__group-label">{axis.label}</h3>
+          <div class="vswitch__options" role="group" aria-label={axis.label}>
+            {axis.options.map((option) => (
+              <button
+                class="vswitch__option"
+                type="button"
+                data-vswitch-option={option.id}
+                aria-pressed="false"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {VARIATIONS.length === 0 && (
+        <p class="vswitch__empty">No alternatives yet.</p>
+      )}
+    </div>
+  </div>
+</div>
+
+<style>
+  .vswitch {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    /* Under the nav (100) and its panel (90) — the menu covers this when open. */
+    z-index: 80;
+    font-family: var(--font-display);
+  }
+
+  /* --- The tab -----------------------------------------------------------
+     A card peeking out from the left edge, its label set vertically and
+     reading bottom-to-top. */
+  .vswitch__tab {
+    display: block;
+    padding: 0.75rem 0.375rem;
+    border: 1px solid rgb(0 0 0 / 0.14);
+    border-left: 0;
+    border-radius: 0 0.5rem 0.5rem 0;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.04);
+    transition: background 0.25s var(--ease-out-expo);
+  }
+
+  .vswitch__tab:hover,
+  .vswitch__tab:focus-visible {
+    background: var(--color-bg-secondary);
+  }
+
+  .vswitch__tab-label {
+    display: block;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .vswitch[data-open] .vswitch__tab {
+    display: none;
+  }
+
+  /* --- The panel -------------------------------------------------------- */
+  .vswitch__panel {
+    width: min(14rem, calc(100vw - 1.5rem));
+    max-height: calc(100vh - 1.5rem);
+    overflow-y: auto;
+    margin-left: 0.75rem;
+    padding: 0.875rem;
+    border: 1px solid rgb(0 0 0 / 0.12);
+    border-radius: 0.75rem;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
+  }
+
+  .vswitch__panel[hidden] {
+    display: none;
+  }
+
+  .vswitch__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.875rem;
+  }
+
+  .vswitch__eyebrow {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
+
+  .vswitch__close {
+    display: inline-flex;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    color: var(--color-ink-muted);
+    cursor: pointer;
+  }
+
+  .vswitch__close:hover,
+  .vswitch__close:focus-visible {
+    color: var(--color-ink);
+  }
+
+  .vswitch__close svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .vswitch__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .vswitch__empty {
+    font-size: 0.75rem;
+    color: var(--color-ink-muted);
+  }
+
+  .vswitch__group-label {
+    margin-bottom: 0.4375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .vswitch__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .vswitch__option {
+    padding: 0.25rem 0.625rem;
+    border: 1px solid rgb(0 0 0 / 0.25);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--color-ink);
+    cursor: pointer;
+    transition:
+      background 0.2s var(--ease-out-expo),
+      border-color 0.2s var(--ease-out-expo),
+      color 0.2s var(--ease-out-expo);
+  }
+
+  .vswitch__option:hover,
+  .vswitch__option:focus-visible {
+    border-color: var(--color-ink);
+  }
+
+  .vswitch__option[aria-pressed='true'] {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-ink-invert);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vswitch__tab,
+    .vswitch__option {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  import { getVariant, setVariant, VARIATIONS } from '../../config/variations';
+
+  function initVariationSwitch(): void {
+    const root = document.querySelector<HTMLElement>('[data-vswitch]');
+    if (!root) return;
+
+    const toggle = root.querySelector<HTMLButtonElement>('[data-vswitch-toggle]');
+    const panel = root.querySelector<HTMLElement>('[data-vswitch-panel]');
+    const close = root.querySelector<HTMLButtonElement>('[data-vswitch-close]');
+    if (!toggle || !panel || !close) return;
+
+    // Reflect the values already on <html> onto the pill states.
+    for (const axis of VARIATIONS) {
+      const current = getVariant(axis.id);
+      const group = root.querySelector<HTMLElement>(`[data-vswitch-group="${axis.id}"]`);
+      group?.querySelectorAll<HTMLButtonElement>('[data-vswitch-option]').forEach((pill) => {
+        pill.setAttribute('aria-pressed', String(pill.dataset.vswitchOption === current));
+      });
+    }
+
+    const setOpen = (open: boolean) => {
+      root.toggleAttribute('data-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      panel.hidden = !open;
+      if (open) close.focus();
+      else toggle.focus();
+    };
+
+    toggle.addEventListener('click', () => setOpen(true));
+    close.addEventListener('click', () => setOpen(false));
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !panel.hidden) setOpen(false);
+    });
+
+    root.querySelectorAll<HTMLButtonElement>('[data-vswitch-option]').forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const group = pill.closest<HTMLElement>('[data-vswitch-group]');
+        const axisId = group?.dataset.vswitchGroup;
+        const optionId = pill.dataset.vswitchOption;
+        if (!axisId || !optionId || pill.getAttribute('aria-pressed') === 'true') return;
+
+        setVariant(axisId, optionId);
+        /* Reload so every scene, the scroll engine and the layout are rebuilt
+           against the new choice. The panel reopens itself on the way back. */
+        try {
+          sessionStorage.setItem('tribe:variations-open', '1');
+        } catch {
+          /* no-op */
+        }
+        location.reload();
+      });
+    });
+
+    // Came back from a reload triggered by a pick — reopen the panel.
+    try {
+      if (sessionStorage.getItem('tribe:variations-open')) {
+        sessionStorage.removeItem('tribe:variations-open');
+        setOpen(true);
+      }
+    } catch {
+      /* no-op */
+    }
+  }
+
+  // Runs on first load and after every view transition; the markup is static
+  // so re-selecting it each time is all that is needed.
+  document.addEventListener('astro:page-load', initVariationSwitch);
+</script>

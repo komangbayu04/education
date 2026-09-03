@@ -108,6 +108,42 @@
   --tracking-normal: 0em;
   --tracking-wide: 0.1em;
 
+  /* How far Two ways in rides up over the last frame of Our work —
+     categorized, and — the same number — how long that frame is held.
+
+     The hold is the point. The ground is sticky, so it stays put for exactly
+     as long as this tail keeps the section taller than the window; after that
+     it lets go and travels with the page. Held too briefly it lets go while
+     the last headline is still on screen and the two slide off together, which
+     is not a transition, just the section leaving. So this is sized off the
+     one distance that matters: `--cat-rest` (69svh) is how far the last
+     headline has to travel to clear the top of the window, and the hold has to
+     outlast it. 88 > 69, with room to spare — the headline is gone, and only
+     then does the ground dissolve, in place, without ever moving.
+
+     The margin over 69 is not slack, it is the beat. The last category is the
+     one the reader arrives at and then leaves the section from, so it gets a
+     stretch at full strength on arrival before anything starts happening to
+     it — held, not fading — and the dissolve begins only after that. Shrink
+     this back towards 69 and the category starts going almost the moment it
+     lands; the beat is the difference between arriving somewhere and passing
+     through it.
+
+     Both sides of the join read it: WorkCategories.astro spends it as tail on
+     its headline column, TwoWays.astro as a negative top margin. They have to
+     be one value or the section tears. */
+  --work-outro: 88svh;
+
+  /* White above Two ways in's title — deliberately NOT --work-outro.
+
+     They used to be the same number, which forced a choice between two bad
+     ends: a hold long enough to keep the ground still put the title a whole
+     screen below the fold with nothing on it, and a headroom small enough to
+     bring the title up let the ground go early. Split, each does its own job —
+     the section holds for 75svh and the title arrives 20svh into it, so the
+     words are already in the window while the photograph behind them fades. */
+  --two-headroom: 20svh;
+
   /* Layout */
   --section-padding-y: clamp(3rem, 6vw, 6rem);
   --section-padding-x: clamp(1.25rem, 3.4vw, 4rem);
@@ -171,6 +207,13 @@
        Mobile only. Desktop spacing is per-section and tuned against the
        reference frames; this is not the place to re-cut it. */
     --section-gap-y: 3rem;
+
+    /* Shorter join. The overlap is a beat on a desktop and a scroll on a
+       phone, and a tall held frame with a white sheet crossing it is long
+       enough there to read as the page having stopped. The same reasoning that
+       cuts --cat-gap from 55svh to 22svh in WorkCategories.astro. */
+    --work-outro: 70svh;
+    --two-headroom: 16svh;
   }
 }
 

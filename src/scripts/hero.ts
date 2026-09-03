@@ -409,6 +409,22 @@ export function initHero(): () => void {
           end: () => `+=${stepLength() * PIN_VIEWPORTS}`,
           pin: true,
           anticipatePin: 1,
+          /* Refreshed before every trigger below it, and that ordering is
+             load-bearing rather than a tuning knob.
+             
+             Pinning wraps this scene in a spacer, and that spacer is what puts
+             every section after it at its real scroll position. ScrollTrigger
+             refreshes in creation order by default, so without this the
+             triggers further down the page measure themselves against a
+             document that does not have the spacer in it yet — and they all
+             land exactly the pin's own runway too early. Measured: the work
+             category crossfades and the Two ways in join were starting 1440px
+             (two viewports, this pin's length) before their sections were
+             anywhere near the window, which is a category dissolving while the
+             next section is still a screen and a half below the fold. A later
+             `ScrollTrigger.refresh()` does not undo it — the order is the
+             fix, not the retry. */
+          refreshPriority: 1,
           /* No scrub. The handover is not tied to the scroll position any
              more — one scroll plays one whole chapter change at its own speed,
              and the trigger's job is reduced to holding the scene still,

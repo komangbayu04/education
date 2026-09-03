@@ -1,0 +1,681 @@
+---
+/**
+ * Testimonials, the scrolled cut — chapter 8, and the way into the footer.
+ *
+ * The other option on the "Testimonial section" axis (src/config/variations.ts);
+ * the wall lives in Testimonials.astro and the two share their content.
+ *
+ * Read off the Figma frame, which is not a screen but a tall one — 1440×2038,
+ * a title and six films scattered down it with the footer's photograph at the
+ * foot. So this is a tall section too, and it is the page that moves through
+ * it rather than a scene that plays inside it:
+ *
+ *   - the title starts in the middle of the first screen and STICKS there,
+ *     `position: sticky` and nothing else, while the films rise past it
+ *   - the films are laid out at the frame's own positions and revealed once,
+ *     each as it arrives
+ *   - the section ends and the footer's photograph is the next thing up —
+ *     see Footer.astro, which opens it out from a card into its own band
+ *
+ * NOTHING IS PINNED AND NOTHING IS HELD. That is the point of this cut: the
+ * scroll never stops and there is no scene to release, because there is no
+ * scene — the layout is the stylesheet's and the only script here writes the
+ * title on and fades the films up as they come. What was a stand-in card
+ * zooming into a footer that had been yanked up to meet it is now one
+ * photograph that belongs to the footer from the start.
+ *
+ * Without JS, or under reduced motion, the films are simply already there.
+ *
+ * A film opens the full testimonial — sound, controls, the quote beside it —
+ * in a lightbox over a white ground. A still opens nothing: it is a
+ * placeholder for a film that has not been shot (see TESTIMONIAL_STILLS).
+ */
+import {
+  TESTIMONIALS,
+  TESTIMONIALS_TITLE,
+  TESTIMONIAL_STILLS,
+  type Testimonial,
+} from '../../data/testimonials';
+
+interface Props {
+  title?: string;
+  items?: Testimonial[];
+  stills?: string[];
+}
+
+const {
+  title = TESTIMONIALS_TITLE,
+  items = TESTIMONIALS,
+  stills = TESTIMONIAL_STILLS,
+} = Astro.props;
+
+/**
+ * A screen of white before the scatter, in svh.
+ *
+ * The frame opens with two tiles already up beside the title, and read cold
+ * that way the heading never gets a moment of its own — you arrive on a wall.
+ * So the whole scatter is pushed down by a screen: the title holds the first
+ * one alone, and the tiles come up past it after.
+ */
+const LEAD = 100;
+
+/**
+ * The scatter's own height, in svh — the frame's 1688 of 2038 against its
+ * 900-tall screen. Taller on a hand, where the tiles are wider and need more
+ * room between them.
+ */
+const SCATTER = 187.6;
+const SCATTER_NARROW = 210;
+
+const STAGE = LEAD + SCATTER;
+const STAGE_NARROW = LEAD + SCATTER_NARROW;
+
+/**
+ * Where each tile sits, read straight off the frame — `l` and `w` as
+ * percentages of its 1440 of width, `t` as a percentage of the 1688 that runs
+ * from its top down to where the footer's photograph begins.
+ *
+ * The height follows from `ar`, so a film keeps the shape it was shot in at
+ * any screen width.
+ *
+ * `film` marks the three spots the frame draws largest. Films claim those
+ * first and the rest take a still, so the interviews we actually have are the
+ * ones with presence and the placeholders stay small.
+ */
+type Spot = { l: number; t: number; w: number; ar: number; film: boolean };
+
+const WIDE: Spot[] = [
+  { l: 11.32, t: 9.83, w: 25.83, ar: 372 / 257, film: false },
+  { l: 66.53, t: 2.78, w: 30.21, ar: 435 / 307, film: true },
+  { l: 4.51, t: 36.02, w: 36.53, ar: 526 / 457, film: true },
+  { l: 60.28, t: 36.02, w: 23.61, ar: 340 / 235, film: false },
+  { l: 52.57, t: 57.76, w: 44.17, ar: 636 / 443, film: true },
+  { l: 13.96, t: 78.32, w: 23.61, ar: 340 / 235, film: false },
+];
+
+/* The same scatter on a hand — wider tiles, further apart down a taller
+   stage, because a quarter of 1440px is a postage stamp at 390. */
+const NARROW: Spot[] = [
+  { l: 2, t: 7, w: 56, ar: 372 / 257, film: false },
+  { l: 40, t: 18, w: 58, ar: 435 / 307, film: true },
+  { l: 3, t: 34, w: 64, ar: 526 / 457, film: true },
+  { l: 50, t: 48, w: 46, ar: 340 / 235, film: false },
+  { l: 6, t: 61, w: 72, ar: 636 / 443, film: true },
+  { l: 45, t: 79, w: 48, ar: 340 / 235, film: false },
+];
+
+const filmed = items.filter((item) => item.video);
+
+/* Hand the spots out. Film spots first — in the order the frame draws them,
+   which a stable sort keeps — so a fourth interview would take the next
+   ordinary spot ahead of any still rather than being dropped. */
+interface Tile {
+  spot: number;
+  item?: Testimonial;
+  film?: number;
+  still?: string;
+}
+
+const tiles: Tile[] = WIDE.map((_, spot) => ({ spot }));
+
+[...tiles]
+  .sort((a, b) => Number(WIDE[b.spot].film) - Number(WIDE[a.spot].film))
+  .forEach((tile, n) => {
+    if (n < filmed.length) {
+      tile.item = filmed[n];
+      tile.film = n;
+      return;
+    }
+    if (stills.length) tile.still = stills[(n - filmed.length) % stills.length];
+  });
+
+/* A frame position is a percentage of the scatter. On the stage it is that,
+   pushed down by the lead — so the tables above stay the frame's own numbers
+   and the offset lives in one place. */
+const down = (t: number, scatter: number, stage: number) =>
+  `${(((LEAD + (t / 100) * scatter) / stage) * 100).toFixed(3)}%`;
+
+/* Both tables ride along on every tile as custom properties; the stylesheet
+   swaps which pair it reads at the breakpoint. */
+const spot = (i: number) => {
+  const w = WIDE[i];
+  const n = NARROW[i];
+  return [
+    `--l:${w.l}%`,
+    `--t:${down(w.t, SCATTER, STAGE)}`,
+    `--w:${w.w}%`,
+    `--ar:${w.ar}`,
+    `--nl:${n.l}%`,
+    `--nt:${down(n.t, SCATTER_NARROW, STAGE_NARROW)}`,
+    `--nw:${n.w}%`,
+    `--nar:${n.ar}`,
+  ].join(';');
+};
+
+const badge = `<span class="tmf__badge" aria-hidden="true">
+  <svg class="tmf__badge-play" viewBox="0 0 12 14" fill="none"><path d="M12 7 0 14V0z" fill="currentColor" /></svg>
+  <svg class="tmf__badge-pause" viewBox="0 0 12 14" fill="none"><path d="M1 0h3v14H1zM8 0h3v14H8z" fill="currentColor" /></svg>
+</span>`;
+---
+
+{
+  /*
+    No `id` here: the wall carries `id="founders"` in the markup, and two
+    elements cannot. When this is the picked cut, testimonialsFloat.ts moves
+    the id across — the wall is display:none by then, so nothing is lost.
+  */
+}
+<section class="tmf" aria-labelledby="tmf-title" data-tmf data-anchor="founders">
+  <div class="tmf__stage" data-tmf-stage style={`--h:${STAGE}svh;--nh:${STAGE_NARROW}svh`}>
+    {/* In flow, half a screen down, so it starts in the middle of the first
+        screen and `position: sticky` holds it there from the first pixel.
+        Nothing else is in that screen — the scatter begins a screen below. */}
+    <h2 class="tmf__title" id="tmf-title" data-tmf-title>{title}</h2>
+
+    <ul class="tmf__films" data-tmf-films>
+      {
+        tiles.map((tile) => (
+          <li class="tmf__film" data-tmf-film style={spot(tile.spot)}>
+            {
+              tile.item ? (
+                <>
+                  <video
+                    class="tmf__preview"
+                    src={tile.item.video}
+                    poster={tile.item.poster ?? tile.item.photo}
+                    preload="metadata"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    data-tmf-video
+                  />
+                  <button
+                    class="tmf__open"
+                    type="button"
+                    data-tmf-open={tile.film}
+                    aria-label={`Watch ${tile.item.name}'s testimonial`}
+                  >
+                    <Fragment set:html={badge} />
+                  </button>
+                </>
+              ) : (
+                /* PLACEHOLDER. Decorative and inert — it stands for a film
+                   that does not exist yet, so it carries no name and there is
+                   nothing to open. */
+                <img
+                  class="tmf__still"
+                  src={tile.still}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+              )
+            }
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  {/* The full testimonial: the film on the left, what they said beside it.
+      One dialog for every film — the script unhides the panel belonging to
+      whichever one was pressed. */}
+  <dialog class="tmf__lb" data-tmf-lb aria-label="Testimonial">
+    <p class="tmf__lb-title" aria-hidden="true">{title}</p>
+
+    <div class="tmf__lb-body">
+      <div class="tmf__lb-frame" data-tmf-lb-frame>
+        <video class="tmf__lb-video" data-tmf-lb-video controls playsinline preload="none"></video>
+      </div>
+
+      <div class="tmf__lb-panels">
+        {
+          filmed.map((item, i) => (
+            <figure class="tmf__lb-panel" data-tmf-lb-panel={i} hidden>
+              {item.logo && <img class="tmf__lb-logo" src={item.logo} alt={item.company} />}
+
+              <blockquote class="tmf__lb-quote">
+                <p class="tmf__lb-headline">{item.headline}</p>
+                <p class="tmf__lb-text">{item.quote}</p>
+              </blockquote>
+
+              <figcaption class="tmf__lb-who">
+                <span>
+                  <span class="tmf__lb-name">{item.name}</span>
+                  <span class="tmf__lb-role">{item.role}</span>
+                </span>
+                {item.logo && <img class="tmf__lb-mark" src={item.logo} alt="" />}
+              </figcaption>
+            </figure>
+          ))
+        }
+      </div>
+    </div>
+
+    <button class="tmf__lb-close" type="button" data-tmf-lb-close aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M2 2l12 12M14 2 2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+    </button>
+  </dialog>
+</section>
+
+<style>
+  .tmf {
+    position: relative;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+
+  /* ===================== Static layout =====================
+     What the section is without JS: the title, then the tiles in a plain
+     grid. Everything under "The scatter" further down replaces this. */
+  .tmf__stage {
+    position: relative;
+    padding: clamp(3rem, 6vw, 5rem) var(--section-padding-x) var(--section-gap-y);
+  }
+
+  .tmf__title {
+    max-width: 44.4375rem;
+    margin: 0 auto clamp(2rem, 4vw, 3.5rem);
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.9vw, 2.75rem);
+    line-height: 1.227;
+    letter-spacing: -0.012em;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .tmf__films {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+    gap: clamp(0.75rem, 1.6vw, 1.5rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tmf__film {
+    position: relative;
+    aspect-ratio: var(--ar, 16 / 9);
+    overflow: hidden;
+    background: var(--color-line);
+  }
+
+  .tmf__preview,
+  .tmf__still {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* The whole film is the control: pressing anywhere opens it. */
+  .tmf__open {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .tmf__open:focus-visible {
+    outline-offset: -3px;
+  }
+
+  /* The badge in the middle of the film — a pause mark while the silent
+     preview runs, a play mark when it is not. Decorative: the button around
+     it carries the label.
+
+     :global throughout — the badge arrives through set:html, so it carries no
+     scoping attribute and a plain scoped selector matches none of it. */
+  .tmf__open :global(.tmf__badge) {
+    display: grid;
+    place-items: center;
+    width: clamp(1.875rem, 2.4vw, 2.6875rem);
+    aspect-ratio: 1;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    transition: scale 0.4s var(--ease-out-expo);
+  }
+
+  .tmf__open :global(.tmf__badge svg) {
+    grid-area: 1 / 1;
+    width: 0.6875rem;
+  }
+
+  .tmf__open :global(.tmf__badge-play) {
+    margin-left: 2px;
+  }
+
+  .tmf__film:not([data-playing]) :global(.tmf__badge-pause),
+  .tmf__film[data-playing] :global(.tmf__badge-play) {
+    display: none;
+  }
+
+  .tmf__open:hover :global(.tmf__badge),
+  .tmf__open:focus-visible :global(.tmf__badge) {
+    scale: 1.08;
+  }
+
+  /* ===================== Lightbox =====================
+     A white screen: the film on the left, what they said on the right, the
+     section's own title still at the top and the way out at the foot. */
+  .tmf__lb {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+  }
+
+  .tmf__lb:not([open]) {
+    display: none;
+  }
+
+  .tmf__lb[open] {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: center;
+    gap: clamp(1rem, 2.4vh, 2rem);
+    padding: clamp(1.5rem, 5.9vh, 3.3125rem) var(--section-padding-x) clamp(1.25rem, 3.4vh, 2.3125rem);
+  }
+
+  .tmf__lb::backdrop {
+    background: var(--color-bg-primary);
+  }
+
+  .tmf__lb-title {
+    max-width: 28ch;
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.0625rem, 1.6vw, 1.4375rem);
+    line-height: 1.28;
+    letter-spacing: -0.02em;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  /* The film and the panel beside it. The film is the one with a shape to
+     keep, so it is measured first and the row takes its height; `stretch` then
+     hands that same height to the panel, which is what puts the client's mark
+     level with the top of the film and their name level with its foot. */
+  .tmf__lb-body {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: clamp(1.5rem, 3.75vw, 3.375rem);
+    width: min(100%, 87.5rem);
+    max-height: 100%;
+  }
+
+  /* Off the screen rather than off the column, and in the film's own shape:
+     sized by width until the screen is too short, then by height, so it runs
+     edge to edge in its box with no bars either way. The proportions are the
+     frame's own (858 of 1440 across, 570 of 900 down). 16:9 until the script
+     has read the real ratio off the file. */
+  .tmf__lb-frame {
+    --tmf-ar: calc(16 / 9);
+
+    flex: none;
+    position: relative;
+    width: min(59.6vw, calc(63.4svh * var(--tmf-ar)));
+    aspect-ratio: var(--tmf-ar);
+    overflow: hidden;
+    background: #000;
+  }
+
+  .tmf__lb-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .tmf__lb-panels {
+    flex: 0 1 clamp(15rem, 25.6vw, 23rem);
+    display: grid;
+    min-height: 0;
+  }
+
+  .tmf__lb-panel {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.25rem, 2vw, 1.75rem);
+    margin: 0;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .tmf__lb-panel[hidden] {
+    display: none;
+  }
+
+  .tmf__lb-logo {
+    width: auto;
+    max-width: clamp(6.25rem, 9.1vw, 8.1875rem);
+    max-height: 1.625rem;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .tmf__lb-quote {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0;
+  }
+
+  .tmf__lb-headline {
+    font-family: var(--font-display);
+    font-size: clamp(1.25rem, 1.95vw, 1.75rem);
+    line-height: 1.26;
+    letter-spacing: -0.015em;
+    text-wrap: pretty;
+  }
+
+  .tmf__lb-text {
+    font-size: clamp(0.875rem, 1.04vw, 0.9375rem);
+    line-height: 1.73;
+    color: var(--color-ink-secondary);
+  }
+
+  /* Pushed to the foot of the panel, so it sits level with the bottom of the
+     film however tall the quote runs. */
+  .tmf__lb-who {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+  }
+
+  .tmf__lb-name {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 1.4vw, 1.25rem);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .tmf__lb-role {
+    display: block;
+    font-size: 0.875rem;
+    line-height: 1.43;
+    color: var(--color-ink-secondary);
+  }
+
+  .tmf__lb-mark {
+    flex: none;
+    max-width: clamp(5rem, 7.4vw, 6.625rem);
+    max-height: 1.3125rem;
+    object-fit: contain;
+    object-position: right center;
+  }
+
+  .tmf__lb-close {
+    display: grid;
+    place-items: center;
+    width: 3.375rem;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+    cursor: pointer;
+    transition:
+      scale 0.3s var(--ease-out-expo),
+      opacity 0.3s var(--ease-out-expo);
+  }
+
+  .tmf__lb-close svg {
+    width: 0.8125rem;
+  }
+
+  .tmf__lb-close:hover,
+  .tmf__lb-close:focus-visible {
+    scale: 1.08;
+    opacity: 0.86;
+  }
+
+  /* Scroll held while the film is up — the same rule the open menu uses. */
+  :global(html[data-tmf-open]) {
+    overflow: hidden;
+  }
+
+  /* ===================== Responsive ===================== */
+  @media (max-width: 60rem) {
+    /* The panel under the film rather than beside it: at this width a 15rem
+       column leaves the film too small to read a face in. */
+    .tmf__lb-body {
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      overflow-y: auto;
+    }
+
+    .tmf__lb-frame {
+      width: min(100%, calc(42svh * var(--tmf-ar)));
+    }
+
+    .tmf__lb-panels {
+      flex: 0 0 auto;
+      align-self: stretch;
+    }
+
+    .tmf__lb-who {
+      padding-top: 0.5rem;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .tmf__title {
+      font-size: clamp(1.375rem, 6.4vw, 1.75rem);
+    }
+
+    .tmf__lb-close {
+      width: 2.875rem;
+    }
+  }
+
+  /* ===================== The scatter =====================
+     The frame's own layout, and no scene: a tall stage, the title stuck in
+     the middle of it, the tiles at their measured positions. The scroll does
+     all of the work — the only thing the script touches here is opacity.
+
+     Nothing in this block may introduce `overflow: hidden` on an ancestor of
+     the title. That is what would break the sticky, and every tile is inside
+     the stage's width anyway, so there is nothing to clip. */
+  /* --h is written on the element: the lead plus the scatter, both of which
+     the component owns because it also has to place the tiles inside them. */
+  :global(html[data-js='true']) .tmf__stage {
+    height: var(--h);
+    padding: 0;
+  }
+
+  /* Half a screen down in flow and stuck half a screen from the top, which
+     are the same place: the title is centred from the first pixel of the
+     section and stays centred until the stage runs out from under it. The
+     translate is what centres it on that line rather than hanging it from
+     it — a transform, so it costs the sticky nothing. */
+  :global(html[data-js='true']) .tmf__title {
+    position: sticky;
+    top: 50svh;
+    z-index: 1;
+    max-width: min(44.4375rem, calc(100% - 2 * var(--section-padding-x)));
+    margin: 50svh auto 0;
+    translate: 0 -50%;
+  }
+
+  /* Over the title, the way the frame has it — its top-left film crosses the
+     first line. The list covers the whole stage and has nothing to be
+     pressed, so it hands pointer events back; only the tiles take them. */
+  :global(html[data-js='true']) .tmf__films {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  :global(html[data-js='true']) .tmf__film {
+    position: absolute;
+    left: var(--l);
+    top: var(--t);
+    width: var(--w);
+    aspect-ratio: var(--ar);
+    pointer-events: auto;
+  }
+
+  @media (max-width: 48rem) {
+    :global(html[data-js='true']) .tmf__stage {
+      height: var(--nh);
+    }
+
+    :global(html[data-js='true']) .tmf__film {
+      left: var(--nl);
+      top: var(--nt);
+      width: var(--nw);
+      aspect-ratio: var(--nar);
+    }
+  }
+
+  /* The tiles need no pre-state: they begin a screen below the fold and the
+     script scales them from 0.8 as they come up, so there is nothing to hide.
+     The title does — SplitText masks its lines, and this covers the gap until
+     it has run. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html[data-js='true']) .tmf__title {
+      opacity: 0;
+    }
+  }
+
+  /* ===================== Not the picked cut =====================
+     The wall (Testimonials.astro) is the other option on the "Testimonial
+     section" axis, and the default. Stated this way round — shown only when
+     this one is explicitly chosen — so that with no JS at all, and therefore
+     no `data-var-*` on <html>, exactly one of the two stands. */
+  .tmf {
+    display: none;
+  }
+
+  :global(html[data-var-testimonials='float']) .tmf {
+    display: block;
+  }
+</style>

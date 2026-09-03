@@ -20,6 +20,7 @@ import WorkCategories from '../components/sections/WorkCategories.astro';
 import TwoWays from '../components/sections/TwoWays.astro';
 import Clients from '../components/sections/Clients.astro';
 import Testimonials from '../components/sections/Testimonials.astro';
+import TestimonialsFloat from '../components/sections/TestimonialsFloat.astro';
 /* Journal is out of the page for now. The component is untouched in
    src/components/sections/, and src/scripts/journal.ts already returns a
    no-op when it cannot find `[data-jr]`. Putting it back is this import and
@@ -135,15 +136,31 @@ import Footer from '../components/layout/Footer.astro';
   <Clients />
 
   {/*
-    Chapter 8. Pins itself for a few screens: one film alone, then the title
-    over it, then a wall of testimonials that scrolls up under the title. The
-    scene, the silent previews and the lightbox live in
-    src/scripts/testimonials.ts. Without JS, or under reduced motion, it is a
-    title over a grid in ordinary flow.
+    Chapter 8, twice. The "Testimonial section" axis in src/config/variations.ts
+    picks between them and each stylesheet display:none's itself when it is not
+    the pick, so only one is ever on the page — both are rendered because the
+    choice is the reader's, made in the browser, and this site is built once.
+
+    Film wall (the default): pins itself for a few screens — one film alone,
+    then the title over it, then a wall of testimonials scrolling up under the
+    title. src/scripts/testimonials.ts.
+
+    Scrolled scatter: nothing is pinned. A tall section with the title stuck
+    in the middle of it and six tiles at the frame's own positions down it,
+    all of it moved by the scroll itself. It ends on the footer's photograph,
+    which opens out from a card into the footer's own band —
+    src/scripts/testimonialsFloat.ts for the entrances, and
+    src/scripts/founderQuote.ts for the opening, because that picture belongs
+    to the footer.
+
+    Without JS, or under reduced motion, either is a title over a grid of
+    films in ordinary flow.
   */}
   <Testimonials />
+  <TestimonialsFloat />
 
-  {/* Closing block. The founder quote lives inside the footer. */}
+  {/* Closing block, in two sections: the founder quote on its photograph,
+      then the ink band. See Footer.astro. */}
   <Footer />
 </Base>
 

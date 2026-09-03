@@ -1,5 +1,6 @@
 import { gsap, ScrollTrigger } from './gsap';
 import { getLenis } from './scroll';
+import { getVariant } from '../config/variations';
 import { prefersReducedMotion } from './utils/device';
 
 /**
@@ -441,6 +442,10 @@ function initScene(section: HTMLElement, cleanups: Array<() => void>): void {
  * Testimonials (chapter 8) — the scroll scene, the wall's silent previews, and
  * the lightbox that opens a film in full.
  *
+ * A no-op unless this is the cut the reader has picked; the scrolled scatter
+ * (src/scripts/testimonialsFloat.ts) is the other one, and the section
+ * that is not picked is display:none, which is no state to pin a scene on.
+ *
  * Under reduced motion the scene is skipped: the stylesheet lays the section
  * out finished under the same query — title, then wall — and the previews and
  * the lightbox still work, because those are content, not motion.
@@ -448,6 +453,8 @@ function initScene(section: HTMLElement, cleanups: Array<() => void>): void {
  * Returns a cleanup function.
  */
 export function initTestimonials(): () => void {
+  if (getVariant('testimonials') !== 'wall') return () => {};
+
   const section = document.querySelector<HTMLElement>('[data-tm]');
   if (!section) return () => {};
 

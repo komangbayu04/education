@@ -1,0 +1,97 @@
+/**
+ * Alternative versions of the site, switched from the "Variation" tab on the
+ * left edge of every page.
+ *
+ * The idea: we want to try more than one answer for a few things — the scroll
+ * feel, the hero's layout, how the testimonials read — without keeping branches
+ * alive or shipping a build per idea. Each entry below is one *axis* of choice.
+ * The reader's pick is saved to localStorage and written onto <html> as
+ * `data-var-<axis>="<option>"` before the first paint (see Base.astro), so both
+ * CSS and scripts can branch on it with no flash.
+ *
+ * To wire a variant into the actual page, read the attribute:
+ *
+ *   CSS   html[data-var-scroll="smooth"] .hero { ... }
+ *   TS    import { getVariant } from '../config/variations';
+ *         if (getVariant('hero') === 'alt-2') { ...build the other timeline... }
+ *
+ * To add a new axis, add an entry here — the switch UI and the pre-paint script
+ * pick it up on their own. The first option is the default.
+ */
+
+export interface VariationOption {
+  id: string;
+  label: string;
+}
+
+export interface VariationAxis {
+  id: string;
+  /** Heading shown above the option row in the panel. */
+  label: string;
+  options: [VariationOption, ...VariationOption[]];
+}
+
+export const VARIATIONS: VariationAxis[] = [
+  {
+    id: 'testimonials',
+    label: 'Testimonial section',
+    options: [
+      /* The pinned film wall: one film alone, then a three-column wall
+         scrolling up under the title. Testimonials.astro. */
+      { id: 'wall', label: 'Film wall' },
+      /* The scrolled scatter: nothing pinned. A tall section with the title
+         stuck in the middle of it and the films rising past, ending on the
+         footer's photograph. TestimonialsFloat.astro. */
+      { id: 'float', label: 'Scrolled scatter' },
+    ],
+  },
+];
+
+/** localStorage key holding the `{ [axisId]: optionId }` map. */
+export const STORAGE_KEY = 'tribe:variations';
+
+/** The default pick for every axis — its first option. */
+export function defaults(): Record<string, string> {
+  return Object.fromEntries(VARIATIONS.map((axis) => [axis.id, axis.options[0].id]));
+}
+
+/** The reader's saved picks, merged over the defaults. Safe on the server. */
+export function resolve(): Record<string, string> {
+  const base = defaults();
+  if (typeof localStorage === 'undefined') return base;
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Record<string, string>;
+    for (const axis of VARIATIONS) {
+      const pick = saved[axis.id];
+      if (pick && axis.options.some((o) => o.id === pick)) base[axis.id] = pick;
+    }
+  } catch {
+    /* Corrupt or unavailable storage — the defaults stand. */
+  }
+  return base;
+}
+
+/** Current value of one axis, read off <html>. Falls back to the default. */
+export function getVariant(axisId: string): string {
+  const axis = VARIATIONS.find((a) => a.id === axisId);
+  if (!axis) return '';
+  if (typeof document === 'undefined') return axis.options[0].id;
+  return document.documentElement.dataset[`var${cap(axisId)}`] || axis.options[0].id;
+}
+
+/** Save one axis and reflect it onto <html>. Does not reload — the caller decides. */
+export function setVariant(axisId: string, optionId: string): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset[`var${cap(axisId)}`] = optionId;
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Record<string, string>;
+    saved[axisId] = optionId;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  } catch {
+    /* No storage — the attribute still holds for this page view. */
+  }
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

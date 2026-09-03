@@ -26,97 +26,24 @@
  * title over a grid — every film still plays its silent preview and still
  * opens.
  *
- * CONTENT. Every entry is one person. A `video` makes it a film tile that
- * opens the lightbox; without one it is a quote tile on the cream ground,
- * which is how the wall stays full while there are more quotes than films.
- * The featured tile is the first film in the centre column.
+ * CONTENT. Lives in src/data/testimonials.ts, shared with the scrolled cut
+ * of this chapter (TestimonialsFloat.astro) — the "Testimonial section"
+ * axis in src/config/variations.ts picks between the two, and the one that
+ * is not picked is display:none'd at the foot of this stylesheet. Every entry is one
+ * person. A `video` makes it a film tile that opens the lightbox; without one
+ * it is a quote tile on the cream ground, which is how the wall stays full
+ * while there are more quotes than films. The featured tile is the first film
+ * in the centre column.
  */
 
-interface Testimonial {
-  name: string;
-  role: string;
-  company: string;
-  headline: string;
-  quote: string;
-  photo?: string;
-  logo?: string;
-  /** A video file the browser can play inline — mp4/webm, same-origin or CORS
-   *  enabled. Makes this a film tile. */
-  video?: string;
-  /** Frame shown before the preview plays. Falls back to `photo`. */
-  poster?: string;
-}
+import { TESTIMONIALS, TESTIMONIALS_TITLE, type Testimonial } from '../../data/testimonials';
 
 interface Props {
   title?: string;
   items?: Testimonial[];
 }
 
-const {
-  title = 'Hear what our clients said about their experiences with us!',
-  items = [
-    {
-      name: 'Bhaumik Patel',
-      role: 'CEO, Atrium Academy',
-      company: 'Atrium Academy',
-      logo: '/media/logo-atrium.svg',
-      headline: 'Are you kidding me? This was a no\u00a0brainer retainer.',
-      quote:
-        '"We basically get the output of a full time design team without the overhead of having to hire, manage, and train them. Design is the last thing I have to worry about, thanks to Tribe."',
-    },
-    {
-      name: 'Ahmed F. Haque',
-      role: 'Founder, Overclock',
-      company: 'Overclock',
-      photo: '/media/portrait-ahmed.webp',
-      logo: '/media/logo-overclock.svg',
-      video: 'https://framerusercontent.com/assets/ILZGTX3cqunlS3P895UeRWpIIM.mp4',
-      headline: 'Design stopped being something we had to think about all the time.',
-      quote:
-        '"Speed to production was a huge difference... the fear is that you\'re going to get into this psychology experiment for three months and come out with a concept, but nothing that actually helps you move the business forward. That wasn\'t the experience I had with Tribe."',
-    },
-    {
-      name: 'Braden Weissman',
-      role: 'Co-Founder, Nerd Apply',
-      company: 'Nerd Apply',
-      photo: '/media/portrait-braden.webp',
-      logo: '/media/logo-nerd-apply.svg',
-      video: 'https://framerusercontent.com/assets/2ISOfafB7v8BKAWqxuBoY16FiM.mp4',
-      headline: 'They shipped faster than our own team could have.',
-      quote:
-        '"We came in with a rough idea and left with something we could put in front of customers the same month. The pace never came at the cost of the craft."',
-    },
-    {
-      name: 'Geoffrey Langford',
-      role: 'Sr. Product Manager, Studeo',
-      company: 'Studeo',
-      photo: '/media/portrait-geoffrey.webp',
-      logo: '/media/logo-studeo.svg',
-      video: 'https://framerusercontent.com/assets/Xhyv0KqZjfypMH4uE3Lso4dIZM.mp4',
-      headline: 'Absolutely great working with Tribe.',
-      quote:
-        '"The simplicity with which you\'ve boiled down the process makes it feel like we\'re not working with an external design team at all but like we\'ve hired a fully formed, in-house department ready to handle every design need."',
-    },
-    /* PLACEHOLDER — carried over from the previous cut of this section. Real
-       names, roles and quotes to come. */
-    {
-      name: 'Nova',
-      role: 'Vice President, CELPIP',
-      company: 'CELPIP',
-      headline: 'It felt like one team, not two.',
-      quote:
-        '"Every handoff was already anticipated. We stopped writing briefs halfway through the engagement because they were reading the roadmap better than we were."',
-    },
-    {
-      name: 'Marta Reyes',
-      role: 'Head of Growth, Kinfolk',
-      company: 'Kinfolk',
-      headline: 'The work moved the business, not a concept deck.',
-      quote:
-        '"We came out with something customers could use, and a team that understood why it mattered. That is rarer than it should be."',
-    },
-  ],
-} = Astro.props;
+const { title = TESTIMONIALS_TITLE, items = TESTIMONIALS } = Astro.props;
 
 /* The film that opens the scene: the first one that sits in the centre column
    of the three-across wall, so it lands where it started from — straight under
@@ -706,5 +633,14 @@ const badge = `<span class="tm__badge" aria-hidden="true">
         width: min(90cqw, calc(70svh * 16 / 9));
       }
     }
+  }
+
+  /* ===================== Not the picked cut =====================
+     The scrolled scatter is the other option on the
+     "Testimonial section" axis. Stated this way round — hidden only when the
+     other one is explicitly chosen — so that with no JS at all, and therefore
+     no `data-var-*` on <html>, this is the cut that stands. */
+  :global(html[data-var-testimonials='float']) .tm {
+    display: none;
   }
 </style>

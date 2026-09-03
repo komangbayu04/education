@@ -1,17 +1,31 @@
 ---
 /**
- * Footer — the page's closing block.
+ * Footer — the page's closing block, in two sections.
  *
- * Absorbs the founder quote. A full-bleed photograph sits under a black
- * overlay whose letterforms are cut out, so the graffiti "Tribe." is the
- * picture showing through. Nav and the CTA stand on that overlay; the quote,
- * the portrait and the legal line sit on the photograph below.
+ * 1. THE QUOTE REGION (`.fq`). The founder quote on a full-bleed photograph,
+ *    dimmed by a scrim that fades out downward, with the portrait anchored to
+ *    its bottom-right.
+ *
+ *    That photograph is also the last image of the testimonials scroll: under
+ *    the scrolled cut of chapter 8 (TestimonialsFloat.astro) this section is
+ *    given a runway of white above the band, the photograph starts as a small
+ *    card in it, and src/scripts/founderQuote.ts opens it out to the band as
+ *    the section travels up the screen. One picture, not a stand-in that
+ *    trades places with the real thing — there is nothing here to hand over
+ *    to, because this *is* the thing.
+ *
+ * 2. THE INK BAND (`.ft`). Solid black: the legal line on the left, the nav +
+ *    contact cluster on the right, and the graffiti "Tribe." wordmark laid
+ *    across it in `mix-blend-difference` so it reads as a bright grey lifted
+ *    off the black. It arrives on its own scroll, after the photograph has
+ *    settled — which is the only reason the two are separate elements rather
+ *    than one footer.
  *
  * Lives in the page rather than Base.astro: the two pages that exist each
  * pass their own copy if they need to, and putting it in the layout would
  * force that decision on every future page.
  */
-import markRaw from '../../assets/footer-mark.svg?raw';
+import markRaw from '../../assets/footer-wordmark.svg?raw';
 
 interface FooterLink {
   label: string;
@@ -59,25 +73,59 @@ const {
 
 {
   /*
-    data-nav-over: the darkness here is the photograph and its overlay, not a
-    background colour the observer can read, so it is declared. data-quote: the
-    reveal in founderQuote.ts hangs off this.
+    data-quote: everything in founderQuote.ts hangs off this — the reveal and,
+    under the scrolled cut of the testimonials, the photograph opening out.
+
+    No data-nav-over here. The darkness in this section is a band at the *foot*
+    of the screen for the whole approach, with white above it, so declaring the
+    section dark would invert the mark over white. The photograph carries the
+    declaration itself instead, and the observer's geometry test does the rest:
+    the mark turns when the picture is actually behind it.
   */
 }
-<footer class="ft" data-quote data-nav-over="dark">
-  <div class="ft__media">
+<section class="fq" data-quote>
+  <div class="fq__media" data-fq-media data-nav-over="dark" aria-hidden="true">
     {
       image ? (
         <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
       ) : (
-        <span class="ft__media-fallback" aria-hidden="true" />
+        <span class="fq__media-fallback" />
       )
     }
+    <span class="fq__scrim"></span>
   </div>
 
-  <div class="ft__overlay">
-    <div class="ft__mark" aria-hidden="true" set:html={mark} />
-    <div class="ft__bar">
+  {/* The band the photograph ends as, and what stands on it. Laid out at its
+      finished size from the start — the picture grows into this box rather
+      than the box being animated, so the copy is never reflowed mid-scroll. */}
+  <div class="fq__band" data-fq-band>
+    <figure class="fq__figure">
+      <blockquote class="fq__text" data-quote-reveal>{quote}</blockquote>
+      <figcaption class="fq__who" data-quote-reveal>
+        <p class="fq__name">{name}</p>
+        <p class="fq__role">{role}</p>
+      </figcaption>
+    </figure>
+
+    <div class="fq__portrait" data-quote-reveal>
+      {
+        portrait ? (
+          <img src={portrait} alt={portraitAlt} loading="lazy" decoding="async" />
+        ) : (
+          <span class="fq__portrait-fallback" aria-hidden="true" />
+        )
+      }
+    </div>
+  </div>
+</section>
+
+<footer class="ft" data-nav-over="dark">
+  <div class="ft__meta">
+    <div class="ft__wordmark" aria-hidden="true" set:html={mark} />
+
+    <p class="ft__legal">{legal}</p>
+
+    <div class="ft__cluster">
       <nav class="ft__nav" aria-label="Footer">
         <ul>
           {
@@ -101,111 +149,229 @@ const {
       </div>
     </div>
   </div>
-
-  <div class="ft__inner">
-    <figure class="ft__figure">
-      <blockquote class="ft__text" data-quote-reveal>{quote}</blockquote>
-      <figcaption class="ft__who" data-quote-reveal>
-        <p class="ft__name">{name}</p>
-        <p class="ft__role">{role}</p>
-      </figcaption>
-    </figure>
-
-    <div class="ft__portrait" data-quote-reveal>
-      {
-        portrait ? (
-          <img src={portrait} alt={portraitAlt} loading="lazy" decoding="async" />
-        ) : (
-          <span class="ft__portrait-fallback" aria-hidden="true" />
-        )
-      }
-    </div>
-
-    <p class="ft__legal">{legal}</p>
-  </div>
 </footer>
 
 <style>
-  .ft {
-    /* Two regions, not a scaled poster. The overlay is as tall as the
-       graffiti (width 100%, height auto). The photograph fills whatever is
-       left so the footer is at least one screen. Type and the CTA keep their
-       real sizes; only the images change with the viewport. */
+  /* =====================================================================
+     1. The quote region
+     ===================================================================== */
+  .fq {
+    /* One gutter, symmetric — the reference frame sets both sides at 132px. */
     --ft-gutter: clamp(1.25rem, 9.2vw, 8.25rem);
-    --ft-gutter-end: clamp(1.25rem, 6.8vw, 6.125rem);
+
+    /* The photograph's finished box: full width, this tall, at the foot of
+       the section. The frame gives the quote region 521 of 900, and 32rem is
+       the floor the copy and the portrait need. */
+    --fq-band: max(32rem, 57.9svh);
+
+    /* White above it for the photograph to grow across. Only ever there
+       under the scrolled cut of the testimonials — see the block at the
+       bottom of this stylesheet. */
+    --fq-runway: 90svh;
+
     position: relative;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 100svh;
-    background: var(--color-bg-footer);
+    /* What the card sits on while it is still a card. */
+    background: var(--color-bg-primary);
     color: var(--color-ink-invert);
   }
 
-  /* --- Backdrop ------------------------------------------------------------
-     Full bleed. The overlay paints the top; letterforms cut through to this. */
-  .ft__media {
+  /* Filling the section is the resting state, and the honest one: with no JS,
+     or under reduced motion, there is no runway and this simply *is* the
+     region. The growing box is written over the top of it per frame. */
+  .fq__media {
     position: absolute;
     inset: 0;
+    z-index: 0;
+    overflow: hidden;
   }
 
-  .ft__media img,
-  .ft__media-fallback {
+  .fq__media img,
+  .fq__media-fallback {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .ft__media-fallback {
+  .fq__media-fallback {
     background:
       radial-gradient(80% 60% at 70% 30%, #3c4550, transparent 70%),
       linear-gradient(200deg, #2b3138, #16191d);
   }
 
-  /* --- Overlay -------------------------------------------------------------
-     In-flow so its height is the mark's. ::after is a black strip that only
-     shows when the overlay is forced taller than the SVG — nav stays on
-     black, the knockout holes are not filled. */
-  .ft__overlay {
+  .fq__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgb(0 0 0 / 0.26), rgb(0 0 0 / 0));
+  }
+
+  .fq__band {
     position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    flex: 0 0 auto;
+    z-index: 1;
+    min-height: var(--fq-band);
+    padding: clamp(3rem, 8.6vw, 7.75rem) var(--ft-gutter);
   }
 
-  .ft__overlay::after {
-    content: '';
-    flex: 1 1 0;
-    min-height: 0;
-    background: var(--color-bg-footer);
+  .fq__figure {
+    position: relative;
+    z-index: 1;
+    max-width: 46rem;
+    margin: 0;
+  }
+
+  .fq__text {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3.6vw, 2.25rem);
+    font-weight: 400;
+    line-height: 1.222;
+    letter-spacing: -0.003em;
+    text-wrap: pretty;
+  }
+
+  .fq__who {
+    margin-top: 2.5rem;
+  }
+
+  .fq__name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .fq__role {
+    margin-top: 0.25rem;
+    font-size: 1.0625rem;
+    line-height: 1.3;
+    letter-spacing: -0.025em;
+    color: rgb(255 255 255 / 0.72);
+  }
+
+  .fq__portrait {
+    position: absolute;
+    right: clamp(0.75rem, 7vw, 6.375rem);
+    bottom: 0;
+    z-index: 1;
+    width: clamp(15rem, 30vw, 27.3125rem);
+    aspect-ratio: 437 / 480;
     pointer-events: none;
   }
 
-  .ft__mark {
+  .fq__portrait img,
+  .fq__portrait-fallback {
+    display: block;
     width: 100%;
-    height: auto;
-    color: var(--color-bg-footer);
+    height: 100%;
+    object-fit: cover;
+    object-position: bottom center;
+  }
+
+  .fq__portrait-fallback {
+    background: linear-gradient(170deg, #ffffff, #dcdcd8);
+  }
+
+  /* --- Pre-reveal state ---------------------------------------------------
+     The copy and the portrait are written on once the photograph has reached
+     its band. Without JS they are simply there. */
+  :global(html[data-js='true']) [data-quote-reveal] {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) [data-quote-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* =====================================================================
+     2. The ink band
+     ===================================================================== */
+  .ft {
+    --ft-gutter: clamp(1.25rem, 9.2vw, 8.25rem);
+
+    position: relative;
+    background: var(--color-bg-footer);
+    color: var(--color-ink-invert);
+    /* Not hidden: the wordmark is laid across the top edge and bleeds up into
+       the photograph above, which is the whole point of the tag. Its 15px of
+       left bleed is clipped by `overflow-x` on the body. */
+    overflow: visible;
+  }
+
+  .ft__meta {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    min-height: 23.5rem;
+    padding: 3.5rem var(--ft-gutter);
+    background: var(--color-bg-footer);
+  }
+
+  /* Laid across the band, bleeding off the left edge and up into the
+     photograph above. `difference` against the near-black ground lifts the
+     #C6C6C6 artwork to a bright grey without a fill of its own. */
+  .ft__wordmark {
+    position: absolute;
+    left: -0.9375rem;
+    top: -2.9375rem;
+    z-index: 0;
+    width: clamp(20rem, 52vw, 44.6875rem);
+    mix-blend-mode: difference;
     pointer-events: none;
   }
 
-  .ft__mark :global(svg) {
+  /* Pre-animation state: the pen strokes inside the SVG mask are undrawn and
+     the settle layer is off, so the tag is invisible until founderQuote.ts
+     writes it on when the ink band scrolls in. Without JS the SVG renders
+     finished on its own; under reduced motion we force that finished state. */
+  :global(html[data-js='true']) .ft__wordmark :global(.wm-pen path) {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  :global(html[data-js='true']) .ft__wordmark :global(.wm-settle) {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) .ft__wordmark :global(.wm-pen path) {
+      stroke-dashoffset: 0;
+    }
+
+    :global(html[data-js='true']) .ft__wordmark :global(.wm-settle) {
+      opacity: 1;
+    }
+  }
+
+  .ft__wordmark :global(svg) {
     display: block;
     width: 100%;
     height: auto;
     max-width: none;
   }
 
-  .ft__bar {
-    position: absolute;
-    top: 50%;
-    right: var(--ft-gutter-end);
+  .ft__legal {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.43;
+    letter-spacing: 0.069em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.8);
+  }
+
+  .ft__cluster {
+    position: relative;
     z-index: 1;
     display: flex;
     align-items: flex-start;
-    gap: clamp(1.5rem, 3.8vw, 3.4375rem);
-    transform: translateY(-50%);
+    gap: clamp(1.75rem, 3.8vw, 3.4375rem);
   }
 
   .ft__nav ul {
@@ -224,6 +390,7 @@ const {
     letter-spacing: 0.069em;
     text-transform: uppercase;
     text-decoration: none;
+    white-space: nowrap;
     color: inherit;
     transition: opacity 0.35s var(--ease-out-expo);
   }
@@ -295,136 +462,66 @@ const {
     color: var(--color-ink-invert);
   }
 
-  /* --- Photograph ---------------------------------------------------------- */
-  .ft__inner {
-    position: relative;
-    z-index: 3;
-    flex: 1 1 auto;
-    display: grid;
-    grid-template-columns: minmax(0, 44.625rem) minmax(7rem, 1fr);
-    grid-template-rows: 1fr auto;
-    column-gap: 1.5rem;
-    padding-top: clamp(2rem, 5.4vw, 4.875rem);
-    padding-bottom: clamp(1rem, 1.9vw, 1.6875rem);
-    padding-inline: var(--ft-gutter) var(--ft-gutter-end);
-    min-height: 22rem;
-  }
-
-  .ft__figure {
-    grid-column: 1;
-    grid-row: 1;
-    max-width: 44.625rem;
-    margin: 0;
-  }
-
-  .ft__text {
-    margin: 0;
-    font-size: clamp(1.375rem, 2.36vw, 2.125rem);
-    font-weight: 400;
-    line-height: 1.32;
-    letter-spacing: -0.0035em;
-    text-wrap: pretty;
-  }
-
-  .ft__who {
-    margin-top: 2rem;
-  }
-
-  .ft__name {
-    font-size: 1.25rem;
-    font-weight: 400;
-    line-height: 1.3;
-    letter-spacing: -0.0225em;
-  }
-
-  .ft__role {
-    margin-top: 0.25rem;
-    font-size: 1.0625rem;
-    line-height: 1.3;
-    letter-spacing: -0.025em;
-    color: rgb(255 255 255 / 0.72);
-  }
-
-  .ft__legal {
-    grid-column: 1;
-    grid-row: 2;
-    margin: 0;
-    padding-top: 1.5rem;
-    font-size: 0.875rem;
-    line-height: 1.43;
-    letter-spacing: 0.069em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.8);
-  }
-
-  .ft__portrait {
-    grid-column: 2;
-    grid-row: 1 / -1;
-    align-self: end;
-    justify-self: end;
-    z-index: 1;
-    width: min(36vw, 32.375rem);
-    aspect-ratio: 518 / 569;
-    margin-top: -3.5rem;
-    pointer-events: none;
-  }
-
-  .ft__portrait img,
-  .ft__portrait-fallback {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: bottom center;
-  }
-
-  .ft__portrait-fallback {
-    background: linear-gradient(170deg, #ffffff, #dcdcd8);
-  }
-
-  /* Narrow: keep the same two regions. The overlay grows so the nav cluster
-     still sits on black instead of shrinking the type to fit the letters. */
+  /* --- Narrow ---------------------------------------------------------- */
   @media (max-width: 48rem) {
-    .ft__overlay {
-      min-height: 22rem;
+    .fq {
+      --fq-band: max(26rem, 62svh);
     }
 
-    .ft__bar {
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 1.25rem;
-    }
-
-    .ft__nav ul {
-      align-items: flex-end;
-      text-align: right;
-    }
-
-    .ft__contact {
-      align-items: flex-end;
-    }
-
-    .ft__inner {
-      grid-template-columns: minmax(0, 1fr) minmax(7.5rem, 42vw);
+    .fq__band {
       padding-inline: var(--section-padding-x);
-      min-height: 20rem;
     }
 
-    .ft__portrait {
-      width: min(42vw, 16rem);
-      margin-top: -2rem;
+    .fq__portrait {
+      right: 0;
+      width: min(48vw, 15rem);
+    }
+
+    .ft__meta {
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      gap: 2.5rem;
+      min-height: 0;
+      padding: 3rem var(--section-padding-x);
+    }
+
+    .ft__wordmark {
+      top: -6vw;
+      width: min(92vw, 24rem);
+    }
+
+    .ft__cluster {
+      flex-direction: column;
+      gap: 2rem;
     }
   }
 
-  /* --- Pre-reveal state ---------------------------------------------------- */
-  :global(html[data-js='true']) [data-quote-reveal] {
-    opacity: 0;
-  }
+  /* =====================================================================
+     The runway
+     =====================================================================
+     Only under the scrolled cut of the testimonials, and only on the page
+     that actually has it: that cut ends on this photograph, so the section
+     is given a screen of white above the band for the picture to open out
+     across. Everywhere else — the default film wall, every case study — this
+     is an ordinary footer that arrives at full size, which is why the runway
+     is opt-in rather than the default.
 
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) [data-quote-reveal] {
-      opacity: 1;
-      transform: none;
+     `:has([data-tmf])` is what keeps it off the case studies: both cuts of
+     chapter 8 are rendered on the home page and one is hidden, so the marker
+     is there whichever is picked, and it is nowhere else.
+
+     Reduced motion has no grow, so no runway either. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html[data-js='true'][data-var-testimonials='float'] body:has([data-tmf])) .fq {
+      padding-top: var(--fq-runway);
+    }
+
+    /* Pinned to the foot of the section rather than filling it, because the
+       section is now a screen taller than the band. The card's own box is
+       written over this by the script, every frame. */
+    :global(html[data-js='true'][data-var-testimonials='float'] body:has([data-tmf])) .fq__media {
+      inset: auto 0 0;
+      height: var(--fq-band);
     }
   }
 </style>

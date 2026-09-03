@@ -1,0 +1,177 @@
+---
+/**
+ * Case study — Overclock.
+ *
+ * The destination behind the Overclock chapter on the home page: its title,
+ * its "View work" tile and the next-project panel on Nerd Apply all point
+ * here. Content lives in this file rather than a data module — same pattern
+ * as college-counseling-platform.astro — so a reader of the codebase finds
+ * the copy on the page.
+ */
+import Base from '../../layouts/Base.astro';
+import CaseStudyHero from '../../components/case-study/CaseStudyHero.astro';
+import CaseStudyIntro from '../../components/case-study/CaseStudyIntro.astro';
+import CaseStudyBand from '../../components/case-study/CaseStudyBand.astro';
+import CaseStudyOverview from '../../components/case-study/CaseStudyOverview.astro';
+import CaseStudyVideos from '../../components/case-study/CaseStudyVideos.astro';
+import CaseStudyExperience from '../../components/case-study/CaseStudyExperience.astro';
+import CaseStudyResult from '../../components/case-study/CaseStudyResult.astro';
+import CaseStudyNext from '../../components/case-study/CaseStudyNext.astro';
+import Footer from '../../components/layout/Footer.astro';
+
+const title = 'Overclock';
+const summary =
+  'Overclock is an AI capability partner for enterprise teams, delivering ten-week accelerator cohorts, workflow-based corporate training, and embedded technical consulting.';
+
+const intro =
+  "We've worked with Overclock on identity, website, and program materials across cohorts. What began as a mark became the system everything the program puts in front of a founder is built from.";
+---
+
+<Base title={`${title} — Tribe`} description={intro}>
+  {/* The nav is overlaid, not stacked — see Nav.astro. On the home page the
+      hero reserves that height itself; here the page has to. */}
+  <div class="cs">
+    <CaseStudyHero
+      title={title}
+      summary={summary}
+      tags={['Accelerator', 'Brand Design', 'Web Design']}
+      image="/media/overclock-device"
+      imageAlt="Overclock running on a tablet"
+      video="/media/overclock-cover"
+      poster="/media/overclock-cover-poster.webp"
+    />
+
+    <CaseStudyIntro eyebrow="Introduction" copy={intro} />
+
+    {/* Full-bleed motion under the introduction, as the frame has it. The
+        chapter cover holds this slot until dedicated case-study footage
+        lands — same place in the layout, same ratio. */}
+    <CaseStudyBand
+      video="/media/overclock-cover"
+      poster="/media/overclock-cover-poster.webp"
+      label="Overclock, opening"
+    />
+
+    {/* Program. The statement alone — the artwork for it is the pair below,
+        which is why no tiles are passed. */}
+    <CaseStudyOverview
+      id="cs-program"
+      eyebrow="Program"
+      heading="An accelerator teaching engineers and operators to build with AI."
+      caption="Overclock exists for leaders being asked to make AI real inside their company. Three things are usually in the way: overwhelming options, uneven team capability, and no structured on-ramp."
+    />
+
+    <CaseStudyOverview
+      id="cs-why"
+      layout="lift"
+      eyebrow="Why companies call"
+      heading="Similar scenarios. From mandate to measurement."
+      wide={{
+        src: '/media/work-one-pagers-1',
+        alt: 'Overclock Accelerator one-pager: why companies call',
+        ratio: '16 / 9',
+      }}
+      side={{
+        src: '/media/work-branding-design-2',
+        alt: 'Overclock visual assets, brand guidelines',
+        ratio: '16 / 9',
+      }}
+    />
+
+    {/* Website. The claim, the line under it, and the same line again beside
+        the screens that make the point — the repetition is the frame's. */}
+    <CaseStudyExperience
+      eyebrow="Website"
+      heading="Identity, website, and program materials — one system across every cohort."
+      caption="Each surface starts from the same mark, type, and visual language."
+      aside="Each surface starts from the same mark, type, and visual language."
+      screens={{
+        src: '/media/overclock-device',
+        alt: 'The Overclock site on a tablet',
+        ratio: '1400 / 1374',
+      }}
+      pair={{
+        large: {
+          src: '/media/work-branding-design-3',
+          alt: 'Prompt foundations that shaped Overclock\'s visual style',
+          ratio: '16 / 9',
+        },
+        small: {
+          src: '/media/work-branding-design-2',
+          alt: 'Dot-driven visual assets from the Overclock brand system',
+          ratio: '16 / 9',
+        },
+        caption: 'Each asset starts from a system that already exists.',
+      }}
+    />
+
+    {/* Materials. It sits after the website section because that is the order
+        the frame reads in: the product first, then the material that goes out
+        around it. */}
+    <CaseStudyVideos
+      eyebrow="Materials"
+      heading="Program one-pagers, brand guidelines, and the visual language a cohort can ship with."
+      caption="Each asset starts from a system that already exists. Throughput climbs."
+      pair={{
+        tall: {
+          src: '/media/work-one-pagers-1',
+          ratio: '16 / 9',
+          label: 'Overclock Accelerator one-pager',
+        },
+        wide: {
+          src: '/media/work-one-pagers-2',
+          ratio: '16 / 9',
+          label: 'Program one-pager',
+        },
+      }}
+      assets={[
+        {
+          src: '/media/work-one-pagers-3',
+          ratio: '16 / 9',
+          size: 0.81,
+          label: 'Program one-pager',
+        },
+        {
+          src: '/media/work-one-pagers-4',
+          ratio: '16 / 9',
+          size: 0.74,
+          label: 'Program one-pager',
+        },
+      ]}
+    />
+
+    <CaseStudyResult
+      title="An ongoing partnership"
+      rows={[
+        { value: 'Identity', label: 'Brand system across the program.' },
+        { value: 'Website', label: 'The public face of every cohort.' },
+        { value: 'Materials', label: 'One-pagers and assets that ship with the work.' },
+      ]}
+    />
+
+    {/* Hands the reader to the next project. Must stay directly above the
+        footer: its bottom seam is painted in the footer's own colour. */}
+    <CaseStudyNext
+      title="Nerd Apply"
+      copy="A privacy-first admissions data platform for college counselors, built on 500,000+ de-identified real applications across 1,000+ colleges."
+      ctaHref="/work/college-counseling-platform"
+      image="/media/showcase-device"
+      imageAlt="The Nerd Apply platform running on a phone"
+      ground="#061630"
+      tags={['Admissions software', 'Product', 'Design system']}
+    />
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .cs {
+    /* The page's vertical rhythm, in one place. Every section reads it for its
+       own padding, and since the sections butt directly against each other
+       (their gap is exactly 0), the space between any two is twice this. */
+    --cs-section-y: clamp(3rem, 6.6vw, 6rem);
+
+    padding-top: var(--nav-height);
+  }
+</style>

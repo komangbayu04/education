@@ -8,7 +8,9 @@
  * fantasy.co builds its numbered services list — which is the same thing twice.
  * Three layers, and only one of them travels:
  *
- *   the ground    one photograph per category, full bleed. Sticky. Crossfades.
+ *   the ground    one screen per category, full bleed. Sticky. Crossfades.
+ *                 A photograph where the category names one, and a flat grey
+ *                 placeholder where it does not — see `tone` and `ground`.
  *
  *   the headline  the number and the label. Ordinary flow content, in front of
  *                 that ground — so the scroll is what carries one up and off
@@ -33,19 +35,37 @@
  * one number to turn if the section reads as hurried or as a march.
  *
  * The ground is the whole of the artwork. The hover deck and the horizontal
- * strip this section used to carry are gone with the list they hung off; each
- * category names one shot out of its folder and that shot is the screen. The
- * rest of the folders are still in public/media and still built by
- * tools/prep-images.mjs — nothing on the page references them.
+ * strip this section used to carry are gone with the list they hung off. Each
+ * category names one shot and that shot is the screen; the ones still being
+ * chosen stand as a flat grey in the meantime. The folders are all still in
+ * public/media and still built by tools/prep-images.mjs — nothing on the page
+ * references the rest of them.
+ *
+ * The section does not simply end. Its last frame is held for `--work-outro`
+ * past the final headline — that is what the tail on `.cat__list` buys — and
+ * Two ways in is pulled up over that held frame by the same number, arriving
+ * behind a soft white edge of its own. So the join is a dissolve the reader
+ * scrubs with their own scroll. Both halves are in the stylesheet; the shared
+ * number is `--work-outro` in globals.css, and changing it here alone tears
+ * the join.
+ *
+ * The hold is short on purpose, and it is the one number here that is easy to
+ * get wrong in the generous direction. It is the only stretch where the
+ * headline travels and the ground does not, so a long one does not read as
+ * parallax — it reads as the page having stopped while the title climbs off
+ * the top by itself. A beat, then the ground lets go and the whole section
+ * leaves with the headline. What carries the join is the dissolve in
+ * src/scripts/workCategories.ts, which runs several times longer than the
+ * hold.
  *
  * `--color-bg-twoways` is still the section's ground colour under the artwork,
  * and it still has to be: the scene's exit pixel field in index.astro is
- * painted in it, and the wash over every photograph is that same value. Change
+ * painted in it, and the wash over every ground is that same value. Change
  * it here and that field has to change with it.
  *
  * One layout at every width, and it is the no-JS layout too — the sticking and
  * the flow are both CSS. All src/scripts/workCategories.ts does is run the
- * crossfades; without it the first category's photograph and pitch stand behind
+ * crossfades; without it the first category's ground and pitch stand behind
  * the whole list and every headline is still on the page.
  */
 
@@ -58,33 +78,47 @@ interface Category {
   /** Where "See work" goes. */
   href: string;
   /**
-   * The one shot that becomes this category's screen, without an extension:
-   * rendered as a <picture> with an avif source and a webp fallback, the same
-   * contract the strip used, so '/media/work-website-4' wants work-website-4.avif
-   * and work-website-4.webp beside it.
+   * The flat grey this category's screen is painted in — a placeholder,
+   * standing in for the photograph that used to be here while the real shots
+   * are chosen.
    *
-   * Named per category rather than derived, because which of the seven-to-nine
-   * shots stands for the whole category is a choice — swapping one is this
-   * line and nothing else.
+   * Every value has to be visibly different from the one before it, because
+   * the crossfade between two categories is the only thing that announces the
+   * change: on five identical greys the section would read as one screen that
+   * never moves. The ramp below runs light to dark down the list, which also
+   * means the section deepens as it goes.
+   *
+   * A category that names a `ground` below paints that instead; this stays as
+   * the colour of the box under it, so the screen is never bare while the file
+   * is still loading.
    */
-  ground: string;
+  tone: string;
   /**
-   * `object-position` for that shot. The sources do not agree on shape — the
-   * site and product screenshots are 804 x 510, branding is 16:9 and the social
-   * posts are square — and a square cropped to a landscape screen loses about
-   * half its height, so the ones that need their crop steering say so here.
+   * The one shot that becomes this category's screen, without an extension —
+   * rendered as a <picture> with an avif source and a webp fallback, so
+   * '/media/work-marketing-design-1' wants work-marketing-design-1.avif and
+   * work-marketing-design-1.webp beside it.
+   *
+   * Optional, and only some categories have one while the rest of the shots
+   * are chosen: without it the category is its flat `tone`. Named per category
+   * rather than derived, because which shot stands for a whole category is a
+   * choice — swapping one is this line and nothing else.
+   */
+  ground?: string;
+  /**
+   * `object-position` for that shot, for the ones whose crop needs steering.
+   * The sources do not agree on shape, and a square cropped to a landscape
+   * screen loses about half its height.
    */
   focus?: string;
 }
 
 interface Props {
-  title?: string;
   categories?: Category[];
   viewLabel?: string;
 }
 
 const {
-  title = 'Our work - categorized',
   viewLabel = 'See work',
   categories = [
     {
@@ -93,7 +127,7 @@ const {
       blurb:
         'Marketing sites and platforms, designed and built end to end — so what ships is what was drawn, at the speed the launch actually needs.',
       href: '/work',
-      ground: '/media/work-website-4',
+      tone: '#E9E9E9',
     },
     {
       number: '02',
@@ -101,7 +135,7 @@ const {
       blurb:
         'The screens people use every day: flows, states, and the systems underneath them, drawn so the product stays coherent as it grows.',
       href: '/work',
-      ground: '/media/work-product-design-2',
+      tone: '#DFDFDF',
     },
     {
       number: '03',
@@ -109,7 +143,7 @@ const {
       blurb:
         'Marks, type, colour and motion, with the rules that keep them holding together everywhere the brand turns up.',
       href: '/work',
-      ground: '/media/work-branding-design-3',
+      tone: '#D3D3D3',
     },
     {
       number: '04',
@@ -117,11 +151,7 @@ const {
       blurb:
         'The story a room has to follow in twenty minutes — cut, structured and designed so the argument carries without you narrating it.',
       href: '/work',
-      /* The cover rather than a body slide. Every deck in the folder sets its
-         argument in three columns of text, and behind a headline and a pitch of
-         our own that is two paragraphs fighting each other — the cover is the
-         one page in a deck that is mostly drawing. */
-      ground: '/media/work-pitch-deck-1',
+      tone: '#C1C1C1',
     },
     {
       number: '05',
@@ -129,10 +159,8 @@ const {
       blurb:
         'Campaign and social work that keeps the brand recognisable at the size a feed actually shows it, in the volume a calendar actually needs.',
       href: '/work',
-      /* Square source. Centred, so the columns survive the crop to a landscape
-         screen; left to the default it is the top third that is kept. */
-      ground: '/media/work-social-media-3',
-      focus: '50% 50%',
+      tone: '#B3B3B3',
+      ground: '/media/work-marketing-design-1',
     },
   ],
 } = Astro.props;
@@ -140,10 +168,10 @@ const {
 const total = String(categories.length).padStart(2, '0');
 ---
 
-<section class="cat" id="work" aria-labelledby="cat-title" data-cat>
+<section class="cat" id="work" aria-label="Our work" data-cat>
   {/*
     The ground. One screen, stuck to the top of the window for as long as the
-    list is passing, with every category's photograph stacked inside it.
+    list is passing, with every category's ground stacked inside it.
 
     `position: sticky`, not a pinned ScrollTrigger: sticky is the browser
     holding an element still inside a scroll it is not otherwise touching, which
@@ -151,29 +179,27 @@ const total = String(categories.length).padStart(2, '0');
     scrollbar away from the reader. It also means the layout stands up with the
     stylesheet alone.
   */}
-  <div class="cat__stage cat__stage--ground" aria-hidden="true">
+  <div class="cat__stage cat__stage--ground" aria-hidden="true" data-cat-dissolve>
     <div class="cat__stick">
       {
-        categories.map((category, i) => (
-          <div class="cat__ground" data-cat-ground>
-            <picture>
-              <source srcset={`${category.ground}.avif`} type="image/avif" />
-              <img
-                src={`${category.ground}.webp`}
-                alt=""
-                decoding="async"
-                loading={i === 0 ? 'eager' : 'lazy'}
-                style={category.focus ? `object-position:${category.focus}` : undefined}
-              />
-            </picture>
+        categories.map((category) => (
+          <div class="cat__ground" data-cat-ground style={`background:${category.tone}`}>
+            {category.ground && (
+              <picture>
+                <source srcset={`${category.ground}.avif`} type="image/avif" />
+                <img
+                  src={`${category.ground}.webp`}
+                  alt=""
+                  decoding="async"
+                  loading="eager"
+                  style={category.focus ? `object-position:${category.focus}` : undefined}
+                />
+              </picture>
+            )}
           </div>
         ))
       }
 
-      {/* One wash over every ground rather than one each: two crossfading veils
-          thin out where they overlap, so the artwork would flare halfway
-          through every change. */}
-      <div class="cat__wash"></div>
     </div>
   </div>
 
@@ -198,22 +224,18 @@ const total = String(categories.length).padStart(2, '0');
   </ul>
 
   {/*
-    The furniture: the section's title at the head of the window and the pitch
-    and the button at its foot. Sticky like the ground and in front of the
-    headlines, which is the frame's own paint order — a headline rising from the
-    bottom of the screen passes *behind* the paragraph it is arriving under.
+    The furniture: the pitch and the button, at the foot of the window. Sticky
+    like the ground and in front of the headlines, which is the frame's own
+    paint order — a headline rising from the bottom of the screen passes
+    *behind* the paragraph it is arriving under.
 
     A second sticky layer rather than one, because `position: sticky` makes its
     own stacking context: everything inside the ground layer is behind the list,
     and this has to be in front of it.
   */}
-  <div class="cat__stage cat__stage--front">
+  <div class="cat__stage cat__stage--front" data-cat-outro>
     <div class="cat__stick">
       <div class="cat__front">
-        <div class="cat__head" data-cat-reveal>
-          <h2 class="cat__title" id="cat-title">{title}</h2>
-        </div>
-
         {/* Stacked in one grid cell and aligned to the bottom, so the button
             keeps the same line whichever category is up even when the pitch
             above it runs to a different number of lines. */}
@@ -304,7 +326,7 @@ const total = String(categories.length).padStart(2, '0');
   }
 
   /* --- The ground ----------------------------------------------------------
-     Stacked, so a category's photograph fades in over the one before it and the
+     Stacked, so a category's ground fades in over the one before it and the
      scroll running backwards fades it out again to reveal that same one. The
      first is always on: it is the ground the section arrives on, and the only
      one there is if the script never runs. */
@@ -313,16 +335,18 @@ const total = String(categories.length).padStart(2, '0');
     inset: 0;
   }
 
-  .cat__ground:not(:first-child) {
-    opacity: 0;
-    /* Paired with opacity, and kept in step by GSAP's autoAlpha: four
-       transparent full-screen photographs are still four composited surfaces on
-       every scrolled frame, four hidden ones are not. */
-    visibility: hidden;
-  }
-
+  /* Both pinned to the ground box rather than sized by percentage inside it.
+     `height: 100%` on a <picture> only resolves if every box between it and
+     the ground has a height of its own, which is one refactor away from
+     failing silently — and when it fails the <img> falls back to its intrinsic
+     2259 x 1418 and overflows the section instead of filling it. Positioned
+     against `.cat__ground` (absolute, inset 0 — the sticky screen) there is
+     nothing to resolve: the artwork is the section's width and height by
+     construction, at any viewport. */
   .cat__ground picture,
   .cat__ground img {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
@@ -330,21 +354,36 @@ const total = String(categories.length).padStart(2, '0');
     object-position: center;
   }
 
-  .cat__wash {
-    position: absolute;
-    inset: 0;
-    /* Heaviest under the copy and thinning across to the right, so black type
-       has a ground to sit on and the artwork still has somewhere to be seen.
-       The section's own colour, mixed rather than written out, so the wash and
-       the ground under it cannot drift apart. */
-    background: linear-gradient(
-      97deg,
-      color-mix(in srgb, var(--color-bg-twoways) 90%, transparent) 0%,
-      color-mix(in srgb, var(--color-bg-twoways) 84%, transparent) 32%,
-      color-mix(in srgb, var(--color-bg-twoways) 62%, transparent) 66%,
-      color-mix(in srgb, var(--color-bg-twoways) 46%, transparent) 100%
-    );
+  .cat__ground:not(:first-child) {
+    opacity: 0;
+    /* Paired with opacity, and kept in step by GSAP's autoAlpha: four
+       transparent full-screen grounds are still four composited surfaces on
+       every scrolled frame, four hidden ones are not. */
+    visibility: hidden;
   }
+
+  /* The wash is gone — there is no veil over the artwork any more.
+
+     There was one: a cream gradient over every ground, heaviest under the copy
+     column and thinning to nothing on the right, so black type always had a
+     ground to sit on whatever the photograph behind it was doing. It came out
+     because it was doing visible damage and no work — the five grounds are a
+     light grey ramp and one bright photograph, all of which are already a
+     ground for black type, and over them the veil read as a haze on the
+     artwork rather than as protection for the words.
+
+     It has to come back the moment a category's ground is dark or busy behind
+     the left column, and it was:
+
+       background: linear-gradient(97deg,
+         color-mix(in srgb, var(--color-bg-twoways) 55%, transparent) 0%,
+         color-mix(in srgb, var(--color-bg-twoways) 40%, transparent) 26%,
+         color-mix(in srgb, var(--color-bg-twoways) 12%, transparent) 62%,
+         color-mix(in srgb, var(--color-bg-twoways) 2%, transparent) 100%);
+
+     on a `.cat__wash` div, last child of `.cat__stick` — one veil over all the
+     grounds rather than one each, because two crossfading veils thin out where
+     they overlap and the artwork flares halfway through every change. */
 
   /* --- The headlines -------------------------------------------------------
      Between the two sticky layers. Every category is a block whose foot is
@@ -357,18 +396,25 @@ const total = String(categories.length).padStart(2, '0');
     flex-direction: column;
     gap: calc(100svh - var(--cat-rest) + var(--cat-gap));
 
-    /* After the last headline: the rest of the window under it, and pointedly
-       *not* the gap as well.
+    /* Two numbers, and they do different jobs.
 
-       This is what ends the section on the frame its final headline lands in.
-       The sticky layers hold for as long as their container is taller than the
-       window, so every svh of slack here is a stretch where the last category's
-       title has already scrolled off the top while the ground and the pitch are
-       still held — the section finishing twice, once quietly and once for real.
-       At exactly the window's remainder the container runs out on the frame the
-       last headline arrives, both layers let go, and title, ground, pitch and
-       the section under it all travel together from there. */
-    padding-bottom: calc(100svh - var(--cat-rest));
+       The window's remainder is what lands the last headline: the sticky
+       layers hold for as long as their container is taller than the window, so
+       at exactly this much slack the container runs out on the frame that
+       headline arrives in. Anything less and the section ends before its own
+       last category is properly on screen.
+
+       `--work-outro` is then the handover, bought deliberately — but bought
+       sparingly. It holds the finished frame still while Two ways in, pulled
+       up by the same number, starts over it. Without any of it the two
+       sections simply abut and the join is a hard edge; with too much of it
+       the headline climbs the whole window before the ground under it moves at
+       all. A beat, not a pause.
+
+       An earlier cut had the remainder alone, and a note here warning that any
+       extra slack made the section "finish twice". That was true while nothing
+       arrived during the extra stretch. Something does now. */
+    padding-bottom: calc(100svh - var(--cat-rest) + var(--work-outro));
   }
 
   .cat__cat {
@@ -418,21 +464,12 @@ const total = String(categories.length).padStart(2, '0');
   .cat__front {
     display: flex;
     flex-direction: column;
-    /* Title at the head of the window, pitch and button at its foot. */
-    justify-content: space-between;
+    /* Nothing rides the top of this layer any more — the pitch and button sit
+       at the foot of the window. */
+    justify-content: flex-end;
     height: 100%;
-    padding-top: calc(var(--nav-height) + clamp(0.75rem, 2.6vh, 2rem));
     /* 56 of the frame's 900, under the button. */
     padding-bottom: clamp(2.25rem, 6.2vh, 3.5rem);
-  }
-
-  .cat__title {
-    font-size: clamp(0.8125rem, 0.97vw, 0.875rem);
-    font-weight: 500;
-    line-height: 1.3;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-ink-secondary);
   }
 
   /* One cell, five children in it. Grid rather than absolute positioning so the
@@ -527,12 +564,6 @@ const total = String(categories.length).padStart(2, '0');
       --cat-rest: 62svh;
     }
 
-    /* The copy runs the full width of the screen here, so a wash that thins out
-       to the right would let the artwork through the end of every line. Flat,
-       and a shade lighter than the left edge of the gradient it replaces. */
-    .cat__wash {
-      background: color-mix(in srgb, var(--color-bg-twoways) 84%, transparent);
-    }
 
     .cat__blurb,
     .cat__label {

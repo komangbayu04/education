@@ -32,8 +32,8 @@ export function initScroll(): Lenis | null {
   if (isTouch()) return null;
 
   lenis = new Lenis({
-    lerp: 0.075,
-    wheelMultiplier: 0.85,
+    lerp: 0.05,
+    wheelMultiplier: 0.8,
     syncTouch: false,
     touchMultiplier: 2,
     stopInertiaOnNavigate: true,
@@ -159,7 +159,7 @@ export function scrollToTarget(target: HTMLElement, immediate = false): void {
        wrote the fragment, and left the reader exactly where they were. */
     lenis.scrollTo(target, {
       offset,
-      duration: 1.1,
+      duration: 1.25,
       immediate,
       force: true,
       onComplete: () => settle(target, offset),
