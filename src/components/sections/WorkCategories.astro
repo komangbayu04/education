@@ -12,23 +12,21 @@
  *                 A photograph where the category names one, and a flat grey
  *                 placeholder where it does not — see `tone` and `ground`.
  *
- *   the headline  the number and the label. Ordinary flow content, in front of
- *                 that ground — so the scroll is what carries one up and off
- *                 the top of the window while the next rises from the bottom.
- *                 Nothing tweens it. This is the only thing on the screen that
- *                 moves.
+ *   the category  the number, the label, the paragraph and the button, as one
+ *                 block. Ordinary flow content, in front of that ground — so
+ *                 the scroll is what carries the whole block up and off the top
+ *                 of the window while the next rises from the bottom. Nothing
+ *                 tweens it. This is the only thing on the screen that moves,
+ *                 and all of it moves together.
  *
- *   the pitch     the paragraph and the button. Sticky, at the foot of the
- *                 window, in front of the headline. They never move: they
- *                 crossfade in place as the scroll crosses between categories.
- *
- * That split is exactly what the frame draws, and it is worth being explicit
- * about because it is easy to read the other way round. In node 2458:7645 the
- * three headlines carry a translate (448 → 0 → −624) and the three paragraphs
- * and the three buttons carry *only* opacity, pinned at 694 and 796 of its 900.
- * An earlier cut of this section scrolled the whole block together and pinned
- * the page to scrub it; the copy rode up the screen with the headline and the
- * scrollbar stopped for four screens. Both were wrong for the same reason.
+ * Only the ground stays still. An earlier cut split the block in two: the
+ * headline travelled and the paragraph and button sat in a second sticky layer
+ * at the foot of the window, crossfading in place — which is literally what
+ * node 2458:7645 draws (translate on the three headlines, opacity alone on the
+ * three paragraphs and buttons). On the page that read as a title coming loose
+ * from its own copy, so the block was put back together and now travels whole.
+ * `--cat-rest` moved down with it, because what rests there is the foot of the
+ * button rather than the foot of the headline.
  *
  * The rhythm is the reference's: a screen holding the category, then a gap of
  * bare ground before the next headline arrives. `--cat-gap` is that gap and the
@@ -204,61 +202,39 @@ const total = String(categories.length).padStart(2, '0');
   </div>
 
   {/*
-    The headlines, and the only thing here that travels. Plain flow between the
-    two sticky layers, so the scroll moves them and nothing else has to.
+    The categories, and the only thing here that travels. Plain flow in front of
+    the sticky ground, so the scroll moves each block — headline, pitch and
+    button together — and nothing else has to.
   */}
   <ul class="cat__list">
     {
       categories.map((category) => (
         <li class="cat__cat" data-cat-panel>
-          <h3 class="cat__headline" data-cat-reveal>
-            <span class="cat__num">
-              {category.number}
-              <span class="cat__of">/{total}</span>
-            </span>
-            <span class="cat__label">{category.label}</span>
-          </h3>
+          <div class="cat__group" data-cat-reveal>
+            <h3 class="cat__headline">
+              <span class="cat__num">
+                {category.number}
+                <span class="cat__of">/{total}</span>
+              </span>
+              <span class="cat__label">{category.label}</span>
+            </h3>
+
+            <div class="cat__copy">
+              <p class="cat__blurb">{category.blurb}</p>
+
+              <a class="cat__cta" href={category.href} data-magnetic="0.2">
+                <span class="cat__cta-fill" aria-hidden="true" />
+                <span class="cat__cta-label" data-magnetic-inner>
+                  {viewLabel}
+                </span>
+                <span class="u-sr-only">{` — ${category.label}`}</span>
+              </a>
+            </div>
+          </div>
         </li>
       ))
     }
   </ul>
-
-  {/*
-    The furniture: the pitch and the button, at the foot of the window. Sticky
-    like the ground and in front of the headlines, which is the frame's own
-    paint order — a headline rising from the bottom of the screen passes
-    *behind* the paragraph it is arriving under.
-
-    A second sticky layer rather than one, because `position: sticky` makes its
-    own stacking context: everything inside the ground layer is behind the list,
-    and this has to be in front of it.
-  */}
-  <div class="cat__stage cat__stage--front" data-cat-outro>
-    <div class="cat__stick">
-      <div class="cat__front">
-        {/* Stacked in one grid cell and aligned to the bottom, so the button
-            keeps the same line whichever category is up even when the pitch
-            above it runs to a different number of lines. */}
-        <div class="cat__copies">
-          {
-            categories.map((category) => (
-              <div class="cat__copy" data-cat-copy>
-                <p class="cat__blurb">{category.blurb}</p>
-
-                <a class="cat__cta" href={category.href} data-magnetic="0.2">
-                  <span class="cat__cta-fill" aria-hidden="true" />
-                  <span class="cat__cta-label" data-magnetic-inner>
-                    {viewLabel}
-                  </span>
-                  <span class="u-sr-only">{` — ${category.label}`}</span>
-                </a>
-              </div>
-            ))
-          }
-        </div>
-      </div>
-    </div>
-  </div>
 </section>
 
 <style>
@@ -268,10 +244,12 @@ const total = String(categories.length).padStart(2, '0');
        of content stretched across the screen. */
     --cat-inset-x: clamp(1.25rem, 7.8vw, 7rem);
 
-    /* Where a headline comes to rest, as a share of the window: its foot lands
-       here. 622 of the frame's 900, which is what puts it clear of the pitch
-       below without leaving the two looking unrelated. */
-    --cat-rest: 69svh;
+    /* Where a category comes to rest, as a share of the window: the foot of the
+       block — which is the button, not the headline — lands here. Near the foot
+       of the window on purpose, so the block arrives at the height the pitch
+       used to hold and the headline sits above it rather than the other way
+       round. What is left under it is `.cat__group`'s own bottom padding. */
+    --cat-rest: 92svh;
 
     /* Bare ground between one category and the next — the reference leaves
        about a window of it. Every category costs a screen plus this, so five of
@@ -298,7 +276,7 @@ const total = String(categories.length).padStart(2, '0');
     color: var(--color-ink);
   }
 
-  /* --- The two sticky layers ----------------------------------------------- */
+  /* --- The sticky ground layer --------------------------------------------- */
   .cat__stage {
     position: absolute;
     inset: 0;
@@ -306,13 +284,6 @@ const total = String(categories.length).padStart(2, '0');
 
   .cat__stage--ground {
     z-index: 0;
-  }
-
-  /* Over the headlines. It spans the whole section, so only the button in it is
-     allowed to take the pointer. */
-  .cat__stage--front {
-    z-index: 2;
-    pointer-events: none;
   }
 
   .cat__stick {
@@ -385,10 +356,10 @@ const total = String(categories.length).padStart(2, '0');
      grounds rather than one each, because two crossfading veils thin out where
      they overlap and the artwork flares halfway through every change. */
 
-  /* --- The headlines -------------------------------------------------------
-     Between the two sticky layers. Every category is a block whose foot is
-     where its headline rests, and the gap after it is the rest of the window
-     plus the bare ground before the next one arrives. */
+  /* --- The categories ------------------------------------------------------
+     In front of the sticky ground. Every category is a block whose foot is
+     where it rests, and the gap after it is the rest of the window plus the
+     bare ground before the next one arrives. */
   .cat__list {
     position: relative;
     z-index: 1;
@@ -423,12 +394,19 @@ const total = String(categories.length).padStart(2, '0');
     min-height: var(--cat-rest);
   }
 
-  .cat__headline,
-  .cat__front {
+  /* The block itself: headline over pitch over button, travelling as one.
+     The bottom padding is the frame's 56 of 900 under the button — it used to
+     live on the sticky layer, and it belongs to the block now that the block is
+     what lands at `--cat-rest`. */
+  .cat__group {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.5rem, 3.6vh, 2.75rem);
     width: 100%;
     max-width: var(--content-max-width);
     margin-inline: auto;
     padding-inline: var(--cat-inset-x);
+    padding-bottom: clamp(2.25rem, 6.2vh, 3.5rem);
   }
 
   .cat__headline {
@@ -460,38 +438,12 @@ const total = String(categories.length).padStart(2, '0');
     color: var(--color-ink-muted);
   }
 
-  /* --- The furniture ------------------------------------------------------- */
-  .cat__front {
-    display: flex;
-    flex-direction: column;
-    /* Nothing rides the top of this layer any more — the pitch and button sit
-       at the foot of the window. */
-    justify-content: flex-end;
-    height: 100%;
-    /* 56 of the frame's 900, under the button. */
-    padding-bottom: clamp(2.25rem, 6.2vh, 3.5rem);
-  }
-
-  /* One cell, five children in it. Grid rather than absolute positioning so the
-     block keeps a real height — it is what holds the button off the foot of the
-     window — and `end` is what keeps that button on one line across five
-     pitches of different lengths. */
-  .cat__copies {
-    display: grid;
-  }
-
+  /* --- The pitch ----------------------------------------------------------- */
   .cat__copy {
-    grid-area: 1 / 1;
-    align-self: end;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: clamp(1rem, 1.6vw, 1.5rem);
-  }
-
-  .cat__copy:not(:first-child) {
-    opacity: 0;
-    visibility: hidden;
   }
 
   .cat__blurb {
@@ -522,8 +474,6 @@ const total = String(categories.length).padStart(2, '0');
     font-weight: 500;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    /* The layer around it is inert — see .cat__stage--front. */
-    pointer-events: auto;
     will-change: transform;
   }
 
@@ -559,9 +509,11 @@ const total = String(categories.length).padStart(2, '0');
          a scroll on a phone, and five of them is the difference between a
          section and a journey. */
       --cat-gap: 22svh;
-      /* And the pitch takes more of the window at this measure, so the headline
-         rests a little higher to stay clear of it. */
-      --cat-rest: 62svh;
+      /* The block is taller at this measure — the pitch wraps to more lines —
+         so it rests a little higher to keep the button off the bottom edge.
+         Paired with the gap above to keep a category at the same 122svh of
+         scroll it cost before. */
+      --cat-rest: 90svh;
     }
 
 
@@ -572,9 +524,8 @@ const total = String(categories.length).padStart(2, '0');
   }
 
   /* --- Pre-reveal ----------------------------------------------------------
-     JS-only, and only on the two things a script animates in. The pitches are
-     left alone: their opacity is the crossfade's, and a reveal on top of it
-     would be two things writing the same property. */
+     JS-only, and on the whole block now that the whole block travels: the pitch
+     no longer has a crossfade of its own for a reveal to collide with. */
   :global(html[data-js='true']) [data-cat-reveal] {
     opacity: 0;
   }
