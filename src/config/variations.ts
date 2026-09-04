@@ -43,6 +43,10 @@ export const VARIATIONS: VariationAxis[] = [
          stuck in the middle of it and the films rising past, ending on the
          footer's photograph. TestimonialsFloat.astro. */
       { id: 'float', label: 'Scrolled scatter' },
+      /* The orbit: the founders on a turning sphere, and pressing one flies
+         that tile into the read rather than opening a dialog over it.
+         TestimonialsSphere.astro. */
+      { id: 'orbit', label: 'Orbit grid' },
     ],
   },
 ];

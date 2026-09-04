@@ -21,6 +21,7 @@ import TwoWays from '../components/sections/TwoWays.astro';
 import Clients from '../components/sections/Clients.astro';
 import Testimonials from '../components/sections/Testimonials.astro';
 import TestimonialsFloat from '../components/sections/TestimonialsFloat.astro';
+import TestimonialsSphere from '../components/sections/TestimonialsSphere.astro';
 /* Journal is out of the page for now. The component is untouched in
    src/components/sections/, and src/scripts/journal.ts already returns a
    no-op when it cannot find `[data-jr]`. Putting it back is this import and
@@ -136,10 +137,11 @@ import Footer from '../components/layout/Footer.astro';
   <Clients />
 
   {/*
-    Chapter 8, twice. The "Testimonial section" axis in src/config/variations.ts
-    picks between them and each stylesheet display:none's itself when it is not
-    the pick, so only one is ever on the page — both are rendered because the
-    choice is the reader's, made in the browser, and this site is built once.
+    Chapter 8, three times. The "Testimonial section" axis in
+    src/config/variations.ts picks between them and each stylesheet
+    display:none's itself when it is not the pick, so only one is ever on the
+    page — all three are rendered because the choice is the reader's, made in
+    the browser, and this site is built once.
 
     Film wall (the default): pins itself for a few screens — one film alone,
     then the title over it, then a wall of testimonials scrolling up under the
@@ -153,11 +155,18 @@ import Footer from '../components/layout/Footer.astro';
     src/scripts/founderQuote.ts for the opening, because that picture belongs
     to the footer.
 
-    Without JS, or under reduced motion, either is a title over a grid of
+    Orbit grid: the founders as tiles on a sphere that turns by itself and
+    under a drag. Pressing one does not open a dialog over it — that tile
+    flies out of the rotation into the read and the quote arrives beside it,
+    with the arrows and the keyboard walking between founders from there.
+    src/scripts/testimonialsSphere.ts.
+
+    Without JS, or under reduced motion, any of them is a title over a grid of
     films in ordinary flow.
   */}
   <Testimonials />
   <TestimonialsFloat />
+  <TestimonialsSphere />
 
   {/* Closing block, in two sections: the founder quote on its photograph,
       then the ink band. See Footer.astro. */}

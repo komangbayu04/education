@@ -636,11 +636,12 @@ const badge = `<span class="tm__badge" aria-hidden="true">
   }
 
   /* ===================== Not the picked cut =====================
-     The scrolled scatter is the other option on the
-     "Testimonial section" axis. Stated this way round — hidden only when the
-     other one is explicitly chosen — so that with no JS at all, and therefore
-     no `data-var-*` on <html>, this is the cut that stands. */
-  :global(html[data-var-testimonials='float']) .tm {
+     The scrolled scatter and the orbit are the other options on the
+     "Testimonial section" axis. Stated this way round — hidden only when
+     another one is explicitly chosen — so that with no JS at all, and
+     therefore no `data-var-*` on <html>, this is the cut that stands. */
+  :global(html[data-var-testimonials='float']) .tm,
+  :global(html[data-var-testimonials='orbit']) .tm {
     display: none;
   }
 </style>

@@ -1,0 +1,644 @@
+---
+/**
+ * Testimonials, the orbit cut — chapter 8, third answer.
+ *
+ * The third option on the "Testimonial section" axis
+ * (src/config/variations.ts). The pinned film wall is Testimonials.astro and
+ * the scrolled scatter is TestimonialsFloat.astro; all three share their
+ * content, which is why it lives in src/data/testimonials.ts.
+ *
+ * The shape, after the reference sphere grid: every founder is one tile, the
+ * tiles sit on a sphere rather than on a page, and the sphere turns. It turns
+ * by itself, slowly, and it turns under a drag. A tile on the far side is
+ * simply not drawn — `scale: 0` once its z goes negative — so the wall reads
+ * as a globe of faces rather than as a list that happens to be curved.
+ *
+ * Pressing a tile does not open a panel over it. The tile itself flies to the
+ * left of the screen and grows into the picture, the rest of the orbit drops
+ * away, and what they said arrives beside it. Arrows and the keyboard walk
+ * between founders without ever going back to the sphere. That flight is the
+ * whole idea of this cut: the thing you pressed is the thing you end up
+ * reading, which the two other cuts do not do — they both cut to a dialog.
+ *
+ * THREE THINGS THE REFERENCE DOES THAT THIS DELIBERATELY DOES NOT:
+ *
+ *   the wheel  the reference is a page and takes the wheel for zoom and spin.
+ *              This is a section inside a scrolling page, so the wheel stays
+ *              the reader's — a section that eats the scroll is a section you
+ *              cannot get past.
+ *
+ *   the drag on touch
+ *              a touchmove that spins the sphere is a touchmove that also
+ *              scrolls the page, and the two fight. On touch the sphere turns
+ *              by itself and a tap opens; nothing is lost, because the idle
+ *              rotation shows every face anyway.
+ *
+ *   the bar    no search, no filters, no shuffle. Those belong to an index of
+ *              seventy-two things. This is six founders.
+ *
+ * Without JS, or under reduced motion, the sphere is not built at all: the
+ * tiles stand in an ordinary grid under the title and pressing one still opens
+ * the same panel, in place, with no flight. See "Static layout" below — that
+ * is the layout the stylesheet ships and the script replaces.
+ */
+import { TESTIMONIALS, TESTIMONIALS_TITLE, type Testimonial } from '../../data/testimonials';
+
+interface Props {
+  title?: string;
+  items?: Testimonial[];
+  /** How many tiles the sphere carries. See ORBIT_POINTS. */
+  points?: number;
+}
+
+/**
+ * How many tiles are on the sphere — not how many founders there are.
+ *
+ * Six points is a constellation, not a globe: at any moment three of them are
+ * on the far side and the near face is a scatter of three. The reference grid
+ * reads as a sphere because it is dense enough that the curve is legible from
+ * the tiles alone, and that takes a few dozen.
+ *
+ * So the founders are dealt round the sphere in order until it is full, and
+ * most of them appear several times. That is not padding: the frame this
+ * chapter is drawn from does the same thing — it reuses its three clips across
+ * all six of its tiles, and src/data/testimonials.ts says so where the stills
+ * are declared. A repeat carries the same face and opens the same quote, so
+ * there is nothing to misread.
+ *
+ * Dealing them in order rather than at random is what makes the arrows work:
+ * consecutive points are consecutive founders, so stepping to the next tile is
+ * always stepping to a different person.
+ */
+const ORBIT_POINTS = 42;
+
+const { title = TESTIMONIALS_TITLE, items = TESTIMONIALS, points = ORBIT_POINTS } = Astro.props;
+
+/**
+ * What a tile shows, in the order we would rather have it: the frame they were
+ * filmed in, then their portrait, then their company's mark, and only if there
+ * is none of that, their initials.
+ *
+ * The initials are not a placeholder for a missing asset — they are the tile
+ * for a founder we have on record in words and not in pictures, and a sphere
+ * of half faces and half empty boxes reads as broken. Set in the same face as
+ * the headline so it looks chosen.
+ */
+type Face =
+  | { kind: 'image'; src: string }
+  | { kind: 'mark'; src: string }
+  | { kind: 'initials'; text: string };
+
+function faceFor(item: Testimonial): Face {
+  const image = item.poster ?? item.photo;
+  if (image) return { kind: 'image', src: image };
+  if (item.logo) return { kind: 'mark', src: item.logo };
+  return {
+    kind: 'initials',
+    text: item.name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((word) => word[0] ?? '')
+      .join('')
+      .toUpperCase(),
+  };
+}
+
+/* One entry per point on the sphere. `source` is which founder it is — the
+   panel it opens — and it is what the script reads off the tile, because the
+   tile's own index is a position and not a person. */
+const tiles = Array.from({ length: Math.max(items.length, points) }, (_, i) => {
+  const source = i % items.length;
+  const item = items[source];
+  return { item, source, face: faceFor(item) };
+});
+---
+
+{
+  /*
+    No `id` here, for the same reason TestimonialsFloat.astro carries none: the
+    wall owns `id="founders"` in the markup because it is the default cut, and
+    two elements cannot. testimonialsSphere.ts moves it across when this is the
+    pick — the other two are display:none by then, so nothing is lost.
+  */
+}
+<section class="tms" aria-labelledby="tms-title" data-tms data-anchor="founders">
+  <div class="tms__stage">
+    <h2 class="tms__title" id="tms-title">{title}</h2>
+
+    {/* The orbit box. Its width and height are what the script measures the
+        sphere's radius from, so it has to be a real box at every width — hence
+        the aspect-ratio rather than a height in svh alone. */}
+    <div class="tms__orbit" data-tms-orbit>
+      {
+        tiles.map(({ item, source, face }, i) => (
+          <button
+            class="tms__item"
+            type="button"
+            data-tms-item={i}
+            data-tms-source={source}
+            data-tms-repeat={i >= items.length ? '' : undefined}
+            aria-label={`Read what ${item.name} said`}
+          >
+            <span class="tms__face" data-tms-face>
+              {face.kind === 'initials' ? (
+                <span class="tms__initials" aria-hidden="true">
+                  {face.text}
+                </span>
+              ) : (
+                <img
+                  class:list={['tms__img', face.kind === 'mark' && 'tms__img--mark']}
+                  src={face.src}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+            </span>
+            <span class="tms__label" aria-hidden="true">
+              {item.name}
+            </span>
+          </button>
+        ))
+      }
+    </div>
+  </div>
+
+  {/*
+    The read. Not a <dialog>: a modal dialog is drawn in the top layer, and the
+    tile that flies into it is an ordinary element in this section — inside a
+    dialog it would be covered by its own backdrop the whole way. So the
+    backdrop is a plain fixed element under a raised orbit, and
+    testimonialsSphere.ts does by hand what a dialog would have done for free:
+    Escape, the click outside, the scroll lock, and the focus.
+  */}
+  <div class="tms__backdrop" data-tms-backdrop aria-hidden="true"></div>
+
+  <div
+    class="tms__read"
+    data-tms-read
+    role="dialog"
+    aria-modal="true"
+    aria-label="Testimonial"
+    hidden
+  >
+    {/* Empty on purpose. The tile lands here — the script measures this box and
+        flies the pressed tile to its centre, so what fills it is the tile
+        itself, not a copy of it. */}
+    <div class="tms__land" data-tms-land aria-hidden="true"></div>
+
+    <div class="tms__copy">
+      {
+        items.map((item, i) => (
+          <figure class="tms__panel" data-tms-panel={i} hidden>
+            {item.logo && <img class="tms__panel-logo" src={item.logo} alt={item.company} />}
+
+            <blockquote class="tms__panel-quote">
+              <p class="tms__panel-headline">{item.headline}</p>
+              <p class="tms__panel-text">{item.quote}</p>
+            </blockquote>
+
+            <figcaption class="tms__panel-who">
+              <span class="tms__panel-name">{item.name}</span>
+              <span class="tms__panel-role">{item.role}</span>
+            </figcaption>
+          </figure>
+        ))
+      }
+    </div>
+
+    <button class="tms__nav tms__nav--prev" type="button" data-tms-prev aria-label="Previous founder">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M15 18 9 12l6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+
+    <button class="tms__nav tms__nav--next" type="button" data-tms-next aria-label="Next founder">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+
+    <button class="tms__close" type="button" data-tms-close aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M2 2l12 12M14 2 2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+    </button>
+  </div>
+</section>
+
+<style>
+  .tms {
+    /* One tile's edge. Everything in this section is measured off it — the
+       sphere's radius comes from the orbit box, but the *flight* target scale
+       is this against the landing box, so it is a real number and not a
+       guess. */
+    /* The tile at the very centre of the sphere. Every other tile is this
+       shrunk by its distance from that centre — see depthScale in
+       testimonialsSphere.ts — so this is the top of a range that runs down to
+       a fifth of it at the rim, and not a uniform size.
+
+       Big enough that the front of the sphere has weight and the tiles there
+       just touch: the reference's near face overlaps, and a gap between every
+       tile is what makes a sphere read as a chart of dots. */
+    --tms-tile: clamp(5.5rem, 10vw, 11rem);
+
+    position: relative;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+
+  /* The title is column-width and centred; the orbit under it is the page's
+     full width. So the stage is not a container for both — it is padding for
+     the title, and the orbit is let out of it. */
+  .tms__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(2rem, 5vh, 3.5rem);
+    padding-block: clamp(4rem, 10vh, 7rem) 0;
+  }
+
+  .tms__title {
+    /* Two lines, and the measure is what sets that: the sentence is 58
+       characters, so anything under about 30ch on a line breaks it into three.
+       `text-wrap: balance` then splits it evenly rather than leaving a long
+       first line and a short second. Narrower screens take a third line, which
+       is the right answer there — this is the measure, not a line count. */
+    max-width: 32ch;
+    margin: 0 auto;
+    padding-inline: var(--page-gutter, clamp(1.25rem, 5vw, 4rem));
+    font-size: clamp(1.75rem, 3.6vw, 3.25rem);
+    font-weight: 400;
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  /* ===================== Static layout =====================
+     What this section is with no script: a grid of faces under the title. It
+     is also the reduced-motion layout, and it is what stands for the moment
+     between first paint and the sphere being built — so it has to be a
+     finished thing on its own, not a pile waiting to be arranged. */
+  /* The repeats exist for the sphere and only for the sphere. In the static
+     grid they would be the same six faces printed seven times, which is a
+     mistake rather than a texture — so the grid shows each founder once and
+     the sphere shows them all. */
+  .tms__orbit:not([data-tms-live]) .tms__item[data-tms-repeat] {
+    display: none;
+  }
+
+  .tms__orbit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1rem, 2.5vw, 2rem);
+    width: 100%;
+    padding: clamp(2rem, 5vh, 3.5rem) var(--page-gutter, clamp(1.25rem, 5vw, 4rem));
+  }
+
+  .tms__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0;
+    width: var(--tms-tile);
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .tms__face {
+    display: grid;
+    place-items: center;
+    width: var(--tms-tile);
+    height: var(--tms-tile);
+    overflow: hidden;
+    background: var(--color-surface);
+    /* Circles, because a sphere of squares turning behind each other reads as
+       a pile of cards. A round tile has no corner to catch the eye as it
+       crosses the edge. */
+    border-radius: 50%;
+  }
+
+  .tms__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* A company mark is a drawing on a ground, not a photograph, so it is inset
+     rather than bled to the edge of the circle. */
+  .tms__img--mark {
+    width: 52%;
+    height: 52%;
+    object-fit: contain;
+  }
+
+  .tms__initials {
+    font-size: calc(var(--tms-tile) * 0.3);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--color-ink-secondary);
+  }
+
+  .tms__label {
+    font-size: clamp(0.75rem, 0.9vw, 0.8125rem);
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+    color: var(--color-ink-secondary);
+  }
+
+  /* ===================== The sphere =====================
+     JS only, and only once testimonialsSphere.ts has said so — the attribute
+     goes on after the first positions are computed, so the grid above never
+     flashes as a stack in the top-left corner while the maths runs. */
+  .tms__orbit[data-tms-live] {
+    position: relative;
+    display: block;
+    /* Edge to edge. The section sits inside the page's ordinary flow, so the
+       width has to be taken back rather than simply asked for — 100vw and half
+       of the overshoot pulled off each side. `vw` and not `%` on purpose: the
+       point is the viewport, not whatever box this ends up in.
+
+       `calc(100vw - 100%)` is the gutter on both sides together, so half of it
+       is the pull. It comes out at 0 when this is already full width, which is
+       what makes it safe to leave on at every width. */
+    width: 100vw;
+    max-width: 100vw;
+    margin-inline: calc((100% - 100vw) / 2);
+    padding: 0;
+    /* Tall. The sphere's radius is the short side of this box, so on a wide
+       screen the height IS the sphere — a short box is a small globe however
+       wide the page is. The script reads this; a percentage height would
+       resolve against a flex parent with no height of its own and collapse the
+       radius to nothing. */
+    height: min(104svh, 62rem);
+    /* Grabbing the ground is the gesture, so the ground has to look grabbable
+       and must not select text under the drag. */
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+  }
+
+  .tms__orbit[data-tms-live][data-tms-dragging] {
+    cursor: grabbing;
+  }
+
+  .tms__orbit[data-tms-live] .tms__item {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: calc(var(--tms-tile) / -2);
+    margin-left: calc(var(--tms-tile) / -2);
+    /* The script owns transform and opacity from here on. Parked at nothing so
+       the first painted frame is the ripple's start and not six tiles stacked
+       at dead centre. */
+    opacity: 0;
+    transform: scale(0);
+    will-change: transform, opacity;
+  }
+
+  /* The name is the grid's, not the sphere's: six labels orbiting at different
+     depths is noise, and the tile is already the person. */
+  .tms__orbit[data-tms-live] .tms__label {
+    display: none;
+  }
+
+  .tms__orbit[data-tms-live] .tms__face {
+    transition: transform 0.46s var(--ease-out-expo);
+  }
+
+  /* Hover swells the tile you are pointing at. Suppressed under a drag — the
+       cursor crosses half the sphere in a flick and every tile it passes would
+       pulse. */
+  .tms__orbit[data-tms-live]:not([data-tms-dragging]):not([data-tms-open])
+    .tms__item[data-tms-hover]
+    .tms__face {
+    transform: scale(1.18);
+  }
+
+  /* ===================== The read =====================
+     Backdrop, landing box, panel. All fixed: this is a screen, not a place in
+     the section, and the tile flying into it is the only thing that travels. */
+  .tms__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--color-bg-primary);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .tms__read {
+    position: fixed;
+    inset: 0;
+    z-index: 62;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: clamp(2rem, 6vw, 6rem);
+    padding: clamp(4.5rem, 9vh, 7rem) clamp(1.5rem, 6vw, 6rem);
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .tms__read[hidden] {
+    display: none;
+  }
+
+  /* The tile's destination. Nothing is drawn in it — it is a measurement, and
+     the tile that lands here is the one that was pressed. */
+  .tms__land {
+    justify-self: center;
+    width: min(38vw, 60svh);
+    aspect-ratio: 1;
+  }
+
+  .tms__copy {
+    position: relative;
+    max-width: 34rem;
+  }
+
+  .tms__panel[hidden] {
+    display: none;
+  }
+
+  .tms__panel {
+    margin: 0;
+  }
+
+  .tms__panel-logo {
+    display: block;
+    width: auto;
+    height: clamp(1.25rem, 2vw, 1.75rem);
+    margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .tms__panel-quote {
+    margin: 0;
+  }
+
+  .tms__panel-headline {
+    margin: 0 0 clamp(0.875rem, 1.6vw, 1.25rem);
+    font-size: clamp(1.375rem, 2.2vw, 2rem);
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+  }
+
+  .tms__panel-text {
+    margin: 0;
+    font-size: clamp(0.9375rem, 1.05vw, 1.0625rem);
+    line-height: 1.65;
+    letter-spacing: -0.015em;
+    color: var(--color-ink-secondary);
+  }
+
+  .tms__panel-who {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: clamp(1.75rem, 3.5vw, 2.75rem);
+    padding-top: clamp(1.25rem, 2.4vw, 1.75rem);
+    border-top: 1px solid var(--color-line);
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .tms__panel-role {
+    color: var(--color-ink-muted);
+  }
+
+  .tms__nav,
+  .tms__close {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-ink);
+    cursor: pointer;
+  }
+
+  .tms__nav {
+    top: 50%;
+    width: 3.5rem;
+    height: 3.5rem;
+    translate: 0 -50%;
+    transition: translate 0.32s var(--ease-out-expo);
+  }
+
+  .tms__nav svg {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .tms__nav--prev {
+    left: clamp(0.5rem, 2vw, 1.75rem);
+  }
+
+  .tms__nav--next {
+    right: clamp(0.5rem, 2vw, 1.75rem);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tms__nav--prev:hover,
+    .tms__nav--prev:focus-visible {
+      translate: -0.35rem -50%;
+    }
+
+    .tms__nav--next:hover,
+    .tms__nav--next:focus-visible {
+      translate: 0.35rem -50%;
+    }
+  }
+
+  .tms__close {
+    top: clamp(1.25rem, 3vh, 2.25rem);
+    right: clamp(1.25rem, 3vw, 2.25rem);
+    width: 2.75rem;
+    height: 2.75rem;
+    transition: rotate 0.5s var(--ease-out-expo);
+  }
+
+  .tms__close svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tms__close:hover,
+    .tms__close:focus-visible {
+      rotate: 90deg;
+    }
+  }
+
+  /* ===================== Narrow =====================
+     The read stacks: the tile above, what they said under it. The landing box
+     shrinks with it, and because the flight target is measured from that box
+     rather than hard-coded, the tile lands correctly at any width with nothing
+     else to change. */
+  @media (max-width: 60rem) {
+    .tms__read {
+      grid-template-columns: 1fr;
+      align-content: center;
+      gap: clamp(1.5rem, 4vh, 2.5rem);
+      padding-inline: clamp(1.25rem, 6vw, 2.5rem);
+      overflow-y: auto;
+    }
+
+    .tms__land {
+      width: min(62vw, 30svh);
+    }
+
+    .tms__nav {
+      top: auto;
+      bottom: clamp(1rem, 3vh, 2rem);
+      translate: none;
+    }
+
+    .tms__nav--prev {
+      left: 25%;
+    }
+
+    .tms__nav--next {
+      right: 25%;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .tms__nav--prev:hover,
+      .tms__nav--prev:focus-visible {
+        translate: -0.35rem 0;
+      }
+
+      .tms__nav--next:hover,
+      .tms__nav--next:focus-visible {
+        translate: 0.35rem 0;
+      }
+    }
+  }
+
+  /* ===================== Not the picked cut =====================
+     Same shape as the other two: hidden unless this one is explicitly chosen,
+     so with no JS — and therefore no `data-var-*` on <html> — the wall is what
+     stands and this never appears. */
+  .tms {
+    display: none;
+  }
+
+  :global(html[data-var-testimonials='orbit']) .tms {
+    display: block;
+  }
+</style>

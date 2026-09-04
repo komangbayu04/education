@@ -12,6 +12,7 @@ import { initWorkCategories } from './workCategories';
 import { initTwoWays } from './twoWays';
 import { initTestimonials } from './testimonials';
 import { initTestimonialsFloat } from './testimonialsFloat';
+import { initTestimonialsSphere } from './testimonialsSphere';
 import { initJournal } from './journal';
 import { initFounderQuote } from './founderQuote';
 import { initPageTransition } from './pageTransition';
@@ -39,10 +40,11 @@ function initPage(): void {
       initCredibility(),
       initWorkCategories(),
       initTwoWays(),
-      /* One of these two builds a scene and the other returns a no-op —
-         whichever cut of chapter 8 the reader has picked. */
+      /* One of these three builds its section and the other two return a
+         no-op — whichever cut of chapter 8 the reader has picked. */
       initTestimonials(),
       initTestimonialsFloat(),
+      initTestimonialsSphere(),
       initJournal(),
       initFounderQuote(),
     ];
