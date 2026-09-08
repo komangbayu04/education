@@ -5,6 +5,7 @@ import { initNav } from './nav';
 import { initHero } from './hero';
 import { initVideoSources } from './videoSources';
 import { initTimeline } from './timeline';
+import { initOverclock } from './overclock';
 import { initWorkCursor } from './workCursor';
 import { initCaseStudy } from './caseStudy';
 import { initCredibility } from './credibility';
@@ -37,6 +38,10 @@ function initPage(): void {
       initTimeline(),
       initWorkCursor(),
       initCaseStudy(),
+      /* Overclock's own pinned scrub — it arrives small on black with its film
+         running, opens to the screen, then speaks. The stepped scene that used
+         to carry it is gone; see the note at the end of initHero. */
+      initOverclock(),
       initCredibility(),
       initWorkCategories(),
       initTwoWays(),
@@ -59,7 +64,18 @@ function initPage(): void {
      wrong jump itself. Immediate, because this is an arrival: the reader asked
      for that section, not to watch the page travel to it. */
   scrollToHash(true);
+
+  /* And with no fragment asked for, the top — but only the first time this
+     tab loads the page. Later runs of this function are view transitions,
+     which have their own rule a few lines down (`astro:after-swap`), and
+     resetting here as well would take the reader back to the top of every
+     page they navigate to rather than only the one they refreshed. */
+  if (firstLoad && !location.hash) scrollToTop();
+  firstLoad = false;
 }
+
+/** Whether initPage has run yet in this tab. See the reset above. */
+let firstLoad = true;
 
 function destroyPage(): void {
   ctx?.revert();
@@ -67,6 +83,22 @@ function destroyPage(): void {
   ScrollTrigger.getAll().forEach((t) => t.kill());
   destroyScroll();
 }
+
+/* Claimed at module scope, which is as early as this file runs and earlier
+   than anything that reads it.
+
+   The browser restores the scroll position of a refreshed page by itself, and
+   it does so before any of the page's own code gets a say. Astro's router sets
+   this too, but it sets it during its own start-up — after the restore has
+   already happened on a hard refresh. What that looked like: F5 anywhere past
+   the hero and the page came back mid-animation, the artwork half revealed and
+   the copy gone, because the scrubbed pin was rendering the position the
+   browser had put the reader back at.
+
+   A reload of this page is not a return to a place, it is a return to the
+   start — the opening is a sequence, and dropping the reader into the middle
+   of one is not where they were, it is a state they never scrolled to. */
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 /* Once for the tab, not once per page: its listeners are the router's own and
    registering them again on every load would stack a wipe per navigation. */

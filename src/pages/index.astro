@@ -43,74 +43,33 @@ import Footer from '../components/layout/Footer.astro';
     Without JS — or with reduced motion — the chapters stay in normal flow and
     read top to bottom, no pin, no crossfades.
   */}
-  <div class="scene" data-scene>
-    <div class="scene__layer scene__layer--hero" data-scene-hero>
-      <Hero />
-    </div>
+  {/* Out of the scene, and that is the point of it.
 
-    {/*
-      Pixel reveal (hero → Showcase only). Out with that chapter: the field
-      was painted in Showcase's own ground colour, spreading from the hero
-      photo. Putting Showcase back is this grid, the layer under it, and the
-      import above — hero.ts already looks for `[data-scene-next]`.
-    */}
-    {/* <div class="scene__pixels" data-scene-pixels aria-hidden="true"></div>
+      The hero used to be the scene's first layer, which made its opening one
+      more step in a stepped sequence: a scroll, and the chapter changed. The
+      hero's own reveal is not a chapter change — it is one continuous thing
+      the reader scrubs, so it has a pin and a scrubbed trigger of its own (see
+      initHeroReveal in src/scripts/hero.ts) and the stepped scene begins after
+      it, at Overclock. */}
+  <Hero />
 
-    <div class="scene__layer scene__layer--next" data-scene-next>
-      <Showcase />
-    </div> */}
+  {/* Overclock, and it is an ordinary section now.
 
-    {/* Laid in the arriving chapter's own ground colour, tile by tile in
-        random order, just before that chapter swaps in behind it — the same
-        pixel language as the hero handover, scattered rather than spreading
-        from a point. Before the layer in the DOM and on the same z-index, so
-        the layer paints over it once it arrives. */}
-    <div class="scene__grid" data-scene-grid="overclock" style="--grid-bg: var(--color-bg-overclock)" aria-hidden="true"></div>
-
-    <div class="scene__layer scene__layer--overclock" data-scene-overclock>
-      <Overclock />
-    </div>
-
-    {/* The way out. Same field, same scatter, but laid in the ground colour of
-        the section *below* the scene rather than of another chapter — there is
-        no chapter after this one. By the time the pin releases, the screen is
-        already that section's colour, so the scene scrolling away underneath
-        it is a change of colour nobody can see. Highest z-index in the scene:
-        it covers Overclock, and nothing arrives on top of it.
-
-        This tracks whatever section comes next: it was white for Credibility,
-        then the cream of Two ways in, and is still that cream now that Our work
-        — categorized has come in above it — the two share the token, which is
-        the only reason inserting a section here didn't move this. Get it wrong
-        and the join is a visible band of the wrong colour.
-
-        Our work carries a full-bleed photograph over that cream now, so what
-        arrives on this field is the section's ground *and* its first category's
-        artwork. The field is still the right colour to land on — the wash over
-        every photograph is this same token — but the handover is a crossfade
-        onto artwork rather than onto a flat colour, the way Overclock arrives
-        on its own. */}
-    <div class="scene__grid" data-scene-grid="exit" style="--grid-bg: var(--color-bg-twoways)" aria-hidden="true"></div>
-  </div>
-
-  {/* Where the scene ends and the page begins. hero.ts hangs the exit field's
-      trigger on this: its top touching the bottom of the viewport is the pin
-      releasing, and its top reaching the top of the viewport is the scene
-      being gone.
-
-      A marker of its own rather than `scene.nextElementSibling` or the next
-      section itself. Pinning wraps the scene in a spacer, so from inside that
-      wrapper the scene has no siblings at all — read once the pin exists, the
-      sibling lookup returns null and the field is built but never animated,
-      which leaves an opaque screen of tiles over everything. Zero height, so
-      it changes no layout. */}
-  <div data-scene-after aria-hidden="true"></div>
+      It used to be a stacked layer inside a pinned "scene" that also held the
+      hero, with a gesture-stepper moving between them behind fields of
+      scattered tiles. All of that is gone — see the note at the end of
+      initHero in src/scripts/hero.ts. Overclock has a pinned scrub of its own
+      instead (src/scripts/overclock.ts): it arrives small on black with its
+      film already running, grows to fill the screen, and only then says
+      anything. */}
+  <Overclock />
 
   {/*
-    First out of the scene. Outside it on purpose: it runs to about eight
-    screens of its own, so it cannot live as a stacked layer inside it. The
-    handover into it is the same arrival as hero → Overclock — cream tiles, then
-    this section fading in on that field — driven by src/scripts/hero.ts, which
+    After Overclock. It runs to about eight screens of its own.
+
+    The handover into it is a crossfade now — Overclock fades out as this fades
+    in — rather than the cream tile field the stepped scene used to scatter
+    over it. See src/scripts/overclock.ts. What follows was written for that
     parks it over the viewport for that step. After the scene's pin it is
     ordinary page, scrolled at whatever rate the reader scrolls.
 
@@ -174,188 +133,12 @@ import Footer from '../components/layout/Footer.astro';
 </Base>
 
 <style>
-  .scene {
-    position: relative;
-  }
+  /* The scene's stylesheet is gone with the scene.
 
-  /* Pinned mode — set by JS only when motion is allowed */
-  .scene[data-scene-mode='pinned'] {
-    /* Must be a full viewport: the pin adds exactly this much scroll runway,
-       so a shorter scene leaves the end of the handover unreachable. */
-    height: 100svh;
-    /* Contains the hero artwork as it scales up */
-    overflow: clip;
-    /* The section below is pulled up over this one, and comes later in the
-       document — so without a stacking order of its own the scene would be
-       painted over by it for the whole pin. */
-    z-index: 1;
-  }
-
-  /* Nothing left to show: the exit field has covered it in the next section's
-     own colour, and that section is already in position underneath. Hiding it
-     is what stops a screen-tall scene from having to be scrolled past.
-
-     The layers and grids are named explicitly, with !important, and both of
-     those are load-bearing.
-
-     `visibility` is inherited, but a child that sets `visible` on *itself*
-     wins over a hidden ancestor — and hero.ts leaves exactly that on every
-     layer it fades in, because autoAlpha writes visibility inline. So hiding
-     the scene alone hid nothing the layers were painting. They are also left
-     with an inline `pointer-events: auto` (see addArrival), and an element at
-     opacity 0 still takes clicks. With the scene carrying `z-index: 1` over
-     the section pulled up beneath it, that put Overclock's full-chapter link
-     across the whole page: every click anywhere below the scene went to
-     /work/overclock. !important is what beats those inline styles. */
-  .scene[data-scene-done],
-  .scene[data-scene-done] .scene__layer,
-  .scene[data-scene-done] .scene__grid,
-  .scene[data-scene-done] .scene__pixels {
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
-
-  /* And the wrapper ScrollTrigger pins inside. It keeps its full height after
-     the pin releases — that height is the scroll runway — while the section
-     below is pulled up over it, so it stays a box lying across the top of
-     whatever is now on screen. Hiding the scene alone left that box taking the
-     clicks the scene no longer did. Matched with :has() because the spacer is
-     created at runtime and there is nothing else to hang this on; :global
-     because, for the same reason, it never carries Astro's scope attribute. */
-  :global(.pin-spacer:has(> .scene[data-scene-done])) {
-    pointer-events: none;
-  }
-
-  /* --- The join ------------------------------------------------------------
-     A zero-height marker between the scene and the page. It carries the pull
-     that lifts everything below it over the scene's own height, so the pin
-     releases straight onto the next section instead of onto a screen of scene
-     that is already finished. JS-only: without the pin there is nothing to
-     pull over. */
-  [data-scene-after] {
-    height: 0;
-  }
-
-  [data-scene-after][data-scene-pulled] {
-    margin-top: -100svh;
-  }
-
-  .scene[data-scene-mode='pinned'] .scene__layer {
-    position: absolute;
-    inset: 0;
-  }
-
-  .scene[data-scene-mode='pinned'] .scene__layer--hero {
-    z-index: 1;
-  }
-
-  /*
-    Crossfades in on top of the finished pixel field, which is painted in the
-    same colour — so this fade has nothing visible to give away.
-
-    pointer-events: none is load-bearing, not decoration. This layer is
-    position: absolute; inset: 0 — full-viewport — for the entire pin, and
-    opacity: 0 does NOT stop an element from receiving clicks or hover. Left at
-    the default `auto`, this invisible section sits on top of everything
-    beneath it and silently eats every pointer event aimed at them. hero.ts
-    flips it to `auto` only once its own crossfade has essentially finished,
-    and back to `none` if the user scrolls back up past that point. The same
-    reasoning applies to every layer below, one z-index higher each time.
-  */
-  .scene[data-scene-mode='pinned'] .scene__layer--next {
-    z-index: 3;
-    opacity: 0;
-    /* Paired with opacity, and kept in step by GSAP's autoAlpha in hero.ts: a
-       transparent layer is still a full-viewport composited surface on every
-       scrubbed frame, a hidden one is not. */
-    visibility: hidden;
-    pointer-events: none;
-    will-change: opacity;
-  }
-
-  .scene[data-scene-mode='pinned'] .scene__layer--overclock {
-    z-index: 4;
-    opacity: 0;
-    /* Paired with opacity, and kept in step by GSAP's autoAlpha in hero.ts: a
-       transparent layer is still a full-viewport composited surface on every
-       scrubbed frame, a hidden one is not. */
-    visibility: hidden;
-    pointer-events: none;
-    will-change: opacity;
-  }
-
-  /* --- Pixel field (hero → Showcase only) --------------------------------- */
-  .scene__pixels,
-  .scene__grid {
-    display: none;
-  }
-
-  /* Same geometry as the pixel field above — one grid of square tiles that
-     overspills the viewport so a resize between rebuilds cannot expose a bare
-     edge. Only the colour and the order they arrive in differ. */
-  .scene[data-scene-mode='pinned'] .scene__grid {
-    position: absolute;
-    inset: calc(-1 * var(--px-size, 4rem));
-    display: grid;
-    grid-template-columns: repeat(var(--px-cols, 1), var(--px-size, 4rem));
-    grid-auto-rows: var(--px-size, 4rem);
-    pointer-events: none;
-  }
-
-  /* :global, like .scene__pixel above — these spans are created by hero.ts, so
-     they never carry Astro's scoping attribute and a scoped selector would
-     not match them. Without it the tiles animate exactly as intended and
-     paint nothing, which is precisely how this shipped the first time. */
-  /* Hidden until something animates them. GSAP's autoAlpha writes inline
-     opacity/visibility and wins, so this only decides what an un-animated
-     field looks like — and the answer has to be "nothing". These grids are
-     full-viewport and opaque: a field whose tween never got attached paints
-     over the entire page, which is exactly what it did. */
-  [data-scene-grid] :global(span) {
-    background: var(--grid-bg);
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  .scene[data-scene-mode='pinned'] .scene__grid[data-scene-grid='overclock'] {
-    z-index: 4;
-  }
-
-  /* Above every layer: this one is not making way for a chapter behind it. */
-  .scene[data-scene-mode='pinned'] .scene__grid[data-scene-grid='exit'] {
-    z-index: 5;
-  }
-
-  .scene[data-scene-mode='pinned'] .scene__pixels {
-    position: absolute;
-    /* Overspill so a resize between rebuilds can't expose a bare edge */
-    inset: calc(-1 * var(--px-size, 4rem));
-    z-index: 2;
-    display: grid;
-    grid-template-columns: repeat(var(--px-cols, 1), var(--px-size, 4rem));
-    grid-auto-rows: var(--px-size, 4rem);
-    pointer-events: none;
-  }
-
-  /* No will-change here: there are hundreds of these, and promoting every one
-     to its own compositor layer costs far more than it saves.
-
-     The outline paints one pixel outside the box, in the same colour as the
-     fill. Without it, neighbouring tiles land on fractional device pixels and
-     the dark artwork behind the field shows through as hairlines along the
-     grid. The end scale of 1.04 (set in hero.ts) overlaps them further. */
-  [data-scene-pixels] :global(.scene__pixel) {
-    display: block;
-    background: var(--color-bg-showcase);
-    outline: 1px solid var(--color-bg-showcase);
-  }
-
-  @media (max-width: 48rem) {
-    /* The hero film's canopy has to paint out of its row. Clip here was
-       the last box shearing the crown, even with overflow visible on the
-       stage itself. */
-    .scene[data-scene-mode='pinned'] {
-      overflow: visible;
-    }
-  }
+     What stood here dressed a pinned, gesture-stepped sequence: stacked
+     full-viewport chapter layers, two grids of tiles for the handovers between
+     them, a zero-height marker for the pin's release, and the rules that hid
+     all of it once the sequence was spent. None of those elements are in the
+     page any more — the hero and Overclock each pin and scrub on their own,
+     and everything between them is ordinary scrolling page. */
 </style>

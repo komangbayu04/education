@@ -16,28 +16,41 @@
 interface Props {
   /** Broken by hand, not by wrapping — the three lines are the composition. */
   lines?: string[];
-  /** The quiet line under the headline, naming who the work is for. */
-  tagline?: string;
-  body?: string;
   primaryLabel?: string;
   primaryHref?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  /** The cue under the actions. */
+  scrollLabel?: string;
+  /** What the full-bleed frame says once the reveal has finished. Rendered
+   *  with set:html so the phrase in the middle can carry weight. */
+  revealLines?: string[];
+  /** Extensionless base under /media — .avif and .webp are both requested. */
+  image?: string;
+  imageAlt?: string;
 }
 
 const {
-  lines = ['We', 'Design', 'Credibility'],
-  tagline = 'For Learning Economy',
-  body =
-    'We help companies that teach, certify, and run the learning economy close the gap between product and brand, with a design team on your side from day one.',
+  lines = ['We design for', 'the learning', 'economy.'],
   primaryLabel = 'Book a call',
   primaryHref = '/contact',
   ctaLabel = 'See the work',
   ctaHref = '/work',
+  scrollLabel = 'Scroll down',
+  /* One sentence, broken where the frame breaks it. The middle phrase is the
+     one the headline above has already used, so it is the phrase that carries
+     weight here too. */
+  revealLines = [
+    'Tribe helps the <strong>learning</strong>',
+    '<strong>economy</strong> close the gap between',
+    'product and brand.',
+  ],
+  image = '/media/hero-tree',
+  imageAlt = 'A person reading under a broad tree on open grassland',
 } = Astro.props;
 ---
 
-<section class="hero" data-hero data-chapter-section="1" aria-labelledby="hero-title">
+<section class="hero" data-hero data-chapter-section="1" data-nav-section="Home" aria-labelledby="hero-title">
   <div class="hero__texture" aria-hidden="true"></div>
 
   {/* The drawn guides: two hairline verticals and one large circle. Purely
@@ -50,11 +63,40 @@ const {
     <span class="hero__ring hero__ring--inner"></span>
   </div>
 
-  {/* The artwork is the section's ground, not a column in it: the composition
-      is baked into the video — the tree on the left, clear white on the right
-      exactly where the copy sits — so the frame only reads correctly when the
-      video is the whole viewport. It used to be boxed into the left column,
-      which cropped that composition down to half the width it was cut for. */}
+  {/*
+    The artwork. One photograph, two shapes: a portrait window on the left
+    while the hero is at rest, and the whole viewport once the reveal has run.
+
+    It is a still, not a film. The looping video that used to be here had the
+    whole composition baked into it — the tree left, the clear ground right,
+    even the white squares along the bottom — so the frame only read correctly
+    at one size and the squares could not take part in anything. The still
+    carries the photograph and nothing else; the window and the squares belong
+    to the page, so both can move.
+
+    Two layers, and the second one is the whole mechanism:
+
+      .hero__media   the photograph. Full-bleed, `cover`, and NEVER touched —
+                     no transform, no scale, no shift, at any point in the
+                     page's life. What you see in the small frame is the same
+                     pixels at the same size you will see when the frame is the
+                     whole screen; nothing about the picture changes, only how
+                     much of it is uncovered.
+
+      .hero__pixels  the mask, and it is made of squares. A field of tiles in
+                     the page's own ground colour covering the whole viewport,
+                     with the ones over the resting frame taken out from the
+                     start — so what the reader arrives on is a portrait box of
+                     photograph in a field of page. Scrolling takes the rest of
+                     the tiles away in random order, and that is the reveal: the
+                     picture is uncovered a square at a time.
+
+    There is deliberately no transition between a small frame and a large one.
+    An earlier cut animated a `clip-path` window across the screen and scaled
+    the photograph inside it, which is a different idea — the frame travelling
+    and growing. This one has no travel and no growth: one photograph, fixed,
+    and a mask that dissolves.
+  */}
   <figure class="hero__stage" data-hero-stage>
     {/*
       Nested on purpose. .hero__stage carries the scroll-driven scale (it
@@ -64,46 +106,52 @@ const {
     */}
     <div class="hero__zoom" data-hero-zoom>
       <div class="hero__base" data-hero-base>
-        <video
-          class="hero__video"
-          data-hero-video
-          data-video-sources
-          width="1920"
-          height="1080"
-          autoplay
-          loop
-          muted
-          playsinline
-          preload="auto"
-          aria-label="Showreel of the studio's work"
-        >
-          {/* The phone cut first, because a <source> is chosen by walking this
-              list in order and taking the first one whose type is playable and
-              whose `media` matches — so the narrow pair has to be ahead of the
-              wide one to ever win. Verified in this engine: a source with a
-              media query that cannot match is skipped rather than taken.
-
-              Two different cuts, not one scaled: the wide file is a 1.74
-              landscape composed with the tree left and clear ground right for
-              the copy, and on a phone that framing has nowhere to go. This one
-              is cut portrait for it. */}
-          <source
-            src="/media/hero-video-mobile.webm?v=2"
-            type="video/webm"
-            media="(max-width: 48rem)"
+        <picture>
+          <source srcset={`${image}.avif`} type="image/avif" />
+          <img
+            class="hero__media"
+            data-hero-media
+            src={`${image}.webp`}
+            alt={imageAlt}
+            width="2878"
+            height="1926"
+            decoding="async"
+            fetchpriority="high"
           />
-          <source
-            src="/media/hero-video-mobile.mp4?v=2"
-            type="video/mp4"
-            media="(max-width: 48rem)"
-          />
-
-          <source src="/media/hero-video.webm" type="video/webm" />
-          <source src="/media/hero-video.mp4" type="video/mp4" />
-        </video>
+        </picture>
       </div>
+
+      {/* Built by src/scripts/hero.ts, which needs the viewport to know how
+          many. Empty here so there is nothing to clear up first, and inert:
+          the squares are the artwork's edge, not a control. */}
+      <div class="hero__pixels" data-hero-pixels aria-hidden="true"></div>
+
+      {/* Two darkenings, and they are different jobs.
+
+          The veil is a thin wash over the finished photograph — it arrives with
+          the last of the tiles and stays for the hold. White type on a bright
+          sky is the reason: the sentence sits over the top third of the frame,
+          which is the brightest part of it.
+
+          The fall is the way out. Black, rising from the foot of the screen
+          across the hold, until the whole frame is under it — so the section
+          that follows can begin on black without a cut between them. */}
+      <div class="hero__veil" data-hero-veil aria-hidden="true"></div>
+      <div class="hero__fall" data-hero-fall aria-hidden="true"></div>
     </div>
   </figure>
+
+  {/* What the full frame says. In the markup rather than written in by the
+      script, so it is real text in the document at every moment — the script
+      only ever changes how it is drawn. Out of the accessibility tree until
+      the reveal brings it in. */}
+  <p class="hero__reveal" data-hero-reveal aria-hidden="true">
+    {revealLines.map((line) => (
+      <span class="hero__reveal-line" data-hero-reveal-line>
+        <Fragment set:html={line} />
+      </span>
+    ))}
+  </p>
 
   <div class="hero__grid u-container">
     <!-- The headline and who it is for at the top, the pitch and the two ways
@@ -116,8 +164,6 @@ const {
         <h1 class="hero__title" id="hero-title" data-hero-title>
           {lines.map((line) => <span class="hero__line">{line}</span>)}
         </h1>
-
-        <p class="hero__tagline" data-hero-aside-item>{tagline}</p>
       </div>
 
       {/* The spacing around and inside the copy, as boxes rather than margins.
@@ -125,8 +171,11 @@ const {
       <span class="hero__gap hero__gap--mid" aria-hidden="true"></span>
 
       <div class="hero__lede">
-        <p class="hero__body" data-hero-aside-item>{body}</p>
-
+        {/* The tagline and the pitch paragraph that used to stand here are
+            gone. The reference sets this column as a headline and two ways in
+            and nothing else, and the sentence they carried is the one the
+            full-bleed frame says a scroll later — kept once rather than
+            twice. */}
         <div class="hero__actions" data-hero-aside-item>
           <a class="btn" href={primaryHref} data-magnetic="0.2">
             <span class="btn__fill" aria-hidden="true"></span>
@@ -140,6 +189,15 @@ const {
         </div>
       </div>
 
+      {/* The cue. Under the actions and quiet, because it only says what the
+          page already wants — the rest of this section is a scroll away. */}
+      <p class="hero__scroll" data-hero-aside-item>
+        <span class="hero__scroll-mouse" aria-hidden="true">
+          <span class="hero__scroll-wheel"></span>
+        </span>
+        <span class="hero__scroll-label">{scrollLabel}</span>
+      </p>
+
       <span class="hero__gap hero__gap--foot" aria-hidden="true"></span>
     </div>
   </div>
@@ -147,60 +205,106 @@ const {
 
 <style>
   .hero {
+    /* Above the section that follows it, and that is what makes the overhang
+       mean anything.
+
+       The picture runs past the foot of this section on purpose — that strip
+       is where the gradient lives — but a strip hanging out of a box still
+       obeys paint order, and the next section is later in the document. So
+       Overclock was drawn straight over the last 64 pixels of the photograph:
+       the grass, and the base of the tree. What looked like the image being
+       cropped was the next section's top edge sitting on top of it.
+
+       One line, and it only has to out-rank what comes immediately after —
+       this section is scrolled off the screen long before anything else on
+       the page is reached. */
+    position: relative;
+    /* 3, not 1. The next section's own inner column carries `z-index: 1` and
+       sits later in the document, so at equal rank it won and went on painting
+       over the overhang. This only has to out-rank that. */
+    z-index: 3;
+
+    /* Two rectangles, and they are different kinds of thing.
+
+       --hero-frame-* is the RESTING FRAME: the box of photograph the reader
+       arrives on. A size in pixels rather than insets into the stage, because
+       it is a drawn rectangle and a drawn rectangle has a size — stated as
+       fractions it changed shape at every window, which is not what a
+       composition does. Only its left edge is a fraction, since where the box
+       sits across the page does follow the page; it is vertically centred,
+       and the copy has the right of the screen.
+
+       --hero-subject-* is THE SUBJECT: where the tree and the person are
+       inside the PHOTOGRAPH, as insets into the image. Stated against the
+       picture and not the screen because it is a fact about the picture.
+
+       The script fits the second into the first: it works out the scale and
+       offset that put the subject inside the frame, and that is the
+       photograph's resting transform. So the frame can move and the subject
+       follows it, at any viewport, with nothing hand-matched — which is what
+       "flexible" has to mean here. Neither number knows about the other; the
+       arithmetic between them lives in one place, in hero.ts. */
+    /* 496 x 649 at 1440 wide, and proportional to the screen from there — so
+       a broader window gets a broader frame rather than the same rectangle
+       stranded in the middle of more page. Written as the ratio those two
+       numbers are of 1440 (34.44% and 45.07%) rather than as the pixels, so
+       the pair cannot drift apart when one is edited.
+
+       The height follows the WIDTH, not the height of the window. It is a
+       drawn rectangle with a shape, and tying its two sides to two different
+       axes is what makes a shape stop being one — on a short wide screen it
+       would flatten. What stops it running off a short screen is the clamp in
+       hero.ts, which caps it against the stage. */
+    /* Fractions of the stage's WIDTH, not lengths.
+
+       They read like percentages because that is what they are: 496 and 649
+       against a 1440 screen. Stated as `vw` first and that was wrong in a way
+       worth recording — a custom property is not resolved to pixels unless it
+       has been registered, so `getPropertyValue` handed the script the string
+       "34.444vw" and `parseFloat` took the 34 and threw the unit away. The
+       frame came out 34 pixels wide, which is one tile. Plain numbers cannot
+       be misread that way: the script multiplies, and there is no unit to
+       lose. */
+    --hero-frame-w: 0.3;
+    --hero-frame-h: 0.39;
+    --hero-frame-l: 0.17;
+    /* How far below the middle the box sits, as a share of the stage.
+
+       Centred exactly, a frame this size still puts its top edge close to the
+       nav — and the nav is a floating pill, so "close" reads as the artwork
+       running into it rather than as two things sharing a screen. Dropped, the
+       gap above is clearly bigger than the pill and the box is unmistakably
+       below it. The clamp in hero.ts is what stops this pushing the foot off a
+       short screen. */
+    --hero-frame-drop: 0.05;
+
+    --hero-subject-l: 0.25;
+    --hero-subject-r: 0.24;
+    --hero-subject-t: 0.17;
+    --hero-subject-b: 0.1;
+
     /* Air above the copy, on top of the nav's own band. Roughly a third of what
        it was: with the artwork no longer a column beside the type but the
        section's ground, this padding was the only thing holding the headline
        down, and it sat a good 50px lower than the composition wanted. */
     --hero-pad-top: clamp(0.5rem, 1.1vw, 1.5rem);
 
-    /* Where the copy starts, and — because the artwork is levelled with it —
-       where the video starts too. It is the hero's own top padding restated as
-       a value rather than only applied as one, so .hero__stage can read the
-       same number instead of a hand-matched copy of it. */
+    /* Where the copy starts. The hero's own top padding restated as a value
+       rather than only applied as one, so anything that has to line up with
+       the copy can read the same number instead of a hand-matched copy. */
     --hero-media-top: calc(var(--nav-height) + var(--hero-pad-top));
 
-    /* How much larger the frame is than the box it is fitted to. It grows from
-       its own foot, so the seating stays and the extra height goes upward —
-       see .hero__video. */
-    /* 1, and that is the largest the frame goes without losing anything.
+    /* The artwork's own size and placement variables used to live here — a
+       scale, a two-axis offset and a left-edge feather, all of them tuning how
+       a `contain`ed video sat inside its box. Every one is gone with that
+       video: the photograph is `cover`, full-bleed, and never transformed, so
+       there is nothing left to place. See .hero__media. */
 
-       `contain` already fits the frame to the box on whichever axis runs out
-       first, so every value above 1 crops by definition — and because the
-       frame is seated on the box's floor and grows upward, what it crops is
-       the top of the canopy. Measured at 1.13 the canopy's top sat at y=-12,
-       twelve pixels above the screen.
-
-       The size comes from the box instead, which is what the inset below is
-       for: at full height the frame is bound by the width rather than the
-       height and comes out at 1440x827 against the 1401x805 this box used to
-       give it — bigger, and whole.
-
-       To go beyond that the frame has to be cropped somewhere. The only place
-       it can afford to lose is the foot: the grass is uniform and already runs
-       to the section's edge. That means seating the frame at the top instead
-       (object-position and transform-origin both) and scaling from there, so
-       the growth goes downward past the section floor and the canopy stays
-       put. Say the word and it is those two lines. */
-    --hero-media-scale: 0.93;
-
-    /* Where the artwork and the copy sit, relative to where the grid puts
-       them. Four numbers rather than one, because the two no longer travel
-       together: they began as a single shift moving both the same distance
-       left, and have since been pulled apart — the artwork right and up, the
-       copy further left and down.
-
-       Every one of them is declared, and that is not tidiness: these are read
-       inside `transform`, and a `var()` with no value makes the whole
-       declaration invalid — which is how an undeclared shift once threw away
-       the `scale()` sitting beside it in the same transform and left the frame
-       painting unscaled however the scale was set. */
-    --hero-media-x: -4px;
-    --hero-media-y: -12px;
-    /* A short feather on the film's own left edge — enough that a bird is
-       not a hard slice, not so long that the canopy washes out. */
-    --hero-media-fade-from: 0%;
-    --hero-media-fade-to: 4%;
-    --hero-copy-x: -28px;
+    /* The copy's own shift, left of where the grid puts it. Deepened from
+       -28px: the artwork moved right when the resting frame did, and the
+       column stayed where it was — so the gap between the two closed and the
+       headline lost the air on its left that the composition is built on. */
+    --hero-copy-x: -72px;
     /* Was 38px, a downward nudge against the film. It is 0 because the copy is
        centred vertically now, and a nudge is the one thing that cannot survive
        that: it moves the block off the middle by its own value and doubles
@@ -428,7 +532,12 @@ const {
   }
 
   .hero__title {
-    font-size: clamp(2.25rem, 5vw, 6rem);
+    /* 16px down from where this sat: 5vw put it at 72px on a 1440 screen and
+       it is 56px there now. The clamp is scaled by the same ratio rather than
+       having 16px taken off each end — a fixed subtraction changes the
+       headline by a different proportion at every width, which is how a type
+       scale stops being one. */
+    font-size: clamp(1.75rem, 3.9vw, 4.6875rem);
     font-weight: 400;
     line-height: var(--leading-display);
     letter-spacing: -0.025em;
@@ -441,15 +550,6 @@ const {
   .hero__line {
     display: block;
     white-space: nowrap;
-  }
-
-  /* Who the work is for, under the claim. Quiet on purpose — it qualifies the
-     headline rather than adding to it, so it sits in the page's grey at body
-     size instead of competing at display size. */
-  .hero__tagline {
-    font-size: clamp(0.9375rem, 1.15vw, 1.125rem);
-    line-height: 1.4;
-    color: var(--color-ink-muted);
   }
 
   /* --- Lede ----------------------------------------------------------------
@@ -527,13 +627,6 @@ const {
     max-height: clamp(2rem, 7vh, 5.5rem);
   }
 
-  .hero__body {
-    max-width: 34ch;
-    font-size: clamp(0.8125rem, 0.95vw, 0.9375rem);
-    line-height: 1.62;
-    text-wrap: pretty;
-  }
-
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
@@ -592,77 +685,340 @@ const {
     will-change: transform;
   }
 
+  /* Full width, and the picture's own height at that width — 1.494 : 1, so on
+     any window wider than it is tall the box runs past the bottom of the
+     screen. That overhang is the point: it is where the gradient stacks, and
+     it is why nothing is cropped off the foot of the photograph. Anchored to
+     the top rather than inset on all four sides, since it is the bottom that
+     is meant to overflow. */
   .hero__base {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* Never shorter than the screen: on a narrow window the picture's own
+       height at full width falls below the viewport, and a media box that
+       stops short of the fold is a band of page under the artwork. There the
+       `cover` on the image crops it instead, which is the right trade at a
+       width where there was never room for an overhang. */
+    /* Against the stage's own height — `100%` — and NOT against `100svh`.
+
+       They are not the same number once the section is pinned: ScrollTrigger
+       puts an explicit height on the element it pins, and `svh` goes on
+       reporting the browser's small-viewport height. Measured, the hero was
+       1000px tall while `svh` said 900, so a box sized to `svh` came out
+       964 — thirty-six pixels short of the bottom of the screen, and that gap
+       was a band of page under the photograph exactly where the picture was
+       supposed to be running out. `100%` is whatever the section actually is,
+       pinned or not. */
+    height: max(100%, calc(100vw / 1.494));
   }
 
-  /* contain, not cover, even as a full-bleed background — and the page's own
-     white is what makes that read as full-bleed anyway.
+  /* The photograph. Full-bleed and `cover` — the size it ends at.
 
-     The frame is composed: the tree sits in the left half, the birds near the
-     top, the pixel squares along the bottom, and the right half is the clear
-     space the copy is set in. `cover` crops whichever axis overflows — at
-     1848x900 that is 160px off the top and bottom, which takes the crown and
-     the squares with it. Contained, nothing is ever cut; the letterbox is
-     white against a white page, so there is nothing to see at its edges. */
-  .hero__video {
+     It does not stay that size. The script gives it a resting transform that
+     shrinks it and moves it left, so that the tree and the person land inside
+     the resting frame whole; scrolling runs that transform back to nothing,
+     which is the picture arriving at the size the stylesheet already gives it
+     here. So `cover` is the destination, and the transform is how far from it
+     the picture currently is.
+
+     No `object-position` offset, though. Where the picture sits at rest is the
+     transform's business, and two mechanisms moving the same image is how they
+     end up fighting.
+
+     `cover`, and the trade it makes is the deliberate one.
+
+     The choice is forced by the shapes: the photograph is 1.49 wide to tall
+     and a screen is wider than that, so one of the two axes has to give.
+     `contain` gives the width — the picture is whole but stands in the middle
+     of the page with a margin down each side, which at 1440 was about 47px and
+     on a broad monitor is far more. `cover` gives the height — the picture
+     runs edge to edge and loses a band off the top and the bottom.
+
+     This is `cover` because the frame is the point: a photograph inset from
+     both sides reads as a picture placed on a page, and what the reveal has
+     been building to is the picture BEING the page.
+
+     `object-position: center`, so what it loses it loses evenly. That is the
+     whole of the protection here — the crop is symmetric, so the tree stays on
+     its own axis and the horizon stays where the composition put it. The band
+     is real and it grows with the screen's width: at 1440x900 it is about 32px
+     off each end, and on a 1920x940 screen nearer 170px. */
+  .hero__media {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    /* Centred, level with the copy beside it, rather than seated on the box's
-       floor. The floor was there because `contain` leaves a band wherever the
-       frame is bound by its width, and a band under the composition read as a
-       mistake — but that only held while the section was white and the
-       video's ground was not. Both are rgb(252,252,252) now (see
-       --color-bg-hero), so the band is the same colour as everything around it
-       and there is nothing left to hide. */
+    object-fit: cover;
     object-position: center;
-
-    /* The poster, as a background rather than the `poster` attribute. That
-       attribute takes one URL at every width, and the two cuts do not share a
-       shape — the landscape still on the phone's portrait box flashed
-       hard-cropped for as long as the first frame took to decode. As a
-       background it can be swapped per breakpoint, and it is sized and
-       anchored to match whatever `object-fit` is doing above it, so the still
-       and the first frame land in the same place. */
-    background-image: url('/media/hero-video-poster.webp');
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-
-    /* Scaled on the element rather than by giving the box more room, because
-       there is no more room to give: the box already runs from the headline's
-       line to the section's foot, and at 1440 the fitted frame is within 40px
-       of the full width — so a taller box buys almost nothing before `contain`
-       switches to being bound by the width instead. Scaling the element scales
-       what it paints, which is the only lever left.
-
-       `50% 50%` so it grows and shrinks about its own middle and stays level
-       with the copy. It was `50% 100%`, which pinned the foot and sent every
-       added pixel upward into the canopy — the reason the frame cropped at the
-       top rather than settling.
-
-       The offset rides along in the same declaration, since one element can
-       only have one `transform`. Order reads right to left: scale about the
-       centre first, then move the result. */
-    transform: translate(var(--hero-media-x), var(--hero-media-y)) scale(var(--hero-media-scale));
     transform-origin: 50% 50%;
+    will-change: transform;
+  }
 
-    /* On the film itself, not an overlay: the scale and shift above move this
-       box, so a gradient sitting on the stage would miss the edge the birds
-       actually arrive at. */
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent var(--hero-media-fade-from),
-      #000 var(--hero-media-fade-to)
-    );
-    mask-image: linear-gradient(
-      to right,
-      transparent var(--hero-media-fade-from),
-      #000 var(--hero-media-fade-to)
-    );
+  /* --- The field -----------------------------------------------------------
+     One grid over the whole stage, sized and filled by src/scripts/hero.ts.
+
+     This is the mask, not an effect over one. Every tile is opaque at rest
+     except the block of them standing over the resting frame, which is what
+     makes that frame: a rectangle of photograph in a field of page colour. The
+     scroll takes the rest away in random order.
+
+     The hole is cut by the script rather than stated here, because which tiles
+     fall inside it depends on how many tiles there are, which depends on the
+     viewport. --hero-frame-* above is the rectangle it cuts.
+
+     The hole's edge is deliberately ragged. A clean rectangle of missing tiles
+     reads as a box that happens to be drawn in squares; squares stepping in and
+     out of the edge read as the picture having been cut out of the page, which
+     is the reference's own detail and the reason the field is made of elements
+     at all.
+
+     Painted in the hero's own ground, so a square over the photograph reads as
+     a hole in it rather than as a white tile on top of it. */
+  .hero__pixels {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--px-cols, 1), var(--px-size, 40px));
+    grid-auto-rows: var(--px-size, 40px);
+    pointer-events: none;
+  }
+
+  /* A pixel over its grid cell, and then a little more.
+
+     The extra pixel is the whole reason this rule is not just `100%`. A tile
+     lands wherever the grid's fractional track puts it, so two neighbours meet
+     on a boundary that is rarely a whole device pixel — and the browser leaves
+     a hairline of whatever is behind them showing through. Across a field this
+     is not one seam, it is a drawn grid over the artwork: the photograph's sky
+     comes through every vertical and every horizontal.
+
+     Overlapping by a pixel closes them. Done with the box's own size rather
+     than a `box-shadow` spread or an `outline` of the same colour, both of
+     which paint a second surface per tile — over a thousand of them, on every
+     frame of a scrubbed reveal.
+
+     `will-change` is deliberately absent: the tiles only ever change opacity,
+     and promoting a thousand of them to their own layers costs far more than
+     it saves. */
+  .hero__pixels :global(span) {
+    display: block;
+    width: calc(100% + 1px);
+    height: calc(100% + 1px);
+    background: var(--color-bg-hero);
+    opacity: 0;
+  }
+
+  /* --- The two darkenings -------------------------------------------------
+     Both cover the stage and neither takes the pointer. Under the sentence in
+     paint order — .hero__reveal carries z-index 2 — so what they darken is the
+     photograph and never the words on it. */
+  .hero__veil,
+  .hero__fall {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  /* The stage stops clipping, so the strip of photograph below the fold — and
+     the gradient stacked under it — are there to be scrolled to rather than
+     cut off at the window's edge. */
+  .hero__stage {
+    overflow: visible;
+  }
+
+  /* Thin. 20% is enough to hold white type against the sky and little enough
+     that the photograph is not visibly dimmed — the picture is the point of
+     the reveal, and a scrim heavy enough to be comfortable is a scrim heavy
+     enough to be seen. */
+  .hero__veil {
+    background: rgb(0 0 0 / 0.2);
+    /* The photograph's height, not the stage's.
+
+       `inset: 0` gave it the section's 900px while the picture runs to 964, so
+       the last strip of photograph was the only part of it never darkened —
+       and the veil's own bottom edge drew a line straight across the image
+       where the two stopped agreeing. It has to cover exactly what it is
+       tinting, which is the picture, so it is sized from the same expression
+       .hero__base is. */
+    bottom: auto;
+    height: max(100%, calc(100vw / 1.494));
+  }
+
+  /* And the fall, which is not a curtain and is not animated.
+
+     It sits BELOW the locked screen — `top: 100%` — and it is simply always
+     there. While the hero is pinned it is off the bottom of the window and
+     nobody sees it; when the pin lets go and the page carries the hero up, it
+     comes into view the way anything below the fold does.
+
+     That is the difference from what was here before. A gradient tweened up
+     over a pinned photograph is a curtain drawn over a still frame: the
+     picture does not leave, the words do not leave, and the section underneath
+     never arrives. Stacked below instead, it is scenery the scroll reaches,
+     and what the reader watches is the page moving.
+
+     Transparent at its top so it starts on the photograph's own bottom edge
+     with no seam, solid well before its foot so the section under it begins on
+     flat black. */
+  .hero__fall {
+    top: 100%;
+    bottom: auto;
+    /* Exactly the strip of photograph that hangs below the locked screen, and
+       not a pixel more. That strip is `imageHeight - stageHeight`, and the
+       image's height is its own ratio against the full width — the same 1.494
+       .hero__base is built from.
+
+       Sized to the space rather than given a height of its own, because the
+       two numbers have to be the same number. At 900svh tall it had 900px to
+       fade across and 64px of picture to fade over: by the time the photograph
+       ran out the black was about 7% of the way in, so the foot of the image
+       met the section below it as a hard line. Fitted, it reaches full black
+       exactly as the picture ends.
+
+       `100%` and not `100svh` for the same reason .hero__base uses it: the
+       pinned section's real height is not what `svh` reports, and a gradient
+       measured against the wrong one starts in the wrong place.
+
+       `max(0px, …)` because on a narrow window the picture is shorter than the
+       screen and there is no overhang at all — a negative height is not a
+       shorter gradient, it is an invalid declaration. */
+    /* One pixel past the foot of the photograph, for the same reason the tiles
+       overlap each other: the photograph's bottom and the next section's top
+       land on a boundary that is rarely a whole device pixel, and the browser
+       leaves a hairline of whatever is behind them showing through. Against
+       two blacks that hairline is faint, but it is a drawn line across the
+       join — which is the one place the join must not have one. Running the
+       black a pixel into the section below closes it, and costs nothing:
+       what it overlaps is already the same colour. */
+    height: max(0px, calc(100vw / 1.494 - 100% + 1px));
+    opacity: 1;
+    /* Nought at the top, solid at the bottom, and nothing in between to tune.
+       A midpoint stop is what let the fade finish somewhere other than where
+       the picture does. */
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0) 0%, #000 100%);
+  }
+
+  /* --- What the full frame says -------------------------------------------
+     Centred on the viewport rather than placed in the copy column: by the time
+     it is on screen the photograph is the whole page and there is no column
+     left to belong to. Above the artwork and below the nav.
+
+     The blur is the entrance and it is on each line, not on the block: the
+     lines arrive one after another, and a filter on the parent would sharpen
+     all three at once however they were staggered. */
+  .hero__reveal {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1em;
+    margin: 0;
+    padding-inline: var(--page-gutter, clamp(1.25rem, 5vw, 4rem));
+    color: var(--color-ink-invert);
+    font-size: clamp(1.375rem, 2.4vw, 2.25rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    text-align: center;
+    text-wrap: balance;
+    /* Inert until the reveal hands it over — it is over the photograph, and a
+       paragraph nobody can see should not be taking clicks off it either. */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    /* Sky behind white type is bright at the top of the frame. A soft shadow
+       rather than a scrim, so the photograph is not dimmed to carry three
+       lines of text. */
+    text-shadow: 0 1px 24px rgb(0 0 0 / 0.35);
+  }
+
+  .hero__reveal-line {
+    display: block;
+  }
+
+  .hero__reveal :global(strong) {
+    font-weight: 600;
+  }
+
+  /* --- The scroll cue ------------------------------------------------------ */
+  .hero__scroll {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    /* On the picture's own bottom line.
+
+       Taken out of the column's flow to get there: as a flowed block its
+       position was whatever the blocks above it left over, which put it a
+       short step under the buttons and nowhere near the artwork. The two are
+       across the page from each other and the eye reads them as a pair, so
+       they have to share a line.
+
+       `--hero-frame-foot` is that line, published by hero.ts from the frame it
+       has just laid out — see the note there for why it is passed rather than
+       worked out again here. The fallback keeps the cue on the page in the
+       moment before the script has run. */
+    position: absolute;
+    left: 0;
+    bottom: var(--hero-frame-foot, 12vh);
+    margin: 0;
+    color: var(--color-ink-secondary);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  /* Drawn rather than an icon file: it is two rounded rectangles, and an
+     asset for that is a request for two rounded rectangles. */
+  .hero__scroll-mouse {
+    position: relative;
+    display: block;
+    width: 1.125rem;
+    height: 1.75rem;
+    border: 1px solid currentcolor;
+    border-radius: 999px;
+    opacity: 0.7;
+  }
+
+  .hero__scroll-wheel {
+    position: absolute;
+    top: 0.3125rem;
+    left: 50%;
+    width: 1.5px;
+    height: 0.375rem;
+    margin-left: -0.75px;
+    background: currentcolor;
+    border-radius: 999px;
+    animation: hero-scroll-wheel 1.8s var(--ease-out-expo) infinite;
+  }
+
+  @keyframes hero-scroll-wheel {
+    0% {
+      opacity: 0;
+      transform: translateY(-0.25rem);
+    }
+    35% {
+      opacity: 1;
+    }
+    70%,
+    100% {
+      opacity: 0;
+      transform: translateY(0.45rem);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__scroll-wheel {
+      animation: none;
+    }
   }
 
   /* --- Buttons ------------------------------------------------------------- */
@@ -738,9 +1094,12 @@ const {
     opacity: 0;
   }
 
-  :global(html[data-js='true']) .hero__base {
-    clip-path: inset(100% 0 0 0);
-  }
+  /* Nothing to hold here any more. The artwork's resting state used to be a
+     clip-path this rule shut on its own floor for the intro to open; the frame
+     is cut out of the tile field now, and the field is built by the script — so
+     before the script runs there is no field, and the photograph standing
+     full-bleed for those few frames is the honest thing to show rather than a
+     flash of an empty box. */
 
   /* --- Responsive ---------------------------------------------------------
      1199px, not 75rem: this must not overlap the (min-width: 1200px) gate that
@@ -811,36 +1170,13 @@ const {
       will-change: auto;
     }
 
-    /* Size the element to the 402×874 frame fitted in the section, then
-       paint the film into that box. iOS Safari often ignores object-fit on
-       <video> and covers instead, which is another way the crown gets cut. */
-    .hero__base {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-    }
+    /* Nothing to restate here. The frame is derived from the subject's place
+       in the photograph, so it follows the picture to whatever shape the screen
+       is without a second set of numbers to keep in step.
 
-    .hero__video {
-      position: relative;
-      inset: auto;
-      width: min(
-        calc(100cqw * var(--hero-mobile-fit)),
-        calc(100cqh * 402 / 874 * var(--hero-mobile-fit))
-      );
-      height: min(
-        calc(100cqh * var(--hero-mobile-fit)),
-        calc(100cqw * 874 / 402 * var(--hero-mobile-fit))
-      );
-      max-width: 100%;
-      object-fit: fill;
-      object-position: 50% 100%;
-      transform: none;
-      -webkit-mask-image: none;
-      mask-image: none;
-      background-image: url('/media/hero-video-mobile-poster.webp?v=2');
-      background-size: 100% 100%;
-      background-position: 50% 100%;
-    }
+       The whole 402x874 mobile film block that used to be here is gone with the
+       video it sized: one photograph under one field of tiles needs no second
+       cut of the artwork. */
 
     :global(html[data-js='true']) .hero__base {
       clip-path: none;
@@ -850,20 +1186,17 @@ const {
   @media (max-width: 48rem) {
 
     /* --- The copy, as two blocks ---------------------------------------
-       The headline and its tagline are one thing and the body and its
-       buttons are another, so the step between those two groups is bigger
-       than the step inside either. Everything is already left-aligned on
-       the section's own gutter — `text-align: start` and a shared 20px left
-       edge — so only the vertical steps are set here. */
+       The headline is one thing and the two ways in are another, so the step
+       between those groups is bigger than the step inside either. Everything
+       is already left-aligned on the section's own gutter, so only the
+       vertical steps are set here.
 
-    /* The tagline belongs to the headline: it names who the work is for and
-       reads as its second line, not as a paragraph under it. */
+       (This used to describe a tagline and a pitch paragraph as well. Both are
+       gone from the column — see the props at the top of this file.) */
     .hero__head {
       gap: 0.25rem;
     }
 
-    /* And the two groups sit apart. They were flush — the column had no gap
-       at all, so the body ran straight on from the tagline. */
     .hero__col--text {
       gap: 1rem;
     }

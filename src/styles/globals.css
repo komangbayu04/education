@@ -52,7 +52,12 @@
      whose dominant is rgb(8,8,8) and whose left and right edges are within a
      few levels of it. It was #e2e2e2, a light grey, from when the chapter had
      no ground of its own. */
-  --color-bg-overclock: #080b09;
+  /* Pure black, matching the foot of the hero's gradient exactly.
+
+     It was #080b09 — a hair of green in it — and against the #000 the hero
+     ends on that difference is a visible band at the join, which is the one
+     place it cannot be: the section arrives out of that gradient. */
+  --color-bg-overclock: #000000;
 
   /* Ground of the fourth section (Bedford) — dusty blush, from the reference frame. */
   --color-bg-bedford: #f2e0da;
