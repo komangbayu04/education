@@ -185,6 +185,12 @@ function initHeroReveal(hero: HTMLElement): () => void {
   let grown = { l: 0, r: 0, t: 0, b: 0 };
   /* And the photograph's transform at rest — where it has to be for the tree
      and the person to sit inside the resting frame. */
+  /* The copy column's foot, and the lift the scroll cue sits at above the
+     picture's bottom line. */
+  let colFoot = 0;
+  let stageOffset = 0;
+  const CUE_LIFT = 20;
+
   let restX = 0;
   let restY = 0;
   let restScale = 1;
@@ -221,22 +227,6 @@ function initHeroReveal(hero: HTMLElement): () => void {
     const drop = frac('--hero-frame-drop') * height;
     const top = Math.min((height - fh) / 2 + drop, height - fh);
     rest = { l: fx, r: fx + fw, t: top, b: top + fh };
-
-    /* Published for the stylesheet, so the scroll cue can sit on the same line
-       the picture's foot does.
-
-       Measured against the COPY COLUMN, which is what the cue is positioned
-       inside — not against the stage. The column stops about 66px short of the
-       section's foot, so an offset taken from the stage put the cue that far
-       above the line it was supposed to share. Written out rather than
-       recomputed in CSS from the same variables for the same reason: what the
-       frame actually lands on is this value rounded to whole tiles, and a
-       second expression would agree everywhere except the pixel that matters. */
-    const col = hero.querySelector<HTMLElement>('.hero__col--text');
-    if (col) {
-      const colBottom = col.getBoundingClientRect().bottom - stageTop;
-      hero.style.setProperty('--hero-frame-foot', `${Math.round(colBottom - rest.b)}px`);
-    }
 
     /* Where the subject sits in the photograph once `object-fit` has placed
        it — the same arithmetic the browser paints with, so the picture's own
@@ -315,6 +305,19 @@ function initHeroReveal(hero: HTMLElement): () => void {
          be stable or the edge crawls while the reader scrolls. */
       jitter = Array.from({ length: tiles.length }, () => Math.random());
     }
+  
+
+    /* Where the copy column's foot is, cached for the cue. The cue is
+       positioned inside that column, so its offset has to be measured from
+       there — the column stops about 66px short of the section's own foot. */
+    const col = hero.querySelector<HTMLElement>('.hero__col--text');
+    /* Both in the SAME space. The column's foot is read in viewport
+       coordinates and the frame's is a tile row inside the stage, so the
+       stage's own top has to join them — without it the two were 22px apart
+       and the cue's 20px lift was eaten by the difference, landing it back on
+       the picture's line. */
+    colFoot = col ? col.getBoundingClientRect().bottom : height;
+    stageOffset = stageTop;
   };
 
   /* Cut the hole at `rect`. Only tiles whose state changes are written. */
@@ -340,6 +343,19 @@ function initHeroReveal(hero: HTMLElement): () => void {
     const r0 = Math.round(rect.t / size);
     const c1 = c0 + Math.max(1, Math.round((rect.r - rect.l) / size));
     const r1 = r0 + Math.max(1, Math.round((rect.b - rect.t) / size));
+
+    /* The cue's line, published from HERE — the one place the snapped
+       rectangle exists.
+
+       It was worked out a second time in `measure`, repeating the rounding
+       against the same inputs, and the two did not agree: the published foot
+       came out 21px from the drawn one and the cue sat on the picture's line
+       instead of the 20px above it that was asked for. A number that has to
+       match a drawn edge has to come from the code that draws it. */
+    hero.style.setProperty(
+      '--hero-frame-foot',
+      `${Math.round(colFoot - (stageOffset + r1 * size)) + CUE_LIFT}px`,
+    );
 
     for (let i = 0; i < tiles.length; i += 1) {
       const c = i % cols;
