@@ -93,17 +93,37 @@ const {
 ---
 
 <header class="nav" data-nav>
+  {/* One capsule, three things: the wordmark, where you are, and the way in.
+      The bar is a shape now rather than a band across the top, so it has a
+      fill of its own — and that fill is what inverts against the section
+      under it. See the capsule's background/color in the stylesheet. */}
   <div class="nav__inner u-container">
-    <a class="nav__logo" href="/" aria-label="Tribe — home" set:html={logo} />
+    <div class="nav__bar">
+      <a class="nav__logo" href="/" aria-label="Tribe — home" set:html={logo} />
 
-    <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="nav-panel" data-nav-toggle>
-      {/* The word when the panel is shut, the two strokes crossed when it is
-          open — one control either way, so the panel never changes owner. */}
-      <span class="nav__toggle-label" aria-hidden="true">Menu</span>
-      <span class="u-sr-only">Menu</span>
-      <span class="nav__toggle-line" aria-hidden="true"></span>
-      <span class="nav__toggle-line" aria-hidden="true"></span>
-    </button>
+      {/* Which section the reader is in. Written by src/scripts/nav.ts off the
+          `data-nav-section` labels the sections declare; the value here is
+          only what stands before the first measurement and with no JS at all,
+          which is the top of the page either way.
+
+          aria-live, because for a screen reader this is the one thing in the
+          bar that changes on its own — but "polite" and nothing more: it is
+          a position report, not an announcement worth interrupting for. */}
+      <p class="nav__here" data-nav-here aria-live="polite">
+        <span class="nav__here-label" data-nav-here-label>Home</span>
+      </p>
+
+      <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="nav-panel" data-nav-toggle>
+        {/* Two strokes stacked when the panel is shut and crossed when it is
+            open — one control either way, so the panel never changes owner.
+            It used to read "Menu" in words; the mark is the same control at a
+            fraction of the width, which is what lets the capsule hold a
+            centred label without the two crowding each other. */}
+        <span class="u-sr-only">Menu</span>
+        <span class="nav__toggle-line" aria-hidden="true"></span>
+        <span class="nav__toggle-line" aria-hidden="true"></span>
+      </button>
+    </div>
   </div>
 
   <div class="nav__panel" id="nav-panel" data-nav-mobile hidden>
@@ -222,15 +242,130 @@ const {
        left to close it. */
     position: relative;
     z-index: 95;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
     /* The band is only as tall as what is in it plus --nav-gap above and
        below, so the gap to the top of the page and the gap under the wordmark
        are the same number, and neither is guesswork. */
     padding-block: var(--nav-gap);
-    color: var(--color-ink);
+  }
+
+  /* --- The capsule ---------------------------------------------------------
+     The bar is a shape with a fill, and the fill is the point: it is what
+     carries the mark and the label whatever is behind it, instead of asking
+     black type to survive a black section.
+
+     Two declarations do the whole of it: the capsule's `background` and its
+     `color`. Everything inside is drawn in `inherit` or `currentcolor`, so
+     inverting the bar is these two properties and nothing else, and the
+     inverted rule below restates the same two. */
+  .nav__bar {
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+
+    display: grid;
+    /* Three tracks with the outer two equal, so the middle one is centred on
+       the capsule and not on whatever is left over — a wordmark is wider than
+       a burger, and with `space-between` the label sits visibly right of
+       centre. `minmax(0, 1fr)` rather than `1fr` so a long section name
+       shortens the label instead of pushing the capsule wider than the page. */
+    grid-template-columns: 1fr minmax(0, auto) 1fr;
+    align-items: center;
+    gap: 1rem;
+    /* A pill, not a bar across the page: 427 x 46, centred. Both are given
+       rather than derived — the capsule is a fixed object at desktop widths,
+       so its size is a number and not the sum of what happens to be in it.
+
+       `height` and not `min-height`: at 46 the pill is shorter than the 40px
+       control plus any padding either side, so the box has to be told what it
+       is or the toggle inside it wins and the pill grows. Nothing in it is
+       taller than 46 once the logo is cut to the pill below. */
+    width: 100%;
+    max-width: 427px;
+    height: 46px;
+    margin-inline: auto;
+    padding-inline: 0.75rem;
+    border-radius: 999px;
+    /* Both, because a section change swaps them together and a fill that
+       moves before the type on it flashes an unreadable frame. */
+    transition:
+      background-color 0.45s var(--ease-out-expo),
+      box-shadow 0.45s var(--ease-out-expo),
+      -webkit-backdrop-filter 0.45s var(--ease-out-expo),
+      backdrop-filter 0.45s var(--ease-out-expo),
+      color 0.45s var(--ease-out-expo);
+  }
+
+  /* The inversion. `data-nav-over-dark` is set on the root by nav.ts while a
+     section that has declared itself dark is behind the bar — the same signal
+     that used to flip the wordmark alone, now flipping the capsule it sits
+     in. */
+  :global(html[data-nav-over-dark]) .nav__bar {
+    /* Glass, not a white slab.
+
+       Inverting to a solid white pill was the obvious move and it is the wrong
+       one over a photograph or a film: a filled shape that opaque stops being
+       a bar on the page and becomes a card lying on the artwork, and it throws
+       the brightest thing on the screen at the reader in the one place the
+       screen is supposed to be dark.
+
+       Barely-there white over a blur instead. The blur is what makes it read
+       as glass rather than as a grey rectangle — without it the same 8% white
+       is just a flat wash, because there is nothing behind it being bent. The
+       inset stroke is the edge: a pane needs a rim or it has no shape.
+
+       The ink stays light here. On a dark ground that is what is legible, and
+       it is why this rule sets a colour at all rather than leaving the base
+       one — the base is white-on-black inverted, which would put black type on
+       a dark pane. */
+    background: rgb(255 255 255 / 0.08);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+    color: var(--color-ink-invert);
+  }
+
+  /* --- Where you are -------------------------------------------------------
+     Centre track. Set in the same face and at the same size as the control
+     opposite it, so the capsule reads as one object rather than as a bar with
+     a caption in it. */
+  .nav__here {
+    grid-column: 2;
+    margin: 0;
+    min-width: 0;
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    text-align: center;
+    /* A section name is one line. Truncated rather than wrapped, because a
+       second line would grow the capsule mid-scroll. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The label swaps by fading out and back in, so what changes is legible as a
+     change. nav.ts sets `data-nav-here-out` for the length of the fade and
+     writes the new text under it — the transition is here so the script only
+     ever toggles one attribute. */
+  .nav__here-label {
+    display: inline-block;
+    transition:
+      opacity 0.28s var(--ease-out-expo),
+      transform 0.28s var(--ease-out-expo);
+  }
+
+  .nav__here[data-nav-here-out] .nav__here-label {
+    opacity: 0;
+    transform: translateY(-0.4em);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav__here-label {
+      transition: none;
+      transform: none;
+    }
   }
 
   /* --- Wordmark ----------------------------------------------------------- */
@@ -256,74 +391,68 @@ const {
      background colour in that section is the cream it sits on. To add another,
      put the attribute on it; nothing here needs to change. */
   .nav__logo {
+    grid-column: 1;
+    justify-self: start;
     display: block;
-    flex: 0 0 auto;
+    /* Inherits the capsule's colour, so the mark is one of the things the
+       inversion carries rather than a case of its own. */
     color: inherit;
   }
 
   .nav__logo :global(svg) {
-    /* Native ratio is 113 × 47, so the width is what sets the height: 5vw
-       lands the wordmark at 36px tall on a 1728px screen, which is the size
-       the reference bar carries. */
-    width: clamp(4.25rem, 5vw, 5.75rem);
+    /* Native ratio is 113 × 47, so the width is what sets the height. Cut to
+       the pill: at the old 5vw the mark stood 36px tall inside a 46px capsule
+       with 8px of air left over, which reads as a logo wedged into a button.
+       58px wide puts it at 24px tall — a third of the pill's width and half
+       its height, which is the proportion the reference bar has. */
+    width: 3.625rem;
     height: auto;
+    display: block;
   }
 
   /* --- Menu control --------------------------------------------------------
      A chip, at every width. It is the only way into the site's navigation, so
      it has to look like a control rather than like an icon. */
+  /* The chip is gone. It was a bordered box with the word "Menu" in it, on a
+     bar that had no fill — on the capsule that reads as a button glued to a
+     button, and the word is a third piece of type in a bar that now has a
+     centred label to protect. Two strokes on the capsule's own ground, at the
+     control height so the band still reserves what it always did. */
   .nav__toggle {
+    grid-column: 3;
+    justify-self: end;
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    /* Height from the token rather than from padding, so the band above can
-       reserve exactly this and the two cannot drift apart. */
-    min-height: var(--nav-control-h);
-    /* Was 2.25rem a side, which is what made the chip 120px wide next to a
-       72px wordmark — most of that width was padding rather than word. */
-    padding-inline: 1.5rem;
-    border-radius: 0.4375rem;
-    /* Inside stroke, 1px, black at 16% — straight off the spec. Inside is what
-       `border` already does on a border-box element, so the chip's height
-       stays exactly --nav-control-h rather than growing by the stroke. */
-    border: 1px solid rgb(0 0 0 / 0.16);
-    background: var(--color-bg-secondary);
-    color: var(--color-ink);
+    /* Square, on the pill's inside height rather than on --nav-control-h:
+       that token describes the old chip and is taller than this whole bar. */
+    width: 1.875rem;
+    height: 1.875rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: inherit;
     cursor: pointer;
-    transition: background 0.35s var(--ease-out-expo);
-  }
-
-  .nav__toggle:hover,
-  .nav__toggle:focus-visible {
-    background: var(--color-line);
-  }
-
-  .nav__toggle-label {
-    font-family: var(--font-display);
-    /* Down with the chip around it. At 15px this was set larger than the nav
-       links it opens, which reads as the loudest thing in the bar. */
-    font-size: 0.8125rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    line-height: 1;
   }
 
   /* Both strokes share one centre and are only ever translated or rotated from
      it. Stacked in a flex column instead, the closed gap and the rotation had
      to cancel each other by hand, and the two crossed off-centre — which is
-     the broken X. Hidden until the panel is open; the word is the shut state's
-     control and the cross is the open one's. */
+     the broken X.
+
+     Visible in both states now: apart, they are the burger the shut bar shows;
+     rotated onto each other, they are the cross the open one does. The word
+     that used to be the shut state's control is gone, so these are it. */
   .nav__toggle-line {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 1rem;
-    height: 1px;
-    margin-left: -0.5rem;
-    background: var(--color-ink);
-    opacity: 0;
+    width: 1.125rem;
+    height: 1.5px;
+    margin-left: -0.5625rem;
+    background: currentcolor;
     transform: translateY(-3px);
     transition: transform 0.4s var(--ease-out-expo);
   }
@@ -336,29 +465,11 @@ const {
      label and the screen-reader text, so :first-child matched no line at all
      and only one stroke ever rotated — which is the broken X. */
   .nav__toggle[aria-expanded='true'] .nav__toggle-line:nth-last-child(2) {
-    opacity: 1;
     transform: rotate(45deg);
   }
 
   .nav__toggle[aria-expanded='true'] .nav__toggle-line:last-child {
-    opacity: 1;
     transform: rotate(-45deg);
-  }
-
-  .nav__toggle[aria-expanded='true'] .nav__toggle-label {
-    opacity: 0;
-  }
-
-  /* A square once the word inside it is gone. Left at the chip's shut width it
-     is a wide slab holding a small cross, which is not the mark this design
-     has — and the label only goes transparent, so nothing else would collapse
-     the box.
-
-     Square on the control height, not a smaller number: the band reserves that
-     height either way, so anything shorter just floats in it. */
-  .nav__toggle[aria-expanded='true'] {
-    width: var(--nav-control-h);
-    padding-inline: 0;
   }
 
   /* --- Panel ---------------------------------------------------------------
@@ -604,26 +715,22 @@ const {
     color: var(--color-ink-invert);
   }
 
-  /* The bar sits above the panel — its chip has to stay reachable — so the
-     wordmark inverts while the panel is dark behind it. The chip keeps its own
-     light ground and dark strokes: a light control on a dark sheet is the
-     clearer of the two, and it is what the frame has. */
-  :global(html[data-nav-open]) .nav__logo,
-  /* And the same over a dark section, set by the tone observer in nav.ts. The
-     mark is drawn in currentColor, so this is the whole of it. Both selectors
-     ask for the same colour, so the panel being open over a dark section is
-     not a conflict — it is the same answer twice. */
-  :global(html[data-nav-over-dark]) .nav__logo {
-    color: var(--color-ink-invert);
-  }
+  /* The panel is a dark sheet and the capsule sits above it — the way out has
+     to stay reachable — so the capsule inverts while it is open, exactly as it
+     does over a dark section. Both selectors ask for the same swap, so the
+     panel being open over a dark section is not a conflict: it is the same
+     answer twice.
 
-  /* Only the colour is animated, and only here. The mark crosses the edge of a
-     dark section in a few frames of scrolling, and switching outright reads as
-     a glitch at that speed; a short ease reads as the mark responding to what
-     it is over. Left out of the reduced-motion query on purpose — a colour
-     fade with no movement is not what that setting is asking to be spared. */
-  .nav__logo {
-    transition: color 0.28s var(--ease-out-expo);
+     This used to be stated on the wordmark alone, because the wordmark was the
+     only thing in the bar with no ground of its own. Everything in the capsule
+     inherits its colour now, so inverting the capsule is the whole of it and
+     the mark needs no rule at all. */
+  :global(html[data-nav-open]) .nav__bar {
+    background: rgb(255 255 255 / 0.08);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+    color: var(--color-ink-invert);
   }
 
   /* --- Responsive ----------------------------------------------------------
@@ -643,18 +750,23 @@ const {
        `:root` rule in this file would be scoped to the component and never
        match anything. */
 
-    .nav__toggle {
-      padding-inline: 1.25rem;
-      border-radius: 0.375rem;
+    .nav__bar {
+      /* No 427 here — on a 375px screen that is wider than the page. The pill
+         takes what the gutter leaves and keeps its height. */
+      max-width: none;
+      gap: 0.5rem;
+      padding-inline: 0.625rem;
     }
 
-    .nav__toggle-label {
-      font-size: 0.75rem;
-      letter-spacing: 0.06em;
+    /* The section name is the first thing to give at this width — it is the
+       one part of the capsule that is a report rather than a control. */
+    .nav__here {
+      font-size: 0.6875rem;
+      letter-spacing: 0.05em;
     }
 
     .nav__logo :global(svg) {
-      width: 3.625rem;
+      width: 3.125rem;
     }
 
     /* --- The open panel -----------------------------------------------

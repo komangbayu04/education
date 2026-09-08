@@ -349,8 +349,10 @@ export function initNav(): () => void {
   }
 
   const stopTone = initLogoTone(nav);
+  const stopHere = initSectionLabel(nav);
 
   return () => {
+    stopHere();
     stopTone();
     controller.abort();
     animation?.kill();
@@ -380,6 +382,36 @@ export function initNav(): () => void {
  *
  * Returns a cleanup function.
  */
+/**
+ * How much of an element is actually on screen, as the product of its own
+ * opacity and every ancestor's.
+ *
+ * Being in the right place is not enough, and the scene is why. Its chapters
+ * are stacked layers, all of them `inset: 0` and all of them full size from the
+ * first frame — the one you see is the one that has been faded up. So a
+ * chapter's box is behind the bar from scroll 0, a screen and a half before it
+ * is visible, and testing geometry alone turned the mark white over the white
+ * hero. Reading the layer's opacity is what separates "is in that part of the
+ * page" from "is what is on screen there".
+ *
+ * Shared by both watchers below: which section is behind the bar and how dark
+ * it is are the same question asked twice.
+ */
+function painted(el: HTMLElement): number {
+  let node: HTMLElement | null = el;
+  let alpha = 1;
+
+  while (node && node !== document.body) {
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden') return 0;
+    alpha *= Number(style.opacity);
+    if (alpha === 0) return 0;
+    node = node.parentElement;
+  }
+
+  return alpha;
+}
+
 function initLogoTone(nav: HTMLElement): () => void {
   const logo = nav.querySelector<HTMLElement>('.nav__logo');
   const zones = gsap.utils.toArray<HTMLElement>('[data-nav-over="dark"]');
@@ -420,21 +452,6 @@ function initLogoTone(nav: HTMLElement): () => void {
      before it is visible, and testing geometry alone turned the mark white over
      the white hero. Reading the layer's opacity is what separates "is in that
      part of the page" from "is what is on screen there". */
-  const painted = (el: HTMLElement): number => {
-    let node: HTMLElement | null = el;
-    let alpha = 1;
-
-    while (node && node !== document.body) {
-      const style = getComputedStyle(node);
-      if (style.display === 'none' || style.visibility === 'hidden') return 0;
-      alpha *= Number(style.opacity);
-      if (alpha === 0) return 0;
-      node = node.parentElement;
-    }
-
-    return alpha;
-  };
-
   /* Half, because the chapters cross-fade: at 0.5 the dark one is as much of
      what you see as the light one it is replacing, which is the moment the mark
      has to have changed by. Paired with the 0.28s ease on its colour, so the
@@ -471,5 +488,125 @@ function initLogoTone(nav: HTMLElement): () => void {
   return () => {
     watcher.kill();
     root.removeAttribute('data-nav-over-dark');
+  };
+}
+
+/**
+ * Where you are, in the middle of the capsule.
+ *
+ * Every section that wants a name declares one with `data-nav-section`, the
+ * same way the dark ones declare themselves with `data-nav-over`. Declared and
+ * not derived, because a heading is not a label: "Hear what our clients said
+ * about their experiences with us!" is the founders section's title and cannot
+ * be what the bar reads, and the scene's chapters have no heading in the DOM
+ * order the bar would have to guess from.
+ *
+ * WHICH ONE WINS. The bar is a line across the viewport, so the section the
+ * reader is in is the one painted under that line — not the one nearest the
+ * top of the page, and not the first one to intersect the viewport. Two things
+ * make that reading correct where a simpler one is not:
+ *
+ *   the pin   the scene's chapters are stacked layers that all occupy the same
+ *             box for the whole of the pin, so geometry alone says three
+ *             sections are under the bar at once from the first frame. Their
+ *             opacity is what separates them, which is what `painted` reads.
+ *
+ *   the join  sections overlap deliberately at their edges — Two ways in is
+ *             pulled up over the held last frame of Our work, and the two are
+ *             both under the bar for the length of that dissolve. The most
+ *             painted one is the one being looked at, so the label changes
+ *             when the dissolve passes half rather than at either end of it.
+ *
+ * A section that is behind the bar but faded to nothing does not win, and when
+ * nothing wins at all the label is left as it was rather than blanked — the
+ * gaps are the moments between two sections, and a bar that empties in them
+ * flickers once per join.
+ *
+ * The text is swapped under a fade the stylesheet owns: this sets one
+ * attribute, waits for it, writes, and clears. Returns a cleanup function.
+ */
+function initSectionLabel(nav: HTMLElement): () => void {
+  const here = nav.querySelector<HTMLElement>('[data-nav-here]');
+  const label = nav.querySelector<HTMLElement>('[data-nav-here-label]');
+  const sections = gsap.utils.toArray<HTMLElement>('[data-nav-section]');
+  if (!here || !label || !sections.length) return () => {};
+
+  const bar = nav.querySelector<HTMLElement>('.nav__bar') ?? nav;
+
+  /* The bar is fixed, so its box only moves when the layout does. */
+  let line = { top: 0, bottom: 0 };
+  const measure = () => {
+    const r = bar.getBoundingClientRect();
+    line = { top: r.top, bottom: r.bottom };
+  };
+
+  /* Below this a section is a leftover rather than the thing on screen. Half,
+     like the tone watcher's own threshold and for the same reason: at 0.5 a
+     crossfading section is as much of what you see as the one it is replacing,
+     which is the moment the name has to have changed by. */
+  const COVERED = 0.5;
+
+  let current = label.textContent?.trim() ?? '';
+  let timer = 0;
+
+  const write = (next: string) => {
+    if (next === current) return;
+    current = next;
+
+    /* Out, write, in. The wait is the stylesheet's transition; matching it
+       here rather than reading it back keeps the two in one place to change,
+       and being a few ms out only means the text is written a frame into a
+       fade that is already at zero. */
+    window.clearTimeout(timer);
+    here.setAttribute('data-nav-here-out', '');
+    timer = window.setTimeout(() => {
+      label.textContent = next;
+      here.removeAttribute('data-nav-here-out');
+    }, 280);
+  };
+
+  const apply = () => {
+    let best: HTMLElement | null = null;
+    let bestAlpha = COVERED;
+
+    for (const section of sections) {
+      const b = section.getBoundingClientRect();
+      // Crossing the bar's own line, not merely on screen somewhere.
+      if (b.top >= line.bottom || b.bottom <= line.top) continue;
+
+      const alpha = painted(section);
+      /* `>=` rather than `>`, so that among equally painted sections — which
+         is every ordinary pair, both fully opaque, overlapping only at a
+         join — the later one in the document wins. That is the one arriving,
+         and arriving is the direction the reader is going. */
+      if (alpha >= bestAlpha) {
+        best = section;
+        bestAlpha = alpha;
+      }
+    }
+
+    // Nothing under the bar: keep the last name rather than blanking.
+    if (best?.dataset.navSection) write(best.dataset.navSection);
+  };
+
+  measure();
+  apply();
+
+  /* Same ticker as everything else here — Lenis owns the scroll position, and
+     a raw scroll listener would be reading it a frame behind the page. */
+  const watcher = ScrollTrigger.create({
+    start: 0,
+    end: 'max',
+    onUpdate: apply,
+    onRefresh: () => {
+      measure();
+      apply();
+    },
+  });
+
+  return () => {
+    window.clearTimeout(timer);
+    watcher.kill();
+    here.removeAttribute('data-nav-here-out');
   };
 }
