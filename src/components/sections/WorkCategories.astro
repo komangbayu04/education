@@ -435,12 +435,24 @@ const {
 
      Only the first category's copy is on to start with: without the script
      that is the one category the section shows, which is the same thing it
-     showed before. */
+     showed before.
+
+     `visibility` ALONE, and the missing `opacity: 0` is the whole point of this
+     note. It was there, and it was correct for as long as the painter wrote an
+     opacity of its own over the top of it. The moment the painter stopped —
+     when the words became a mask rather than a fade — nothing was overriding it
+     any more, and every category but the first stayed at zero for good. The
+     mask opened and closed underneath a block that was never going to be seen.
+
+     Reported as the words not appearing at all past the first category, and my
+     own sweep said the section was fine: it was reading the two mask variables,
+     which were perfect, and had stopped reading the property I had stopped
+     writing. Check what is painted, not what you meant to paint.
+
+     `visibility: hidden` does the whole job here anyway. It hides the block
+     without JS, it keeps four idle copy columns out of the compositor, and it
+     is what the painter toggles. */
   .cat__screen:not(:first-child) .cat__group {
-    opacity: 0;
-    /* Paired with opacity, and kept in step by GSAP's autoAlpha: four
-       transparent copy columns are still four composited surfaces on every
-       scrolled frame, four hidden ones are not. */
     visibility: hidden;
   }
 
