@@ -169,6 +169,26 @@ export function initWorkCategories(): () => void {
       },
     });
 
+    /* THE DISSOLVE ITSELF, and it is the only thing on this timeline.
+
+       It went missing for a commit. When the words were taken off this timeline
+       and made a function of the scroll instead, the deletion ran from the
+       comment above the first copy tween to the cleanup below the last — and
+       this sat between them and went with them. What was left was a timeline
+       with nothing in it and two callbacks snapping the mask to either end, so
+       one category replaced the next with no gradient and no travel: the change
+       without the dissolve.
+
+       `immediateRender: false` because the resting state is a whole picture and
+       the stylesheet already says so — rendered at build this would wipe away
+       whichever category the section is currently showing. */
+    tl.fromTo(
+      outPic,
+      { '--cat-wipe': 0 },
+      { '--cat-wipe': 155, duration: WIPE_FOR, ease: 'none', immediateRender: false },
+      WIPE_AT,
+    );
+
     cleanups.push(() => {
       tl.scrollTrigger?.kill();
       tl.kill();
