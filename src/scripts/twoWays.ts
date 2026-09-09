@@ -38,11 +38,15 @@ export function initTwoWays(): () => void {
   const steps = gsap.utils.toArray<HTMLElement>('[data-two-step]', section);
   if (!win || steps.length < 2) return () => {};
 
+  const panel = gsap.utils.toArray<HTMLElement>('[data-offer-copy]', section);
+
   if (prefersReducedMotion()) {
     gsap.set(section, { '--two-win-t': '0%', '--two-win-x': '0%' });
+    gsap.set(panel, { autoAlpha: 1 });
     if (copy) gsap.set(copy, { autoAlpha: 0 });
     return () => {
       gsap.set(section, { clearProps: '--two-win-t,--two-win-x' });
+      gsap.set(panel, { clearProps: 'opacity,visibility' });
       if (copy) gsap.set(copy, { clearProps: 'opacity,visibility' });
     };
   }
@@ -100,10 +104,32 @@ export function initTwoWays(): () => void {
     );
   }
 
+  /* And the panel's own words, last of all.
+
+     Held back until the window is within a couple of percent of the full frame,
+     because until then the clip runs straight through them: what the reader got
+     was the right-hand halves of three lines of a headline, which reads as
+     something broken rather than as something arriving. The ground behind the
+     window is visible the whole time; it is only the type that waits.
+
+     0.68 is not an arbitrary two thirds. The opening is eased out, so by that
+     point the window has already covered 96.7% of the distance to the corners
+     of the screen — the number is late in the timeline and early in nothing the
+     reader can see. */
+  if (panel.length) {
+    tl.fromTo(
+      panel,
+      { autoAlpha: 0 },
+      { autoAlpha: 1, ease: 'power2.out', duration: 0.26 },
+      0.68,
+    );
+  }
+
   return () => {
     tl.scrollTrigger?.kill();
     tl.kill();
     gsap.set(section, { clearProps: '--two-win-t,--two-win-x' });
+    gsap.set(panel, { clearProps: 'opacity,visibility' });
     if (copy) gsap.set(copy, { clearProps: 'opacity,visibility' });
   };
 }

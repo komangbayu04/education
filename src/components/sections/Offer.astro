@@ -48,12 +48,12 @@ const {
 ---
 
 <div class="offer" data-offer>
-  <p class="offer__index">
+  <p class="offer__index" data-offer-copy>
     <span class="offer__mark" aria-hidden="true">//</span>
     {number}
   </p>
 
-  <div class="offer__copy">
+  <div class="offer__copy" data-offer-copy>
     <p class="offer__name">{name}</p>
     <p class="offer__summary">{summary}</p>
 
@@ -157,6 +157,35 @@ const {
     height: 1.125rem;
     border: 1px solid rgb(23 24 26 / 0.45);
     border-radius: 50%;
+  }
+
+  /* --- Held back until the window is open ----------------------------------
+     The words wait; the ground does not.
+
+     While the window is still a rectangle low on the screen, the clip cuts
+     straight through this panel's sentence — the reader gets "ne deadline," and
+     "quires." with the left half of every line missing. A ground behind a small
+     window reads as a picture of something; three words of a broken headline
+     read as a fault.
+
+     So only these two blocks are held back, not the panel: the grey stays
+     visible through the window from the first frame, and the type arrives once
+     there is a whole screen to put it on. src/scripts/twoWays.ts brings it in
+     over the last third of the opening, which with that ease is the stretch
+     where the window is already within a couple of percent of the full frame.
+
+     JS-gated, so a page without it renders the panel finished rather than
+     blank. */
+  :global(html[data-js='true']) [data-offer-copy] {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) [data-offer-copy] {
+      opacity: 1;
+      visibility: visible;
+    }
   }
 
   @media (max-width: 48rem) {
