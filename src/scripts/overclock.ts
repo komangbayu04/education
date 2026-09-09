@@ -230,8 +230,6 @@ function initOverclockHandover(
   span: () => number,
   join: () => number,
 ): () => void {
-  const screen = work?.querySelector<HTMLElement>('[data-cat-dissolve]');
-
   /* The same range as the pin, deliberately.
 
      An offset start — `top top-=1800`, to begin where the sequence above ends
@@ -297,12 +295,19 @@ function initOverclockHandover(
     at,
   );
 
-  /* And the next section coming up under it, finishing well before the wipe
-     does. It has to be all the way there by the time the mask stops hiding it,
-     or the last of the dissolve reveals a section still arriving. */
-  if (screen) {
-    tl.fromTo(screen, { autoAlpha: 0 }, { autoAlpha: 1, ease: 'none', duration: rest * 0.62 }, at);
-  }
+  /* Our work is NOT faded up under it, and that is a change.
+
+     It was: the next section came up from zero while this one dissolved. Two
+     things were wrong with it. It made the join a crossfade in all but name,
+     when everywhere else on this page a handover is one layer being taken away
+     from another that was already whole underneath. And it could not survive
+     that section's ground moving onto its own sticky screen — which it had to,
+     so the ground would stop outliving the screen by a window — because a
+     half-faded screen means a half-transparent ground, and what showed through
+     for the length of the dissolve was the page's white.
+
+     So the mask is the whole of it. What it uncovers is Our work already
+     finished and already black, which is what "revealed" is supposed to mean. */
 
   return () => {
     tl.scrollTrigger?.kill();

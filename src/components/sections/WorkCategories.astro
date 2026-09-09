@@ -302,14 +302,16 @@ const {
        inside — and this one does not scroll, so the screen would simply sit at
        the top of the section and leave with it. */
     isolation: isolate;
-    background: var(--color-bg-work);
+    /* No ground on the section itself — it is on the screen below.
+
+       The section's box outlives its screen by a window: a sticky child lets
+       go with its containing block's last viewport still to scroll. Painted
+       here, that trailing window is a screen of black covering Two ways in
+       long after the pixel reveal has handed over to it — which is exactly
+       what it looked like, the last category leaving and nothing arriving.
+       Painted on the screen, the ground goes when the screen goes. */
     color: var(--color-ink-invert);
-    /* The beat after Marketing, and then the window the pixel reveal into Two
-       ways in plays in. The second is what holds this section's last screen
-       still while the section underneath it is already in place — see
-       `--two-join` in globals.css, which the other side of the join reads
-       too. */
-    padding-bottom: calc(var(--work-outro) + var(--two-join));
+
   }
 
   /* --- The sticky screen ---------------------------------------------------- */
@@ -318,6 +320,11 @@ const {
     top: 0;
     z-index: 1;
     height: 100svh;
+    /* The section's ground, here rather than on the section — see the note
+       above. Opaque in its own right, so what Overclock's mask uncovers is
+       this section already finished rather than a half-faded layer over the
+       page's white. */
+    background: var(--color-bg-work);
     /* The artwork bleeds past the right and bottom of this box on purpose. */
     overflow: hidden;
   }
@@ -530,6 +537,11 @@ const {
   .cat__track {
     position: relative;
     z-index: 0;
+    /* Measurements, not surface. The section's box now outlives its screen by
+       a window — the ground moved to the screen so that stretch is invisible,
+       but an invisible box still takes clicks, and Two ways in is underneath
+       it for the whole of it. */
+    pointer-events: none;
     /* Two things at once. The window cancels the sticky screen's own height,
        so the first step begins where the reader sees the section begin rather
        than a window below it. The join is then added back, because the first
@@ -542,6 +554,28 @@ const {
 
   .cat__step {
     height: var(--cat-step);
+  }
+
+  /* The beat after Marketing, and then the window the pixel reveal into Two
+     ways in plays in — the second is what holds this section's last screen
+     still while the section underneath it is already in place. See
+     `--work-outro` and `--two-join` in globals.css; the other side of the join
+     reads the second of them too.
+
+     ON THE TRACK, and it has to be. It was `padding-bottom` on the section,
+     and a sticky child is constrained by its containing block's CONTENT box —
+     padding is outside it. So the screen let go 1692px early: Marketing
+     scrolled away under the reader while the section's own black ground, which
+     does extend through the padding, went on covering Two ways in behind it.
+     What that looked like was the last category sliding off and a screen of
+     nothing following it. Measured: the sticky released at 9090 where the
+     arithmetic wanted 10782, and the difference was exactly these two numbers.
+
+     As padding on the track it is content of the section rather than space
+     around it, the containing block grows by it, and the screen stays put for
+     the whole of it. */
+  .cat__track {
+    padding-bottom: calc(var(--work-outro) + var(--two-join));
   }
 
   /* --- Responsive ----------------------------------------------------------- */
