@@ -1,29 +1,42 @@
 ---
 /**
- * Footer — the page's closing block, in two sections.
+ * Footer — the page's closing screen, and the page does not scroll to it. It
+ * is already there, fixed to the bottom of the window, and the section above
+ * slides off it.
  *
- * 1. THE QUOTE REGION (`.fq`). The founder quote on a full-bleed photograph,
- *    dimmed by a scrim that fades out downward, with the portrait anchored to
- *    its bottom-right.
+ * That is the whole idea and it is why nothing here animates. The reveal is
+ * not an effect played at a moment; it is the last section of the page moving
+ * out of the way of something that has been sitting behind it the whole time.
  *
- *    That photograph is also the last image of the testimonials scroll: under
- *    the scrolled cut of chapter 8 (TestimonialsFloat.astro) this section is
- *    given a runway of white above the band, the photograph starts as a small
- *    card in it, and src/scripts/founderQuote.ts opens it out to the band as
- *    the section travels up the screen. One picture, not a stand-in that
- *    trades places with the real thing — there is nothing here to hand over
- *    to, because this *is* the thing.
+ * Three parts:
  *
- * 2. THE INK BAND (`.ft`). Solid black: the legal line on the left, the nav +
+ * 1. THE SPACER (`.close__spacer`). Empty, transparent, one screen tall, and
+ *    the only reason there is anything left to scroll once the testimonials
+ *    have ended. What shows through it is the fixed block underneath.
+ *
+ * 2. THE QUOTE (`.fq`). The founder quote on a full-bleed photograph, dimmed
+ *    by a scrim that fades out downward, with the portrait anchored to its
+ *    bottom-right.
+ *
+ * 3. THE INK BAND (`.ft`). Solid black: the legal line on the left, the nav +
  *    contact cluster on the right, and the graffiti "Tribe." wordmark laid
  *    across it in `mix-blend-difference` so it reads as a bright grey lifted
- *    off the black. It arrives on its own scroll, after the photograph has
- *    settled — which is the only reason the two are separate elements rather
- *    than one footer.
+ *    off the black.
  *
- * Lives in the page rather than Base.astro: the two pages that exist each
- * pass their own copy if they need to, and putting it in the layout would
- * force that decision on every future page.
+ * WHAT WENT. The photograph used to arrive as a small card on a screen of
+ * white and open out into the band as the section travelled up (the runway,
+ * and src/scripts/founderQuote.ts), the quote and portrait were written on
+ * after it landed, and the wordmark drew itself in pen strokes. All of it is
+ * out: a fixed footer is uncovered rather than played, and a thing that is
+ * uncovered cannot also be assembling itself while you look at it.
+ *
+ * The two above it are still separate elements because they are separate
+ * things — a photograph and a band — but they are now one screen and share a
+ * height between them.
+ *
+ * Lives in the page rather than Base.astro: the two pages that exist each pass
+ * their own copy if they need to, and putting it in the layout would force
+ * that decision on every future page.
  */
 import markRaw from '../../assets/footer-wordmark.svg?raw';
 
@@ -71,20 +84,41 @@ const {
 } = Astro.props;
 ---
 
-{
-  /*
-    data-quote: everything in founderQuote.ts hangs off this — the reveal and,
-    under the scrolled cut of the testimonials, the photograph opening out.
+{/*
+  The scroll that uncovers the block below. Nothing is in it and nothing is
+  drawn on it — the fixed screen underneath is what shows through, and this is
+  only the distance the page needs so there is something left to scroll once
+  the section above has ended.
 
-    No data-nav-over here. The darkness in this section is a band at the *foot*
-    of the screen for the whole approach, with white above it, so declaring the
-    section dark would invert the mark over white. The photograph carries the
-    declaration itself instead, and the observer's geometry test does the rest:
-    the mark turns when the picture is actually behind it.
-  */
-}
-<section class="fq" data-quote>
-  <div class="fq__media" data-fq-media data-nav-over="dark" aria-hidden="true">
+  Its height is the block's own, measured and written to `--close-h` by
+  src/scripts/footer.ts. One screen is the CSS fallback and the right answer
+  almost always; the measurement is what covers a window too short for the
+  closing screen to fit in one.
+*/}
+<div class="close__spacer" aria-hidden="true"></div>
+
+<div class="close" data-close>
+  {/*
+    What the nav reads, and it draws nothing.
+
+    The block is `position: fixed`, so its box is in the window from the first
+    pixel of the page — and the nav decides by box and painted opacity, not by
+    what is actually on top. Declared on the photograph, as it was, the capsule
+    would have turned to glass over the hero. This marker carries the
+    declarations instead and is faded up only as the block is uncovered, so the
+    nav learns about the footer exactly when the reader does.
+  */}
+  <div
+    class="close__zone"
+    data-nav-over="dark"
+    data-nav-section="Get in touch"
+    data-close-zone
+    aria-hidden="true"
+  >
+  </div>
+
+<section class="fq">
+  <div class="fq__media" aria-hidden="true">
     {
       image ? (
         <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
@@ -98,16 +132,16 @@ const {
   {/* The band the photograph ends as, and what stands on it. Laid out at its
       finished size from the start — the picture grows into this box rather
       than the box being animated, so the copy is never reflowed mid-scroll. */}
-  <div class="fq__band" data-fq-band>
+  <div class="fq__band">
     <figure class="fq__figure">
-      <blockquote class="fq__text" data-quote-reveal>{quote}</blockquote>
-      <figcaption class="fq__who" data-quote-reveal>
+      <blockquote class="fq__text">{quote}</blockquote>
+      <figcaption class="fq__who">
         <p class="fq__name">{name}</p>
         <p class="fq__role">{role}</p>
       </figcaption>
     </figure>
 
-    <div class="fq__portrait" data-quote-reveal>
+    <div class="fq__portrait">
       {
         portrait ? (
           <img src={portrait} alt={portraitAlt} loading="lazy" decoding="async" />
@@ -119,7 +153,7 @@ const {
   </div>
 </section>
 
-<footer class="ft" data-nav-section="Get in touch" data-nav-over="dark">
+<footer class="ft">
   <div class="ft__meta">
     <div class="ft__wordmark" aria-hidden="true" set:html={mark} />
 
@@ -150,8 +184,53 @@ const {
     </div>
   </div>
 </footer>
+</div>
 
 <style>
+  /* =====================================================================
+     0. The fixed closing screen
+     ===================================================================== */
+
+  /* Behind the page, not after it.
+
+     `z-index: 0` puts this under every section above, each of which carries a
+     rank of its own — see the ladder note in src/pages/index.astro. Document
+     order would have put it on top: it is the last element on the page, and at
+     equal rank the later one wins.
+
+     One screen, and it has to be one screen. A fixed box is anchored to the
+     bottom of the window, so anything taller than the window has its top cut
+     off with no way to reach it. The two parts inside share that screen —
+     the band takes what it needs and the photograph takes the rest. */
+  .close {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+  }
+
+  /* The distance the page needs so there is something left to scroll once the
+     section above has ended. `--close-h` is the block's measured height and is
+     written by src/scripts/footer.ts; the fallback is the same screen the
+     block is, which is the right answer at every ordinary window. */
+  .close__spacer {
+    height: var(--close-h, 100svh);
+  }
+
+  /* Draws nothing. Its opacity is a signal to the nav, not a surface — see the
+     note on it in the markup. */
+  .close__zone {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   /* =====================================================================
      1. The quote region
      ===================================================================== */
@@ -159,25 +238,16 @@ const {
     /* One gutter, symmetric — the reference frame sets both sides at 132px. */
     --ft-gutter: clamp(1.25rem, 9.2vw, 8.25rem);
 
-    /* The photograph's finished box: full width, this tall, at the foot of
-       the section. The frame gives the quote region 521 of 900, and 32rem is
-       the floor the copy and the portrait need. */
-    --fq-band: max(32rem, 57.9svh);
-
-    /* White above it for the photograph to grow across. Only ever there
-       under the scrolled cut of the testimonials — see the block at the
-       bottom of this stylesheet. */
-    --fq-runway: 90svh;
-
     position: relative;
-    /* What the card sits on while it is still a card. */
-    background: var(--color-bg-primary);
+    /* Everything the band does not take. The two together are the closing
+       screen and neither has a height of its own any more — the band asks for
+       what its content needs and the photograph fills what is left, so the
+       screen is always exactly a screen. */
+    flex: 1;
+    min-height: 0;
     color: var(--color-ink-invert);
   }
 
-  /* Filling the section is the resting state, and the honest one: with no JS,
-     or under reduced motion, there is no runway and this simply *is* the
-     region. The growing box is written over the top of it per frame. */
   .fq__media {
     position: absolute;
     inset: 0;
@@ -205,11 +275,19 @@ const {
     background: linear-gradient(180deg, rgb(0 0 0 / 0.26), rgb(0 0 0 / 0));
   }
 
+  /* No minimum height any more. It had one — `--fq-band` — from when this
+     section was as tall as the page made it and the band had to hold a floor
+     open inside it. Inside a fixed screen a floor is a way to overflow: the
+     block is anchored to the bottom of the window, so every pixel the content
+     asks for beyond one screen is a pixel off the top that nothing can scroll
+     to. The content asks, and the photograph above takes what is left. */
   .fq__band {
     position: relative;
     z-index: 1;
-    min-height: var(--fq-band);
-    padding: clamp(3rem, 8.6vw, 7.75rem) var(--ft-gutter);
+    /* Both ends scale with the window's HEIGHT as well as its width, for the
+       same reason the band below is capped: on a short screen this padding is
+       the first thing that should give. */
+    padding: clamp(1.25rem, 5svh, 5.5rem) var(--ft-gutter) clamp(1rem, 3.5svh, 3.5rem);
   }
 
   .fq__figure {
@@ -222,7 +300,11 @@ const {
   .fq__text {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(1.5rem, 3.6vw, 2.25rem);
+    /* Bound by the shorter side of the window rather than by its width alone.
+       `3.6vw` on a wide, short screen is a 36px quote in 200px of room; `vmin`
+       lets the height have a say, which is what keeps four lines of it inside a
+       fixed screen. */
+    font-size: clamp(1.25rem, 3.4vmin + 0.4vw, 2.25rem);
     font-weight: 400;
     line-height: 1.222;
     letter-spacing: -0.003em;
@@ -253,7 +335,11 @@ const {
     right: clamp(0.75rem, 7vw, 6.375rem);
     bottom: 0;
     z-index: 1;
+    /* Width from the frame, height capped against the window: the portrait is
+       anchored to the foot of a fixed screen, so a tall one pushes its own top
+       past the quote it is standing beside. */
     width: clamp(15rem, 30vw, 27.3125rem);
+    max-height: 62%;
     aspect-ratio: 437 / 480;
     pointer-events: none;
   }
@@ -269,20 +355,6 @@ const {
 
   .fq__portrait-fallback {
     background: linear-gradient(170deg, #ffffff, #dcdcd8);
-  }
-
-  /* --- Pre-reveal state ---------------------------------------------------
-     The copy and the portrait are written on once the photograph has reached
-     its band. Without JS they are simply there. */
-  :global(html[data-js='true']) [data-quote-reveal] {
-    opacity: 0;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) [data-quote-reveal] {
-      opacity: 1;
-      transform: none;
-    }
   }
 
   /* =====================================================================
@@ -307,7 +379,13 @@ const {
     align-items: flex-end;
     justify-content: space-between;
     gap: 2rem;
-    min-height: 23.5rem;
+    /* Capped against the window as well as stated in rem. The closing screen is
+       fixed to the bottom of the viewport, so anything the two halves ask for
+       beyond one screen comes off the TOP of the photograph and cannot be
+       scrolled to. Measured at 1024x600: the band wanted 374 in the 224 it had
+       been left, and 150px of the quote was above the window with no way to
+       reach it. */
+    min-height: min(23.5rem, 44svh);
     padding: 3.5rem var(--ft-gutter);
     background: var(--color-bg-footer);
   }
@@ -325,18 +403,12 @@ const {
     pointer-events: none;
   }
 
-  /* Pre-animation state: the pen strokes inside the SVG mask are undrawn and
-     the settle layer is off, so the tag is invisible until founderQuote.ts
-     writes it on when the ink band scrolls in. Without JS the SVG renders
-     finished on its own; under reduced motion we force that finished state. */
-  :global(html[data-js='true']) .ft__wordmark :global(.wm-pen path) {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-  }
-
-  :global(html[data-js='true']) .ft__wordmark :global(.wm-settle) {
-    opacity: 0;
-  }
+  /* The wordmark renders finished, and there is no pre-animation state left to
+     write over. It used to draw itself on in pen strokes — the paths inside the
+     SVG mask started undrawn and the settle layer started off, and
+     founderQuote.ts wrote them in as the band scrolled up. With the script gone
+     those two rules would have left the tag permanently invisible, which is the
+     only way a removed animation can take content with it. */
 
   @media (prefers-reduced-motion: reduce) {
     :global(html[data-js='true']) .ft__wordmark :global(.wm-pen path) {
@@ -481,10 +553,6 @@ const {
 
   /* --- Narrow ---------------------------------------------------------- */
   @media (max-width: 48rem) {
-    .fq {
-      --fq-band: max(26rem, 62svh);
-    }
-
     .fq__band {
       padding-inline: var(--section-padding-x);
     }
@@ -513,32 +581,4 @@ const {
     }
   }
 
-  /* =====================================================================
-     The runway
-     =====================================================================
-     Only under the scrolled cut of the testimonials, and only on the page
-     that actually has it: that cut ends on this photograph, so the section
-     is given a screen of white above the band for the picture to open out
-     across. Everywhere else — the default film wall, every case study — this
-     is an ordinary footer that arrives at full size, which is why the runway
-     is opt-in rather than the default.
-
-     `:has([data-tmf])` is what keeps it off the case studies: both cuts of
-     chapter 8 are rendered on the home page and one is hidden, so the marker
-     is there whichever is picked, and it is nowhere else.
-
-     Reduced motion has no grow, so no runway either. */
-  @media (prefers-reduced-motion: no-preference) {
-    :global(html[data-js='true'][data-var-testimonials='float'] body:has([data-tmf])) .fq {
-      padding-top: var(--fq-runway);
-    }
-
-    /* Pinned to the foot of the section rather than filling it, because the
-       section is now a screen taller than the band. The card's own box is
-       written over this by the script, every frame. */
-    :global(html[data-js='true'][data-var-testimonials='float'] body:has([data-tmf])) .fq__media {
-      inset: auto 0 0;
-      height: var(--fq-band);
-    }
-  }
 </style>

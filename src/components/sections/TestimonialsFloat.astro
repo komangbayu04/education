@@ -378,6 +378,10 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     --tmf-row: clamp(15rem, 33.333vw, 26rem);
 
     position: relative;
+    /* Over the fixed closing screen, which sits at z-index 0 behind the whole
+       page — see the ladder in src/pages/index.astro. Document order puts this
+       first and would let the footer paint over it. */
+    z-index: 1;
     background-color: var(--color-bg-twoways);
     background-image:
       repeating-linear-gradient(

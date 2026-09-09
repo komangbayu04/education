@@ -194,6 +194,10 @@ const badge = `<span class="tm__badge" aria-hidden="true">
     --tm-fade-h: 38svh;
 
     position: relative;
+    /* Over the fixed closing screen, which sits at z-index 0 behind the whole
+       page — see the ladder in src/pages/index.astro. Document order puts this
+       first and would let the footer paint over it. */
+    z-index: 1;
     background: var(--color-bg-primary);
     color: var(--color-ink);
     font-family: var(--font-body);

@@ -16,7 +16,7 @@ import { initTestimonials } from './testimonials';
 import { initTestimonialsFloat } from './testimonialsFloat';
 import { initTestimonialsSphere } from './testimonialsSphere';
 import { initJournal } from './journal';
-import { initFounderQuote } from './founderQuote';
+import { initFooter } from './footer';
 import { initPageTransition } from './pageTransition';
 import { debounce, isTouch, prefersReducedMotion } from './utils/device';
 
@@ -53,7 +53,7 @@ function initPage(): void {
       initTestimonialsFloat(),
       initTestimonialsSphere(),
       initJournal(),
-      initFounderQuote(),
+      initFooter(),
     ];
     return () => cleanups.forEach((fn) => fn());
   });
