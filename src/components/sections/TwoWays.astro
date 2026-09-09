@@ -119,15 +119,22 @@ const {
     there is no block whose own height could measure the section: these are
     what the window's opening is triggered against.
 
-    Five, and each is a window of scroll doing one thing: the window opening,
-    a beat on Sprint, Sprint dissolving into Retainer, a beat on Retainer, and
-    the last one the section leaves through. That last one is not slack — the
-    sticky screen lets go with its containing block's final viewport still to
-    scroll, so without it the window would reach the corners of the frame on
-    the same pixel the layer let go and the panel it had just opened onto would
-    start scrolling away in the movement that finished revealing it.
+    Six, and each is a window of scroll doing one thing: the window opening, a
+    beat on Sprint, Sprint dissolving into Retainer, a beat on Retainer, the
+    next section climbing over it, and the last one the section leaves through.
+
+    The BEAT ON RETAINER is the one that was missing, and its absence was
+    plain: with five steps the dissolve finished on the same pixel the next
+    section started climbing, so 02 arrived and began leaving in the same
+    movement — a panel the reader was shown and never given. Sprint has a
+    window to itself and Retainer has one now too.
+
+    The last step is not slack either. The sticky screen lets go with its
+    containing block's final viewport still to scroll, so without it the window
+    would reach the corners of the frame on the same pixel the layer let go.
   */}
   <ul class="two__track" aria-hidden="true">
+    <li class="two__step" data-two-step></li>
     <li class="two__step" data-two-step></li>
     <li class="two__step" data-two-step></li>
     <li class="two__step" data-two-step></li>

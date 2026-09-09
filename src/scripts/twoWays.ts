@@ -290,9 +290,25 @@ function initTwoExit(section: HTMLElement): () => void {
   const next = document.querySelector<HTMLElement>('[data-inc]');
   if (!words.length || !next || prefersReducedMotion()) return () => {};
 
-  const tween = gsap.to(words, {
+  /* `fromTo`, and the `from` is the whole point.
+
+     A plain `to` records the value it should return to the first time it
+     renders — and these words spend the whole page at `autoAlpha: 0`, because
+     that is their resting state in the stylesheet until the panel they belong
+     to is uncovered. Recorded then, the tween read 0 as the start AND 0 as the
+     end, so the moment the reader crossed into its range it pinned them at
+     nothing and Retainer went blank: a black screen with no words on it,
+     immediately, on the scroll that should have been its beat.
+
+     Stating the `from` takes the recording out of it. `immediateRender: false`
+     so building the tween does not switch off a panel the reader may be
+     looking at. */
+  const tween = gsap.fromTo(words, {
+    autoAlpha: 1,
+  }, {
     autoAlpha: 0,
     ease: 'none',
+    immediateRender: false,
     scrollTrigger: {
       /* From the next section's top entering the foot of the window to it
          being a little over half way up — so the sentence is gone with most of
