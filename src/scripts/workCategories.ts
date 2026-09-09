@@ -11,8 +11,9 @@ import { prefersReducedMotion } from './utils/device';
  *             along. Nothing travels. The words are handled separately from
  *             the pictures they sit on; see the note over the timings.
  *
- *   outro     the join below it: the whole screen dissolves as Two ways in is
- *             pulled up over it.
+ *   outro     the join below it: a field of tiles paints across the last
+ *             category, the layer underneath is swapped, and the same field
+ *             clears to leave Two ways in. See initWorkPixels.
  *
  * The join ABOVE the section is not here. It belongs to Overclock's pin — this
  * section is pulled up underneath it and dissolved into, rather than arriving
@@ -182,48 +183,161 @@ export function initWorkCategories(): () => void {
   }
 
   // --- The outro -----------------------------------------------------------
-  /**
-   * The whole sticky screen dissolves as Two ways in arrives over it — artwork
-   * and copy together, because they are one layer now and neither of them
-   * scrolls away by itself. In the travelling cut this faded the ground alone
-   * and left the headline to leave by being scrolled off the top; there is
-   * nothing to scroll off any more, so a screen that did not fade would simply
-   * still be there, at full strength, underneath the next section.
-   *
-   * Both ends sit inside `--work-outro`, the hold this section buys at its
-   * foot: the last category arrives, is held still and legible for a beat, and
-   * only then starts to go. Two ways in's title crosses into the window just as
-   * that begins, so the reader is watching the next section arrive for the whole
-   * of the fade — which makes the join read as direct rather than as a section
-   * winding down.
-   *
-   * Linear rather than eased. An ease-in spends its first half doing almost
-   * nothing, which against a beat that has just ended reads as a second pause.
-   */
-  const twoSection = document.querySelector<HTMLElement>('[data-two]');
-  const dissolve = section.querySelector<HTMLElement>('[data-cat-dissolve]');
-
-  if (!reduced && dissolve && twoSection) {
-    const sink = gsap.to(dissolve, {
-      autoAlpha: 0,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: twoSection,
-        start: 'top 76%',
-        end: 'top 12%',
-        scrub: true,
-        invalidateOnRefresh: true,
-      },
-    });
-
-    cleanups.push(() => {
-      sink.scrollTrigger?.kill();
-      sink.kill();
-    });
-  }
+  cleanups.push(initWorkPixels(section, reduced));
 
   return () => {
     cleanups.forEach((fn) => fn());
     ScrollTrigger.refresh();
+  };
+}
+
+/**
+ * Our work → Two ways in: a pixel reveal, and the one transition on this page
+ * that plays itself.
+ *
+ * Everywhere else the reader drives the motion and can run it backwards a
+ * frame at a time. Here they do not: crossing into the join starts a field of
+ * cream tiles painting across the screen in a random order, and it finishes on
+ * its own clock whether they keep scrolling or stop. That is deliberate and it
+ * is scoped to this one join — it was asked for as "one scroll", and a scatter
+ * of tiles is the one effect on the page that wants a tempo of its own. Tied
+ * to a scrub, a field of squares appearing at the speed of a trackpad reads as
+ * a rendering fault rather than as a transition.
+ *
+ * What it is NOT is a scroll hijack. Nothing here takes the scrollbar: both
+ * screens are already held still by their own sticky layers for the length of
+ * `--two-join`, so the reader who keeps scrolling simply arrives at the far
+ * side of a window in which nothing was going to move anyway.
+ *
+ * Three beats, in a little over a second:
+ *
+ *   cover     the tiles come on, scattered. Cream, which is Two ways in's own
+ *             ground — so the completed field is already the colour of the
+ *             section arriving, and the second half uncovers that section's
+ *             content rather than fading up its background.
+ *
+ *   swap      Our work's screen is switched off behind the full field. This is
+ *             the only frame where the layers change, and there is nothing to
+ *             see through.
+ *
+ *   clear     the same tiles go off, in a different scatter, onto Two ways in.
+ *
+ * Reversible at the boundary rather than through the middle: scrolling back up
+ * out of the join runs the whole thing backwards. It cannot be scrubbed to a
+ * half-state because it has no half-states the scroll owns.
+ *
+ * Returns a cleanup function.
+ */
+function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
+  const field = document.querySelector<HTMLElement>('[data-work-pixels]');
+  const two = document.querySelector<HTMLElement>('[data-two]');
+  const screen = section.querySelector<HTMLElement>('[data-cat-dissolve]');
+  if (!field || !two || !screen) return () => {};
+
+  if (reduced) {
+    /* No field at all. The two sections simply abut, which under reduced
+       motion is what a transition is. */
+    return () => {};
+  }
+
+  /** How many tiles across the longer edge of the window. */
+  const ACROSS = 22;
+  /** How long each half of the reveal takes. */
+  const HALF = 0.55;
+
+  let tiles: HTMLElement[] = [];
+
+  /* Built to the window, and rebuilt when it changes: a grid sized for a
+     desktop is a handful of enormous blocks on a phone. */
+  const build = () => {
+    const size = Math.ceil(Math.max(window.innerWidth, window.innerHeight) / ACROSS);
+    const cols = Math.ceil(window.innerWidth / size);
+    const rows = Math.ceil(window.innerHeight / size);
+
+    field.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
+    field.style.gridTemplateRows = `repeat(${rows}, ${size}px)`;
+
+    const wanted = cols * rows;
+    if (tiles.length === wanted) return;
+
+    field.replaceChildren();
+    tiles = Array.from({ length: wanted }, () => document.createElement('span'));
+    field.append(...tiles);
+  };
+
+  build();
+
+  const tl = gsap.timeline({ paused: true });
+
+  /* Visible only while it is doing something: a fixed sheet of five hundred
+     boxes is five hundred boxes the compositor is carrying, and for all but a
+     second of the page's life it has nothing to carry them for. */
+  tl.set(field, { visibility: 'visible' });
+
+  tl.to(
+    tiles,
+    {
+      opacity: 1,
+      duration: 0.12,
+      ease: 'none',
+      stagger: { each: HALF / Math.max(tiles.length, 1), from: 'random' },
+    },
+    0,
+  );
+
+  /* The swap, under a full field.
+
+     `fromTo`, and neither of the two simpler spellings would do. A `set` has
+     no start value to go back to, and this timeline is run backwards as well
+     as forwards. A `to` records its start the first time it renders, which for
+     a paused timeline is whenever something first touches it — and at that
+     moment Our work's screen may legitimately be hidden, since it is faded up
+     by the join out of Overclock. Measured: rendered once before the reader
+     had got that far, the tween recorded 0 as the value to return to and the
+     swap did nothing for the rest of the session.
+
+     `immediateRender: false` for the same reason it is on every other tween in
+     this file whose resting state is "on": building the timeline must not
+     switch off the screen the reader is currently looking at. */
+  tl.fromTo(
+    screen,
+    { autoAlpha: 1 },
+    { autoAlpha: 0, duration: 0.001, immediateRender: false },
+    HALF + 0.12,
+  );
+
+  tl.to(
+    tiles,
+    {
+      opacity: 0,
+      duration: 0.12,
+      ease: 'none',
+      stagger: { each: HALF / Math.max(tiles.length, 1), from: 'random' },
+    },
+    HALF + 0.14,
+  );
+
+  tl.set(field, { visibility: 'hidden' });
+
+  const trigger = ScrollTrigger.create({
+    /* The moment Two ways in's own screen is stuck and filling the window
+       behind this one. Before it there is nothing under the field to clear
+       onto; `--two-join` is what buys the overlap. */
+    trigger: two,
+    start: 'top top',
+    onEnter: () => tl.play(),
+    onLeaveBack: () => tl.reverse(),
+    invalidateOnRefresh: true,
+    onRefresh: build,
+  });
+
+  return () => {
+    trigger.kill();
+    tl.kill();
+    field.replaceChildren();
+    field.style.removeProperty('grid-template-columns');
+    field.style.removeProperty('grid-template-rows');
+    gsap.set(field, { clearProps: 'visibility' });
+    gsap.set(screen, { clearProps: 'opacity,visibility' });
   };
 }

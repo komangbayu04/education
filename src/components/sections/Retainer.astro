@@ -1,0 +1,52 @@
+---
+/**
+ * Retainer — the section Two ways in opens onto.
+ *
+ * A PLACEHOLDER. Its copy and its layout are still to be given; what is here
+ * is a ground and a holding line, so the mechanism above it can be built and
+ * seen working before the content exists. Replace the body of this file and
+ * nothing else has to change: Two ways in renders it inside a clip that is
+ * already the size of the screen, so whatever goes in here is drawn at its
+ * final size from the first frame and never scales.
+ *
+ * Deliberately NOT a <section> of its own in the page's flow. It is only ever
+ * seen through the window in Two ways in, and a second copy of it below would
+ * be the same chapter twice. When its content lands, the question of whether
+ * it also wants a life of its own further down the page is worth asking then.
+ *
+ * It does NOT carry `data-nav-over="dark"`, even though its ground is dark and
+ * every other dark stretch of the page declares itself that way. The nav reads
+ * a zone's bounding box, and this element's box is the whole screen from the
+ * first frame — a clip changes what is painted, not what is measured — so the
+ * capsule would turn to glass over Two ways in's cream while the window was
+ * still a rectangle at the foot of the page. The declaration is on
+ * `[data-two-zone]` in TwoWays.astro instead, which is sized to the window
+ * itself and grows with it.
+ */
+---
+
+<div class="retainer" data-retainer>
+  <p class="retainer__holding">Retainer</p>
+</div>
+
+<style>
+  .retainer {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    /* The reference's flat grey. It is a placeholder colour, not a token: when
+       the real ground arrives it will be this section's own, and inventing a
+       --color-bg-retainer for a stand-in would put a name in globals.css that
+       has to be changed rather than filled. */
+    background: #b3b3b3;
+  }
+
+  .retainer__holding {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(0 0 0 / 0.35);
+  }
+</style>

@@ -99,6 +99,16 @@ import Footer from '../components/layout/Footer.astro';
     Same plain-scroll treatment as the section above it, which it used to be.
     Its one-shot entrance lives in src/scripts/twoWays.ts.
   */}
+  {/* The pixel field that hands Our work over to Two ways in.
+
+      Declared here rather than made in script, for the same reason the paint
+      order below is: it has to sit above Our work (z-index 1) and above
+      Overclock (2) and below the header, and that is a fact about the page
+      rather than about the animation. The tiles inside it are the script's —
+      how many there are depends on the window. See initWorkPixels in
+      src/scripts/workCategories.ts. */}
+  <div class="pixels" data-work-pixels aria-hidden="true"></div>
+
   <TwoWays />
 
   {/*
@@ -147,6 +157,32 @@ import Footer from '../components/layout/Footer.astro';
 </Base>
 
 <style>
+  /* The pixel field for the Our work / Two ways in join. Painted in Two ways
+     in's own ground, so the moment the field is complete the screen is already
+     the colour of the section arriving — what the second half of the reveal
+     uncovers is that section's content, not its background.
+
+     Hidden until the script picks it up, so a page without JS never has a
+     sheet of tiles in it. The grid's tracks and its children are the script's
+     to write; everything about where it sits in the page is here. */
+  .pixels {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    display: grid;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  .pixels :global(span) {
+    /* A hair over a whole tile, to close the sub-pixel seams a grid of
+       hundreds of boxes otherwise shows as a faint lattice. */
+    width: calc(100% + 1px);
+    height: calc(100% + 1px);
+    background: var(--color-bg-twoways);
+    opacity: 0;
+  }
+
   /* --- The Overclock / Our work join ---------------------------------------
 
      Both halves of it are here because it is one arrangement between two

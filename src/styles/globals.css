@@ -121,43 +121,37 @@
   --tracking-normal: 0em;
   --tracking-wide: 0.1em;
 
-  /* How far Two ways in rides up over the last frame of Our work —
-     categorized, and — the same number — how long that frame is held.
+  /* The beat at the foot of Our work: how long its last category is held at
+     full strength, still and legible, after it has arrived and before the
+     section hands over.
 
-     The hold is the point. The screen is sticky, so it stays put for exactly
-     as long as this tail keeps the section taller than the window; after that
-     it lets go and travels with the page. Held too briefly it lets go while
-     the last category is still at full strength and the whole screen slides
-     off with the page, which is not a transition, just the section leaving.
-     Long enough, the last frame stands still and dissolves in place while Two
-     ways in arrives over it.
+     It used to be two things at once — this hold AND the distance Two ways in
+     rode up over it — because the join between them was a dissolve and a
+     dissolve needs both sections in the same place. That overlap is
+     `--two-join` below now, and this is only the beat.
 
-     The whole of it is the beat. The last category is the one the reader
-     arrives at and then leaves the section from, so it gets a stretch at full
-     strength on arrival before anything starts happening to it — held, not
-     fading — and the dissolve begins only partway into this. Shrink it and the
-     category starts going almost the moment it lands; the beat is the
-     difference between arriving somewhere and passing through it.
-
-     It used to be sized against a distance that no longer exists: the last
-     headline's travel to the top of the window, back when the categories were
-     carried up the page by the scroll. Nothing in Our work travels now —
-     see WorkCategories.astro — so this is a duration and only a duration.
-
-     Both sides of the join read it: WorkCategories.astro spends it as padding
-     under its sticky screen, TwoWays.astro as a negative top margin. They have
-     to be one value or the section tears. */
+     The last category is the one the reader arrives at and then leaves the
+     section from, so it gets a stretch of standing still before anything
+     starts happening to it. Shrink this and the join begins almost the moment
+     Marketing lands; the beat is the difference between arriving somewhere and
+     passing through it. */
   --work-outro: 88svh;
 
-  /* White above Two ways in's title — deliberately NOT --work-outro.
+  /* Our work → Two ways in: how long the two screens overlap, which is also
+     how long the pixel reveal between them has to play in.
 
-     They used to be the same number, which forced a choice between two bad
-     ends: a hold long enough to keep the ground still put the title a whole
-     screen below the fold with nothing on it, and a headroom small enough to
-     bring the title up let the ground go early. Split, each does its own job —
-     the section holds for 75svh and the title arrives 20svh into it, so the
-     words are already in the window while the photograph behind them fades. */
-  --two-headroom: 20svh;
+     Both sides read it, and each spends it differently: WorkCategories.astro
+     adds it to its own sticky hold so the last category is held still through
+     the join, and TwoWays.astro takes twice it off its top margin — once to
+     cancel the push that extra hold causes, once to actually produce the
+     overlap. They have to be one value or the field of tiles clears onto a
+     section that is not there yet.
+
+     A window, and deliberately generous for what it carries: the reveal itself
+     runs on its own clock in a little over a second, and this is the room the
+     reader has to be scrolling through while it does. Cut it and a quick
+     scroll can outrun the animation. */
+  --two-join: 100svh;
 
   /* Layout */
   --section-padding-y: clamp(3rem, 6vw, 6rem);

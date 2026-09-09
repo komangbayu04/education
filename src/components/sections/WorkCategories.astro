@@ -45,9 +45,12 @@
  * rises from the foot of the window and fades — see initWorkHandover in
  * src/scripts/workCategories.ts and `[data-handover]` in index.astro.
  *
- * `--work-outro` is still shared with Two ways in, which is pulled up over this
- * section's last held frame by the same number. Changing it here alone tears
- * that join.
+ * The join below it is a pixel reveal that plays itself: a field of tiles
+ * paints across the last category, the layer underneath is swapped, and the
+ * same field clears to leave Two ways in. It is the one transition on this
+ * page that is not scrubbed. See initWorkPixels in
+ * src/scripts/workCategories.ts; `--work-outro` is the beat before it and
+ * `--two-join` is the window it plays in, both in globals.css.
  *
  * One layout at every width above the phone breakpoint, and it stands up with
  * the stylesheet alone: without JS the first category is the section and the
@@ -156,7 +159,6 @@ const {
   id="work"
   aria-label="Our work"
   data-nav-section="Our work"
-  data-nav-over="dark"
   data-cat
 >
   {/*
@@ -169,7 +171,16 @@ const {
     the scrollbar away from the reader. It also means the layout stands up
     with the stylesheet alone.
   */}
-  <div class="cat__stick" data-cat-dissolve>
+  {/* `data-nav-over="dark"` is here rather than on the section, and that is not
+      tidiness. The nav reads a zone's bounding box and its painted opacity;
+      the section's box is six thousand pixels tall and stays under the header
+      long after the reader has left it, and its opacity never changes. This
+      layer's box is the screen, and its opacity IS whether the reader is
+      looking at this section — so the capsule turns back to ink on the exact
+      frame the pixel field hands over to Two ways in. On the section, it
+      stayed glass over that section's cream for another eight hundred pixels
+      of scroll. */}
+  <div class="cat__stick" data-nav-over="dark" data-cat-dissolve>
     {
       categories.map((category, index) => (
         /* Reverse paint order — the FIRST category is the topmost layer.
@@ -293,7 +304,12 @@ const {
     isolation: isolate;
     background: var(--color-bg-work);
     color: var(--color-ink-invert);
-    padding-bottom: var(--work-outro);
+    /* The beat after Marketing, and then the window the pixel reveal into Two
+       ways in plays in. The second is what holds this section's last screen
+       still while the section underneath it is already in place — see
+       `--two-join` in globals.css, which the other side of the join reads
+       too. */
+    padding-bottom: calc(var(--work-outro) + var(--two-join));
   }
 
   /* --- The sticky screen ---------------------------------------------------- */

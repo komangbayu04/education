@@ -1,459 +1,242 @@
 ---
 /**
- * Two ways in — chapter 7, the section after Our work.
+ * Two ways in — the section after Our work.
  *
- * Lives outside <div data-scene> in index.astro: the handover into it is
- * plain document scroll — no pin and no crossfade. Motion is in
- * src/scripts/twoWays.ts: a one-shot reveal for the include row, and two
- * scrubbed gestures — the title's line reveal and the stages' parallax drift.
- * Scrubbed, but never pinned: the scrollbar is not held anywhere in here, so
- * both run backwards on the way up.
+ * One screen, and it is a threshold rather than a chapter. A label, one
+ * sentence, and a window cut into the page low and centre. Scrolling widens
+ * that window until it is the whole screen, and what was inside it is the
+ * Retainer section — so the reader does not travel to the next chapter, the
+ * next chapter opens out of this one.
  *
- * Layout is three rows on a 404 / 740 split (the Figma frame at 1440):
- *   the title sits only in the right column, so the left is empty above Sprint
- *   two near-black stages, Sprint narrow and Retainer wide, each with a cream
- *     card overlaid on the bottom-left corner
- *   a ruled foot: "Both models include" in the left column, a 3×2 icon grid
- *     and the work-coverage note in the right
+ * WHAT THIS REPLACES. The section used to carry the whole offer: a title, two
+ * near-black stages with Sprint and Retainer cards over them, and a ruled foot
+ * with a six-item "Both models include" grid and a paragraph on coverage.
+ * All of it is out. What that content becomes is the Retainer section this
+ * window opens onto — see Retainer.astro, which is a placeholder until its
+ * copy and layout are settled. The old component is in the history if any of
+ * it is wanted back; nothing else on the page referenced it.
+ *
+ * THE WINDOW is a clip, not a box that grows. `clip-path: inset()` over a
+ * layer that is already the size of the screen means the thing inside it is
+ * drawn at its final size from the first frame — the reader is looking at a
+ * small part of a full-size section, not at a small section being enlarged.
+ * A box that scaled would stretch its own type on the way up.
+ *
+ * THE JOIN ABOVE is a pixel reveal, and it is the one place on this page that
+ * plays itself rather than being scrubbed: a field of tiles paints across the
+ * last category of Our work, the layer underneath is swapped, and the same
+ * field clears to leave this screen. It runs on its own clock, on one scroll.
+ * It lives in src/scripts/workCategories.ts, next to the section it takes
+ * away, and `--two-join` below is the distance the two screens overlap for.
+ *
+ * Nothing here is pinned. `.two__stick` is sticky, which is the browser
+ * holding an element still inside a scroll it is not otherwise touching, so
+ * the scrollbar is never taken from the reader.
  */
-import Icon, { type IconName } from '../ui/Icon.astro';
-
-interface Offer {
-  name: string;
-  summary: string;
-  length: string;
-  /** Sits in the card's top-right corner, as the reference draws it. */
-  icon: IconName;
-}
-
-interface Included {
-  label: string;
-  icon: IconName;
-}
+import Retainer from './Retainer.astro';
 
 interface Props {
+  /** The small label above the sentence. */
+  eyebrow?: string;
+  /** The sentence itself — the only line of copy on this screen. */
   title?: string;
-  intro?: string;
-  includedTitle?: string;
-  included?: Included[];
-  detailsTitle?: string;
-  detailsCopy?: string;
-  offers?: Offer[];
 }
 
 const {
-  title = 'Two ways in',
-  intro = "Pick based on what you're facing: a specific deadline, or a backlog of design work.",
-  includedTitle = 'Both models include',
-  /* Icons are the closest matches in src/assets/icons — the frame draws six
-     bespoke marks and there are seven glyphs in the set, so these are mapped
-     by meaning rather than traced. `phone` is the one left unused: the calls
-     row leads on Figma, which the set does have. */
-  included = [
-    { label: 'A senior team assigned to your account', icon: 'multi-user' },
-    { label: 'Art direction from the founder on every deliverable', icon: 'rocket' },
-    { label: 'Brand, web, product, and marketing under one team', icon: 'check-circle' },
-    { label: 'Weekly calls and async reviews in Figma', icon: 'figma' },
-    { label: 'Slack access to the people doing the work', icon: 'slack' },
-    { label: 'Daily updates and momentum', icon: 'spinner' },
-  ],
-  detailsTitle = "What's type of work we cover?",
-  detailsCopy =
-    'Brand identity and systems, websites and landing pages, product and UI design, design systems, pitch decks and investor materials, one-pagers and sales collateral, marketing and ad creative, social templates, email design, presentation and program materials, illustration and iconography, and front-end build when the work calls for it.',
-  offers = [
-    {
-      name: 'Sprint',
-      summary: 'One push, one deadline, everything the moment requires.',
-      length: 'Fixed. 4 weeks and up',
-      /* Both cards carry the same dashed-circle mark in the frame. */
-      icon: 'spinner',
-    },
-    {
-      name: 'Retainer',
-      summary: 'Your design function, year-round, across every surface.',
-      length: 'Ongoing, month to month',
-      icon: 'spinner',
-    },
-  ],
+  eyebrow = 'Two ways in',
+  title = "Pick based on what you're facing: a specific deadline, or a backlog of design work.",
 } = Astro.props;
-
 ---
 
 <section class="two" id="how-we-work" aria-labelledby="two-title" data-nav-section="How we work" data-two>
-  <div class="two__inner">
-    <h2 class="two__title" id="two-title" data-two-reveal="title">{title} — {intro}</h2>
-
-    {
-      offers.map((offer) => (
-        <div class="two__offer" data-two-card>
-          <article class="two__card">
-            <div class="two__card-head">
-              <h3 class="two__card-name">{offer.name}</h3>
-              {/* Decorative: the card is already named in words beside it. */}
-              <span class="two__card-mark" aria-hidden="true">
-                <Icon name={offer.icon} size="1.375rem" />
-              </span>
-            </div>
-            <p class="two__card-summary">{offer.summary}</p>
-            <p class="two__card-length">{offer.length}</p>
-          </article>
-        </div>
-      ))
-    }
-
-    <div class="two__include">
-      <h3 class="two__include-title" data-two-reveal="included-title">{includedTitle}</h3>
-
-      <div class="two__include-body">
-        <ul class="two__include-list">
-          {
-            included.map((item) => (
-              <li class="two__include-item" data-two-ritual>
-                <span class="two__include-mark" aria-hidden="true">
-                  <Icon name={item.icon} size="1rem" />
-                </span>
-                {item.label}
-              </li>
-            ))
-          }
-        </ul>
-
-        <div class="two__cover" data-two-reveal="details">
-          <p class="two__cover-title">{detailsTitle}</p>
-          <p class="two__cover-copy">{detailsCopy}</p>
-        </div>
-      </div>
+  {/*
+    The screen. Stuck for as long as the section is passing, which is the
+    reveal above it, its own beat, and the window opening.
+  */}
+  <div class="two__stick">
+    <div class="two__copy">
+      <p class="two__eyebrow">{eyebrow}</p>
+      <h2 class="two__title" id="two-title">{title}</h2>
     </div>
+
+    {/*
+      The window. Clipped to a rectangle low and centre on the screen, and
+      opened to the full frame by the scroll — see src/scripts/twoWays.ts.
+      Inside it, at full size from the first frame, is the section it opens
+      onto.
+    */}
+    <div class="two__window" data-two-window>
+      <Retainer />
+    </div>
+
+    {/* What the nav measures. Nothing is drawn here — it exists so the dark
+        ground behind the window has a box the size of the window rather than
+        the size of the screen. The nav's zone watcher reads bounding boxes and
+        opacity, and a clip is neither: without this the capsule turned to
+        glass over this section's cream the moment the section was stuck, a
+        screen and a half before anything dark was on it.
+
+        It shares the window's two variables, so it cannot fall out of step
+        with what it is standing in for. */}
+    <div class="two__zone" data-nav-over="dark" data-two-zone aria-hidden="true"></div>
   </div>
+
+  {/*
+    The scroll length, and nothing else. The screen above is stationary, so
+    there is no block whose own height could measure the section: these are
+    what the window's opening is triggered against.
+
+    Three, and each is a window of scroll doing one thing: the beat after the
+    pixel reveal has cleared, the window opening, and then the opened screen
+    held still before the section leaves. Without the third the window reached
+    the corners of the frame on the same pixel the sticky layer let go, so the
+    section it had just opened onto started scrolling away in the same movement
+    that finished revealing it.
+  */}
+  <ul class="two__track" aria-hidden="true">
+    <li class="two__step" data-two-step></li>
+    <li class="two__step" data-two-step></li>
+    <li class="two__step" data-two-step></li>
+  </ul>
 </section>
 
 <style>
   .two {
-    /* 404 / 740 — the two tracks the frame cuts the 1176 content box into,
-       with a 32px gutter between them. Named in the same units so the title,
-       the stages, and the include row all share one split. */
-    --two-left: 404fr;
-    --two-right: 740fr;
-    --two-gutter: 2rem;
-    --two-band: clamp(2.5rem, 5.56vw, 5rem);
-    /* The rhythm between rows inside the section — title to stages, and stages
-       to the include rule. Held apart from `--two-band` so the internal air
-       can breathe wider than the padding that sets the section's own top and
-       bottom. 120px at 1440, which is the frame's own measurement twice over
-       (title bottom 79 to stages top 199, stages bottom 633 to the rule 753).
+    /* How far this section is pulled up underneath Our work's last screen, and
+       the length of the pixel reveal that hands over between them.
 
-       Not a free number any more: the stages drift up into their resting row
-       and Retainer's lag is 90px of it (src/scripts/twoWays.ts). This gap is
-       what it drifts through, so the 30px the frame leaves between the two is
-       the whole clearance — cut it to 88 and the black stage crosses the rule
-       on its way up. */
-    --two-row: clamp(2.5rem, 8.333vw, 7.5rem);
+       Spent twice for the same reason `--cat-join` is in WorkCategories.astro:
+       Our work's own sticky hold is extended by one of these so its last
+       category is held still through the join, and that extension pushes
+       everything below it down by the same distance — so the first is only
+       cancelling the push and the second is what actually produces the
+       overlap. Without the overlap there is nothing behind the field of tiles
+       when it clears, and the reveal has nothing to reveal. */
+    --two-join: 100svh;
 
-    /* How much of the arriving white edge is gradient rather than flat: the
-       length of the dissolve, and fenced under `--two-headroom` rather than
-       under the overlap. The headroom is the white above the title; a feather
-       longer than it would still be ramping where the words start, and the
-       title would sit on 90% white over a photograph. Just under it, so the
-       ground under the first line is flat. */
-    --two-feather: calc(var(--two-headroom) * 0.9);
+    /* The window at rest, as insets into the screen. Low and centre, running
+       off the bottom edge — the reference has it cut by the fold, which is
+       what makes it read as an opening onto something rather than as a card
+       sitting on the page. */
+    --two-win-t: 65%;
+    --two-win-x: 21%;
 
     position: relative;
-    /* Over Our work — categorized, not after it.
+    /* Deliberately no z-index, and deliberately not `isolation: isolate`. Our
+       work carries z-index 1 and has to paint OVER this section for the length
+       of the join — the pixel field is what takes it away, at the moment it
+       chooses. A stacking context here would put this on top from the first
+       frame of the overlap and the join would have nothing left to do.
 
-       `--work-outro` is the stretch that section holds its last frame still
-       for (it buys the slack as tail on its headline column — see
-       WorkCategories.astro). Taking the same number back as a negative margin
-       puts this section's ground across that held frame, and giving it
-       straight back as padding leaves every line of the content exactly where
-       it was: what moved is the white, not the words.
-
-       Read on the page: the grey behind stops dead, the white in front keeps
-       travelling, and the two are on screen together for two-thirds of a
-       window. That difference in rate is the parallax, and it is the reader's
-       own scroll driving it — nothing is pinned and nothing is scrubbed.
-
-       Pointedly no z-index. This section and Our work are both positioned with
-       `z-index: auto`, so tree order alone already paints this one over it. A
-       `z-index: 1` here would also tie with the pinned scene's, and on a tie
-       the later element in the document wins — which would put this white
-       sheet over the hero. */
-    margin-top: calc(-1 * var(--work-outro));
-    padding-top: var(--two-headroom);
+       Also deliberately not `overflow: clip`: any overflow other than visible
+       makes this the scrollport its sticky child sticks inside, and this
+       element does not scroll. */
+    background: var(--color-bg-twoways);
     color: var(--color-ink);
-    /* The join itself. The section's ground is not flat white but white that
-       arrives — transparent at its very top and opaque by `--two-feather`, so
-       the grey behind is closed over rather than cut off by a horizontal rule
-       travelling up the screen.
+    margin-top: calc(-2 * var(--two-join));
+    padding-bottom: 0;
+  }
 
-       The clear stop is a 1% mix and not the `transparent` keyword, and not a
-       0% mix either. `transparent` is rgba(0,0,0,0), so interpolating towards
-       it in sRGB drags the gradient through a grey shadow — a dark band across
-       the join, on exactly the light ground that shows it worst. And
-       color-mix at exactly 0% collapses to that same black-with-no-alpha,
-       which is the trap: it reads as the fix and computes as the bug (checked
-       on the page — it resolved to `color(srgb 0 0 0 / 0)`). One per cent of
-       white keeps the hue and is a single level of change over the grey
-       behind, which is to say none.
+  .two__stick {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: hidden;
+  }
 
-       A background gradient rather than a mask or a veil element: it is one
-       opaque surface painted in a single pass, and what it is painted over is
-       a sticky layer still running its own crossfade. Two composited
-       transparencies over each other is where the flicker would come from. */
-    background-image: linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--color-bg-primary) 1%, transparent) 0,
-      color-mix(in srgb, var(--color-bg-primary) 24%, transparent) calc(var(--two-feather) * 0.3),
-      color-mix(in srgb, var(--color-bg-primary) 58%, transparent) calc(var(--two-feather) * 0.55),
-      color-mix(in srgb, var(--color-bg-primary) 88%, transparent) calc(var(--two-feather) * 0.8),
-      var(--color-bg-primary) var(--two-feather),
-      var(--color-bg-primary) 100%
-    );
-    /* That padding is a box lying over the tail of the section above, and the
-       "See work" button is under it. An invisible sheet still takes clicks, so
-       the ground is made inert and the content given the pointer back. */
+  /* --- The copy -------------------------------------------------------------
+     The label sits against the left gutter at the top of the screen; the
+     sentence sits in the right half, below it. They are not a block — the
+     reference has them at opposite corners of the upper half, and the empty
+     left is part of the composition. */
+  /* Measured off the reference at 1440x900: the label's baseline sits a
+     quarter of the way down the screen, well clear of the floating header
+     rather than tucked under it.
+
+     The left inset is the page's shared gutter, not the reference's own 76px.
+     Two ways in follows Our work directly and Our work's copy column sits on
+     that gutter; a section that stepped its left edge 27px inwards halfway
+     down a scroll would read as a mistake rather than as a decision. */
+  .two__copy {
+    position: absolute;
+    inset: 0;
+    padding: clamp(6rem, 24svh, 13.5rem) var(--section-padding-x) 0;
+    max-width: var(--content-max-width);
+    margin-inline: auto;
+  }
+
+  .two__eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-secondary);
+  }
+
+  /* The right-hand half, and held off the right edge as well as the left: the
+     reference stops the measure about 8% short of the frame, which is what
+     puts the sentence in the upper-right quarter rather than against the
+     corner. Three lines at 1440, which is the shape the reference draws. */
+  .two__title {
+    width: clamp(20rem, 42vw, 38rem);
+    margin-left: auto;
+    margin-right: 4vw;
+    margin-top: clamp(3rem, 9.5svh, 5.5rem);
+    font-size: clamp(1.375rem, 2.36vw, 2.25rem);
+    font-weight: 400;
+    line-height: 1.32;
+    letter-spacing: -0.02em;
+  }
+
+  /* --- The window -----------------------------------------------------------
+     A clip over a layer that is already the size of the screen. The inset is
+     four numbers the script writes; the stylesheet's job is only to state
+     where they start, so the section stands up looking right before any of it
+     runs. */
+  .two__zone {
+    position: absolute;
+    top: var(--two-win-t);
+    right: var(--two-win-x);
+    bottom: 0;
+    left: var(--two-win-x);
     pointer-events: none;
   }
 
-  .two__inner {
-    pointer-events: auto;
-    display: grid;
-    grid-template-columns: minmax(0, var(--two-left)) minmax(0, var(--two-right));
-    column-gap: var(--two-gutter);
-    row-gap: var(--two-row);
-    width: 100%;
-    max-width: var(--content-max-width);
-    margin-inline: auto;
-    /* 132px at 1440 — the frame's own inset — floored at the site gutter so a
-       phone is not more padded than the rest of the page. */
-    padding-inline: clamp(1.25rem, 9.167vw, 8.25rem);
-    padding-block: var(--two-band);
-  }
-
-  /* Right column only, which is why the top-left of the section is empty:
-     the title sits directly above Retainer, the same 740 track. */
-  .two__title {
-    grid-column: 2;
-    font-size: clamp(1.875rem, 3.1vw, 2.875rem);
-    font-weight: 400;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-
-  /* --- The two stages ------------------------------------------------------
-     Auto-placed into the two columns on the row under the title. Stretch keeps
-     them the same height so the overlay cards sit on one line. */
-  .two__offer {
-    position: relative;
-    height: 27.125rem;
-    overflow: hidden;
-    background: #030602;
-  }
-
-  /* Cream card, pinned to the bottom-left of the stage the way the frame
-     draws it — 14px in, 12px up, 323px wide on the 404 stage, and the same
-     card on the 740 stage so Retainer shows a wide run of black to its right. */
-  .two__card {
+  .two__window {
     position: absolute;
-    bottom: 0.75rem;
-    left: 0.875rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    width: min(20.1875rem, calc(100% - 1.75rem));
-    padding: 1rem;
-    border: 1px solid rgb(10 10 10 / 0.12);
-    background: var(--color-bg-twoways);
-    color: var(--color-ink);
+    inset: 0;
+    clip-path: inset(var(--two-win-t) var(--two-win-x) 0 var(--two-win-x));
+    /* Its own stacking context, so what is inside it — a whole section, with
+       its own layers — cannot reach past the clip in the paint order. */
+    isolation: isolate;
   }
 
-  .two__card-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
+  /* --- The track ------------------------------------------------------------
+     Two steps: the first is the join and the beat after it, the second is the
+     window opening. The window cancels the sticky screen's own height so the
+     first step begins where the reader sees the section begin, and the join is
+     added back because that first window of scroll is spent being revealed
+     into — nothing of this section's own should start counting during it. */
+  .two__track {
+    margin-top: calc(-100svh + var(--two-join));
   }
 
-  .two__card-mark {
-    display: flex;
-    flex: none;
-    color: var(--color-ink);
+  .two__step {
+    height: 100svh;
   }
 
-  .two__card-name {
-    font-size: clamp(1.25rem, 1.85vw, 1.75rem);
-    font-weight: 400;
-    line-height: 1.15;
-    letter-spacing: -0.015em;
-  }
-
-  .two__card-summary {
-    font-size: var(--text-body);
-    line-height: 1.5;
-  }
-
-  /* Ruled off above rather than carrying a rule of its own as an element, so
-     the line can never drift from what it divides. The card's 12px gap is the
-     space above the rule; this padding is the space below it. */
-  .two__card-length {
-    padding-top: 0.75rem;
-    border-top: 1px solid rgb(10 10 10 / 0.16);
-    font-size: 0.875rem;
-    line-height: 1.4;
-    color: var(--color-ink-secondary);
-  }
-
-  /* --- Both models include -------------------------------------------------
-     Full-width so the rule runs under both stages, then the same 404 / 740
-     split as the row above: the label in Sprint's column, the grid and the
-     coverage note in Retainer's. */
-  .two__include {
-    display: grid;
-    grid-column: 1 / -1;
-    grid-template-columns: minmax(0, var(--two-left)) minmax(0, var(--two-right));
-    column-gap: var(--two-gutter);
-    /* Deliberately NOT `--two-row`: the frame draws the rule off-centre in its
-       band — 120px of air above it, 80px below — so the line reads as the top
-       of what follows rather than as a divider floating between two blocks.
-       80px is `--two-band`. */
-    padding-top: var(--two-band);
-    border-top: 1px solid var(--color-line);
-  }
-
-  .two__include-title {
-    font-size: var(--text-body);
-    font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: -0.02em;
-  }
-
-  .two__include-body {
-    display: flex;
-    flex-direction: column;
-    gap: 3rem;
-  }
-
-  .two__include-list {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: 2.5rem;
-    row-gap: 2rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .two__include-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-    font-size: var(--text-body);
-    line-height: 1.5;
-    letter-spacing: -0.02em;
-  }
-
-  /* The chip the frame draws around each mark: black square, white glyph —
-     the inverse of the section's ground, which is what makes the list read as
-     a set of marks rather than as six more lines of type. Square-cornered:
-     the reference draws a hard box, and rounding it made the six read as
-     buttons. */
-  .two__include-mark {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 2rem;
-    height: 2rem;
-    background: var(--color-bg-invert);
-    color: var(--color-ink-invert);
-  }
-
-  .two__cover {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .two__cover-title {
-    font-size: clamp(1.125rem, 1.5vw, 1.35rem);
-    font-weight: 400;
-    line-height: 1.3;
-    letter-spacing: -0.014em;
-  }
-
-  .two__cover-copy {
-    font-size: var(--text-body);
-    line-height: 1.5;
-    color: var(--color-ink-secondary);
-  }
-
-  /* --- Responsive ----------------------------------------------------------
-     70rem: the right column is no longer wide enough for three iconed cells
-     on one line, so the grid drops to two. The 404 / 740 split itself still
-     holds. */
-  @media (max-width: 70rem) {
-    .two__include-list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  /* 48rem: one column, matching the breakpoint the rest of the page stacks
-     at. Title, Sprint, Retainer, then the include block in source order. */
   @media (max-width: 48rem) {
     .two {
-      --two-band: var(--section-gap-y);
-      --two-row: var(--section-gap-y);
-    }
-
-    .two__inner {
-      grid-template-columns: minmax(0, 1fr);
-      padding-inline: var(--section-padding-x);
+      /* Wider window and higher, because a phone column has no room for a
+         rectangle inset a fifth from each side. */
+      --two-win-t: 56%;
+      --two-win-x: 6%;
     }
 
     .two__title {
-      grid-column: 1;
-    }
-
-    .two__offer {
-      height: 18rem;
-    }
-
-    .two__include {
-      grid-column: 1;
-      grid-template-columns: minmax(0, 1fr);
-      row-gap: 1.5rem;
-    }
-
-    .two__include-body {
-      gap: 2.5rem;
-    }
-
-    .two__include-list {
-      grid-template-columns: minmax(0, 1fr);
-      row-gap: 1.5rem;
-    }
-  }
-
-  /* --- Pre-reveal state ----------------------------------------------------
-     JS-only, so no-JS renders the finished section. twoWays.ts animates these
-     back to their resting values once the section scrolls in. */
-  :global(html[data-js='true']) [data-two-reveal],
-  :global(html[data-js='true']) [data-two-ritual] {
-    opacity: 0;
-  }
-
-  /* The stages are translated far below their grid row by twoWays.ts and
-     scrubbed up as the section scrolls in. Opacity 0 prevents a flash before
-     GSAP has set the initial transform. */
-  :global(html[data-js='true']) [data-two-card] {
-    opacity: 0;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) [data-two-reveal],
-    :global(html[data-js='true']) [data-two-card],
-    :global(html[data-js='true']) [data-two-ritual] {
-      opacity: 1;
-      transform: none;
+      width: auto;
+      margin-left: 0;
+      margin-right: 0;
     }
   }
 </style>
