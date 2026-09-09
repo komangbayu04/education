@@ -95,42 +95,38 @@ const STAGE_NARROW = LEAD + SCATTER_NARROW;
 /**
  * `film` picks what goes in the spot: a video, or a card of type.
  *
- * `lead` orders a card's own contents, and the two arrangements are both in
- * the reference: `headline` opens with what was said and signs it at the foot,
- * `person` names the speaker first and lets the quote follow. A scatter of six
- * identical cards would undo the reason this cut is a scatter.
- *
  * `ar` is the shape of a FILM. A card has no ratio — it is as tall as its own
- * words, which is why the two in the reference are the same width and
- * different heights.
+ * words, which is why three of them at one width come out at three heights.
+ *
+ * There was a `lead` here, ordering a card's contents two ways. It is gone: the
+ * design puts the speaker at the top of every card, and one arrangement done
+ * properly beats two done from a guess.
  */
-type Spot = {
-  l: number;
-  t: number;
-  w: number;
-  ar: number;
-  film: boolean;
-  lead?: 'headline' | 'person';
-};
+type Spot = { l: number; t: number; w: number; ar: number; film: boolean };
 
+/* The films are smaller than the frame draws them, and smaller than they were.
+   At 30, 36 and 44 percent they filled the stage between the cards and the
+   scatter stopped having any ground to scatter on — the whole point of a
+   scatter is the air around the things in it. At 23, 27 and 33 they are still
+   three clearly different sizes and there is room to see that. */
 const WIDE: Spot[] = [
-  { l: 4.5, t: 8.5, w: 28, ar: 372 / 257, film: false, lead: 'headline' },
-  { l: 66.53, t: 2.78, w: 30.21, ar: 435 / 307, film: true },
-  { l: 4.51, t: 36.02, w: 36.53, ar: 526 / 457, film: true },
-  { l: 61, t: 34, w: 28, ar: 340 / 235, film: false, lead: 'person' },
-  { l: 52.57, t: 57.76, w: 44.17, ar: 636 / 443, film: true },
-  { l: 12, t: 76.5, w: 28, ar: 340 / 235, film: false, lead: 'headline' },
+  { l: 4.5, t: 8.5, w: 24, ar: 372 / 257, film: false },
+  { l: 68, t: 3.5, w: 23, ar: 435 / 307, film: true },
+  { l: 6, t: 36.02, w: 27, ar: 526 / 457, film: true },
+  { l: 62, t: 34, w: 24, ar: 340 / 235, film: false },
+  { l: 58, t: 58, w: 33, ar: 636 / 443, film: true },
+  { l: 12, t: 76.5, w: 24, ar: 340 / 235, film: false },
 ];
 
 /* The same scatter on a hand — wider tiles, further apart down a taller
    stage, because a quarter of 1440px is a postage stamp at 390. */
 const NARROW: Spot[] = [
-  { l: 4, t: 6, w: 76, ar: 372 / 257, film: false, lead: 'headline' },
-  { l: 40, t: 20, w: 58, ar: 435 / 307, film: true },
-  { l: 3, t: 34, w: 64, ar: 526 / 457, film: true },
-  { l: 20, t: 47, w: 76, ar: 340 / 235, film: false, lead: 'person' },
-  { l: 6, t: 63, w: 72, ar: 636 / 443, film: true },
-  { l: 10, t: 79, w: 76, ar: 340 / 235, film: false, lead: 'headline' },
+  { l: 4, t: 6, w: 76, ar: 372 / 257, film: false },
+  { l: 44, t: 20, w: 50, ar: 435 / 307, film: true },
+  { l: 4, t: 34, w: 56, ar: 526 / 457, film: true },
+  { l: 20, t: 47, w: 76, ar: 340 / 235, film: false },
+  { l: 12, t: 63, w: 62, ar: 636 / 443, film: true },
+  { l: 10, t: 79, w: 76, ar: 340 / 235, film: false },
 ];
 
 const filmed = items.filter((item) => item.video);
@@ -148,6 +144,8 @@ interface Tile {
   item?: Testimonial;
   film?: number;
   card?: Testimonial;
+  /** The card's portrait, real or borrowed — see where it is assigned. */
+  face?: string;
   still?: string;
 }
 
@@ -172,6 +170,18 @@ tiles.forEach((tile) => {
   const item = spoken[nextCard];
   if (item) {
     tile.card = item;
+    /* PLACEHOLDER, and it has to be replaced.
+     *
+     * The design puts a face on every card. Portraits exist for the three
+     * founders who were filmed and for nobody else, so a card whose speaker has
+     * no photograph on file borrows one of those — which means, for now, a face
+     * that is not the person named beside it.
+     *
+     * That is only acceptable because it is temporary and because it was asked
+     * for explicitly. The moment the real portraits land they go on the
+     * founders in src/data/testimonials.ts as `photo`, this line stops doing
+     * anything, and it should be deleted with the same commit. */
+    tile.face = item.photo ?? stills[nextCard % stills.length];
     nextCard += 1;
   }
 });
@@ -229,36 +239,29 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
           >
             {
               tile.card ? (
-                /* A quote set as type. Two arrangements, both from the
-                   reference — see `lead` on the spot. */
-                <article class:list={['tmf__card', `tmf__card--${WIDE[tile.spot].lead}`]}>
-                  {WIDE[tile.spot].lead === 'person' && (
-                    <div class="tmf__who">
-                      <div class="tmf__whotext">
-                        <p class="tmf__name">{tile.card.name}</p>
-                        <p class="tmf__role">{tile.card.role}</p>
-                      </div>
-                      {tile.card.photo && (
-                        <img
-                          class="tmf__face"
-                          src={tile.card.photo}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  <p class="tmf__headline">{tile.card.headline}</p>
-                  <blockquote class="tmf__quote">{tile.card.quote}</blockquote>
-
-                  {WIDE[tile.spot].lead !== 'person' && (
-                    <div class="tmf__whotext tmf__whotext--foot">
+                /* Speaker, then what they said, then who they said it for —
+                   the order the design sets, and the only order this card has.
+                   Two arrangements were tried and one of them was a guess. */
+                <article class="tmf__card">
+                  <div class="tmf__who">
+                    <div class="tmf__whotext">
                       <p class="tmf__name">{tile.card.name}</p>
                       <p class="tmf__role">{tile.card.role}</p>
                     </div>
-                  )}
+
+                    {tile.face && (
+                      <img
+                        class="tmf__face"
+                        src={tile.face}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    )}
+                  </div>
+
+                  <p class="tmf__headline">{tile.card.headline}</p>
+                  <blockquote class="tmf__quote">{tile.card.quote}</blockquote>
 
                   <div class="tmf__sign">
                     {tile.card.logo ? (
@@ -271,16 +274,6 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
                       />
                     ) : (
                       <p class="tmf__mark tmf__mark--text">{tile.card.company}</p>
-                    )}
-
-                    {WIDE[tile.spot].lead !== 'person' && tile.card.photo && (
-                      <img
-                        class="tmf__face"
-                        src={tile.card.photo}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                      />
                     )}
                   </div>
                 </article>
@@ -447,88 +440,91 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
 
   /* ===================== The cards =====================
      White on the ruled ground, and squared off: the films are rectangles with
-     hard corners and a card that rounded its own would read as a different
-     kind of object rather than the same object holding words. */
+     hard corners and a card that rounded its own would read as a different kind
+     of object rather than the same object holding words.
+
+     The vertical rhythm is the design's own and it is not one gap repeated —
+     the speaker's block sits close to the top, the headline stands well clear
+     of it, the quote follows the headline tightly because it belongs to it, and
+     the mark is pushed to the foot. A single `gap` made all four of those the
+     same distance, which is what made the card read as a list. */
   .tmf__card {
     display: flex;
     flex-direction: column;
-    gap: clamp(0.75rem, 1.1vw, 1.125rem);
     height: 100%;
-    padding: clamp(1rem, 1.5vw, 1.5rem);
+    padding: clamp(0.875rem, 1.25vw, 1.125rem);
     background: var(--color-bg-primary);
   }
 
-  /* The person, when they come first: name and role on the left, face on the
-     right, on one line. */
+  /* Name and role on the left, the face square on the right, tops level. */
   .tmf__who {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
   .tmf__name {
-    font-size: clamp(0.8125rem, 0.9vw, 0.9375rem);
+    font-size: clamp(0.75rem, 0.9vw, 0.8125rem);
     font-weight: 500;
-    line-height: 1.3;
+    line-height: 1.35;
     letter-spacing: -0.01em;
   }
 
+  /* Floored at 12px rather than the design's 11. Eleven is this site's size
+     for uppercase tracked labels, where the letterforms are large for the
+     point size and there are three words of them; a mixed-case role and a
+     paragraph of italic quotation are neither of those things. */
   .tmf__role {
-    font-size: clamp(0.75rem, 0.83vw, 0.8125rem);
+    font-size: clamp(0.75rem, 0.76vw, 0.8125rem);
     line-height: 1.4;
     color: var(--color-ink-secondary);
   }
 
-  /* Square, and small: it identifies the speaker rather than portraying
-     them. */
+  /* Square, and small: it identifies the speaker rather than portraying them.
+     `flex: none` because a portrait that shrank to fit a long name would be a
+     different size on every card. */
   .tmf__face {
     flex: none;
-    width: clamp(2.75rem, 3.9vw, 3.5rem);
-    height: clamp(2.75rem, 3.9vw, 3.5rem);
+    width: clamp(2.25rem, 3.3vw, 3rem);
+    height: clamp(2.25rem, 3.3vw, 3rem);
     object-fit: cover;
   }
 
+  /* The line the card is really for, and the one thing on it set large. */
   .tmf__headline {
-    font-size: clamp(0.9375rem, 1.32vw, 1.1875rem);
+    margin-top: clamp(1rem, 1.5vw, 1.375rem);
+    font-size: clamp(0.9375rem, 1.18vw, 1.0625rem);
     font-weight: 400;
-    line-height: 1.3;
+    line-height: 1.28;
     letter-spacing: -0.02em;
   }
 
-  /* Italic, and set smaller than the line above it: the headline is what the
-     card says and this is the evidence for it. The data already carries its
-     own quotation marks. */
+  /* Italic, smaller, grey: the headline is the claim and this is the evidence
+     for it. Close under the headline because it belongs to it — the air in this
+     card is above the headline, not below it. The data carries its own
+     quotation marks. */
   .tmf__quote {
-    margin: 0;
-    font-size: clamp(0.75rem, 0.83vw, 0.8125rem);
+    margin: clamp(0.5rem, 0.7vw, 0.6875rem) 0 0;
+    font-size: clamp(0.75rem, 0.78vw, 0.8125rem);
     font-style: italic;
     line-height: 1.55;
     color: var(--color-ink-secondary);
   }
 
-  /* Pushed to the foot whichever arrangement the card is in, so a short quote
-     and a long one sign off on the same line. */
-  .tmf__whotext--foot {
-    margin-top: auto;
-  }
-
+  /* At the foot whatever the quote does, so a short card and a long one sign
+     off on their own bottom line rather than wherever the words ran out. */
   .tmf__sign {
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .tmf__card--person .tmf__sign {
     margin-top: auto;
+    padding-top: clamp(0.875rem, 1.2vw, 1.125rem);
   }
 
   /* One height for every mark, the same rule the client band is under — these
-     are the same nine wordmarks and they cannot be one size there and nine
-     here. */
+     are the same wordmarks and they cannot be one size there and nine here. */
   .tmf__mark {
-    height: clamp(0.875rem, 1.25vw, 1.125rem);
+    height: clamp(0.875rem, 1.15vw, 1.125rem);
     width: auto;
     object-fit: contain;
     object-position: left center;

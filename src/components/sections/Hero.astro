@@ -687,6 +687,41 @@ const {
     will-change: transform;
   }
 
+  /* --- Held back until the frame has been worked out ------------------------
+     What the reader saw on every reload was the photograph at its own full
+     size, filling the window, and then it snapped into the small frame on the
+     left. That is not an animation going wrong — it is the picture being
+     painted before the script that frames it has run. The <img> is eager and
+     high priority, so it arrives early on purpose; the resting frame is
+     measured, so it cannot be stated in CSS ahead of the measurement.
+
+     So the artwork waits. `initHeroReveal` measures and renders the first frame
+     synchronously, and `initHero` sets `data-hero-ready` straight after —
+     unconditionally, including on the paths where the reveal bails out early,
+     because a flag that can fail to arrive is an artwork that can stay hidden
+     for good. What shows in the meantime is the section's own ground, which is
+     the colour the hero is anyway.
+
+     Gated on the JS flag, so a page without the script never hides its own
+     picture waiting for something that is not coming. */
+  :global(html[data-js='true']) .hero__zoom {
+    opacity: 0;
+  }
+
+  :global(html[data-js='true']) .hero[data-hero-ready] .hero__zoom {
+    opacity: 1;
+    /* Short, and an arrival rather than a fade: the copy over it is already
+       brought in on its own clock, so a picture that took its time here would
+       be the second thing the reader waits for. */
+    transition: opacity 0.3s var(--ease-out-expo, ease-out);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) .hero[data-hero-ready] .hero__zoom {
+      transition: none;
+    }
+  }
+
   /* Full width, and the picture's own height at that width — 1.494 : 1, so on
      any window wider than it is tall the box runs past the bottom of the
      screen. That overhang is the point: it is where the gradient stacks, and

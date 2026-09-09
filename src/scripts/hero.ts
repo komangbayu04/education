@@ -779,6 +779,16 @@ export function initHero(): () => void {
      already laid out. */
   const stopReveal = initHeroReveal(hero);
 
+  /* The artwork is hidden by the stylesheet until this lands — see the note on
+     `.hero__zoom` in Hero.astro. `initHeroReveal` measures and renders its
+     first frame synchronously, so by here the picture is already in the frame
+     it belongs in and this only makes it visible.
+
+     Outside that function, and after it whatever it did: it has guards that
+     return early, and set from inside one of those the flag would never arrive
+     on the paths that need it most. */
+  hero.setAttribute('data-hero-ready', '');
+
   return () => {
     stopReveal();
     tl.kill();
