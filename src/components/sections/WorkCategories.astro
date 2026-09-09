@@ -103,6 +103,7 @@ const {
       blurb:
         'Marketing sites and platforms, designed and built end to end — so what ships is what was drawn, at the speed the launch actually needs.',
       href: '/work',
+      art: '/media/work-website-design',
       tone: '#101010',
     },
     {
@@ -111,6 +112,7 @@ const {
       blurb:
         'The screens people use every day: flows, states, and the systems underneath them, drawn so the product stays coherent as it grows.',
       href: '/work',
+      art: '/media/work-product-design',
       tone: '#151515',
     },
     {
@@ -119,6 +121,7 @@ const {
       blurb:
         'Marks, type, colour and motion, with the rules that keep them holding together everywhere the brand turns up.',
       href: '/work',
+      art: '/media/work-brand-design',
       tone: '#101010',
     },
     {
@@ -127,6 +130,7 @@ const {
       blurb:
         'The story a room has to follow in twenty minutes — cut, structured and designed so the argument carries without you narrating it.',
       href: '/work',
+      art: '/media/work-pitch-deck',
       tone: '#151515',
     },
     {
@@ -135,6 +139,8 @@ const {
       blurb:
         'Campaign and social work that keeps the brand recognisable at the size a feed actually shows it, in the volume a calendar actually needs.',
       href: '/work',
+      /* No `art` yet — this shot is still to come, so the category paints its
+         flat tone until it does. */
       tone: '#101010',
     },
   ],
@@ -161,7 +167,7 @@ const {
   */}
   <div class="cat__stick" data-cat-dissolve>
     {
-      categories.map((category) => (
+      categories.map((category, index) => (
         <div class="cat__screen" data-cat-screen>
           {/* The ground. Painted in `tone` underneath so the screen is never
               bare while the file is still loading — or before there is one. */}
@@ -173,7 +179,13 @@ const {
                   src={`${category.art}.webp`}
                   alt=""
                   decoding="async"
-                  loading="lazy"
+                  {/* The first category's shot is what the reader is dissolved
+                      into out of Overclock — it has to be decoded before that
+                      join starts, not when it scrolls into view, because by
+                      then it is already on screen and fading up. The rest are
+                      four screens further down. */}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchpriority={index === 0 ? 'high' : undefined}
                   style={category.focus ? `object-position:${category.focus}` : undefined}
                 />
               </picture>

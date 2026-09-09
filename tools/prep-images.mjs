@@ -288,10 +288,66 @@ const photos = [
   // One entry per file across the four category folders — see
   // WORK_CATEGORY_FOLDERS above.
   ...workCatPhotos,
+
+  /* Our work — categorized. One shot per category, and each one is the whole
+     screen: WorkCategories.astro paints them full bleed as the section's
+     ground with the copy column over them behind a wash, so these are read at
+     the width of the window and not at the width of a card. 2400 is the same
+     cap the hero's still is under and for the same reason.
+
+     `flatten` because all four are exports with an alpha channel. Nothing is
+     actually cut out in them, but a stray transparent pixel over a black
+     section would be a hole rather than a colour, and `cover` can put the
+     edges of the frame anywhere.
+
+     Marketing Design is not here yet — its shot is still to come, and until it
+     does that category paints its flat `tone` instead. */
+  ...[
+    ['Website.png', 'work-website-design', {}],
+    ['Product Design.png', 'work-product-design', {}],
+    ['Branding.png', 'work-brand-design', {}],
+    /* The top tenth goes, and this is the one crop here that is not about
+       shape. The export has the site's own floating nav drawn into it — the
+       wordmark, "PITCH DECK", and the hamburger, in a capsule at the top of
+       the frame — because it is a mockup of this page. Left in, the reader
+       would see two of them, one live and one photographed, a few pixels
+       apart. What is lost with it is ceiling. */
+    ['Pitch Deck.png', 'work-pitch-deck', { trimTop: 0.1 }],
+  ].map(([file, name, opts]) => ({
+    src: `${SRC}/work/${file}`,
+    name,
+    maxW: 2400,
+    avif: true,
+    quality: 80,
+    flatten: true,
+    ...opts,
+  })),
 ];
 
-for (const { src, name, maxW, avif = false, quality = 82, lossless = false } of photos) {
-  const base = sharp(src).resize({ width: maxW, withoutEnlargement: true });
+for (const {
+  src,
+  name,
+  maxW,
+  avif = false,
+  quality = 82,
+  lossless = false,
+  flatten = false,
+  trimTop = 0,
+} of photos) {
+  let input = sharp(src);
+
+  /* Both of these have to happen before the resize, and in this order: an
+     extract is in source pixels, and flattening after a resize would composite
+     against edges the resampler has already blended with transparency. */
+  if (flatten) input = input.flatten({ background: '#000000' });
+
+  if (trimTop > 0) {
+    const { width, height } = await sharp(src).metadata();
+    const top = Math.round(height * trimTop);
+    input = input.extract({ left: 0, top, width, height: height - top });
+  }
+
+  const base = input.resize({ width: maxW, withoutEnlargement: true });
 
   const webp = await base
     .clone()
