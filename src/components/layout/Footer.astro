@@ -117,28 +117,41 @@ const {
   >
   </div>
 
-<section class="fq">
-  <div class="fq__media" aria-hidden="true">
+  {/* ONE photograph for the whole screen, not one for the quote and a black
+      band under it. The reference runs the picture the full height and simply
+      lets it go dark towards the foot — the wordmark and the links stand on the
+      same image the quote does, and you can see its texture behind them. It sat
+      inside the quote region and stopped where that region stopped, which is
+      what made the band read as a separate slab. */}
+  <div class="close__media" aria-hidden="true">
     {
       image ? (
         <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
       ) : (
-        <span class="fq__media-fallback" />
+        <span class="close__media-fallback" />
       )
     }
-    <span class="fq__scrim"></span>
+    <span class="close__scrim"></span>
   </div>
+
+<section class="fq">
 
   {/* The band the photograph ends as, and what stands on it. Laid out at its
       finished size from the start — the picture grows into this box rather
       than the box being animated, so the copy is never reflowed mid-scroll. */}
   <div class="fq__band">
+    {/* Caption FIRST. `<figcaption>` is valid as either the first or the last
+        child of a figure, and the reference names the speaker before quoting
+        them — the name sits a tenth of the way down the screen with the quote
+        under it. The other way round put the quote at the top of the frame and
+        the name in the middle of it. */}
     <figure class="fq__figure">
-      <blockquote class="fq__text">{quote}</blockquote>
       <figcaption class="fq__who">
         <p class="fq__name">{name}</p>
         <p class="fq__role">{role}</p>
       </figcaption>
+
+      <blockquote class="fq__text">{quote}</blockquote>
     </figure>
 
     <div class="fq__portrait">
@@ -221,6 +234,45 @@ const {
     height: var(--close-h, 100svh);
   }
 
+  /* The photograph, behind everything in the block. */
+  .close__media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .close__media img,
+  .close__media-fallback {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .close__media-fallback {
+    background:
+      radial-gradient(80% 60% at 70% 30%, #3c4550, transparent 70%),
+      linear-gradient(200deg, #2b3138, #16191d);
+  }
+
+  /* Light at the top and heavy at the foot, which is the opposite of what it
+     used to be. It used to darken the TOP, because the quote was the only thing
+     standing on the picture and the band beneath it was solid black. Now the
+     wordmark, the links and the legal line stand on the picture too, and they
+     are small, so the bottom is where the ground has to give way. */
+  .close__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.28) 0%,
+      rgb(0 0 0 / 0.34) 42%,
+      rgb(0 0 0 / 0.62) 74%,
+      rgb(0 0 0 / 0.78) 100%
+    );
+  }
+
   /* Draws nothing. Its opacity is a signal to the nav, not a surface — see the
      note on it in the markup. */
   .close__zone {
@@ -235,8 +287,10 @@ const {
      1. The quote region
      ===================================================================== */
   .fq {
-    /* One gutter, symmetric — the reference frame sets both sides at 132px. */
-    --ft-gutter: clamp(1.25rem, 9.2vw, 8.25rem);
+    /* One gutter, symmetric. 5.1vw is the reference's own inset — 73px at
+       1440 — which is nearer the page's shared 49px than the 132 this used to
+       be, and reads as the same margin the rest of the site is set on. */
+    --ft-gutter: clamp(1.25rem, 5.1vw, 4.5rem);
 
     position: relative;
     /* Everything the band does not take. The two together are the closing
@@ -248,46 +302,17 @@ const {
     color: var(--color-ink-invert);
   }
 
-  .fq__media {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-  }
-
-  .fq__media img,
-  .fq__media-fallback {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .fq__media-fallback {
-    background:
-      radial-gradient(80% 60% at 70% 30%, #3c4550, transparent 70%),
-      linear-gradient(200deg, #2b3138, #16191d);
-  }
-
-  .fq__scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgb(0 0 0 / 0.26), rgb(0 0 0 / 0));
-  }
-
-  /* No minimum height any more. It had one — `--fq-band` — from when this
-     section was as tall as the page made it and the band had to hold a floor
-     open inside it. Inside a fixed screen a floor is a way to overflow: the
-     block is anchored to the bottom of the window, so every pixel the content
-     asks for beyond one screen is a pixel off the top that nothing can scroll
-     to. The content asks, and the photograph above takes what is left. */
+  /* The quote sits in the upper part of the screen, not the middle of a region
+     — the reference puts the name a tenth of the way down and the last line of
+     the quote just under halfway. */
   .fq__band {
     position: relative;
     z-index: 1;
+    height: 100%;
     /* Both ends scale with the window's HEIGHT as well as its width, for the
        same reason the band below is capped: on a short screen this padding is
        the first thing that should give. */
-    padding: clamp(1.25rem, 5svh, 5.5rem) var(--ft-gutter) clamp(1rem, 3.5svh, 3.5rem);
+    padding: clamp(1.5rem, 9svh, 5.5rem) var(--ft-gutter) 0;
   }
 
   .fq__figure {
@@ -311,8 +336,11 @@ const {
     text-wrap: pretty;
   }
 
+  /* Above the quote now, so the space belongs under it rather than over it —
+     the 2.5rem here used to be the gap between the quote and the name it was
+     signed with. */
   .fq__who {
-    margin-top: 2.5rem;
+    margin-bottom: clamp(1.25rem, 3.5svh, 2.25rem);
   }
 
   .fq__name {
@@ -332,15 +360,18 @@ const {
 
   .fq__portrait {
     position: absolute;
-    right: clamp(0.75rem, 7vw, 6.375rem);
-    bottom: 0;
+    /* Inset from the frame on both edges it touches, on the section's own
+       gutter — flush to the corner it read as a picture that had slipped off
+       the screen rather than one placed on it. */
+    right: var(--ft-gutter);
+    top: clamp(1.5rem, 7svh, 4.5rem);
     z-index: 1;
-    /* Width from the frame, height capped against the window: the portrait is
-       anchored to the foot of a fixed screen, so a tall one pushes its own top
-       past the quote it is standing beside. */
-    width: clamp(15rem, 30vw, 27.3125rem);
-    max-height: 62%;
-    aspect-ratio: 437 / 480;
+    /* Top right, beside the quote rather than under it — the reference has it
+       level with the name and finishing about halfway down the screen. It was
+       anchored to the foot, from when the quote region was the whole of a much
+       taller section. Its shape is the reference's own: 289 x 383 at 1440. */
+    width: clamp(9rem, 20vw, 18rem);
+    aspect-ratio: 289 / 383;
     pointer-events: none;
   }
 
@@ -361,44 +392,46 @@ const {
      2. The ink band
      ===================================================================== */
   .ft {
-    --ft-gutter: clamp(1.25rem, 9.2vw, 8.25rem);
+    --ft-gutter: clamp(1.25rem, 5.1vw, 4.5rem);
 
     position: relative;
-    background: var(--color-bg-footer);
+    z-index: 1;
+    /* NO GROUND. It was solid black — `--color-bg-footer` — from when this was
+       a band under a photograph rather than the foot of one. The reference has
+       a single picture running the whole screen, dark at the bottom, with the
+       wordmark and the links standing on it; a slab here is what made it read
+       as two stacked things. The darkness comes from the scrim on the picture
+       now. */
     color: var(--color-ink-invert);
-    /* Not hidden: the wordmark is laid across the top edge and bleeds up into
-       the photograph above, which is the whole point of the tag. Its 15px of
-       left bleed is clipped by `overflow-x` on the body. */
+    padding: 0 var(--ft-gutter) clamp(1.25rem, 3.4svh, 2.25rem);
     overflow: visible;
   }
 
+  /* Wordmark bottom left with the legal line under it, the links and the
+     contact cluster on the right and level with its foot. A grid rather than a
+     row, because the left column is two stacked things and the right is one
+     that has to sit against the bottom of both. */
   .ft__meta {
     position: relative;
     z-index: 1;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 2rem;
-    /* Capped against the window as well as stated in rem. The closing screen is
-       fixed to the bottom of the viewport, so anything the two halves ask for
-       beyond one screen comes off the TOP of the photograph and cannot be
-       scrolled to. Measured at 1024x600: the band wanted 374 in the 224 it had
-       been left, and 150px of the quote was above the window with no way to
-       reach it. */
-    min-height: min(23.5rem, 44svh);
-    padding: 3.5rem var(--ft-gutter);
-    background: var(--color-bg-footer);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: clamp(1.5rem, 4vw, 4.5rem);
+    row-gap: clamp(0.75rem, 2svh, 1.5rem);
+    align-items: end;
   }
 
-  /* Laid across the band, bleeding off the left edge and up into the
-     photograph above. `difference` against the near-black ground lifts the
-     #C6C6C6 artwork to a bright grey without a fill of its own. */
+  /* In flow now, not laid across the section's top edge. It used to be
+     absolutely placed so it could bleed up into the photograph above it — a
+     tag sprayed across the join between two things. There is no join: the
+     picture is one picture and the wordmark stands on it like everything else.
+
+     28vw is the reference's own width, 406px at 1440, against the 715 it was.
+  */
   .ft__wordmark {
-    position: absolute;
-    left: -0.9375rem;
-    top: -2.9375rem;
-    z-index: 0;
-    width: clamp(20rem, 52vw, 44.6875rem);
+    grid-area: 1 / 1;
+    width: clamp(11rem, 28vw, 25.5rem);
+    margin-bottom: clamp(0.5rem, 1.6svh, 1.25rem);
     mix-blend-mode: difference;
     pointer-events: none;
   }
@@ -428,6 +461,7 @@ const {
   }
 
   .ft__legal {
+    grid-area: 2 / 1;
     position: relative;
     z-index: 1;
     margin: 0;
@@ -439,6 +473,8 @@ const {
   }
 
   .ft__cluster {
+    grid-area: 1 / 2 / 3 / 3;
+    align-self: end;
     position: relative;
     z-index: 1;
     display: flex;
@@ -557,27 +593,53 @@ const {
       padding-inline: var(--section-padding-x);
     }
 
-    .fq__portrait {
-      right: 0;
-      width: min(48vw, 15rem);
+    .ft {
+      --ft-gutter: var(--section-padding-x);
     }
 
+    /* Smaller, and the copy is told to keep out of its column. On a phone the
+       quote is the full width of the screen minus a gutter, so without this the
+       lines run straight under the portrait — measured at 390, the quote's
+       right edge and the portrait's were the same pixel. */
+    .fq__portrait {
+      --fq-portrait-w: min(28vw, 7rem);
+
+      width: var(--fq-portrait-w);
+    }
+
+    .fq__figure {
+      padding-right: calc(min(28vw, 7rem) + 1rem);
+    }
+
+    /* One column at this measure: the wordmark, then the links and the contact
+       under it, then the legal line. The grid areas the wide layout places
+       things into are undone here — a phone has no right-hand column to put a
+       cluster in.
+
+       `flex-direction: column-reverse` and a `top` on the wordmark used to be
+       here, from when the meta row was a flex row and the wordmark was
+       absolutely placed across the section's top edge. It is neither now. */
     .ft__meta {
-      flex-direction: column-reverse;
+      display: flex;
+      flex-direction: column;
       align-items: flex-start;
-      gap: 2.5rem;
-      min-height: 0;
-      padding: 3rem var(--section-padding-x);
+      gap: clamp(0.75rem, 2svh, 1.25rem);
+      padding: 0;
     }
 
     .ft__wordmark {
-      top: -6vw;
-      width: min(92vw, 24rem);
+      width: min(52vw, 13rem);
+      margin-bottom: 0;
     }
 
+    /* Side by side rather than stacked. Stacked, the two of them plus the
+       wordmark and the legal line took 580 of an 844-tall screen and left the
+       quote 264 — which is less than the quote needs, and on a fixed block a
+       shortfall is content above the top of the window. */
     .ft__cluster {
-      flex-direction: column;
-      gap: 2rem;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 1rem 2rem;
     }
   }
 
