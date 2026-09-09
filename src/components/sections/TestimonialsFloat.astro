@@ -27,8 +27,18 @@
  * Without JS, or under reduced motion, the films are simply already there.
  *
  * A film opens the full testimonial — sound, controls, the quote beside it —
- * in a lightbox over a white ground. A still opens nothing: it is a
- * placeholder for a film that has not been shot (see TESTIMONIAL_STILLS).
+ * in a lightbox over a white ground.
+ *
+ * NOT EVERY TILE IS A FILM. Three of the six are cards: the quote set as type,
+ * with the founder's name, their portrait and their company's mark. Three of
+ * the seven founders on record were filmed and the other four were not, and
+ * the scatter used to fill those spots with a decorative still — a frame of
+ * somebody else's interview, carrying no name, opening nothing. A card says
+ * what a still could not: who said it and what they said.
+ *
+ * The films are deliberately not one size. They run 30, 36 and 44 percent of
+ * the frame at three different ratios, because a scatter of identical
+ * rectangles is a grid that has come loose rather than a scatter.
  */
 import {
   TESTIMONIALS,
@@ -82,52 +92,89 @@ const STAGE_NARROW = LEAD + SCATTER_NARROW;
  * first and the rest take a still, so the interviews we actually have are the
  * ones with presence and the placeholders stay small.
  */
-type Spot = { l: number; t: number; w: number; ar: number; film: boolean };
+/**
+ * `film` picks what goes in the spot: a video, or a card of type.
+ *
+ * `lead` orders a card's own contents, and the two arrangements are both in
+ * the reference: `headline` opens with what was said and signs it at the foot,
+ * `person` names the speaker first and lets the quote follow. A scatter of six
+ * identical cards would undo the reason this cut is a scatter.
+ *
+ * `ar` is the shape of a FILM. A card has no ratio — it is as tall as its own
+ * words, which is why the two in the reference are the same width and
+ * different heights.
+ */
+type Spot = {
+  l: number;
+  t: number;
+  w: number;
+  ar: number;
+  film: boolean;
+  lead?: 'headline' | 'person';
+};
 
 const WIDE: Spot[] = [
-  { l: 11.32, t: 9.83, w: 25.83, ar: 372 / 257, film: false },
+  { l: 4.5, t: 8.5, w: 28, ar: 372 / 257, film: false, lead: 'headline' },
   { l: 66.53, t: 2.78, w: 30.21, ar: 435 / 307, film: true },
   { l: 4.51, t: 36.02, w: 36.53, ar: 526 / 457, film: true },
-  { l: 60.28, t: 36.02, w: 23.61, ar: 340 / 235, film: false },
+  { l: 61, t: 34, w: 28, ar: 340 / 235, film: false, lead: 'person' },
   { l: 52.57, t: 57.76, w: 44.17, ar: 636 / 443, film: true },
-  { l: 13.96, t: 78.32, w: 23.61, ar: 340 / 235, film: false },
+  { l: 12, t: 76.5, w: 28, ar: 340 / 235, film: false, lead: 'headline' },
 ];
 
 /* The same scatter on a hand — wider tiles, further apart down a taller
    stage, because a quarter of 1440px is a postage stamp at 390. */
 const NARROW: Spot[] = [
-  { l: 2, t: 7, w: 56, ar: 372 / 257, film: false },
-  { l: 40, t: 18, w: 58, ar: 435 / 307, film: true },
+  { l: 4, t: 6, w: 76, ar: 372 / 257, film: false, lead: 'headline' },
+  { l: 40, t: 20, w: 58, ar: 435 / 307, film: true },
   { l: 3, t: 34, w: 64, ar: 526 / 457, film: true },
-  { l: 50, t: 48, w: 46, ar: 340 / 235, film: false },
-  { l: 6, t: 61, w: 72, ar: 636 / 443, film: true },
-  { l: 45, t: 79, w: 48, ar: 340 / 235, film: false },
+  { l: 20, t: 47, w: 76, ar: 340 / 235, film: false, lead: 'person' },
+  { l: 6, t: 63, w: 72, ar: 636 / 443, film: true },
+  { l: 10, t: 79, w: 76, ar: 340 / 235, film: false, lead: 'headline' },
 ];
 
 const filmed = items.filter((item) => item.video);
+const spoken = items.filter((item) => !item.video);
 
-/* Hand the spots out. Film spots first — in the order the frame draws them,
-   which a stable sort keeps — so a fourth interview would take the next
-   ordinary spot ahead of any still rather than being dropped. */
+/* Hand the spots out. A film spot takes an interview and a card spot takes one
+   of the founders who was not filmed, so nothing is ever shown twice and the
+   three we have on camera are the three with presence.
+
+   `stills` is still a prop and still the last resort: if there are more film
+   spots than interviews the surplus falls back to a decorative frame, which is
+   what the whole scatter used to be made of. */
 interface Tile {
   spot: number;
   item?: Testimonial;
   film?: number;
+  card?: Testimonial;
   still?: string;
 }
 
 const tiles: Tile[] = WIDE.map((_, spot) => ({ spot }));
 
-[...tiles]
-  .sort((a, b) => Number(WIDE[b.spot].film) - Number(WIDE[a.spot].film))
-  .forEach((tile, n) => {
-    if (n < filmed.length) {
-      tile.item = filmed[n];
-      tile.film = n;
+let nextFilm = 0;
+let nextCard = 0;
+
+tiles.forEach((tile) => {
+  if (WIDE[tile.spot].film) {
+    const item = filmed[nextFilm];
+    if (item) {
+      tile.item = item;
+      tile.film = nextFilm;
+      nextFilm += 1;
       return;
     }
-    if (stills.length) tile.still = stills[(n - filmed.length) % stills.length];
-  });
+    if (stills.length) tile.still = stills[nextFilm % stills.length];
+    return;
+  }
+
+  const item = spoken[nextCard];
+  if (item) {
+    tile.card = item;
+    nextCard += 1;
+  }
+});
 
 /* A frame position is a percentage of the scatter. On the stage it is that,
    pushed down by the lead — so the tables above stay the frame's own numbers
@@ -175,9 +222,69 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     <ul class="tmf__films" data-tmf-films>
       {
         tiles.map((tile) => (
-          <li class="tmf__film" data-tmf-film style={spot(tile.spot)}>
+          <li
+            class:list={['tmf__film', tile.card && 'tmf__film--card']}
+            data-tmf-film
+            style={spot(tile.spot)}
+          >
             {
-              tile.item ? (
+              tile.card ? (
+                /* A quote set as type. Two arrangements, both from the
+                   reference — see `lead` on the spot. */
+                <article class:list={['tmf__card', `tmf__card--${WIDE[tile.spot].lead}`]}>
+                  {WIDE[tile.spot].lead === 'person' && (
+                    <div class="tmf__who">
+                      <div class="tmf__whotext">
+                        <p class="tmf__name">{tile.card.name}</p>
+                        <p class="tmf__role">{tile.card.role}</p>
+                      </div>
+                      {tile.card.photo && (
+                        <img
+                          class="tmf__face"
+                          src={tile.card.photo}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  <p class="tmf__headline">{tile.card.headline}</p>
+                  <blockquote class="tmf__quote">{tile.card.quote}</blockquote>
+
+                  {WIDE[tile.spot].lead !== 'person' && (
+                    <div class="tmf__whotext tmf__whotext--foot">
+                      <p class="tmf__name">{tile.card.name}</p>
+                      <p class="tmf__role">{tile.card.role}</p>
+                    </div>
+                  )}
+
+                  <div class="tmf__sign">
+                    {tile.card.logo ? (
+                      <img
+                        class="tmf__mark"
+                        src={tile.card.logo}
+                        alt={tile.card.company}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <p class="tmf__mark tmf__mark--text">{tile.card.company}</p>
+                    )}
+
+                    {WIDE[tile.spot].lead !== 'person' && tile.card.photo && (
+                      <img
+                        class="tmf__face"
+                        src={tile.card.photo}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    )}
+                  </div>
+                </article>
+              ) : tile.item ? (
                 <>
                   <video
                     class="tmf__preview"
@@ -263,8 +370,33 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
 
 <style>
   .tmf {
+    /* The column rule the scatter is laid out against, drawn rather than
+       implied. The tiles sit at the frame's own percentages, and on plain white
+       that reads as six rectangles dropped at random; against a ruled ground it
+       reads as a composition that has chosen to break its own grid. Faint
+       enough to be felt rather than counted.
+
+       Three columns across the frame, and rows at the same pitch a column is
+       wide at 1440 — so the cells are square at the width the scatter was drawn
+       for and stretch either way from there. `%` on the vertical rules would
+       resolve against a section nearly three screens tall and give three
+       enormous bands. */
+    --tmf-rule: rgb(23 24 26 / 0.06);
+    --tmf-row: clamp(15rem, 33.333vw, 26rem);
+
     position: relative;
-    background: var(--color-bg-primary);
+    background-color: var(--color-bg-twoways);
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        var(--tmf-rule) 0 1px,
+        transparent 1px 33.333%
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        var(--tmf-rule) 0 1px,
+        transparent 1px var(--tmf-row)
+      );
     color: var(--color-ink);
     font-family: var(--font-body);
   }
@@ -302,6 +434,113 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     aspect-ratio: var(--ar, 16 / 9);
     overflow: hidden;
     background: var(--color-line);
+  }
+
+  /* A card has no ratio. It is as tall as its own words, which is why two of
+     them at the same width come out at different heights — and why the spot's
+     `ar`, which is the shape a FILM was shot in, has nothing to say here. */
+  .tmf__film--card {
+    aspect-ratio: auto;
+    overflow: visible;
+    background: none;
+  }
+
+  /* ===================== The cards =====================
+     White on the ruled ground, and squared off: the films are rectangles with
+     hard corners and a card that rounded its own would read as a different
+     kind of object rather than the same object holding words. */
+  .tmf__card {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.1vw, 1.125rem);
+    height: 100%;
+    padding: clamp(1rem, 1.5vw, 1.5rem);
+    background: var(--color-bg-primary);
+  }
+
+  /* The person, when they come first: name and role on the left, face on the
+     right, on one line. */
+  .tmf__who {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .tmf__name {
+    font-size: clamp(0.8125rem, 0.9vw, 0.9375rem);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .tmf__role {
+    font-size: clamp(0.75rem, 0.83vw, 0.8125rem);
+    line-height: 1.4;
+    color: var(--color-ink-secondary);
+  }
+
+  /* Square, and small: it identifies the speaker rather than portraying
+     them. */
+  .tmf__face {
+    flex: none;
+    width: clamp(2.75rem, 3.9vw, 3.5rem);
+    height: clamp(2.75rem, 3.9vw, 3.5rem);
+    object-fit: cover;
+  }
+
+  .tmf__headline {
+    font-size: clamp(0.9375rem, 1.32vw, 1.1875rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  /* Italic, and set smaller than the line above it: the headline is what the
+     card says and this is the evidence for it. The data already carries its
+     own quotation marks. */
+  .tmf__quote {
+    margin: 0;
+    font-size: clamp(0.75rem, 0.83vw, 0.8125rem);
+    font-style: italic;
+    line-height: 1.55;
+    color: var(--color-ink-secondary);
+  }
+
+  /* Pushed to the foot whichever arrangement the card is in, so a short quote
+     and a long one sign off on the same line. */
+  .tmf__whotext--foot {
+    margin-top: auto;
+  }
+
+  .tmf__sign {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .tmf__card--person .tmf__sign {
+    margin-top: auto;
+  }
+
+  /* One height for every mark, the same rule the client band is under — these
+     are the same nine wordmarks and they cannot be one size there and nine
+     here. */
+  .tmf__mark {
+    height: clamp(0.875rem, 1.25vw, 1.125rem);
+    width: auto;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  /* When a client has no mark on file, their name set in its place rather than
+     a hole where a logo goes. */
+  .tmf__mark--text {
+    height: auto;
+    font-size: clamp(0.8125rem, 0.9vw, 0.9375rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
   .tmf__preview,
@@ -640,12 +879,30 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     top: var(--t);
     width: var(--w);
     aspect-ratio: var(--ar);
+    /* The layer above sets `pointer-events: none` so the title underneath stays
+       selectable between the tiles; each tile takes it back for itself. */
+    pointer-events: auto;
+  }
+
+  /* And a card is still as tall as its own words here.
+
+     This has to be repeated rather than left to the rule further up, because
+     that one is a bare class and this is a class behind an attribute selector
+     on <html> — higher specificity, later in the file, and it was winning.
+     Measured: every card came out 278px tall on 126px of content, all three
+     identical, which is exactly what a shared aspect ratio looks like. */
+  :global(html[data-js='true']) .tmf__film--card {
+    aspect-ratio: auto;
     pointer-events: auto;
   }
 
   @media (max-width: 48rem) {
     :global(html[data-js='true']) .tmf__stage {
       height: var(--nh);
+    }
+
+    :global(html[data-js='true']) .tmf__film--card {
+      aspect-ratio: auto;
     }
 
     :global(html[data-js='true']) .tmf__film {
