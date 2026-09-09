@@ -1,0 +1,358 @@
+---
+/**
+ * What both models include — the section after Two ways in.
+ *
+ * Three blocks down one black screen, in the order the reference sets them:
+ *
+ *   the cards     what every engagement comes with, one to a card, numbered.
+ *                 A row that runs off the right-hand edge — the reference
+ *                 shows the fifth card cut by the frame, which is what says
+ *                 there are more of them than fit.
+ *
+ *   the coverage  what the work actually covers, as a wrapped field of pills
+ *                 held to the right half. The last one is a count of what the
+ *                 list has left out rather than another kind of work.
+ *
+ *   the ask       one line and a button, under a rule.
+ *
+ * WHERE THIS CAME FROM. All of it was in the old Two ways in, in prose: a
+ * six-item "Both models include" grid and a single paragraph listing twelve
+ * kinds of work. That section became a threshold with two panels behind a
+ * window (TwoWays.astro), and this is where its content went. The words are
+ * unchanged except that the paragraph is now the things it was listing.
+ *
+ * The client band underneath is Clients.astro, which was already in the page
+ * directly after this and already carries the reference's own label. It is not
+ * duplicated here; what it needed was the black ground, so the two read as one
+ * run rather than as a section ending and another starting.
+ */
+
+interface Card {
+  label: string;
+}
+
+interface Props {
+  includedTitle?: string;
+  included?: Card[];
+  coverTitle?: string;
+  cover?: string[];
+  ctaTitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const {
+  includedTitle = 'Both models include',
+  included = [
+    { label: 'A senior team assigned to your account' },
+    { label: 'Art direction from the founder on every deliverable' },
+    { label: 'Brand, web, product, and marketing under one team' },
+    { label: 'Weekly calls and async reviews in Figma' },
+    { label: 'Slack access to the people doing the work' },
+    { label: 'Daily updates and momentum' },
+  ],
+  coverTitle = "What's type of work we cover?",
+  /* The last entry is deliberately not a kind of work — the reference ends the
+     field with a count of what it has not listed, which is what keeps ten pills
+     from reading as the whole of it. */
+  cover = [
+    'Brand identity and systems',
+    'websites and landing pages',
+    'product and UI design',
+    'design systems',
+    'social templates',
+    'pitch decks and investor materials',
+    'one-pagers and sales collateral',
+    'marketing and ad creative',
+    'email design',
+    '5 +',
+  ],
+  ctaTitle = 'Ready to get going?',
+  ctaLabel = 'Talk to us',
+  ctaHref = '/contact',
+} = Astro.props;
+---
+
+<section
+  class="inc"
+  aria-labelledby="inc-title"
+  data-nav-section="How we work"
+  data-nav-over="dark"
+  data-inc
+>
+  <div class="inc__block">
+    <h2 class="inc__label" id="inc-title">{includedTitle}</h2>
+
+    {/*
+      Scrollable rather than a marquee or a static crop. The reference cuts the
+      fifth card at the frame, and that crop is the point — it says the list
+      runs on. But a card that can only be half-read is only half-content, so
+      the row is a scroller: it looks exactly like the reference at rest and
+      the rest of it is a swipe or a shift-wheel away. Nothing moves on its
+      own; there is enough on this page that does.
+    */}
+    <ul class="inc__cards">
+      {
+        included.map((item, i) => (
+          <li class="inc__card">
+            <span class="inc__num">{String(i + 1).padStart(2, '0')}.</span>
+            <p class="inc__card-label">{item.label}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <div class="inc__block inc__block--split">
+    <h3 class="inc__label">{coverTitle}</h3>
+
+    <ul class="inc__pills">
+      {cover.map((item) => <li class="inc__pill">{item}</li>)}
+    </ul>
+  </div>
+
+  <div class="inc__cta">
+    <p class="inc__cta-title">{ctaTitle}</p>
+
+    <a class="inc__talk" href={ctaHref} data-magnetic="0.2">
+      <span class="inc__talk-fill" aria-hidden="true"></span>
+      <span class="inc__talk-label" data-magnetic-inner>{ctaLabel}</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .inc {
+    /* How far this section is pulled up under Two ways in's last screen, and
+       the length of the fade between them. One window: the offer panel
+       dissolves while this rises behind it, so there is never a frame with a
+       seam in it. See `--inc-join` in globals.css, which the other side of the
+       join reads too. */
+
+    /* The gutter is the page's own, shared with Two ways in and Our work above
+       it. The reference sets a wider one, and it is not followed for the same
+       reason it was not followed there: three sections in a row whose left
+       edges step in and out read as a mistake rather than as a decision. */
+    --inc-gutter: var(--section-padding-x);
+
+    /* The card, from the reference at 1440: 292 wide, 317 tall, 35 apart. */
+    --inc-card-w: clamp(15rem, 20.3vw, 20rem);
+    --inc-card-h: clamp(15rem, 22vw, 21.5rem);
+    --inc-card-gap: clamp(1rem, 2.4vw, 2.25rem);
+
+    position: relative;
+    /* Below Two ways in, which has to paint over this for the length of the
+       fade — see the paint-order note in index.astro. */
+    z-index: 0;
+    background: var(--color-bg-included);
+    color: var(--color-ink-invert);
+    margin-top: calc(-1 * var(--inc-join));
+    padding-block: clamp(3rem, 7.4svh, 5.5rem) clamp(2.5rem, 6svh, 4.5rem);
+    /* The card row runs off the right-hand edge on purpose. */
+    overflow: hidden;
+  }
+
+  .inc__block {
+    padding-inline: var(--inc-gutter);
+    max-width: var(--content-max-width);
+    margin-inline: auto;
+  }
+
+  .inc__block + .inc__block {
+    margin-top: clamp(3rem, 9svh, 6rem);
+  }
+
+  /* Both section headings are set the same: small, wide, and in the section's
+     own ink rather than as headlines. They label what is under them; they are
+     not competing with it. */
+  .inc__label {
+    font-size: clamp(0.8125rem, 0.97vw, 0.875rem);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: rgb(255 255 255 / 0.85);
+  }
+
+  /* --- The cards ------------------------------------------------------------
+     A row that overflows its gutter. `overflow-x: auto` with the scrollbar
+     hidden: at rest it is exactly the reference's crop, and the cards past the
+     edge are reachable rather than decorative. */
+  .inc__cards {
+    display: flex;
+    gap: var(--inc-card-gap);
+    margin-top: clamp(1.5rem, 4svh, 2.75rem);
+    /* Out to the section's edge on the right so the row bleeds, and padded
+       back on the right so the last card can be scrolled clear of it. */
+    margin-right: calc(-1 * var(--inc-gutter));
+    padding-right: var(--inc-gutter);
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Each card stops where it is asked to rather than halfway across an
+       edge — the crop is a composition at rest, not a state to leave the
+       reader in. */
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+  }
+
+  .inc__cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .inc__card {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    width: var(--inc-card-w);
+    height: var(--inc-card-h);
+    padding: clamp(1rem, 1.7vw, 1.5rem);
+    scroll-snap-align: start;
+    /* A step off the section's black rather than a colour of its own — the
+       reference's cards are barely lighter than the ground they sit on, and
+       the edge is the only thing that draws them. */
+    background: rgb(255 255 255 / 0.045);
+  }
+
+  .inc__num {
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    color: rgb(255 255 255 / 0.4);
+  }
+
+  /* At the foot of the card, which is where the reference sets it: the number
+     is at the top, the words are at the bottom, and the space between them is
+     the card. */
+  .inc__card-label {
+    margin-top: auto;
+    font-size: clamp(0.875rem, 1.04vw, 0.9375rem);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: rgb(255 255 255 / 0.9);
+  }
+
+  /* --- The coverage ---------------------------------------------------------
+     The heading on the left, the field on the right, and a good deal of empty
+     between them: the reference starts the pills a little past the middle and
+     runs them to the same right edge as everything else. */
+  .inc__block--split {
+    display: grid;
+    grid-template-columns: minmax(0, 43fr) minmax(0, 57fr);
+    gap: clamp(1.5rem, 3vw, 3rem);
+    align-items: start;
+  }
+
+  .inc__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(0.625rem, 1vw, 0.875rem);
+  }
+
+  .inc__pill {
+    padding: 0.8125rem 1.375rem;
+    border: 1px solid rgb(255 255 255 / 0.28);
+    border-radius: 999px;
+    font-size: clamp(0.8125rem, 0.97vw, 0.875rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: rgb(255 255 255 / 0.92);
+  }
+
+  /* --- The ask --------------------------------------------------------------
+     Under a rule, and the rule runs the full measure — it is the line that
+     closes the section rather than a divider between two of its blocks. */
+  .inc__cta {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    max-width: var(--content-max-width);
+    margin-inline: auto;
+    margin-top: clamp(3rem, 9svh, 6rem);
+    padding-inline: var(--inc-gutter);
+    padding-top: clamp(2rem, 5svh, 3.5rem);
+  }
+
+  /* The rule is a child's border rather than the section's, so it sits inside
+     the gutter with the content instead of running edge to edge. */
+  .inc__cta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: var(--inc-gutter);
+    right: var(--inc-gutter);
+    border-top: 1px solid rgb(255 255 255 / 0.16);
+  }
+
+  .inc__cta-title {
+    /* 3.44vw, which is the reference's own ratio at the width it was drawn at
+       — 30px in an 872 frame, 50 at 1440. */
+    font-size: clamp(1.625rem, 3.44vw, 3.125rem);
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+
+  /* Inverted from the page's usual pill, like Our work's button: a dark
+     control on a dark ground is not a control. */
+  .inc__talk {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.6875rem 1.625rem;
+    border-radius: 0.625rem;
+    overflow: hidden;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    will-change: transform;
+  }
+
+  .inc__talk-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-ink);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .inc__talk:hover .inc__talk-fill,
+  .inc__talk:focus-visible .inc__talk-fill {
+    transform: scaleY(1);
+  }
+
+  .inc__talk-label {
+    position: relative;
+    z-index: 1;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .inc__talk:hover .inc__talk-label,
+  .inc__talk:focus-visible .inc__talk-label {
+    color: var(--color-ink-invert);
+  }
+
+  @media (max-width: 48rem) {
+    .inc {
+      --inc-card-w: 15rem;
+      --inc-card-h: 14rem;
+    }
+
+    /* One column: at a phone's measure the heading and the field cannot be
+       side by side without the pills wrapping one to a line. */
+    .inc__block--split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .inc__cta {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

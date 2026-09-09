@@ -53,7 +53,7 @@ const {
 } = Astro.props;
 ---
 
-<section class="clients" aria-labelledby="clients-label" data-nav-section="Clients" style={`--clients-duration:${duration}s`}>
+<section class="clients" aria-labelledby="clients-label" data-nav-section="Clients" data-nav-over="dark" style={`--clients-duration:${duration}s`}>
   <p class="clients__label u-container" id="clients-label">{label}</p>
 
   <div class="clients__viewport">
@@ -100,10 +100,15 @@ const {
     position: relative;
     padding-block: clamp(1.75rem, 3.2vw, 2.75rem);
     /* A band, not a section: ruled top and bottom so it reads as a strip
-       between the two sections it divides rather than as a third one. */
-    border-block: 1px solid var(--color-line);
-    background: var(--color-bg-primary);
-    color: var(--color-ink);
+       between the two sections it divides rather than as a third one.
+
+       On black, and sharing What both models include's ground exactly — the
+       reference runs the two together as one dark stretch with the marks in
+       white, so the rule above is the only thing between them. It was on the
+       page's white, from when what came before it was white too. */
+    border-block: 1px solid rgb(255 255 255 / 0.14);
+    background: var(--color-bg-included);
+    color: var(--color-ink-invert);
   }
 
   .clients__label {
@@ -185,6 +190,16 @@ const {
 
      Down only: at its natural size a mark sits inside the cell untouched, and
      nothing here can make one larger than it was drawn. */
+  /* The marks are dark-on-transparent, drawn for a white page, and there is one
+     of each — so they are turned white here rather than re-exported. `brightness(0)`
+     first flattens every one of them to solid black whatever colour it was, and
+     the invert then makes that white: a straight `invert(1)` would turn a
+     coloured mark into its opposite rather than into a wordmark. */
+  .clients__logo {
+    filter: brightness(0) invert(1);
+    opacity: 0.85;
+  }
+
   .clients__logo {
     max-width: var(--clients-cell-w);
     max-height: var(--clients-cell-h);

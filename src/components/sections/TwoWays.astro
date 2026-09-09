@@ -167,8 +167,17 @@ const {
        Also deliberately not `overflow: clip`: any overflow other than visible
        makes this the scrollport its sticky child sticks inside, and this
        element does not scroll. */
-    background: var(--color-bg-twoways);
+    /* No ground on the section itself — it is on the screen below, and that is
+       the same lesson Our work learned. A section's box outlives its own sticky
+       screen by a window, so a ground painted here would be a screenful of
+       cream covering the section that follows long after this one has handed
+       over to it. Painted on the screen, the ground goes when the screen
+       goes. */
     color: var(--color-ink);
+    /* Over What both models include, which is pulled up underneath for the
+       length of the fade. Under Our work, which paints over this for the length
+       of the pixel reveal — see the ladder in index.astro. */
+    z-index: 1;
     margin-top: calc(-2 * var(--two-join));
     padding-bottom: 0;
   }
@@ -178,6 +187,9 @@ const {
     top: 0;
     height: 100svh;
     overflow: hidden;
+    /* The section's ground, here rather than on the section — see the note
+       above. */
+    background: var(--color-bg-twoways);
   }
 
   /* --- The copy -------------------------------------------------------------
@@ -271,6 +283,10 @@ const {
      into — nothing of this section's own should start counting during it. */
   .two__track {
     margin-top: calc(-100svh + var(--two-join));
+    /* Measurements, not surface: the section's box outlives its screen by a
+       window, and What both models include is underneath it for the whole of
+       that. */
+    pointer-events: none;
   }
 
   .two__step {

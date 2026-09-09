@@ -219,10 +219,12 @@ const {
        this section is scrolled off the screen long before anything else on
        the page is reached. */
     position: relative;
-    /* 3, not 1. The next section's own inner column carries `z-index: 1` and
-       sits later in the document, so at equal rank it won and went on painting
-       over the overhang. This only has to out-rank that. */
-    z-index: 3;
+    /* Top of the page's paint ladder — see the note in index.astro, which sets
+       the rest of it. Every chapter has to out-rank the one after it for as
+       long as its own handover lasts, and document order gives the opposite;
+       this one only has to out-rank Overclock, which it overhangs by the tail
+       of its own gradient. */
+    z-index: 4;
 
     /* Two rectangles, and they are different kinds of thing.
 

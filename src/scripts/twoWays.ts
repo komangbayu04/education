@@ -142,9 +142,11 @@ export function initTwoWays(): () => void {
   }
 
   const handover = initOfferHandover({ steps, over, under, overWords, underWords, zone });
+  const exit = initTwoExit(section);
 
   return () => {
     handover();
+    exit();
     tl.scrollTrigger?.kill();
     tl.kill();
     gsap.set(section, { clearProps: '--two-win-t,--two-win-x' });
@@ -245,5 +247,52 @@ function initOfferHandover(parts: {
     over.removeAttribute('data-offer-wiping');
     gsap.set(over, { clearProps: '--offer-wipe' });
     if (zone) gsap.set(zone, { clearProps: 'opacity' });
+  };
+}
+
+/**
+ * Two ways in → What both models include: a fade, and only a fade.
+ *
+ * The screen goes and what was behind it is the next section, which has been
+ * rising into view underneath for the length of it — `--inc-join` is that
+ * overlap. No mask, no field of tiles: those are for handovers where one full
+ * screen replaces another and the join has to be hidden. Here the reader is
+ * leaving a held screen and rejoining ordinary scrolling page, and a dissolve
+ * is what that transition is.
+ *
+ * It runs over the last stretch of Retainer's beat and finishes exactly as the
+ * sticky screen lets go, so the panel is gone by the time it would otherwise
+ * have started scrolling away — there is never a frame with a seam in it.
+ *
+ * The section's own ground is not involved, and cannot be: it lives on the
+ * screen rather than on the section (see TwoWays.astro), which is what lets
+ * this fade uncover anything at all.
+ */
+function initTwoExit(section: HTMLElement): () => void {
+  const screen = section.querySelector<HTMLElement>('.two__stick');
+  const next = document.querySelector<HTMLElement>('[data-inc]');
+  if (!screen || !next || prefersReducedMotion()) return () => {};
+
+  const tween = gsap.to(screen, {
+    autoAlpha: 0,
+    ease: 'none',
+    scrollTrigger: {
+      /* Measured against the arriving section's own top, which is exactly where
+         the sticky screen lets go — so `top top` is the last frame the screen
+         is still held, and the fade cannot outlast it. It starts 60% of a
+         window earlier, which leaves Retainer a clear beat at full strength
+         after it has arrived and before it begins to go. */
+      trigger: next,
+      start: 'top 60%',
+      end: 'top top',
+      scrub: 0.6,
+      invalidateOnRefresh: true,
+    },
+  });
+
+  return () => {
+    tween.scrollTrigger?.kill();
+    tween.kill();
+    gsap.set(screen, { clearProps: 'opacity,visibility' });
   };
 }

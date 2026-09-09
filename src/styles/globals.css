@@ -77,6 +77,12 @@
      reference frame. Chapter 6 (Credibility) sits on the plain page white. */
   --color-bg-twoways: #f4f2ee;
 
+  /* Ground of What both models include, and of the client band that runs
+     straight on out of it. Pure black, like Overclock and Our work: the three
+     dark stretches of this page are one colour so a join between any two of
+     them is never a band. */
+  --color-bg-included: #000000;
+
   /* A card surface, not a section ground — deliberately named differently from
      the --color-bg-* tokens above, which each belong to one specific section.
      Used by the Journal cards. */
@@ -152,6 +158,16 @@
      reader has to be scrolling through while it does. Cut it and a quick
      scroll can outrun the animation. */
   --two-join: 100svh;
+
+  /* Two ways in → What both models include: how long the two overlap, which is
+     also how long the fade between them runs.
+
+     Only one of these, unlike `--two-join` above, because only one side spends
+     it: the incoming section is ordinary flowing page rather than a screen that
+     has to be parked and held, so all this buys is a window in which the offer
+     panel can dissolve while the section behind it is already rising into view.
+     Nothing is pinned and nothing is held. */
+  --inc-join: 100svh;
 
   /* Layout */
   --section-padding-y: clamp(3rem, 6vw, 6rem);

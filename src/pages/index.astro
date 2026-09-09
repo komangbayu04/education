@@ -18,6 +18,7 @@ import Overclock from '../components/sections/Overclock.astro';
    both of which named it explicitly. */
 import WorkCategories from '../components/sections/WorkCategories.astro';
 import TwoWays from '../components/sections/TwoWays.astro';
+import Included from '../components/sections/Included.astro';
 import Clients from '../components/sections/Clients.astro';
 import Testimonials from '../components/sections/Testimonials.astro';
 import TestimonialsFloat from '../components/sections/TestimonialsFloat.astro';
@@ -110,6 +111,12 @@ import Footer from '../components/layout/Footer.astro';
   <div class="pixels" data-work-pixels aria-hidden="true"></div>
 
   <TwoWays />
+
+  {/* What both models include, and the ask. It is pulled up one window under
+      Two ways in's last screen so the offer panel can dissolve while this is
+      already rising into view behind it — see initTwoWays. The client band
+      below it shares this ground, so the two read as one run. */}
+  <Included />
 
   {/*
     A band rather than a chapter — ruled top and bottom, one row tall, and the
@@ -204,8 +211,30 @@ import Footer from '../components/layout/Footer.astro';
      when the reader reaches it. A mask is a compositing layer, and a
      full-screen film does not need one for the several screens before this. */
   :global([data-project='overclock']) {
-    z-index: 2;
+    z-index: 3;
   }
+
+  /* THE LADDER, in one place, because it is one arrangement.
+
+     Every join on this page works by one section painting over the next until
+     something takes it away — a mask, a field of tiles, a fade — so each
+     chapter has to out-rank the one after it for as long as that lasts.
+     Reading down the page: the hero overhangs Overclock by the tail of its own
+     gradient, Overclock is held over Our work through its dissolve, Our work
+     over Two ways in through the pixel reveal, and Two ways in over What both
+     models include through the fade. Document order gives the opposite of
+     that, which is why every one of these is stated.
+
+     Overclock is the only one set from here, because it has no stylesheet of
+     its own — its layout is the shared ProjectSection. The rest each carry
+     their own number, in their own file, next to the join it is there for:
+     hero 4 (Hero.astro), Overclock 3, Our work 2 (WorkCategories.astro), Two
+     ways in 1 (TwoWays.astro), and What both models include takes the ground
+     floor. Setting them from here instead would have lost to those files'
+     scoped selectors anyway — an Astro component's own rules carry its cid
+     attribute, and a bare `:global(.hero)` does not.
+
+     The numbers themselves carry no meaning beyond their order. */
 
   :global([data-project='overclock'][data-oc-join]) {
     --oc-wipe: 0;

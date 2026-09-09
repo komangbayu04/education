@@ -291,9 +291,10 @@ const {
     --cat-join: 100svh;
 
     position: relative;
-    /* Under Overclock for the length of the join — see `--cat-join` above and
-       the paint-order note in index.astro, which holds the other half of it. */
-    z-index: 1;
+    /* Under Overclock for the length of the join above, and over Two ways in
+       for the length of the pixel reveal below — see `--cat-join` above and the
+       ladder in index.astro, which holds the rest of it. */
+    z-index: 2;
     margin-top: calc(-2 * var(--cat-join));
     /* The layers sort themselves out inside the section and nowhere else.
 
