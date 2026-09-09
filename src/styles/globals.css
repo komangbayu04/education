@@ -59,6 +59,14 @@
      place it cannot be: the section arrives out of that gradient. */
   --color-bg-overclock: #000000;
 
+  /* Ground of Our work, and the same pure black — the two sections are
+     adjacent and the join between them is a black curtain, so any difference
+     between these two values would show up as a band exactly where the
+     transition is trying to hide one. It was --color-bg-twoways, a warm
+     off-white, from when this section was a light grey ramp with black type on
+     it. */
+  --color-bg-work: #000000;
+
   /* Ground of the fourth section (Bedford) — dusty blush, from the reference frame. */
   --color-bg-bedford: #f2e0da;
 
@@ -116,27 +124,29 @@
   /* How far Two ways in rides up over the last frame of Our work —
      categorized, and — the same number — how long that frame is held.
 
-     The hold is the point. The ground is sticky, so it stays put for exactly
+     The hold is the point. The screen is sticky, so it stays put for exactly
      as long as this tail keeps the section taller than the window; after that
      it lets go and travels with the page. Held too briefly it lets go while
-     the last headline is still on screen and the two slide off together, which
-     is not a transition, just the section leaving. So this is sized off the
-     one distance that matters: `--cat-rest` (69svh) is how far the last
-     headline has to travel to clear the top of the window, and the hold has to
-     outlast it. 88 > 69, with room to spare — the headline is gone, and only
-     then does the ground dissolve, in place, without ever moving.
+     the last category is still at full strength and the whole screen slides
+     off with the page, which is not a transition, just the section leaving.
+     Long enough, the last frame stands still and dissolves in place while Two
+     ways in arrives over it.
 
-     The margin over 69 is not slack, it is the beat. The last category is the
-     one the reader arrives at and then leaves the section from, so it gets a
-     stretch at full strength on arrival before anything starts happening to
-     it — held, not fading — and the dissolve begins only after that. Shrink
-     this back towards 69 and the category starts going almost the moment it
-     lands; the beat is the difference between arriving somewhere and passing
-     through it.
+     The whole of it is the beat. The last category is the one the reader
+     arrives at and then leaves the section from, so it gets a stretch at full
+     strength on arrival before anything starts happening to it — held, not
+     fading — and the dissolve begins only partway into this. Shrink it and the
+     category starts going almost the moment it lands; the beat is the
+     difference between arriving somewhere and passing through it.
 
-     Both sides of the join read it: WorkCategories.astro spends it as tail on
-     its headline column, TwoWays.astro as a negative top margin. They have to
-     be one value or the section tears. */
+     It used to be sized against a distance that no longer exists: the last
+     headline's travel to the top of the window, back when the categories were
+     carried up the page by the scroll. Nothing in Our work travels now —
+     see WorkCategories.astro — so this is a duration and only a duration.
+
+     Both sides of the join read it: WorkCategories.astro spends it as padding
+     under its sticky screen, TwoWays.astro as a negative top margin. They have
+     to be one value or the section tears. */
   --work-outro: 88svh;
 
   /* White above Two ways in's title — deliberately NOT --work-outro.
@@ -216,7 +226,7 @@
     /* Shorter join. The overlap is a beat on a desktop and a scroll on a
        phone, and a tall held frame with a white sheet crossing it is long
        enough there to read as the page having stopped. The same reasoning that
-       cuts --cat-gap from 55svh to 22svh in WorkCategories.astro. */
+       cuts --cat-step from 85svh to 70svh in WorkCategories.astro. */
     --work-outro: 70svh;
     --two-headroom: 16svh;
   }

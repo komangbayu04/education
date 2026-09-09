@@ -27,9 +27,11 @@ import { prefersReducedMotion } from './utils/device';
  *   3. then speaks the copy arrives, and only then. It has nothing to say over
  *                  a film the reader cannot see yet.
  *
- * And then it hands over by fading: this section out, Our work in. Not the
- * cream tile field the stepped scene used, which was a handover between two
- * layers of one pinned thing — there are no layers any more, only sections.
+ * And then it hands over behind a black curtain, which rises from the foot of
+ * the window as Our work arrives and fades off it — see initWorkHandover in
+ * src/scripts/workCategories.ts. Not a crossfade between the two chapters,
+ * which is what stood here, and not the cream tile field the stepped scene
+ * used before that.
  *
  * Under reduced motion none of it runs: the section is simply itself, film and
  * copy, in ordinary flow.
@@ -43,7 +45,6 @@ export function initOverclock(): () => void {
   const ground = section.querySelector<HTMLElement>('.project__ground');
   const text = section.querySelector<HTMLElement>('[data-chapter-text]');
   const video = section.querySelector<HTMLVideoElement>('video.project__ground');
-  const work = document.querySelector<HTMLElement>('[data-cat]');
   if (!ground) return () => {};
 
   /* Playing from the first frame it is on the page, not from the moment it is
@@ -147,26 +148,28 @@ export function initOverclock(): () => void {
     );
   }
 
-  /* The handover: this out, the next in, crossing over the last stretch of the
-     pin. Our work is an ordinary section below, so all this does is bring it up
-     to full while the chapter above it goes — no field, no tiles, no layers. */
-  tl.to(section, { autoAlpha: 0, ease: 'power1.in', duration: 0.16, immediateRender: false }, 0.86);
-  if (work) {
-    tl.fromTo(
-      work,
-      { autoAlpha: 0 },
-      { autoAlpha: 1, ease: 'power1.out', duration: 0.16, immediateRender: false },
-      0.86,
-    );
-  }
+  /* The handover is not here any more.
+
+     It was: this section faded out and Our work faded in over the last stretch
+     of the timeline, a crossfade between two chapters. Two things were wrong
+     with it. The smaller one is that a crossfade shows both chapters at half
+     strength in the middle, so for the length of the join there were two sets
+     of words on the screen and neither of them readable. The larger one is
+     where it was written — these positions are fractions of a scrubbed
+     timeline whose pin releases somewhere in the middle of them, so "0.86"
+     is only loosely a place on the page.
+
+     What replaced it is a black curtain that rises from the foot of the window
+     and fades off, driven off Our work's own top rather than off this
+     timeline: initWorkHandover in src/scripts/workCategories.ts, with the
+     element in index.astro. So this chapter now simply scrolls away when the
+     pin lets go, at full strength, behind something opaque. */
 
   return () => {
     pin.kill();
     tl.scrollTrigger?.kill();
     tl.kill();
-    gsap.set([section, work].filter(Boolean) as HTMLElement[], {
-      clearProps: 'opacity,visibility',
-    });
+    gsap.set(section, { clearProps: 'opacity,visibility' });
     gsap.set(ground, { clearProps: 'transform,clipPath' });
   };
 }

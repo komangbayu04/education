@@ -2,30 +2,29 @@ import { gsap, ScrollTrigger } from './gsap';
 import { prefersReducedMotion } from './utils/device';
 
 /**
- * Our work — categorized. Two jobs, and neither of them touches the scroll:
+ * Our work — categorized. Three jobs, and none of them touches the scroll:
  *
- *   change  as the scroll crosses from one category to the next, the ground
- *           behind the categories changes over. It is in a sticky layer and it
- *           never moves; all that happens is opacity. The categories themselves
- *           — headline, pitch and button as one block — are ordinary flow
- *           content and are carried by the scroll. Nothing in this file moves
- *           them, and nothing in this file crossfades them: a block leaves by
- *           being scrolled off the top, the way it arrived from the bottom.
+ *   change    the sticky screen holds every category stacked on top of one
+ *             another and the scroll crossfades between them in place. Nothing
+ *             travels: the copy and the artwork are one layer per category and
+ *             the whole layer changes over. An earlier cut carried each block
+ *             up the window with the scroll and crossfaded only the ground
+ *             behind it; that is gone with the layout it dressed.
  *
- *   reveal  a one-shot entrance the first time the section scrolls in, skipped
- *           when the scene hands this section in — that arrival *is* the
- *           reveal. Same contract as journal.ts / twoWays.ts.
+ *   handover  the join above the section. A black curtain rises from the foot
+ *             of the window as the section arrives and then fades off it —
+ *             see initWorkHandover.
  *
- * What is deliberately not here is a pin. An earlier cut held the scrollbar for
- * about four screens and scrubbed the frame's headline translate against it.
- * The frame's translate is a loop standing in for what plain scrolling does to
- * a block in front of a ground that does not move. Read that way it builds
- * itself: one sticky layer and one column of flow in front of it. Nothing here
- * moves the page.
+ *   outro     the join below it: the whole screen dissolves as Two ways in is
+ *             pulled up over it.
  *
- * The layout stands up without any of this: the sticking and the flow are both
- * CSS, and a script that never runs leaves the first category's ground in place
- * with every category still on the page.
+ * What is deliberately not here is a pin. Sticky is the browser holding an
+ * element still inside a scroll it is not otherwise touching, which is exactly
+ * what this section wants and is why nothing here takes the scrollbar from the
+ * reader.
+ *
+ * The layout stands up without any of this: the sticking is CSS, and a script
+ * that never runs leaves the first category on the screen and the rest unpainted.
  *
  * Returns a cleanup function.
  */
@@ -34,51 +33,50 @@ export function initWorkCategories(): () => void {
   if (!section) return () => {};
 
   const panels = gsap.utils.toArray<HTMLElement>('[data-cat-panel]', section);
-  const grounds = gsap.utils.toArray<HTMLElement>('[data-cat-ground]', section);
-  if (panels.length < 2) return () => {};
+  const screens = gsap.utils.toArray<HTMLElement>('[data-cat-screen]', section);
+  if (panels.length < 2 || screens.length !== panels.length) return () => {};
 
   const reduced = prefersReducedMotion();
   const cleanups: Array<() => void> = [];
 
   // --- The change ----------------------------------------------------------
   /**
-   * Where a change runs, measured as the arriving category's block travelling
-   * up the window — from its top 90% of the way up to its top at the very top,
-   * which is where that category comes to rest.
+   * Each step in the track is one category's worth of scroll, and its top
+   * reaching the top of the window is the moment that category is the screen.
+   * So the crossfade is measured backwards from there.
    *
-   * The ground turns over in the middle of that stretch: the outgoing block is
-   * clearing the top edge and the incoming one is still under the fold, so the
-   * crossfade happens on a screen with the least type on it. Ending it at the
-   * rest rather than sooner is what keeps the new ground settled by the time
-   * the block that names it has landed.
+   * About a third of the step, and the other two thirds are the hold. The
+   * balance matters more here than it did in the travelling cut, because what
+   * crossfades now is the whole layer — the words included. Two sets of words
+   * at half strength on top of each other is not a dissolve, it is unreadable,
+   * so the stretch where that is true has to be short and the stretch where
+   * one category simply stands there has to be long. Measured at 1440x900:
+   * 315px of change against 450px of hold.
    */
-  const START = 'top 90%';
-  const END = 'top top';
-
-  const GROUND_AT = 0.24;
-  const GROUND_FOR = 0.48;
+  const START = 'top 45%';
+  const END = 'top 10%';
 
   for (let i = 1; i < panels.length; i += 1) {
     const panel = panels[i];
-    const ground = grounds[i];
-    if (!panel || !ground) continue;
+    const screen = screens[i];
+    if (!panel || !screen) continue;
 
     if (reduced) {
       /* A cut rather than a crossfade, in the middle of the window the fade
-         would have used. Each category still gets its own ground — that is
+         would have used. Each category still gets its own screen — that is
          content, not decoration — it just arrives without being animated. */
       const swap = ScrollTrigger.create({
         trigger: panel,
-        start: 'top 25%',
-        onEnter: () => gsap.set(ground, { autoAlpha: 1 }),
-        onLeaveBack: () => gsap.set(ground, { autoAlpha: 0 }),
+        start: 'top 40%',
+        onEnter: () => gsap.set(screen, { autoAlpha: 1 }),
+        onLeaveBack: () => gsap.set(screen, { autoAlpha: 0 }),
       });
 
       cleanups.push(() => swap.kill());
       continue;
     }
 
-    /* This renders on creation, and has to: it is what parks the ground at 0 in
+    /* This renders on creation, and has to: it is what parks the screen at 0 in
        step with the stylesheet, so the section looks the same before this file
        runs and after. */
     const tl = gsap.timeline({
@@ -91,12 +89,7 @@ export function initWorkCategories(): () => void {
       },
     });
 
-    tl.fromTo(
-      ground,
-      { autoAlpha: 0 },
-      { autoAlpha: 1, duration: GROUND_FOR, ease: 'none' },
-      GROUND_AT,
-    );
+    tl.fromTo(screen, { autoAlpha: 0 }, { autoAlpha: 1, duration: 1, ease: 'none' }, 0);
 
     cleanups.push(() => {
       tl.scrollTrigger?.kill();
@@ -104,63 +97,29 @@ export function initWorkCategories(): () => void {
     });
   }
 
-  // --- The outro ---------------------------------------------------------
-  /*
-   * There is no pitch left to fade out here. There was: the pitch and the
-   * button lived in a sticky layer that stayed parked at the foot of the window
-   * through the join, so the last one had to be told to go or it rode the whole
-   * dissolve still legible under the arriving white. Now that the pitch travels
-   * with its headline it leaves the way the headline does — scrolled off the
-   * top, at full strength — and the instruction has nothing to give.
+  // --- The outro -----------------------------------------------------------
+  /**
+   * The whole sticky screen dissolves as Two ways in arrives over it — artwork
+   * and copy together, because they are one layer now and neither of them
+   * scrolls away by itself. In the travelling cut this faded the ground alone
+   * and left the headline to leave by being scrolled off the top; there is
+   * nothing to scroll off any more, so a screen that did not fade would simply
+   * still be there, at full strength, underneath the next section.
+   *
+   * Both ends sit inside `--work-outro`, the hold this section buys at its
+   * foot: the last category arrives, is held still and legible for a beat, and
+   * only then starts to go. Two ways in's title crosses into the window just as
+   * that begins, so the reader is watching the next section arrive for the whole
+   * of the fade — which makes the join read as direct rather than as a section
+   * winding down.
+   *
+   * Linear rather than eased. An ease-in spends its first half doing almost
+   * nothing, which against a beat that has just ended reads as a second pause.
    */
   const twoSection = document.querySelector<HTMLElement>('[data-two]');
+  const dissolve = section.querySelector<HTMLElement>('[data-cat-dissolve]');
 
-  /**
-   * So the join is the artwork alone. From after the last category has had its
-   * beat, the
-   * ground dissolves the rest of the way to zero across what is left of the
-   * join, so the category does not merely get covered — it goes.
-   *
-   * The ground only. The headline column was in this once and came out: it is
-   * still on screen for most of this stretch — it does not clear the top of
-   * the window until `--cat-rest` of travel, well after the dissolve starts —
-   * so fading it here puts a half-erased 5rem title over its own cream, which
-   * reads as something broken rather than as a transition. It leaves the way
-   * it arrived instead, by being scrolled off, at full strength the whole way.
-   * The black type simply sits on cream for the last moment instead of on the
-   * photograph.
-   *
-   * Linear, and it starts only after the category has had its beat.
-   *
-   * The last category is arrived at, not passed through: it holds at full
-   * strength for a stretch after the headline lands — nothing fading, nothing
-   * moving — and only then does the artwork begin to go. `--work-outro` buys
-   * that hold; this start is where inside it the dissolve picks up. The two
-   * are tuned against each other, so moving one without the other either eats
-   * the beat or leaves the ground still visible when the sticky lets go.
-   *
-   * Linear rather than eased, because the whole ramp has to read as evenly
-   * underway. An ease-in spends its first half doing almost nothing, which
-   * against a beat that has just ended reads as a second pause rather than as
-   * the section leaving.
-   *
-   * The end is the release. Two ways in's title crosses into the window just
-   * before this starts, so the reader is watching the next section arrive for
-   * the whole of the fade — which is what makes the join feel direct rather
-   * than like a section winding down.
-   *
-   * Both ends sit inside the hold, and that is the whole design. The ground is
-   * sticky for `--work-outro`; this runs from well after the last headline has
-   * cleared the top of the window to just before the sticky lets go. So the
-   * photograph never moves while it fades and never fades while it moves — it
-   * dissolves in place, on a screen the headline has already left, with Two
-   * ways in's title arriving into the window as it goes. What is underneath by
-   * then is this section's own cream, which is the ground the scene's exit
-   * field is painted in too — a few levels off white.
-   */
-  const dissolve = gsap.utils.toArray<HTMLElement>('[data-cat-dissolve]', section);
-
-  if (!reduced && dissolve.length && twoSection) {
+  if (!reduced && dissolve && twoSection) {
     const sink = gsap.to(dissolve, {
       autoAlpha: 0,
       ease: 'none',
@@ -179,52 +138,88 @@ export function initWorkCategories(): () => void {
     });
   }
 
-  // --- Reveal --------------------------------------------------------------
-  // The CSS pre-reveal state is neutralised under reduced motion, so the
-  // section already renders finished there and a timeline here would only
-  // re-do it.
-  //
-  // When the scene hands this section in, that arrival *is* the reveal — the
-  // whole section fades in on the cream field, the way Overclock does. A
-  // second fade of the title and the headlines on top of that would play after
-  // the section was already on screen, which is a different beat.
-  const reveals = gsap.utils.toArray<HTMLElement>('[data-cat-reveal]', section);
-  const scene = document.querySelector<HTMLElement>('[data-scene]');
-  const handedOff = !!scene && !reduced;
-
-  if (handedOff || reduced) {
-    gsap.set(reveals, { opacity: 1, y: 0 });
-  } else {
-    /* No scene on the page: each headline brings itself in as it arrives, and
-       the title comes in with the first of them — it is inside a sticky layer
-       that is on screen for the whole section, so a trigger of its own would
-       have nothing to wait for. */
-    reveals.forEach((el) => {
-      const tween = gsap.fromTo(
-        el,
-        { opacity: 0, y: 26 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.9,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: el.closest('[data-cat-panel]') ?? section,
-            start: 'top 82%',
-            once: true,
-          },
-        },
-      );
-
-      cleanups.push(() => {
-        tween.scrollTrigger?.kill();
-        tween.kill();
-      });
-    });
-  }
+  cleanups.push(initWorkHandover(section, reduced));
 
   return () => {
     cleanups.forEach((fn) => fn());
     ScrollTrigger.refresh();
+  };
+}
+
+/**
+ * Overclock → Our work: a black curtain, rising and then gone.
+ *
+ * Black comes up from the foot of the window, covers it, and fades off to leave
+ * the reader already inside the next section. It replaces a crossfade — the two
+ * chapters used to dissolve into each other over the tail of Overclock's pin —
+ * and it does a job the crossfade could not: for the length of the join there
+ * are two chapters on the screen at once, Overclock's copy still legible at the
+ * top and Our work's arriving under it, and a dissolve shows both of them at
+ * half strength while a curtain shows neither.
+ *
+ * Both grounds are black, so the rise is not a shape moving across a picture —
+ * it is the last of Overclock being taken away. What the reader sees is the
+ * words going and the words arriving, with nothing in between.
+ *
+ * Driven off the arriving section rather than off Overclock's timeline, which
+ * is why it is reliable. Overclock's sequence is scrubbed against a pin whose
+ * release lands somewhere in the middle of it, so a position in that timeline
+ * is only loosely a position on the page. This section's own top is exactly a
+ * position on the page: the range is its top entering the foot of the window to
+ * its top reaching the top of it, which is one window of scroll and always the
+ * same window of scroll.
+ *
+ * Under reduced motion there is no curtain at all — the sections simply abut,
+ * and two black sections abutting is not a seam anybody can see.
+ */
+function initWorkHandover(section: HTMLElement, reduced: boolean): () => void {
+  const curtain = document.querySelector<HTMLElement>('[data-handover]');
+  if (!curtain || reduced) return () => {};
+
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: section,
+      start: 'top bottom',
+      end: 'top top',
+      /* Smoothed, not immediate. The curtain is a full-screen fill and the eye
+         reads its edge sharply — tied frame-for-frame to a trackpad it picks up
+         every jitter in the gesture. */
+      scrub: 0.4,
+      invalidateOnRefresh: true,
+    },
+  });
+
+  /* Up over the first half of the join, eased out, so it arrives rather than
+     slams: the edge decelerates as it reaches the top of the window.
+
+     `power1`, not `power2`. Cubic spent so much of the rise already finished —
+     measured, 88% of the screen covered in the first quarter of the join —
+     that the black arrived almost at once and then crept the last few pixels.
+     Quadratic keeps the sweep readable as a sweep. */
+  tl.fromTo(
+    curtain,
+    /* `y: 0` is not redundant. The stylesheet parks the curtain below the
+       window with `translate3d(0, 100%, 0)`, and GSAP reads that in as
+       `y: 900px` before applying anything of its own — so `yPercent: 100`
+       alone lands on top of it and the curtain sits two windows down, where it
+       stays for the whole of the join. Measured: y 1800 on a 900px window.
+       Claiming `y` here is what makes the CSS parking position a starting
+       state rather than an offset added to every frame. */
+    { yPercent: 100, y: 0, autoAlpha: 1 },
+    { yPercent: 0, ease: 'power1.out', duration: 0.55 },
+    0,
+  );
+
+  /* And off over the second half. Linear: a fade to nothing has no arrival to
+     ease into, and the section behind it is already in place. `autoAlpha`
+     rather than opacity so the finished curtain stops being a composited
+     full-screen surface — and stops counting as a dark zone under the nav,
+     which reads visibility. */
+  tl.to(curtain, { autoAlpha: 0, ease: 'none', duration: 0.45 }, 0.55);
+
+  return () => {
+    tl.scrollTrigger?.kill();
+    tl.kill();
+    gsap.set(curtain, { clearProps: 'opacity,visibility,transform' });
   };
 }
