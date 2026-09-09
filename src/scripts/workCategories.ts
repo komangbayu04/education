@@ -86,11 +86,25 @@ export function initWorkCategories(): () => void {
   const START = 'top 60%';
   const END = 'top 5%';
 
-  const COPY_OUT = 0.24;
+  /* The words leave over the first two fifths and arrive over the last half,
+     with the thinnest possible gap between them.
+
+     THE GAP WAS THE FAULT. Out by 0.24 and in from 0.66 left a third of every
+     handover — 208px of scroll at 1440 — with no words on the screen at all.
+     That was tolerable while they merely faded, because the ends of a fade are
+     soft and the emptiness crept in; wiped, the block leaves cleanly and the
+     nothing that follows is unmistakable. Reported as the text having
+     disappeared, and it had.
+
+     0.42 and 0.46 keep the one property this whole arrangement exists for —
+     the outgoing words are finished before the incoming ones begin, so two
+     categories are never legible together — and reduce the stretch where
+     neither is from 208px to 20, which is a beat rather than a hole. */
+  const COPY_OUT = 0.42;
   const WIPE_AT = 0.14;
   const WIPE_FOR = 0.8;
-  const COPY_IN_AT = 0.66;
-  const COPY_IN_FOR = 0.3;
+  const COPY_IN_AT = 0.46;
+  const COPY_IN_FOR = 0.54;
 
   const pic = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-pic]') ?? null;
   const copy = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-copy]') ?? null;

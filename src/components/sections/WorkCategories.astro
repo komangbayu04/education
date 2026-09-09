@@ -386,7 +386,15 @@ const {
      what both agree on — so a block can be halfway in or halfway out without
      the two ever having to know about each other. `--cat-in` at 155 with
      `--cat-out` at 0 is a whole, untouched block, which is what every category
-     rests at.
+     rests at, and 0 in either of them is nothing at all.
+
+     Both layers are written the same way round — the feather trailing the
+     number rather than leading it — and the reveal was not. At `--cat-in: 0`
+     it put its black stop AT the bottom edge instead of a feather below it, so
+     a block that should have been entirely absent kept a visible sliver along
+     its foot. Nothing showed it, because the painter also sets `visibility`,
+     but a rule that only works because something else is covering for it is a
+     rule that breaks the day that something else moves.
 
      55% of feather, the same as everywhere else on this page: wide enough that
      what travels is a dissolve rather than a line. */
@@ -398,8 +406,8 @@ const {
     -webkit-mask-image:
       linear-gradient(
         to top,
-        #000 calc(var(--cat-in) * 1%),
-        transparent calc(var(--cat-in) * 1% + var(--cat-copy-feather))
+        #000 calc(var(--cat-in) * 1% - var(--cat-copy-feather)),
+        transparent calc(var(--cat-in) * 1%)
       ),
       linear-gradient(
         to top,
@@ -410,8 +418,8 @@ const {
     mask-image:
       linear-gradient(
         to top,
-        #000 calc(var(--cat-in) * 1%),
-        transparent calc(var(--cat-in) * 1% + var(--cat-copy-feather))
+        #000 calc(var(--cat-in) * 1% - var(--cat-copy-feather)),
+        transparent calc(var(--cat-in) * 1%)
       ),
       linear-gradient(
         to top,
