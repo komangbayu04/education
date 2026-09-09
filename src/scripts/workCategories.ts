@@ -223,8 +223,10 @@ export function initWorkCategories(): () => void {
  *   clear     the same tiles go off, in a different scatter, onto Two ways in.
  *
  * Reversible at the boundary rather than through the middle: scrolling back up
- * out of the join runs the whole thing backwards. It cannot be scrubbed to a
- * half-state because it has no half-states the scroll owns.
+ * into the join from below runs the whole thing backwards, over the same
+ * stretch of page the forward pass used, with both screens held still for all
+ * of it. It cannot be scrubbed to a half-state because it has no half-states
+ * the scroll owns.
  *
  * Returns a cleanup function.
  */
@@ -319,14 +321,46 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
 
   tl.set(field, { visibility: 'hidden' });
 
+  /* How long the two screens overlap, measured off the page rather than read
+     out of a stylesheet: it is the gap between Two ways in's top and the top of
+     its own first step, which is the stretch where its screen is parked and
+     still with nothing of its own happening yet. `--two-join` is where that is
+     actually set. */
+  const twoTrack = two.querySelector<HTMLElement>('.two__track');
+  const window_ = () => {
+    if (!twoTrack) return globalThis.innerHeight;
+    const gap = twoTrack.getBoundingClientRect().top - two.getBoundingClientRect().top;
+    return gap > 0 ? gap : globalThis.innerHeight;
+  };
+
   const trigger = ScrollTrigger.create({
-    /* The moment Two ways in's own screen is stuck and filling the window
-       behind this one. Before it there is nothing under the field to clear
-       onto; `--two-join` is what buys the overlap. */
+    /* The overlap itself, both ends of it, and it needs both.
+       
+       Going down, the reveal starts at the top of this window: that is the
+       first frame where Two ways in's screen is stuck and filling the frame
+       behind this one, so there is something under the field to clear onto.
+
+       Going up, it has to start at the BOTTOM of the window, and this is what
+       a single point could not express. Reversing at the top meant the reader
+       climbed the whole overlap with the field idle — watching Two ways in sit
+       there and then slide down out of the way — and the tiles only began
+       coming back as the two screens were already parting. Reversed from the
+       far end, the reader goes back up through exactly the stretch the two
+       screens are both held still for, and what they see is the field painting
+       back over Two ways in and clearing to leave Marketing where they left
+       it. */
     trigger: two,
     start: 'top top',
+    end: () => `+=${window_()}`,
+    /* The four crossings, and the two `Leave`s are not redundant. A reader who
+       covers 900px faster than the reveal takes to play has to arrive with the
+       layers in the right state anyway, so each far edge snaps the timeline to
+       the end it belongs to. At any ordinary scrolling speed the animation has
+       already finished and these do nothing. */
     onEnter: () => tl.play(),
-    onLeaveBack: () => tl.reverse(),
+    onLeave: () => tl.progress(1).pause(),
+    onEnterBack: () => tl.reverse(),
+    onLeaveBack: () => tl.progress(0).pause(),
     invalidateOnRefresh: true,
     onRefresh: build,
   });

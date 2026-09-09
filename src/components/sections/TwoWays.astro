@@ -10,11 +10,17 @@
  *
  * WHAT THIS REPLACES. The section used to carry the whole offer: a title, two
  * near-black stages with Sprint and Retainer cards over them, and a ruled foot
- * with a six-item "Both models include" grid and a paragraph on coverage.
- * All of it is out. What that content becomes is the Retainer section this
- * window opens onto — see Retainer.astro, which is a placeholder until its
- * copy and layout are settled. The old component is in the history if any of
- * it is wanted back; nothing else on the page referenced it.
+ * with a six-item "Both models include" grid and a paragraph on coverage. All
+ * of it is out. What survives is the offer itself, one panel at a time, behind
+ * the window — see Offer.astro. The rest is in the history if any of it is
+ * wanted back; nothing else on the page referenced it.
+ *
+ * The window's ground is light, so nothing in it declares itself dark to the
+ * nav. There was a `[data-two-zone]` box here for exactly that — a nav zone
+ * sized to the window rather than to the screen, since a clip changes what is
+ * painted and not what is measured — and it came out with the dark ground it
+ * was standing in for. If the panel behind the window ever goes dark, that box
+ * comes back rather than the attribute going onto the panel itself.
  *
  * THE WINDOW is a clip, not a box that grows. `clip-path: inset()` over a
  * layer that is already the size of the screen means the thing inside it is
@@ -33,7 +39,7 @@
  * holding an element still inside a scroll it is not otherwise touching, so
  * the scrollbar is never taken from the reader.
  */
-import Retainer from './Retainer.astro';
+import Offer from './Offer.astro';
 
 interface Props {
   /** The small label above the sentence. */
@@ -66,19 +72,8 @@ const {
       onto.
     */}
     <div class="two__window" data-two-window>
-      <Retainer />
+      <Offer />
     </div>
-
-    {/* What the nav measures. Nothing is drawn here — it exists so the dark
-        ground behind the window has a box the size of the window rather than
-        the size of the screen. The nav's zone watcher reads bounding boxes and
-        opacity, and a clip is neither: without this the capsule turned to
-        glass over this section's cream the moment the section was stuck, a
-        screen and a half before anything dark was on it.
-
-        It shares the window's two variables, so it cannot fall out of step
-        with what it is standing in for. */}
-    <div class="two__zone" data-nav-over="dark" data-two-zone aria-hidden="true"></div>
   </div>
 
   {/*
@@ -193,15 +188,6 @@ const {
      four numbers the script writes; the stylesheet's job is only to state
      where they start, so the section stands up looking right before any of it
      runs. */
-  .two__zone {
-    position: absolute;
-    top: var(--two-win-t);
-    right: var(--two-win-x);
-    bottom: 0;
-    left: var(--two-win-x);
-    pointer-events: none;
-  }
-
   .two__window {
     position: absolute;
     inset: 0;
