@@ -79,27 +79,20 @@ import Footer from '../components/layout/Footer.astro';
     the scrollbar. The ground crossfade lives in
     src/scripts/workCategories.ts; the sticking is the stylesheet's.
   */}
-  {/* The join between Overclock and Our work.
+  {/* The join between Overclock and Our work is not an element any more.
 
-      A black panel that rises from the foot of the window as Our work arrives
-      and then fades off it, leaving the reader already inside the section.
-      Fixed, so it covers the window rather than a slice of the page, and
-      pointer-transparent, so nothing under it stops being clickable while it
-      is on.
+      It was: a black panel, fixed over the window, that rose from the bottom
+      and then faded. Two things were wrong with it. It had a hard top edge, so
+      what the reader saw was a black rectangle sliding up the screen and
+      cutting Overclock in half along a straight line. And it did not stop
+      Overclock moving — it only covered it, so the chapter was still being
+      scrolled away underneath.
 
-      It lives here rather than inside either section because it belongs to
-      neither: it has to cover the last of one and the first of the other, and
-      an element inside a section cannot paint outside it. Driven by
-      initWorkHandover in src/scripts/workCategories.ts, off Our work's own
-      position on the page.
-
-      `data-nav-over="dark"` for the same reason every dark section carries it:
-      while the curtain is up it is what the nav's capsule is over, and the
-      capsule has to be glass against it rather than ink. The watcher reads
-      visibility and opacity, so the curtain stops counting the moment it has
-      faded. */}
-  <div class="handover" data-handover data-nav-over="dark" aria-hidden="true"></div>
-
+      What replaced it has no element and nothing that travels. Overclock stays
+      exactly where it is, pinned, and dissolves from its bottom edge upwards
+      behind a very soft gradient, while Our work — already parked underneath
+      it — fades up. See the rules below and initOverclockHandover in
+      src/scripts/overclock.ts. */}
   <WorkCategories />
 
   {/*
@@ -154,20 +147,43 @@ import Footer from '../components/layout/Footer.astro';
 </Base>
 
 <style>
-  /* The handover curtain. Parked below the window and invisible until the
-     script picks it up — so a page without JS never has a black panel in it,
-     and one with JS starts with it off screen.
+  /* --- The Overclock / Our work join ---------------------------------------
 
-     Under the header and over everything else: the nav band sits at 90 and
-     above, and it stays legible across the join. */
-  .handover {
-    position: fixed;
-    inset: 0;
-    z-index: 80;
-    background: var(--color-bg-work);
-    pointer-events: none;
-    transform: translate3d(0, 100%, 0);
-    visibility: hidden;
+     Both halves of it are here because it is one arrangement between two
+     sections, and neither section can describe it alone.
+
+     PAINT ORDER. Our work is pulled up underneath Overclock's last screen (see
+     `--cat-join` in WorkCategories.astro), so for one window of scroll the two
+     sections occupy the same place. Document order would put the later one on
+     top; these two numbers say otherwise. The hero stays at 3 above both — it
+     overhangs Overclock by the tail of its own gradient.
+
+     THE WIPE. Overclock is masked away from its bottom edge upwards. A very
+     wide feather, because the whole point is that there is no edge to see: at
+     55% of the section's height the ramp is longer than half the screen, so
+     what the reader gets is a dissolve that happens to start low rather than a
+     line that travels.
+
+     Only while the join is running — `data-oc-join` is put on by the script
+     when the reader reaches it. A mask is a compositing layer, and a
+     full-screen film does not need one for the several screens before this. */
+  :global([data-project='overclock']) {
+    z-index: 2;
+  }
+
+  :global([data-project='overclock'][data-oc-join]) {
+    --oc-wipe: 0;
+    --oc-feather: 55%;
+    -webkit-mask-image: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0) calc(var(--oc-wipe) * 1% - var(--oc-feather)),
+      rgb(0 0 0 / 1) calc(var(--oc-wipe) * 1%)
+    );
+    mask-image: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0) calc(var(--oc-wipe) * 1% - var(--oc-feather)),
+      rgb(0 0 0 / 1) calc(var(--oc-wipe) * 1%)
+    );
   }
 
   /* The scene's stylesheet is gone with the scene.

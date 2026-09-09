@@ -27,11 +27,12 @@ import { prefersReducedMotion } from './utils/device';
  *   3. then speaks the copy arrives, and only then. It has nothing to say over
  *                  a film the reader cannot see yet.
  *
- * And then it hands over behind a black curtain, which rises from the foot of
- * the window as Our work arrives and fades off it — see initWorkHandover in
- * src/scripts/workCategories.ts. Not a crossfade between the two chapters,
- * which is what stood here, and not the cream tile field the stepped scene
- * used before that.
+ * And then it hands over by dissolving, standing perfectly still while it does
+ * — see initOverclockHandover at the foot of this file. Not a black panel
+ * rising over it, which is what stood here for a day and had a hard edge you
+ * could watch travel; not a crossfade between the two chapters, which is what
+ * stood here before that; and not the cream tile field the stepped scene used
+ * before that.
  *
  * Under reduced motion none of it runs: the section is simply itself, film and
  * copy, in ordinary flow.
@@ -58,6 +59,8 @@ export function initOverclock(): () => void {
 
   if (prefersReducedMotion()) return () => {};
 
+  const cleanups: Array<() => void> = [];
+
   /* How large the film is when it arrives, as a share of the screen. */
   const SMALL = 0.44;
 
@@ -82,10 +85,29 @@ export function initOverclock(): () => void {
 
      Splitting them is what lets both be true at once. One trigger cannot start
      in two places. */
+  /* How long the chapter is held still after its own sequence has finished, so
+     it can be dissolved rather than scrolled away.
+
+     Measured off Our work rather than declared here, and measured as a
+     distance on the page rather than read out of a stylesheet: it is the gap
+     between that section's top and the top of its own first step. That gap is
+     the stretch where Our work's screen is parked and still with nothing of
+     its own happening yet — which is precisely the stretch this pin has to
+     cover. Taking it as geometry means the two cannot be given different
+     numbers by mistake; `--cat-join` in WorkCategories.astro is where it is
+     actually set. */
+  const work = document.querySelector<HTMLElement>('[data-cat]');
+  const track = work?.querySelector<HTMLElement>('.cat__track') ?? null;
+  const join = () => {
+    if (!work || !track) return window.innerHeight;
+    const gap = track.getBoundingClientRect().top - work.getBoundingClientRect().top;
+    return gap > 0 ? gap : window.innerHeight;
+  };
+
   const pin = ScrollTrigger.create({
     trigger: section,
     start: 'top top',
-    end: () => `+=${span() * 2}`,
+    end: () => `+=${span() * 2 + join()}`,
     pin: true,
     anticipatePin: 1,
     invalidateOnRefresh: true,
@@ -148,7 +170,9 @@ export function initOverclock(): () => void {
     );
   }
 
-  /* The handover is not here any more.
+  cleanups.push(initOverclockHandover(section, work, span, join));
+
+  /* The old handover is not here any more.
 
      It was: this section faded out and Our work faded in over the last stretch
      of the timeline, a crossfade between two chapters. Two things were wrong
@@ -166,10 +190,123 @@ export function initOverclock(): () => void {
      pin lets go, at full strength, behind something opaque. */
 
   return () => {
+    cleanups.forEach((fn) => fn());
     pin.kill();
     tl.scrollTrigger?.kill();
     tl.kill();
     gsap.set(section, { clearProps: 'opacity,visibility' });
     gsap.set(ground, { clearProps: 'transform,clipPath' });
+  };
+}
+
+/**
+ * Overclock → Our work: a dissolve, with nothing moving in it.
+ *
+ * The chapter stays exactly where the pin put it — it does not slide, it does
+ * not shrink, and nothing passes over it. What happens instead is that it is
+ * masked away from its own bottom edge upwards, behind a feather wide enough
+ * that there is no edge to follow, while Our work fades up from underneath.
+ *
+ * Underneath is the part that had to be built rather than tuned. Our work is
+ * an ordinary section below this one, so on its own it would be a screen below
+ * the fold for the whole of the join and there would be nothing to dissolve
+ * INTO — which is why the first attempt at this reached for an opaque panel to
+ * cover the gap with. It is pulled up by one window instead (`--cat-join` in
+ * WorkCategories.astro) and this pin is extended by exactly the same distance,
+ * so for that one window the two sections are in the same place: the next one
+ * already parked at its sticky position and perfectly still, this one held
+ * over it and going.
+ *
+ * The page is no longer for it. The extra pin and the negative margin are the
+ * same number in opposite directions.
+ *
+ * Scrubbed with a long smoothing, because this is the join the whole sequence
+ * lands on and a mask edge tied frame-for-frame to a trackpad picks up every
+ * jitter in the gesture.
+ */
+function initOverclockHandover(
+  section: HTMLElement,
+  work: HTMLElement | null,
+  span: () => number,
+  join: () => number,
+): () => void {
+  const screen = work?.querySelector<HTMLElement>('[data-cat-dissolve]');
+
+  /* The same range as the pin, deliberately.
+
+     An offset start — `top top-=1800`, to begin where the sequence above ends
+     — does not mean what it looks like it means once the element it is
+     measured against is pinned: ScrollTrigger pushes any position that falls
+     inside a pin by the pin's whole distance, so the join was measured at
+     7740 when the pin it is supposed to live inside ends at 5940. It ran
+     entirely after the chapter had already gone.
+
+     Sharing the pin's range and placing the tweens by fraction avoids the
+     question. The fraction is not a guess either — it is computed from the
+     same two distances the pin is built from. */
+  const total = span() * 2 + join();
+  const at = (span() * 2) / total;
+  const rest = 1 - at;
+
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: section,
+      start: 'top top',
+      end: () => `+=${span() * 2 + join()}`,
+      scrub: 0.8,
+      invalidateOnRefresh: true,
+      /* The mask is only worth its compositing layer while it is doing
+         something. Put on when the reader reaches the join and taken off only
+         if they scroll back out of it — never at the far end, where removing
+         it would restore the chapter at full strength on top of the section
+         that has just replaced it. */
+      onUpdate: (self) => {
+        /* On for the last stretch only — the mask is worth its compositing
+           layer while it is doing something and not before. Never taken off at
+           the far end: removing it there would restore the chapter at full
+           strength on top of the section that has just replaced it. */
+        if (self.progress >= at) section.setAttribute('data-oc-join', '');
+      },
+      onLeaveBack: () => section.removeAttribute('data-oc-join'),
+    },
+  });
+
+  /* The wipe. 0 is the mask fully opaque — the chapter whole — and 100 plus
+     the feather is the ramp clear of the top edge, which is the first value at
+     which none of it is left. */
+  tl.fromTo(
+    section,
+    { '--oc-wipe': 0 },
+    { '--oc-wipe': 155, ease: 'none', duration: rest, immediateRender: false },
+    at,
+  );
+
+  /* And the next section coming up under it, finishing well before the wipe
+     does. It has to be all the way there by the time the mask stops hiding it,
+     or the last of the dissolve reveals a section still arriving. */
+  if (screen) {
+    tl.fromTo(screen, { autoAlpha: 0 }, { autoAlpha: 1, ease: 'none', duration: rest * 0.62 }, at);
+  }
+
+  /* And then the chapter is actually gone, rather than merely invisible.
+
+     By this point the mask has taken all of it, so this changes nothing the
+     reader can see — but a masked element is still painted, still composited,
+     and still counts as a dark zone under the nav and as a candidate for the
+     nav's section label. Switching it off is what hands both of those to Our
+     work. */
+  tl.fromTo(
+    section,
+    { autoAlpha: 1 },
+    { autoAlpha: 0, ease: 'none', duration: rest * 0.08, immediateRender: false },
+    at + rest * 0.92,
+  );
+
+  return () => {
+    tl.scrollTrigger?.kill();
+    tl.kill();
+    section.removeAttribute('data-oc-join');
+    gsap.set(section, { clearProps: '--oc-wipe,opacity,visibility' });
+    if (screen) gsap.set(screen, { clearProps: 'opacity,visibility' });
   };
 }

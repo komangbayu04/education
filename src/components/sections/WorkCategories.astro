@@ -16,10 +16,21 @@
  *   the copy      headline, pitch and button, at the foot of the left column,
  *                 on the same gutter Overclock's copy sits on — the two
  *                 sections are adjacent and their columns have to line up.
- *   the artwork   the category's shot, anchored to the right of the screen and
- *                 bleeding off its right and bottom edges. It is a product
- *                 shot standing in the frame, not a full-bleed ground: the
- *                 section's own black is the ground.
+ *   the artwork   the category's shot, full bleed. It IS the ground — the
+ *                 section's black is only what is under it while it loads, and
+ *                 what shows through the veil.
+ *
+ *                 It was a panel on the right for a day, taken from the
+ *                 reference, where the shot is a render on transparency with
+ *                 the black of the page around it. Given a real photograph
+ *                 that arrangement is a rectangle sitting on a screen with a
+ *                 visible edge down the middle of it, which is not what the
+ *                 reference looks like at all.
+ *
+ *   the veil      a dark wash over that shot, heaviest on the left and gone by
+ *                 the right. White type needs a ground, and a photograph is
+ *                 not one — this is what keeps the column legible whatever the
+ *                 category's picture is doing behind it.
  *
  * The scroll length is `--cat-step` per category and nothing else — no travel
  * to buy room for. Five of them is about four and a half screens, roughly half
@@ -152,9 +163,8 @@ const {
     {
       categories.map((category) => (
         <div class="cat__screen" data-cat-screen>
-          {/* Right of the frame, bleeding off two edges. Painted in `tone`
-              underneath so the footprint is there before — or without — a
-              shot. */}
+          {/* The ground. Painted in `tone` underneath so the screen is never
+              bare while the file is still loading — or before there is one. */}
           <div class="cat__art" style={`background:${category.tone}`} aria-hidden="true">
             {category.art && (
               <picture>
@@ -169,6 +179,12 @@ const {
               </picture>
             )}
           </div>
+
+          {/* Over the picture, under the words. One per screen rather than one
+              for the section: the screens hand over out-then-in with a beat of
+              bare ground between them, so no two veils are ever on at once and
+              there is nothing to double up. */}
+          <div class="cat__veil" aria-hidden="true"></div>
 
           <div class="cat__group">
             <span class="cat__num">{category.number}</span>
@@ -216,14 +232,33 @@ const {
        edges out of line across the join. */
     --cat-inset-x: var(--section-padding-x);
 
-    /* The artwork box: where its left edge falls, and how far its top is held
-       off the top of the screen. The reference has the shot starting just
-       under halfway across and clear of the nav band, then running off the
-       right and bottom edges. */
-    --cat-art-l: 47%;
-    --cat-art-t: clamp(4.5rem, 12svh, 7.5rem);
+
+    /* How far this section is pulled up underneath Overclock's last screen.
+
+       The join between the two is a dissolve, and a dissolve needs both
+       states in the same place at the same time: Overclock stays pinned and
+       is masked away from its bottom edge, and what has to be behind it as
+       that happens is this section, already parked at its sticky position and
+       not moving. Overlapping them is what buys that.
+
+       Spent twice, and it has to be. Overclock's pin grows by one of these so
+       the chapter is held still through the join; that growth pushes
+       everything below it down by the same distance, so the first is only
+       cancelling the push and the second is what actually produces the
+       overlap. With one, measured, this section's top still arrived at the
+       window's foot exactly as the join ended and slid up through the whole
+       of it — the join had nothing behind it but the page.
+
+       src/scripts/overclock.ts does not read this number. It measures the
+       distance between this section's top and its track's, which is the same
+       distance by construction and cannot be got wrong by counting. */
+    --cat-join: 100svh;
 
     position: relative;
+    /* Under Overclock for the length of the join — see `--cat-join` above and
+       the paint-order note in index.astro, which holds the other half of it. */
+    z-index: 1;
+    margin-top: calc(-2 * var(--cat-join));
     /* The layers sort themselves out inside the section and nowhere else.
 
        Deliberately not `overflow: clip`. Any overflow other than `visible` on
@@ -266,10 +301,25 @@ const {
   /* --- The artwork ---------------------------------------------------------- */
   .cat__art {
     position: absolute;
-    left: var(--cat-art-l);
-    right: 0;
-    top: var(--cat-art-t);
-    bottom: 0;
+    inset: 0;
+  }
+
+  /* Angled rather than straight across, and gone entirely by the right-hand
+     edge: the copy is a column on the left, so that is the only side that has
+     to be protected, and a wash over the whole frame would just be a grey
+     photograph. The steps in the middle are what keep the ramp from reading as
+     a band — a two-stop gradient across a whole screen has a visible middle. */
+  .cat__veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      rgb(0 0 0 / 0.88) 0%,
+      rgb(0 0 0 / 0.72) 22%,
+      rgb(0 0 0 / 0.38) 52%,
+      rgb(0 0 0 / 0.08) 78%,
+      rgb(0 0 0 / 0) 100%
+    );
   }
 
   /* Pinned to the box rather than sized by percentage inside it. `height: 100%`
@@ -285,10 +335,11 @@ const {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Top left, because those are the two edges that stay in frame — the box
-       runs off the screen on the other two, and centring the shot would split
-       that overflow and take a bite out of the side the reader can see. */
-    object-position: left top;
+    /* Centred, now that the box is the whole screen: whatever a shot has to
+       give up to fit a window it should give up evenly, off both sides or off
+       the top and bottom. A category whose crop needs steering says so with
+       `focus`. */
+    object-position: center;
   }
 
   /* --- The copy -------------------------------------------------------------
@@ -399,7 +450,14 @@ const {
   .cat__track {
     position: relative;
     z-index: 0;
-    margin-top: -100svh;
+    /* Two things at once. The window cancels the sticky screen's own height,
+       so the first step begins where the reader sees the section begin rather
+       than a window below it. The join is then added back, because the first
+       window of this section is spent being dissolved into — the screen is
+       there, still, fading up under Overclock — and a category that started
+       counting during it would already be handing over to the next one by the
+       time the reader could see either. */
+    margin-top: calc(-100svh + var(--cat-join));
   }
 
   .cat__step {
@@ -410,14 +468,19 @@ const {
   @media (max-width: 48rem) {
     .cat {
       --cat-step: 70svh;
-      /* A phone column has no room for a shot beside the copy, so the artwork
-         takes the top of the screen and the copy the bottom of it. */
-      --cat-art-l: 0%;
-      --cat-art-t: 0;
     }
 
-    .cat__art {
-      bottom: 46svh;
+    /* Straight down rather than across. A phone column is the whole width, so
+       there is no clear side for an angled wash to fade towards — the copy
+       sits at the foot of the screen and the protection has to be under it. */
+    .cat__veil {
+      background: linear-gradient(
+        to top,
+        rgb(0 0 0 / 0.9) 0%,
+        rgb(0 0 0 / 0.72) 34%,
+        rgb(0 0 0 / 0.4) 62%,
+        rgb(0 0 0 / 0.2) 100%
+      );
     }
 
     .cat__headline,
