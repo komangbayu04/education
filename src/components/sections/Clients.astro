@@ -5,18 +5,34 @@
  *
  * Two things carry it, and neither is JS:
  *
- *   uniform cells   every mark is centred in a box of exactly the same size
- *                   and contained inside it, so nine logos drawn at nine
- *                   different aspect ratios (62x42 through 145x42) read as one
- *                   row rather than as nine sizes. Normalising on height alone
- *                   — the usual way — would still leave the wide ones half
- *                   again as long as the narrow ones.
+ *   one height      every mark is drawn at the same height and takes whatever
+ *                   width its own ratio gives it. The nine sources run 62x42
+ *                   through 145x42, so this leaves the wordmarks longer than
+ *                   the symbols — which is what a row of logos at one size
+ *                   looks like, and what was asked for.
  *
- *   a CSS loop      the list is rendered twice and the pair translated by half
- *                   its own width, which lands the second copy exactly where
- *                   the first began. Nothing measures anything, so it cannot
- *                   drift out of step. The second copy is aria-hidden, so a
- *                   screen reader hears each client once.
+ *                   Two earlier cuts are worth knowing about, because each
+ *                   fixed the other one's fault. Uniform CELLS made the marks
+ *                   even and the gaps uneven; content-sized cells made the
+ *                   gaps even and left the marks at nine different sizes. One
+ *                   height with one gap is the third thing, and the only one
+ *                   where both are even.
+ *
+ *   a CSS loop      the list is rendered four times and the set translated by
+ *                   a quarter of its own width, which lands each copy exactly
+ *                   where the one before it began. Nothing measures anything,
+ *                   so it cannot drift out of step. Every copy but the first is
+ *                   aria-hidden, so a screen reader hears each client once.
+ *
+ *                   FOUR, not two, and that is the fix for a row that broke on
+ *                   every desktop. A two-copy loop translated by half needs one
+ *                   copy to be at least as wide as the window, or the tail of
+ *                   the second runs out before the first comes back round and
+ *                   the band shows bare ground for part of every pass.
+ *                   Measured: one copy came to 1287px against a 1440 frame, and
+ *                   1350 against 1920 — a 153px hole and a 570px one. At four
+ *                   copies the requirement is three of them, which is 3700px of
+ *                   marks: wider than any screen this will meet.
  *
  * The marks are small (the sources top out at 145px wide), so they are encoded
  * losslessly — see the note in tools/prep-images.mjs.
@@ -59,7 +75,7 @@ const {
   <div class="clients__viewport">
     <div class="clients__marquee">
       {
-        [false, true].map((isCopy) => (
+        [false, true, true, true].map((isCopy) => (
           <ul class="clients__track" aria-hidden={isCopy ? 'true' : undefined}>
             {clients.map((client) => (
               <li class="clients__cell">
@@ -84,18 +100,20 @@ const {
 
 <style>
   .clients {
-    /* The cell every mark is centred in. One box, one size, nine logos.
+    /* The one height every mark is drawn at.
 
-       The height clears the tallest source (EVYD, 45px) rather than sitting on
-       an average, and the marks are only ever scaled *down* into it — see
-       .clients__logo. A box shorter than that either clips them or, with
-       `contain`, blows the short ones up: Philips is 95x25, and stretched to a
-       common height it would be running at 1.5x on a raster wordmark. The
-       sources were exported at the sizes they were meant to be read at, and
-       the reference frame shows them at different heights for the same reason.
-       Uniform means the cells, not the marks. */
-    --clients-cell-w: clamp(7rem, 11vw, 10.5rem);
-    --clients-cell-h: clamp(2rem, 3.4vw, 3.25rem);
+       26px at 1440, and chosen against the sources rather than picked: their
+       natural heights run 25 to 45, so at this figure eight of the nine are
+       scaling DOWN and the ninth — Philips, 95x25 — is up by four percent,
+       which is nothing on a raster wordmark. A more generous height would put
+       that one at a visible 1.4x while gaining the others nothing they had not
+       already got. */
+    --clients-mark-h: clamp(1.25rem, 1.8vw, 1.75rem);
+
+    /* The distance between two marks. Wide on purpose: at one height the marks
+       stop being padded out by their own boxes, so the gap is the only thing
+       holding them apart and it has to do all of that work by itself. */
+    --clients-gap: clamp(2.5rem, 5.2vw, 6rem);
 
     position: relative;
     padding-block: clamp(1.75rem, 3.2vw, 2.75rem);
@@ -129,8 +147,10 @@ const {
   .clients__marquee {
     display: flex;
     width: max-content;
-    /* -50% is exactly one copy of the list, so the frame this ends on is the
-       frame it started from and the seam never shows. */
+    /* -25% is exactly one copy of the four, so the frame this ends on is the
+       frame it started from and the seam never shows. The pass still costs one
+       copy's width per `--clients-duration`, so the band moves at the speed it
+       always did. */
     animation: clients-drift var(--clients-duration) linear infinite;
   }
 
@@ -140,56 +160,41 @@ const {
     }
 
     to {
-      transform: translate3d(-50%, 0, 0);
+      transform: translate3d(-25%, 0, 0);
     }
   }
 
-  /* The spacing at the join between the two copies is made entirely of these
-     side paddings — half a gap on each — and the marquee itself carries no
-     `gap` at all. That is what makes -50% exact: the distance from a logo to
-     its twin in the second copy is then one track's width, and one track is
-     half the marquee. With a gap on the marquee as well, the two were 24.5px
-     apart and the loop jumped once a pass. */
+  /* The spacing at the join between two copies is made entirely of these side
+     paddings — half a gap on each — and the marquee itself carries no `gap` at
+     all. That is what makes the step exact: the distance from a logo to its
+     twin in the next copy is then one track's width, and one track is a
+     quarter of the marquee. With a gap on the marquee as well, the two were
+     24.5px apart and the loop jumped once a pass. */
   .clients__track {
     display: flex;
     align-items: center;
-    gap: clamp(1.5rem, 3.4vw, 3.5rem);
+    gap: var(--clients-gap);
     margin: 0;
-    padding-inline: clamp(0.75rem, 1.7vw, 1.75rem);
+    padding-inline: calc(var(--clients-gap) / 2);
     list-style: none;
   }
 
-  /* Height fixed, width from the mark inside it.
+  /* The cell is the mark. Sized to its content in both directions, so the
+     track's `gap` is the distance between two marks at every pair — not the
+     gap plus whatever slack a fixed-width box left around a narrow one.
 
-     It used to be a uniform box, --clients-cell-w wide, with each logo centred
-     in it. That makes the cells even and the *gaps* uneven, which is the one
-     of the two anybody sees: the marks run from 62 to 145px wide, so the space
-     between two of them came out as the track's gap plus half the slack either
-     side — 75px between the two widest, 130px between two narrow ones, a 55px
-     spread across one row.
-
-     Sized to its content, the cell is the mark, and the track's `gap` is the
-     distance between them at every pair. The width knob still caps each mark
-     (see .clients__logo), so nothing here can outgrow what the box allowed.
-
-     The marquee is unaffected: its -50% loop needs the two copies to be the
-     same width as each other, not the cells to be the same width as each
+     The marquee is unaffected either way: its loop needs the four copies to be
+     the same width as each other, not the cells to be the same width as each
      other. */
   .clients__cell {
     display: grid;
     place-items: center;
     flex: none;
-    height: var(--clients-cell-h);
   }
 
-  /* Capped against the cell's own two knobs rather than against `100%`, which
-     did not constrain these at all — eight of the nine marks were overflowing a
-     104x26 cell at their natural size on a phone. Both caps at once, on a
-     replaced element with auto sizing, is what scales a mark down until it
-     satisfies each of them while keeping its ratio.
-
-     Down only: at its natural size a mark sits inside the cell untouched, and
-     nothing here can make one larger than it was drawn. */
+  /* One height, and the width that follows from it. `height` rather than
+     `max-height`, because a cap is what left the nine marks at nine sizes:
+     under one only the tallest source ever reached it. */
   /* The marks are dark-on-transparent, drawn for a white page, and there is one
      of each — so they are turned white here rather than re-exported. `brightness(0)`
      first flattens every one of them to solid black whatever colour it was, and
@@ -201,15 +206,15 @@ const {
   }
 
   .clients__logo {
-    max-width: var(--clients-cell-w);
-    max-height: var(--clients-cell-h);
+    height: var(--clients-mark-h);
     width: auto;
-    height: auto;
+    max-width: none;
   }
 
-  /* Width only. The height clamp already floors at 2rem, which is the value
-     this width wants — pinning it lower here only shrank the marks further for
-     no gain in fit, since the width is what runs out on a phone. */
+  /* The gap only. The height clamp already floors at 1.25rem, which is as
+     small as these marks should ever be set; what needs pulling in on a phone
+     is the distance between them, since at 5.2vw the row would be mostly
+     nothing. */
   @media (max-width: 48rem) {
     .clients {
       /* Not the shared --section-gap-y here. This is a ruled strip rather than
@@ -220,7 +225,7 @@ const {
          also carries the label. */
       padding-block: 2rem 1.5rem;
 
-      --clients-cell-w: 6.5rem;
+      --clients-gap: 2.25rem;
     }
   }
 
