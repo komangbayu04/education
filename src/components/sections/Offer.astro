@@ -70,11 +70,19 @@ const {
 </div>
 
 <style>
-  /* Both grounds are the reference's own flats, and both are stated here rather
-     than in globals.css: they belong to these two panels and to nothing else,
-     and a --color-bg-offer in the shared sheet would be a name that has to be
-     kept in step rather than simply read. `--offer-ink` is what the rest of the
-     panel mixes its greys out of, so one line changes the whole tone. */
+  /* `--offer-ink` is what the rest of the panel mixes its greys out of, so one
+     line changes the whole tone.
+
+     The light ground is the reference's own flat, stated here rather than in
+     globals.css because it belongs to this one panel and nothing else. The dark
+     one is NOT its own value: it is the same black the section below this runs
+     on, so the fade out of Retainer into What both models include has no band
+     in it — the two are one dark stretch and only the words change. It was
+     #2b2b2b, a step lighter, and that step was visible at the join.
+
+     Retainer's ground is a photograph in the end. When it arrives it goes in
+     as a full-bleed layer behind the copy, and this black stays underneath it
+     as what the panel is while the file is still loading. */
   .offer {
     position: absolute;
     inset: 0;
@@ -89,7 +97,7 @@ const {
 
   .offer--dark {
     --offer-ink: #ffffff;
-    background: #2b2b2b;
+    background: var(--color-bg-included);
   }
 
   /* Top left, a tenth of the way down — clear of the floating header, which
