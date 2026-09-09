@@ -141,11 +141,27 @@ const {
     --inc-card-gap: clamp(1rem, 2.4vw, 2.25rem);
 
     position: relative;
-    /* Below Two ways in, which has to paint over this for the length of the
-       fade — see the paint-order note in index.astro. */
-    z-index: 0;
+    /* OVER Two ways in, and this is the one place on the page where a section
+       out-ranks the one before it. Everywhere else a chapter has to paint over
+       its successor until something takes it away, because the successor is
+       parked and waiting behind it. Here the successor is ordinary scrolling
+       page: it arrives from the foot of the window under its own steam, and
+       what it arrives over is a screen of the same black it is itself. So it
+       simply covers it, and there is nothing to take away.
+
+       Underneath is where this was, and it did not work either way round. With
+       the screen above it opaque, that screen scrolled off and took the top of
+       this section with it — a whole window of cards that were never on the
+       page. With the screen above it faded out instead, the fade happened
+       while there was still nothing behind its upper half but the page's own
+       white, and a black panel at half strength over white is a mid grey band
+       across the top of the frame. */
+    z-index: 2;
     background: var(--color-bg-included);
     color: var(--color-ink-invert);
+    /* One window up, which puts this section's top exactly where Two ways in's
+       held screen lets go — so this rises over that screen for a window and
+       then the two move together, with no gap between them at any point. */
     margin-top: calc(-1 * var(--inc-join));
     padding-block: clamp(3rem, 7.4svh, 5.5rem) clamp(2.5rem, 6svh, 4.5rem);
     /* The card row runs off the right-hand edge on purpose. */

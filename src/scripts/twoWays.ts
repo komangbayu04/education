@@ -251,28 +251,36 @@ function initOfferHandover(parts: {
 }
 
 /**
- * Two ways in → What both models include: the words go, and nothing else has
- * to.
+ * Two ways in → What both models include: Retainer's sentence goes, and the
+ * next section arrives over the top of what it was written on.
  *
- * Retainer's ground is the same black the next section runs on. So once its
- * sentence has faded there is nothing left on the screen that belongs to this
- * section — the held layer scrolls away black over black, which is not a
- * transition anybody can see, and the cards arrive out of it.
+ * There is no fade of the screen itself and there does not need to be. Retainer
+ * sits on the same black the next section runs on, and that section is ordinary
+ * scrolling page rather than something parked and waiting — so it rises from
+ * the foot of the window under its own steam and simply covers the screen,
+ * black over black. The only thing the reader can see change is the words.
  *
- * IT WAS THE WHOLE SCREEN THAT FADED, and that was wrong in a way that only
- * showed at the join. The screen is held while the section under it is still
- * a window short of the top, so for the length of the fade there was nothing
- * behind the upper half of it but the page's own white — and a black panel at
- * half strength over white is a mid grey. What the reader got was a grey band
- * across the top of the screen with a hard edge where the next section
- * started, and Retainer's headline still legible over its cards.
+ * Two attempts at fading that screen are worth remembering, because they fail
+ * in opposite directions and the second is the one that looks like the fix.
  *
- * Fading the words alone fixes both, and needs no overlap to do it: there is
- * never a frame with anything but black behind them.
+ * Fading the screen ALONE put a grey band across the top of the frame: the
+ * screen is held while the section under it is still short of the top, so above
+ * that section there was nothing behind the fade but the page's own white, and
+ * black at half strength over white is a mid grey.
  *
- * It runs over the last stretch of Retainer's beat and finishes exactly as the
- * sticky screen lets go, so the sentence is gone before the layer carrying it
- * begins to move.
+ * Fading the WORDS alone and leaving the screen opaque was worse in a way that
+ * took longer to see: the screen then scrolled away still covering everything,
+ * and the first window of the next section — its label and its whole row of
+ * cards — was never on the page at all.
+ *
+ * Both were the same mistake, which was keeping that screen above the section
+ * replacing it. It is below now (see the z-index note in Included.astro) and
+ * neither fade is needed.
+ *
+ * The sentence goes early, over the window in which the next section is
+ * climbing into view, so it is finished well before the cards are high enough
+ * to read. A headline at half strength over a field of cards is the thing every
+ * handover on this page is arranged to avoid.
  */
 function initTwoExit(section: HTMLElement): () => void {
   const words = gsap.utils.toArray<HTMLElement>(
@@ -286,14 +294,12 @@ function initTwoExit(section: HTMLElement): () => void {
     autoAlpha: 0,
     ease: 'none',
     scrollTrigger: {
-      /* Measured against the arriving section's own top, which is exactly where
-         the sticky screen lets go — so `top top` is the last frame the screen
-         is still held, and the fade cannot outlast it. It starts 60% of a
-         window earlier, which leaves Retainer a clear beat at full strength
-         after it has arrived and before it begins to go. */
+      /* From the next section's top entering the foot of the window to it
+         being a little over half way up — so the sentence is gone with most of
+         that window still to climb. */
       trigger: next,
-      start: 'top 60%',
-      end: 'top top',
+      start: 'top bottom',
+      end: 'top 55%',
       scrub: 0.6,
       invalidateOnRefresh: true,
     },
