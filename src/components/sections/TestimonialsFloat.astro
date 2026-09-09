@@ -449,10 +449,13 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
      the mark is pushed to the foot. A single `gap` made all four of those the
      same distance, which is what made the card read as a list. */
   .tmf__card {
+    /* Named, because the portrait has to be able to cancel it exactly. */
+    --tmf-card-pad: clamp(0.875rem, 1.25vw, 1.125rem);
+
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: clamp(0.875rem, 1.25vw, 1.125rem);
+    padding: var(--tmf-card-pad);
     background: var(--color-bg-primary);
   }
 
@@ -489,6 +492,12 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     width: clamp(2.25rem, 3.3vw, 3rem);
     height: clamp(2.25rem, 3.3vw, 3rem);
     object-fit: cover;
+    /* Into the card's own top-right corner, with the padding cancelled on
+       exactly those two sides. The design has it flush — the portrait is part
+       of the card's edge rather than an object placed inside it, and a margin
+       there makes it read as a thumbnail that has been dropped in. */
+    margin-top: calc(-1 * var(--tmf-card-pad));
+    margin-right: calc(-1 * var(--tmf-card-pad));
   }
 
   /* The line the card is really for, and the one thing on it set large. */
@@ -852,15 +861,41 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
   :global(html[data-js='true']) .tmf__title {
     position: sticky;
     top: 50svh;
-    z-index: 1;
+    /* OVER the tiles, not under them — and it stays readable across every one
+       of them because of the blend below. */
+    z-index: 3;
     max-width: min(44.4375rem, calc(100% - 2 * var(--section-padding-x)));
     margin: 50svh auto 0;
     translate: 0 -50%;
+
+    /* The x-ray. `difference` subtracts the type from whatever is behind it, so
+       the line is never a colour of its own — it is always the inverse of the
+       thing it is crossing. On the section's cream it comes out near-black,
+       which is what it looked like before; on a white card it goes to true
+       black; on a dark film it goes light. The words cannot be covered,
+       because there is nothing to cover: they ARE the difference.
+
+       White is the source colour that makes that work — |backdrop - 255| is
+       the inverse of the backdrop, which is the whole effect. It is never seen
+       as white.
+
+       Nothing here creates an isolating stacking context between this and the
+       tiles, which is what lets the blend see them: `.tmf__stage` is
+       positioned but carries no `z-index`, and the section is `flow-root`
+       rather than `isolate`. Either of those would have left the line blending
+       with the ground alone and going flat the moment a tile crossed it. */
+    color: #fff;
+    mix-blend-mode: difference;
+
+    /* A line lying over the tiles would otherwise take their presses: it spans
+       the middle of the screen and the films underneath are the only controls
+       this section has. */
+    pointer-events: none;
   }
 
-  /* Over the title, the way the frame has it — its top-left film crosses the
-     first line. The list covers the whole stage and has nothing to be
-     pressed, so it hands pointer events back; only the tiles take them. */
+  /* Under the title now, and still over the ground. The list covers the whole
+     stage and has nothing to be pressed, so it hands pointer events back; only
+     the tiles take them. */
   :global(html[data-js='true']) .tmf__films {
     display: block;
     position: absolute;
