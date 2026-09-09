@@ -369,11 +369,61 @@ const {
     );
   }
 
-  /* The words do not dissolve with the picture they sit on, and that is the
-     point of separating them. A masked headline comes apart letter by letter
-     from its baseline upwards, and worse, it is still legible over the words
-     of the category arriving underneath. They fade instead, on their own
-     clock, and a good deal earlier — gone before the next set has begun.
+  /* The words are wiped like the picture, from the bottom edge upwards, and
+     they are wiped SEPARATELY from it.
+
+     Separately, because the danger was never the wipe — it was two categories
+     legible at once. A headline coming apart from its baseline while the next
+     one arrives underneath is unreadable twice over. The timings are what make
+     this safe: a category's words are gone by a quarter of the way through the
+     handover and the next one's do not begin until two thirds, so there is a
+     clear stretch with nothing on the screen between them. Given that, the
+     words can travel the same way the ground does instead of merely fading,
+     which is what the change is supposed to look like.
+
+     TWO MASKS, composited. One reveals from the bottom as a category arrives,
+     the other conceals from the bottom as it leaves, and `intersect` shows only
+     what both agree on — so a block can be halfway in or halfway out without
+     the two ever having to know about each other. `--cat-in` at 155 with
+     `--cat-out` at 0 is a whole, untouched block, which is what every category
+     rests at.
+
+     55% of feather, the same as everywhere else on this page: wide enough that
+     what travels is a dissolve rather than a line. */
+  :global(html[data-js='true']) .cat__group {
+    --cat-in: 155;
+    --cat-out: 0;
+    --cat-copy-feather: 55%;
+
+    -webkit-mask-image:
+      linear-gradient(
+        to top,
+        #000 calc(var(--cat-in) * 1%),
+        transparent calc(var(--cat-in) * 1% + var(--cat-copy-feather))
+      ),
+      linear-gradient(
+        to top,
+        transparent calc(var(--cat-out) * 1% - var(--cat-copy-feather)),
+        #000 calc(var(--cat-out) * 1%)
+      );
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(
+        to top,
+        #000 calc(var(--cat-in) * 1%),
+        transparent calc(var(--cat-in) * 1% + var(--cat-copy-feather))
+      ),
+      linear-gradient(
+        to top,
+        transparent calc(var(--cat-out) * 1% - var(--cat-copy-feather)),
+        #000 calc(var(--cat-out) * 1%)
+      );
+    mask-composite: intersect;
+  }
+
+  /* The old note, kept because the reasoning still holds and only the
+     conclusion moved: the words are handled apart from the picture they sit on
+     precisely so their timing can be different from it.
 
      Only the first category's copy is on to start with: without the script
      that is the one category the section shows, which is the same thing it
