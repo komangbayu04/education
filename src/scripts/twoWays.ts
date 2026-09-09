@@ -251,29 +251,38 @@ function initOfferHandover(parts: {
 }
 
 /**
- * Two ways in → What both models include: a fade, and only a fade.
+ * Two ways in → What both models include: the words go, and nothing else has
+ * to.
  *
- * The screen goes and what was behind it is the next section, which has been
- * rising into view underneath for the length of it — `--inc-join` is that
- * overlap. No mask, no field of tiles: those are for handovers where one full
- * screen replaces another and the join has to be hidden. Here the reader is
- * leaving a held screen and rejoining ordinary scrolling page, and a dissolve
- * is what that transition is.
+ * Retainer's ground is the same black the next section runs on. So once its
+ * sentence has faded there is nothing left on the screen that belongs to this
+ * section — the held layer scrolls away black over black, which is not a
+ * transition anybody can see, and the cards arrive out of it.
+ *
+ * IT WAS THE WHOLE SCREEN THAT FADED, and that was wrong in a way that only
+ * showed at the join. The screen is held while the section under it is still
+ * a window short of the top, so for the length of the fade there was nothing
+ * behind the upper half of it but the page's own white — and a black panel at
+ * half strength over white is a mid grey. What the reader got was a grey band
+ * across the top of the screen with a hard edge where the next section
+ * started, and Retainer's headline still legible over its cards.
+ *
+ * Fading the words alone fixes both, and needs no overlap to do it: there is
+ * never a frame with anything but black behind them.
  *
  * It runs over the last stretch of Retainer's beat and finishes exactly as the
- * sticky screen lets go, so the panel is gone by the time it would otherwise
- * have started scrolling away — there is never a frame with a seam in it.
- *
- * The section's own ground is not involved, and cannot be: it lives on the
- * screen rather than on the section (see TwoWays.astro), which is what lets
- * this fade uncover anything at all.
+ * sticky screen lets go, so the sentence is gone before the layer carrying it
+ * begins to move.
  */
 function initTwoExit(section: HTMLElement): () => void {
-  const screen = section.querySelector<HTMLElement>('.two__stick');
+  const words = gsap.utils.toArray<HTMLElement>(
+    '.two__pane--under [data-offer-copy]',
+    section,
+  );
   const next = document.querySelector<HTMLElement>('[data-inc]');
-  if (!screen || !next || prefersReducedMotion()) return () => {};
+  if (!words.length || !next || prefersReducedMotion()) return () => {};
 
-  const tween = gsap.to(screen, {
+  const tween = gsap.to(words, {
     autoAlpha: 0,
     ease: 'none',
     scrollTrigger: {
@@ -293,6 +302,6 @@ function initTwoExit(section: HTMLElement): () => void {
   return () => {
     tween.scrollTrigger?.kill();
     tween.kill();
-    gsap.set(screen, { clearProps: 'opacity,visibility' });
+    gsap.set(words, { clearProps: 'opacity,visibility' });
   };
 }
