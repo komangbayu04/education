@@ -118,6 +118,28 @@ export function initWorkCategories(): () => void {
       continue;
     }
 
+    /* The two definitive states, asserted at the two edges.
+
+       A scrub is a tween that CHASES the scroll: `scrub: 0.8` means the
+       timeline spends most of a second catching up to where the reader already
+       is. That is what makes it feel like a hand on the page, and it is fine as
+       long as the reader is somewhere inside the handover. Thrown past three
+       handovers in one flick, three timelines are all chasing at once, and what
+       the reader sees while they do is two and three headlines on the same
+       pixels — which is the state that was reported, with the ground already on
+       category four and the words still on two and three.
+
+       Crossing an edge is not a matter of degree, so it is not left to the
+       scrub. `onLeave` and `onLeaveBack` fire whether the range was crossed
+       over a hundred frames or in one, and each pins everything this handover
+       owns to the end it belongs to. The scrub still does the whole of the
+       middle; it just no longer has the last word on either side of it. */
+    const settle = (done: boolean) => {
+      gsap.set(outCopy, { autoAlpha: done ? 0 : 1 });
+      gsap.set(inCopy, { autoAlpha: done ? 1 : 0 });
+      gsap.set(outPic, { '--cat-wipe': done ? 155 : 0, autoAlpha: done ? 0 : 1 });
+    };
+
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: panel,
@@ -138,11 +160,14 @@ export function initWorkCategories(): () => void {
           outPic.setAttribute('data-cat-wiping', '');
           gsap.set(outPic, { autoAlpha: 1 });
         },
-        onLeaveBack: () => outPic.removeAttribute('data-cat-wiping'),
-        /* By here the mask has taken all of the picture, so this changes
-           nothing the reader can see — but a masked element is still painted
-           and still composited. See the note over the timings. */
-        onLeave: () => gsap.set(outPic, { autoAlpha: 0 }),
+        onLeaveBack: () => {
+          outPic.removeAttribute('data-cat-wiping');
+          settle(false);
+        },
+        /* Past the end, everything this handover owns is at its far state — and
+           the picture stops being composited, which by here changes nothing the
+           reader can see because the mask has already taken all of it. */
+        onLeave: () => settle(true),
       },
     });
 

@@ -209,6 +209,17 @@ function initOfferHandover(parts: {
   const step = steps[3];
   if (!step || !over) return () => {};
 
+  /* The same guard Our work's handovers carry, for the same reason: a scrub
+     chases the scroll, and a reader who throws the page past this in one flick
+     watches two panels chase at once. Crossing an edge is not a matter of
+     degree, so both edges assert the state outright. */
+  const settle = (done: boolean) => {
+    if (parts.overWords.length) gsap.set(parts.overWords, { autoAlpha: done ? 0 : 1 });
+    if (underWords.length) gsap.set(underWords, { autoAlpha: done ? 1 : 0 });
+    gsap.set(over, { '--offer-wipe': done ? 155 : 0 });
+    if (zone) gsap.set(zone, { opacity: done ? 1 : 0 });
+  };
+
   const tl = gsap.timeline({
     scrollTrigger: {
       trigger: step,
@@ -224,7 +235,11 @@ function initOfferHandover(parts: {
          it. */
       onEnter: () => over.setAttribute('data-offer-wiping', ''),
       onEnterBack: () => over.setAttribute('data-offer-wiping', ''),
-      onLeaveBack: () => over.removeAttribute('data-offer-wiping'),
+      onLeave: () => settle(true),
+      onLeaveBack: () => {
+        over.removeAttribute('data-offer-wiping');
+        settle(false);
+      },
     },
   });
 
