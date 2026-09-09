@@ -15,12 +15,17 @@
  * the window — see Offer.astro. The rest is in the history if any of it is
  * wanted back; nothing else on the page referenced it.
  *
- * The window's ground is light, so nothing in it declares itself dark to the
- * nav. There was a `[data-two-zone]` box here for exactly that — a nav zone
- * sized to the window rather than to the screen, since a clip changes what is
- * painted and not what is measured — and it came out with the dark ground it
- * was standing in for. If the panel behind the window ever goes dark, that box
- * comes back rather than the attribute going onto the panel itself.
+ * TWO PANELS, not one. Sprint on a light ground and Retainer on a dark one,
+ * stacked inside the window with Sprint on top; once the window is open the
+ * scroll dissolves Sprint away from its own bottom edge to leave Retainer —
+ * the same movement, and the same wide feather, that brings the reader out of
+ * Overclock into Our work. See initTwoWays.
+ *
+ * `[data-two-zone]` is what tells the nav about the dark one. It is sized to
+ * the window rather than to the screen, because a clip changes what is painted
+ * and not what is measured, and it is faded up as Sprint goes — so the capsule
+ * turns to glass on the frame Retainer becomes what the reader is looking at
+ * rather than a screen and a half early.
  *
  * THE WINDOW is a clip, not a box that grows. `clip-path: inset()` over a
  * layer that is already the size of the screen means the thing inside it is
@@ -72,8 +77,41 @@ const {
       onto.
     */}
     <div class="two__window" data-two-window>
-      <Offer />
+      {/* Stacked, first on top — the same arrangement Our work's categories
+          are in, and for the same reason: handing over is a matter of taking
+          the panel on top away, so the one underneath has to already be there,
+          whole, waiting. Document order stacks them the other way, with
+          nothing to uncover. */}
+      <div class="two__pane two__pane--under">
+        <Offer
+          number="02"
+          name="Retainer"
+          summary="Your design function, year-round, across every surface."
+          terms="Ongoing, month to month"
+          tone="dark"
+        />
+      </div>
+
+      <div class="two__pane two__pane--over" data-two-pane>
+        <Offer />
+      </div>
     </div>
+
+    {/* What the nav measures, and it draws nothing.
+
+        Two problems in one box. The dark panel's own box is the whole screen
+        from the first frame — a clip changes what is painted, not what is
+        measured — so a declaration on it would turn the capsule to glass over
+        this section's cream a screen and a half early. And even sized to the
+        window it would be wrong until the panel above it has actually been
+        dissolved away.
+
+        So this shares the window's two variables, which makes it exactly the
+        shape of what the reader can see, and its opacity is faded up as the
+        light panel goes. The nav's watcher reads boxes and painted opacity;
+        both halves of the answer are in this one element. It has no ground of
+        its own, so opacity costs it nothing visible. */}
+    <div class="two__zone" data-nav-over="dark" data-two-zone aria-hidden="true"></div>
   </div>
 
   {/*
@@ -81,14 +119,17 @@ const {
     there is no block whose own height could measure the section: these are
     what the window's opening is triggered against.
 
-    Three, and each is a window of scroll doing one thing: the beat after the
-    pixel reveal has cleared, the window opening, and then the opened screen
-    held still before the section leaves. Without the third the window reached
-    the corners of the frame on the same pixel the sticky layer let go, so the
-    section it had just opened onto started scrolling away in the same movement
-    that finished revealing it.
+    Five, and each is a window of scroll doing one thing: the window opening,
+    a beat on Sprint, Sprint dissolving into Retainer, a beat on Retainer, and
+    the last one the section leaves through. That last one is not slack — the
+    sticky screen lets go with its containing block's final viewport still to
+    scroll, so without it the window would reach the corners of the frame on
+    the same pixel the layer let go and the panel it had just opened onto would
+    start scrolling away in the movement that finished revealing it.
   */}
   <ul class="two__track" aria-hidden="true">
+    <li class="two__step" data-two-step></li>
+    <li class="two__step" data-two-step></li>
     <li class="two__step" data-two-step></li>
     <li class="two__step" data-two-step></li>
     <li class="two__step" data-two-step></li>
@@ -188,6 +229,31 @@ const {
      four numbers the script writes; the stylesheet's job is only to state
      where they start, so the section stands up looking right before any of it
      runs. */
+  .two__zone {
+    position: absolute;
+    top: var(--two-win-t);
+    right: var(--two-win-x);
+    bottom: 0;
+    left: var(--two-win-x);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* The two panels inside the window, stacked. Only the upper one is masked;
+     the lower is simply underneath it, whole, from the first frame. */
+  .two__pane {
+    position: absolute;
+    inset: 0;
+  }
+
+  .two__pane--under {
+    z-index: 0;
+  }
+
+  .two__pane--over {
+    z-index: 1;
+  }
+
   .two__window {
     position: absolute;
     inset: 0;

@@ -7,26 +7,26 @@
  * full size from the first frame because the window is a clip rather than a
  * box that grows (see TwoWays.astro).
  *
- * WHAT IS STILL OPEN. The reference gives 01, which makes it one of a set, and
- * the pair this site has always had is Sprint and Retainer — 02's copy is in
- * the history of the old TwoWays.astro, word for word, and putting it in is one
- * more entry in whatever holds them. What is not settled is how the second one
- * arrives once the window is open: side by side, or one after the other on a
- * scroll the section does not have yet. So this renders the one panel that was
- * given, and takes its content as props so the answer to that question is a
- * change of arrangement rather than a rewrite.
+ * Two of them, stacked inside that window: Sprint on a light ground, Retainer
+ * on a dark one. The first is on top and is dissolved away to leave the second,
+ * from its own bottom edge upwards — see initTwoWays.
+ *
+ * `tone` is the only thing that differs between them beyond their words. Not a
+ * separate component and not a modifier the caller has to remember: a panel is
+ * a number, a name, a sentence and a term, and which way round its ink runs is
+ * a property of the panel rather than a different kind of thing.
  *
  * It is deliberately NOT a section of its own in the page's flow. It is only
  * ever seen through the window, and a second copy below would be the same
  * chapter twice.
  *
- * The ground is light, so nothing here declares itself to the nav. If it ever
- * goes dark, the declaration cannot go on this element — its box is the whole
- * screen from the first frame, because a clip changes what is painted and not
- * what is measured, so the capsule would turn to glass over Two ways in's cream
- * a screen and a half early. It has to go on a box that is sized to the window
- * itself; there was one, `[data-two-zone]`, and it came out with the dark
- * ground it was standing in for.
+ * Neither panel declares itself to the nav, and the dark one cannot. Its box is
+ * the whole screen from the first frame — a clip changes what is painted, not
+ * what is measured — so the capsule would turn to glass over Two ways in's
+ * cream a screen and a half before anything dark was on it. That declaration
+ * lives on `[data-two-zone]` in TwoWays.astro, which is sized to the window and
+ * faded up as this panel is uncovered, so the nav reads it exactly when the
+ * reader can see it.
  */
 
 interface Props {
@@ -37,6 +37,8 @@ interface Props {
   summary?: string;
   /** What the commitment is, in the marked row at the foot. */
   terms?: string;
+  /** Which way round the ink runs. */
+  tone?: 'light' | 'dark';
 }
 
 const {
@@ -44,10 +46,11 @@ const {
   name = 'Sprint',
   summary = 'One push, one deadline, everything the moment requires.',
   terms = 'Fixed, 4 weeks and up',
+  tone = 'light',
 } = Astro.props;
 ---
 
-<div class="offer" data-offer>
+<div class:list={['offer', `offer--${tone}`]} data-offer data-offer-tone={tone}>
   <p class="offer__index" data-offer-copy>
     <span class="offer__mark" aria-hidden="true">//</span>
     {number}
@@ -67,16 +70,26 @@ const {
 </div>
 
 <style>
+  /* Both grounds are the reference's own flats, and both are stated here rather
+     than in globals.css: they belong to these two panels and to nothing else,
+     and a --color-bg-offer in the shared sheet would be a name that has to be
+     kept in step rather than simply read. `--offer-ink` is what the rest of the
+     panel mixes its greys out of, so one line changes the whole tone. */
   .offer {
     position: absolute;
     inset: 0;
-    /* The reference's flat grey. A placeholder colour rather than a token: when
-       the real ground is settled it becomes this panel's own, and inventing a
-       --color-bg-offer for a stand-in would put a name in globals.css that has
-       to be changed rather than filled. */
-    background: #b3b3b3;
-    color: #17181a;
     padding-inline: var(--section-padding-x);
+    color: var(--offer-ink);
+  }
+
+  .offer--light {
+    --offer-ink: #17181a;
+    background: #b3b3b3;
+  }
+
+  .offer--dark {
+    --offer-ink: #ffffff;
+    background: #2b2b2b;
   }
 
   /* Top left, a tenth of the way down — clear of the floating header, which
@@ -126,7 +139,7 @@ const {
     font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgb(23 24 26 / 0.6);
+    color: color-mix(in srgb, var(--offer-ink) 60%, transparent);
   }
 
   /* Three lines at the reference's width, which is what puts the break after
@@ -148,15 +161,36 @@ const {
     margin-top: clamp(1.5rem, 7.9vh, 4.5rem);
     font-size: 0.875rem;
     letter-spacing: -0.01em;
-    color: rgb(23 24 26 / 0.55);
+    color: color-mix(in srgb, var(--offer-ink) 55%, transparent);
   }
 
   .offer__ring {
     flex: none;
     width: 1.125rem;
     height: 1.125rem;
-    border: 1px solid rgb(23 24 26 / 0.45);
+    border: 1px solid color-mix(in srgb, var(--offer-ink) 45%, transparent);
     border-radius: 50%;
+  }
+
+  /* --- Being dissolved away --------------------------------------------------
+     Only on the panel that is currently going: `data-offer-wiping` is put on by
+     the script for the length of that handover. The same instrument, and the
+     same shape, as the mask that brings the reader out of Overclock and the one
+     that changes Our work's categories over — a feather wider than half the
+     screen, so what travels is never an edge. */
+  [data-offer][data-offer-wiping] {
+    --offer-wipe: 0;
+    --offer-feather: 55%;
+    -webkit-mask-image: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0) calc(var(--offer-wipe) * 1% - var(--offer-feather)),
+      rgb(0 0 0 / 1) calc(var(--offer-wipe) * 1%)
+    );
+    mask-image: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0) calc(var(--offer-wipe) * 1% - var(--offer-feather)),
+      rgb(0 0 0 / 1) calc(var(--offer-wipe) * 1%)
+    );
   }
 
   /* --- Held back until the window is open ----------------------------------

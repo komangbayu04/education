@@ -36,17 +36,33 @@ export function initTwoWays(): () => void {
   const win = section.querySelector<HTMLElement>('[data-two-window]');
   const copy = section.querySelector<HTMLElement>('.two__copy');
   const steps = gsap.utils.toArray<HTMLElement>('[data-two-step]', section);
-  if (!win || steps.length < 2) return () => {};
+  if (!win || steps.length < 4) return () => {};
 
-  const panel = gsap.utils.toArray<HTMLElement>('[data-offer-copy]', section);
+  /* Picked by their wrappers, not by document order.
+
+     Document order is the reverse of paint order here — the panel underneath is
+     written first so the one on top can be uncovered from it — so
+     `querySelectorAll('[data-offer]')[0]` is Retainer, not Sprint. Taken that
+     way round the handover ran backwards: Retainer was masked off to reveal
+     Sprint, and Sprint's words faded in at the end of it. Measured, and the
+     giveaway was `tones: ["dark", "light"]`. */
+  const over = section.querySelector<HTMLElement>('[data-two-pane] [data-offer]');
+  const under = section.querySelector<HTMLElement>(
+    '.two__pane--under [data-offer]',
+  );
+  const wordsOf = (el: HTMLElement | null) =>
+    el ? gsap.utils.toArray<HTMLElement>('[data-offer-copy]', el) : [];
+  const overWords = wordsOf(over);
+  const underWords = wordsOf(under);
+  const zone = section.querySelector<HTMLElement>('[data-two-zone]');
 
   if (prefersReducedMotion()) {
     gsap.set(section, { '--two-win-t': '0%', '--two-win-x': '0%' });
-    gsap.set(panel, { autoAlpha: 1 });
+    gsap.set([...overWords, ...underWords], { autoAlpha: 1 });
     if (copy) gsap.set(copy, { autoAlpha: 0 });
     return () => {
       gsap.set(section, { clearProps: '--two-win-t,--two-win-x' });
-      gsap.set(panel, { clearProps: 'opacity,visibility' });
+      gsap.set([...overWords, ...underWords], { clearProps: 'opacity,visibility' });
       if (copy) gsap.set(copy, { clearProps: 'opacity,visibility' });
     };
   }
@@ -116,20 +132,118 @@ export function initTwoWays(): () => void {
      point the window has already covered 96.7% of the distance to the corners
      of the screen — the number is late in the timeline and early in nothing the
      reader can see. */
-  if (panel.length) {
+  if (overWords.length) {
     tl.fromTo(
-      panel,
+      overWords,
       { autoAlpha: 0 },
       { autoAlpha: 1, ease: 'power2.out', duration: 0.26 },
       0.68,
     );
   }
 
+  const handover = initOfferHandover({ steps, over, under, overWords, underWords, zone });
+
   return () => {
+    handover();
     tl.scrollTrigger?.kill();
     tl.kill();
     gsap.set(section, { clearProps: '--two-win-t,--two-win-x' });
-    gsap.set(panel, { clearProps: 'opacity,visibility' });
+    gsap.set([...overWords, ...underWords], { clearProps: 'opacity,visibility' });
     if (copy) gsap.set(copy, { clearProps: 'opacity,visibility' });
+  };
+}
+
+/**
+ * Sprint → Retainer, once the window is a whole screen.
+ *
+ * The same movement the reader was brought out of Overclock by, which is what
+ * was asked for: the panel on top is masked away from its own bottom edge
+ * upwards behind a feather wider than half the screen, and the one underneath
+ * — already there, whole, from the first frame — is what is left. Nothing
+ * slides, nothing scales, and there is no edge to follow.
+ *
+ * The words are handled apart from the grounds they sit on, and that is the one
+ * place this differs from a literal copy of that join. Both panels set their
+ * type in the same corner, so a mask taking the first one's sentence away
+ * gradually would be doing it directly on top of the second one's sentence
+ * arriving — three lines of one headline at half strength over three lines of
+ * another. They are only ever legible one at a time here: the first is gone by
+ * a quarter of the way through and the second does not begin until two thirds.
+ *
+ * Scrubbed, so the reader drives it and can run it backwards.
+ */
+function initOfferHandover(parts: {
+  steps: HTMLElement[];
+  over: HTMLElement | null;
+  under: HTMLElement | null;
+  overWords: HTMLElement[];
+  underWords: HTMLElement[];
+  zone: HTMLElement | null;
+}): () => void {
+  const { steps, over, underWords, zone } = parts;
+  /* The fourth step. The first is the window opening and the second is the beat
+     on Sprint — a panel the reader has only just been shown should not start
+     leaving in the same movement that finished showing it. */
+  const step = steps[3];
+  if (!step || !over) return () => {};
+
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: step,
+      start: 'top bottom',
+      end: 'top top',
+      /* Smoothed by the same amount the Overclock join uses. A mask edge is
+         read sharply by the eye even when it is soft. */
+      scrub: 0.8,
+      invalidateOnRefresh: true,
+      /* The mask is only worth its compositing layer while it is doing
+         something. Never taken off at the far end — removing it there would put
+         Sprint back at full strength on top of the panel that has replaced
+         it. */
+      onEnter: () => over.setAttribute('data-offer-wiping', ''),
+      onEnterBack: () => over.setAttribute('data-offer-wiping', ''),
+      onLeaveBack: () => over.removeAttribute('data-offer-wiping'),
+    },
+  });
+
+  /* Sprint's words first and quickest, so they are gone before Retainer's
+     start. `immediateRender: false`: their resting state is on, and by this
+     point the window's own timeline has put them there. */
+  if (parts.overWords.length) {
+    tl.fromTo(
+      parts.overWords,
+      { autoAlpha: 1 },
+      { autoAlpha: 0, ease: 'power1.in', duration: 0.24, immediateRender: false },
+      0,
+    );
+  }
+
+  /* Then the ground it was on. */
+  tl.fromTo(
+    over,
+    { '--offer-wipe': 0 },
+    { '--offer-wipe': 155, ease: 'none', duration: 0.8, immediateRender: false },
+    0.14,
+  );
+
+  /* And Retainer's words last, over a ground already two thirds replaced. This
+     one renders at build, and has to: it is what parks them at 0 in step with
+     the stylesheet. */
+  if (underWords.length) {
+    tl.fromTo(underWords, { autoAlpha: 0 }, { autoAlpha: 1, ease: 'power2.out', duration: 0.3 }, 0.66);
+  }
+
+  /* And the nav's reading of the ground, on the same clock as the ground
+     itself. The box draws nothing — its opacity is a signal, not a surface. */
+  if (zone) {
+    tl.fromTo(zone, { opacity: 0 }, { opacity: 1, ease: 'none', duration: 0.4 }, 0.3);
+  }
+
+  return () => {
+    tl.scrollTrigger?.kill();
+    tl.kill();
+    over.removeAttribute('data-offer-wiping');
+    gsap.set(over, { clearProps: '--offer-wipe' });
+    if (zone) gsap.set(zone, { clearProps: 'opacity' });
   };
 }
