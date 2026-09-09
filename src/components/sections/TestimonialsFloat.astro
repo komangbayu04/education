@@ -932,7 +932,25 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     display: none;
   }
 
+  /* `flow-root`, not `block`, and it is load-bearing.
+
+     The title is placed half a screen down with a top margin, and a top margin
+     on a first child COLLAPSES OUT of its parents — through the stage and
+     through the section — so it stopped being space inside this section and
+     became space above it. Measured: the client band ended at 16366 and this
+     section's own box did not begin until 16816, with 450px of the page's own
+     white between them and the title floating in the middle of it.
+
+     A block formatting context contains that margin. The section's box now
+     starts where the band ends, the half screen is inside it, and the ground
+     is painted under it. Nothing moves: the same 450px is in the same place,
+     it is just this section's now.
+
+     It has to be stated HERE rather than on the `.tmf` rule above, which is
+     where it was first put. That rule sets `display: none` — this cut is
+     hidden unless it is the one chosen — so a `display` beside the background
+     is a declaration that never survives to the page. */
   :global(html[data-var-testimonials='float']) .tmf {
-    display: block;
+    display: flow-root;
   }
 </style>
