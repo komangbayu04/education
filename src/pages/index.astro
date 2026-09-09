@@ -210,6 +210,25 @@ import Footer from '../components/layout/Footer.astro';
      Only while the join is running — `data-oc-join` is put on by the script
      when the reader reaches it. A mask is a compositing layer, and a
      full-screen film does not need one for the several screens before this. */
+  /* A FLOOR under the whole ladder, and the fixed footer is why it exists.
+
+     That footer is `position: fixed` at z-index 0, behind the page. A section
+     that never states a rank of its own paints at `auto` — which is the same
+     level as 0, decided by tree order, and the footer is the last element on
+     the page. So every section that had nothing to say about z-index was
+     losing to it: the client band, 169px of it, went transparent and the
+     founder's photograph showed through the middle of the page.
+
+     Stated on the parent rather than section by section, and deliberately at
+     low specificity: a component's own rule carries its cid attribute and beats
+     this, so the ladder below is untouched and this only catches whatever has
+     not spoken for itself. `main > section` and not `main > *`, because the
+     footer block and its spacer are divs and must stay where they are. */
+  :global(main > section) {
+    position: relative;
+    z-index: 1;
+  }
+
   :global([data-project='overclock']) {
     z-index: 3;
   }

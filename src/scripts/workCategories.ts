@@ -135,8 +135,6 @@ export function initWorkCategories(): () => void {
        owns to the end it belongs to. The scrub still does the whole of the
        middle; it just no longer has the last word on either side of it. */
     const settle = (done: boolean) => {
-      gsap.set(outCopy, { autoAlpha: done ? 0 : 1 });
-      gsap.set(inCopy, { autoAlpha: done ? 1 : 0 });
       gsap.set(outPic, { '--cat-wipe': done ? 155 : 0, autoAlpha: done ? 0 : 1 });
     };
 
@@ -171,39 +169,92 @@ export function initWorkCategories(): () => void {
       },
     });
 
-    /* The copy leaving. `immediateRender: false` on all three of these: their
-       resting state is on, and the stylesheet already says so — rendered at
-       build they would switch off whichever category the section is currently
-       showing. */
-    tl.fromTo(
-      outCopy,
-      { autoAlpha: 1 },
-      { autoAlpha: 0, duration: COPY_OUT, ease: 'power1.in', immediateRender: false },
-      0,
-    );
-
-    tl.fromTo(
-      outPic,
-      { '--cat-wipe': 0 },
-      { '--cat-wipe': 155, duration: WIPE_FOR, ease: 'none', immediateRender: false },
-      WIPE_AT,
-    );
-
-    /* The copy arriving. This one DOES render at build, and has to: it is what
-       parks the column at 0 in step with the stylesheet, so the section looks
-       the same before this file runs and after. */
-    tl.fromTo(
-      inCopy,
-      { autoAlpha: 0 },
-      { autoAlpha: 1, duration: COPY_IN_FOR, ease: 'power2.out' },
-      COPY_IN_AT,
-    );
-
     cleanups.push(() => {
       tl.scrollTrigger?.kill();
       tl.kill();
       outPic.removeAttribute('data-cat-wiping');
       gsap.set([outPic, outCopy, inCopy], { clearProps: 'opacity,visibility' });
+    });
+  }
+
+  // --- The words -----------------------------------------------------------
+  /**
+   * Which category is legible is a FUNCTION OF THE SCROLL, worked out from
+   * scratch on every update. It is not animated and it cannot lag.
+   *
+   * It used to be two tweens per handover inside the scrubbed timeline, and a
+   * scrub is a tween that chases: `scrub: 0.8` means it spends most of a second
+   * catching up to where the reader already is. Thrown past three handovers in
+   * one flick, three timelines chase at once — and what they show on the way is
+   * every category none of them has caught up to yet. Three headlines on the
+   * same pixels, with the ground already two categories ahead. Pinning the
+   * state at each handover's edges did not fix it, because the chase resumes on
+   * the very next tick and overwrites what the edge just set.
+   *
+   * So the words stopped being animated. Every update, each handover's local
+   * progress is read from where its own step actually is on the screen, and
+   * every category's opacity is computed from that. There is no state to get
+   * stranded in: whatever the reader does, the next frame is correct.
+   *
+   * The PICTURES keep their scrub, and should. A lagging wipe cannot produce
+   * doubled text — the panels are opaque and stacked, so the worst a late one
+   * does is show the previous photograph a moment longer, which is what a
+   * smoothed dissolve is supposed to look like.
+   */
+  if (!reduced) {
+    const easeOut = gsap.parseEase('power1.in');
+    const easeIn = gsap.parseEase('power2.out');
+    const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
+
+    /* The same two edges the timelines use, as fractions of the window: the
+       step's top from 60% of the way down to 5%. Read here rather than parsed
+       out of START/END so there is one arithmetic, not two that can drift. */
+    const FROM = 0.6;
+    const TO = 0.05;
+
+    const progressOf = (panel: HTMLElement) => {
+      const vh = window.innerHeight || 1;
+      const top = panel.getBoundingClientRect().top;
+      return clamp01((FROM * vh - top) / ((FROM - TO) * vh));
+    };
+
+    const paint = () => {
+      /* One pass, and the two ends of every handover are read from the same
+         number — so a category cannot be leaving and arriving by different
+         amounts. */
+      const alpha = screens.map((_, j) => {
+        let a = j === 0 ? 1 : easeIn(clamp01((progressOf(panels[j]) - COPY_IN_AT) / COPY_IN_FOR));
+        const next = panels[j + 1];
+        if (next) a *= 1 - easeOut(clamp01(progressOf(next) / COPY_OUT));
+        return a;
+      });
+
+      alpha.forEach((a, j) => {
+        const el = copy(j);
+        if (!el) return;
+        el.style.opacity = `${a}`;
+        el.style.visibility = a > 0.002 ? 'inherit' : 'hidden';
+      });
+    };
+
+    const painter = ScrollTrigger.create({
+      trigger: section,
+      start: 'top bottom',
+      end: 'bottom top',
+      onUpdate: paint,
+      onRefresh: paint,
+    });
+
+    paint();
+
+    cleanups.push(() => {
+      painter.kill();
+      screens.forEach((_, j) => {
+        const el = copy(j);
+        if (!el) return;
+        el.style.removeProperty('opacity');
+        el.style.removeProperty('visibility');
+      });
     });
   }
 
