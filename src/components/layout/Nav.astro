@@ -393,7 +393,14 @@ const {
   .nav__logo {
     grid-column: 1;
     justify-self: start;
-    display: block;
+    /* Flex rather than block so the mark can be centred inside a hit area
+       taller than itself. The mark is 58 x 24; a link that size is under every
+       touch-target guideline going, and this one sits in a floating bar where
+       a miss lands on the page behind it. The bar is 46 tall, so the target
+       takes the whole of that height and gains nothing visible. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.875rem;
     /* Inherits the capsule's colour, so the mark is one of the things the
        inversion carries rather than a case of its own. */
     color: inherit;
@@ -425,11 +432,19 @@ const {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    /* Square, on the pill's inside height rather than on --nav-control-h:
-       that token describes the old chip and is taller than this whole bar. */
+    /* The MARK is square and 30px, on the pill's inside height rather than on
+       --nav-control-h — that token describes the old chip and is taller than
+       this whole bar. The TARGET is the bar's full height, bought with padding
+       and given back with a negative margin so the button still measures 30
+       for the purposes of the grid it sits in. 30 x 30 is under every
+       touch-target guideline, and this is the one control in the header. */
     width: 1.875rem;
     height: 1.875rem;
-    padding: 0;
+    padding-block: 0.5rem;
+    padding-inline: 0.5rem;
+    margin-block: -0.5rem;
+    margin-inline: -0.5rem;
+    box-sizing: content-box;
     border: 0;
     border-radius: 999px;
     background: none;

@@ -69,9 +69,29 @@ export function initTwoWays(): () => void {
 
   /* Read off the stylesheet rather than repeated here, so where the window
      rests is one decision made in one place — and so the phone's wider, higher
-     rectangle comes through without this file knowing there is one. */
-  const read = (name: string, fallback: string) =>
-    getComputedStyle(section).getPropertyValue(name).trim() || fallback;
+     rectangle comes through without this file knowing there is one.
+
+     Read through a function, and re-read on every refresh. Captured once, the
+     rectangle a reader arrived at was the only one they ever got: rotating a
+     phone, or dragging a window across the breakpoint, left the window
+     animating from the OTHER layout's numbers — because the tween writes these
+     two variables as inline styles, and an inline style beats the media query
+     that was supposed to have changed them. Measured at 360 wide after a
+     resize from 1440: the clip still read `inset(65% 21%)` where the phone's
+     rule says 56% and 6%.
+
+     `invalidateOnRefresh` on the trigger is what makes the re-read happen —
+     it invalidates the tween, and an invalidated tween re-evaluates any value
+     given as a function. */
+  const read = (name: string, fallback: string) => () => {
+    /* The inline values the tween itself writes have to be stepped over, or
+       the second refresh would read back the first refresh's answer. */
+    const inline = section.style.getPropertyValue(name);
+    if (inline) section.style.removeProperty(name);
+    const value = getComputedStyle(section).getPropertyValue(name).trim() || fallback;
+    if (inline) section.style.setProperty(name, inline);
+    return value;
+  };
 
   const restT = read('--two-win-t', '62%');
   const restX = read('--two-win-x', '21%');
@@ -95,7 +115,7 @@ export function initTwoWays(): () => void {
      keeps those two the same shape without either knowing about the other. */
   tl.fromTo(
     section,
-    { '--two-win-t': restT, '--two-win-x': restX },
+    { '--two-win-t': restT, '--two-win-x': restX, immediateRender: true },
     {
       '--two-win-t': '0%',
       '--two-win-x': '0%',

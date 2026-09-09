@@ -385,6 +385,16 @@ const {
 
   .ft__link,
   .ft__email {
+    /* A hit area taller than the words, on the pointers that need one. These
+       are 14px links set in a stack, so on a mouse the text itself is target
+       enough — measured, 18px tall — and on a finger it is not. `inline-flex`
+       with a floor rather than padding, so the extra height cannot push the
+       rows apart: the gaps around them are the layout's, not the link's.
+
+       Coarse pointers only. On a desktop the same rule would make a column of
+       text links read as a column of buttons. */
+    display: inline-flex;
+    align-items: center;
     font-size: 0.875rem;
     line-height: 1.6;
     letter-spacing: 0.069em;
@@ -393,6 +403,13 @@ const {
     white-space: nowrap;
     color: inherit;
     transition: opacity 0.35s var(--ease-out-expo);
+  }
+
+  @media (pointer: coarse) {
+    .ft__link,
+    .ft__email {
+      min-height: 2.75rem;
+    }
   }
 
   .ft__link:hover,

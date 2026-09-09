@@ -206,7 +206,9 @@ const {
      left is part of the composition. */
   /* Measured off the reference at 1440x900: the label's baseline sits a
      quarter of the way down the screen, well clear of the floating header
-     rather than tucked under it.
+     rather than tucked under it. The `max` is the floor for a short window,
+     where a quarter of the screen stops being clear of anything — the same
+     guard the offer panel's own index carries.
 
      The left inset is the page's shared gutter, not the reference's own 76px.
      Two ways in follows Our work directly and Our work's copy column sits on
@@ -215,7 +217,8 @@ const {
   .two__copy {
     position: absolute;
     inset: 0;
-    padding: clamp(6rem, 24svh, 13.5rem) var(--section-padding-x) 0;
+    padding: max(clamp(6rem, 24svh, 13.5rem), calc(var(--nav-height) + 2rem))
+      var(--section-padding-x) 0;
     max-width: var(--content-max-width);
     margin-inline: auto;
   }

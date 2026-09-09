@@ -784,6 +784,19 @@ const {
     grid-template-columns: repeat(var(--px-cols, 1), var(--px-size, 40px));
     grid-auto-rows: var(--px-size, 40px);
     pointer-events: none;
+    /* Clipped, and it has to be. The field is whole tiles and the frame is
+       whatever the window happens to be, so the last column and the last row
+       almost always overrun — measured at 1440x900, a 42-column grid of 36px
+       tiles is 1512 wide against a 1440 frame. Unclipped that is 72px of
+       document nobody can see and everybody can scroll to: the page had a
+       horizontal scrollbar from the hero all the way to the footer.
+
+       `clip` rather than `hidden`. They cut the same, but `hidden` makes this a
+       scroll container, and a scroll container is the box any sticky descendant
+       sticks inside — the mistake this page has already made twice. There are
+       none in here today; `clip` means there is nothing to find out the hard
+       way if one ever arrives. */
+    overflow: clip;
   }
 
   /* A pixel over its grid cell, and then a little more.

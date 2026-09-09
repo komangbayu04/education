@@ -84,14 +84,14 @@ const {
     <h2 class="inc__label" id="inc-title">{includedTitle}</h2>
 
     {/*
-      Scrollable rather than a marquee or a static crop. The reference cuts the
-      fifth card at the frame, and that crop is the point — it says the list
-      runs on. But a card that can only be half-read is only half-content, so
-      the row is a scroller: it looks exactly like the reference at rest and
-      the rest of it is a swipe or a shift-wheel away. Nothing moves on its
-      own; there is enough on this page that does.
+      Dragged, and scrollable underneath that. The reference cuts the fifth card
+      at the frame, and that crop is the point — it says the list runs on. But a
+      card that can only be half-read is only half-content, so the row moves:
+      a swipe on a phone, a shift-wheel or a keyboard anywhere, and a hand on a
+      desktop (src/scripts/included.ts). Nothing moves on its own; there is
+      enough on this page that does.
     */}
-    <ul class="inc__cards">
+    <ul class="inc__cards" data-inc-drag>
       {
         included.map((item, i) => (
           <li class="inc__card">
@@ -211,6 +211,23 @@ const {
 
   .inc__cards::-webkit-scrollbar {
     display: none;
+  }
+
+  /* The cursor says the row can be taken hold of, and says it only where there
+     is a cursor to say it to. `grabbing` while the drag is running is set from
+     the attribute the script puts on, so the hand does not flick back to
+     `grab` the moment the pointer leaves a card. */
+  @media (hover: hover) and (pointer: fine) {
+    .inc__cards {
+      cursor: grab;
+    }
+
+    .inc__cards[data-inc-dragging] {
+      cursor: grabbing;
+      /* A drag across words selects them by default, which turns a pull into a
+         highlight. */
+      user-select: none;
+    }
   }
 
   .inc__card {

@@ -11,6 +11,7 @@ import { initCaseStudy } from './caseStudy';
 import { initCredibility } from './credibility';
 import { initWorkCategories } from './workCategories';
 import { initTwoWays } from './twoWays';
+import { initIncluded } from './included';
 import { initTestimonials } from './testimonials';
 import { initTestimonialsFloat } from './testimonialsFloat';
 import { initTestimonialsSphere } from './testimonialsSphere';
@@ -45,6 +46,7 @@ function initPage(): void {
       initCredibility(),
       initWorkCategories(),
       initTwoWays(),
+      initIncluded(),
       /* One of these three builds its section and the other two return a
          no-op — whichever cut of chapter 8 the reader has picked. */
       initTestimonials(),

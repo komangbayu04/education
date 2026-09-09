@@ -100,11 +100,18 @@ const {
     background: var(--color-bg-included);
   }
 
-  /* Top left, a tenth of the way down — clear of the floating header, which
-     passes over this panel like it passes over everything else. */
+  /* Top left, a tenth of the way down — and never nearer the top than the
+     floating header plus a gap, whatever the window does.
+
+     A tenth is the reference's proportion and it holds on a tall window. On a
+     short one it stops being a proportion and starts being a collision:
+     measured at 1024x640, 9% is 58px against a header that ends at 48, so ten
+     pixels of clearance between a label and a floating bar. `max` keeps the
+     reference's number where there is room for it and the header's own height
+     where there is not. */
   .offer__index {
     position: absolute;
-    top: 9%;
+    top: max(9%, calc(var(--nav-height) + 1.25rem));
     left: var(--section-padding-x);
     display: flex;
     gap: 0.4em;
