@@ -5,11 +5,11 @@ import { prefersReducedMotion } from './utils/device';
  * Our work — categorized. Three jobs, and none of them touches the scroll:
  *
  *   change    the sticky screen holds every category stacked on top of one
- *             another and the scroll crossfades between them in place. Nothing
- *             travels: the copy and the artwork are one layer per category and
- *             the whole layer changes over. An earlier cut carried each block
- *             up the window with the scroll and crossfaded only the ground
- *             behind it; that is gone with the layout it dressed.
+ *             another, first on top, and the scroll dissolves them away one at
+ *             a time — each picture masked off from its own bottom edge
+ *             upwards to leave the next one, which was underneath it all
+ *             along. Nothing travels. The words are handled separately from
+ *             the pictures they sit on; see the note over the timings.
  *
  *   outro     the join below it: the whole screen dissolves as Two ways in is
  *             pulled up over it.
@@ -43,89 +43,141 @@ export function initWorkCategories(): () => void {
 
   // --- The change ----------------------------------------------------------
   /**
-   * Each step in the track is one category's worth of scroll, and its top
-   * reaching the top of the window is the moment that category is the screen.
-   * So the crossfade is measured backwards from there.
+   * One category giving way to the next, and it is the same movement the
+   * reader was brought into this section by: the picture on top is masked away
+   * from its own bottom edge upwards, behind a feather wider than half the
+   * screen, and the next category — already there, whole, underneath — is what
+   * is left. Nothing slides, nothing crossfades, and there is no edge to
+   * follow.
    *
-   * The change is a handover in two halves, not a crossfade: the category
-   * leaving goes first, and the one arriving comes in after it has gone.
+   * The words are not in that dissolve. Two reasons, and the second is the one
+   * that matters: a masked headline comes apart from its baseline upwards,
+   * which reads as damage rather than as a transition; and while it is coming
+   * apart it is still legible over the headline arriving underneath it. So the
+   * copy has a fade of its own, and the whole design of the timing below is
+   * that it is FINISHED before the incoming copy has started.
    *
-   * A crossfade was what stood here and it could not work. These layers have
-   * no ground of their own — the section's black is the ground, and a screen
-   * is a shot on the right and some words on the left over it. Stacked
-   * transparencies do not replace each other, they add up: fading one in over
-   * another left both sets of words on the page, and by the fifth category
-   * there were five headlines printed on top of one another. Even done
-   * properly, in opposite directions at once, the middle of a crossfade is two
-   * headlines at half strength, which is the same illegibility with a
-   * shorter run.
+   * Measured against the handover's own length rather than the step's, so the
+   * shape holds at any window:
    *
-   * So: out over the first 45%, a beat of bare ground, in over the last 45%.
-   * The ground is one flat black, so a moment with nothing on it reads as a
-   * pause between two states rather than as a hole.
+   *   0    → 0.24   the copy leaving. First and quickest.
+   *   0.14 → 0.94   the picture dissolving, most of the stretch.
+   *   0.66 → 0.96   the copy arriving, over a picture already two thirds
+   *                 replaced.
    *
-   * Measured at 1440x900: 190px out, 42px of black, 190px in, and 342px of
-   * the step left over with the category simply standing there.
+   * Which leaves 0.24 to 0.66 — two fifths of every change — with no words on
+   * the screen at all, only one photograph becoming another. That gap is not
+   * waste. It is the only arrangement in which a headline is never competing
+   * with another headline, and it is what the earlier crossfade could not buy
+   * at any speed.
+   *
+   * A fourth step, taking the spent picture out of the compositor entirely,
+   * is NOT in this timeline. It was, as an `autoAlpha: 1 → 0` over the last
+   * few percent, and it did not come back: scrubbed to the end and then back
+   * to the beginning, the element still read `opacity: 0; visibility: hidden`
+   * — while the `--cat-wipe` tween beside it, carrying the same
+   * `immediateRender: false`, rewound correctly every time. Scrolling back up
+   * the page left the picture gone, and the category standing over the next
+   * one's photograph. It is a pair of trigger callbacks instead: one place
+   * turns it off, one turns it back on, and they are the same boundary read
+   * from either side.
    */
-  const START = 'top 55%';
-  const END = 'top 8%';
+  const START = 'top 60%';
+  const END = 'top 5%';
 
-  /** Where the two halves sit inside that stretch. */
-  const OUT = 0.45;
-  const IN = 0.55;
+  const COPY_OUT = 0.24;
+  const WIPE_AT = 0.14;
+  const WIPE_FOR = 0.8;
+  const COPY_IN_AT = 0.66;
+  const COPY_IN_FOR = 0.3;
+
+  const pic = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-pic]') ?? null;
+  const copy = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-copy]') ?? null;
 
   for (let i = 1; i < panels.length; i += 1) {
     const panel = panels[i];
-    const screen = screens[i];
-    const leaving = screens[i - 1];
-    if (!panel || !screen || !leaving) continue;
+    const outPic = pic(i - 1);
+    const outCopy = copy(i - 1);
+    const inCopy = copy(i);
+    if (!panel || !outPic || !outCopy || !inCopy) continue;
 
     if (reduced) {
-      /* A cut rather than a crossfade, in the middle of the window the fade
+      /* A cut rather than a dissolve, in the middle of the window the change
          would have used. Each category still gets its own screen — that is
          content, not decoration — it just arrives without being animated. */
       const swap = ScrollTrigger.create({
         trigger: panel,
         start: 'top 40%',
-        onEnter: () => gsap.set([leaving, screen], { autoAlpha: gsap.utils.wrap([0, 1]) }),
-        onLeaveBack: () => gsap.set([leaving, screen], { autoAlpha: gsap.utils.wrap([1, 0]) }),
+        onEnter: () => gsap.set([outPic, outCopy, inCopy], { autoAlpha: gsap.utils.wrap([0, 0, 1]) }),
+        onLeaveBack: () =>
+          gsap.set([outPic, outCopy, inCopy], { autoAlpha: gsap.utils.wrap([1, 1, 0]) }),
       });
 
       cleanups.push(() => swap.kill());
       continue;
     }
 
-    /* This renders on creation, and has to: it is what parks the screen at 0 in
-       step with the stylesheet, so the section looks the same before this file
-       runs and after. */
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: panel,
         start: START,
         end: END,
-        scrub: true,
+        /* Smoothed rather than tied frame-for-frame to the gesture, and by the
+           same amount the join out of Overclock uses. A mask edge is read
+           sharply by the eye even when it is soft, so it picks up every jitter
+           in a trackpad. */
+        scrub: 0.8,
         invalidateOnRefresh: true,
+        /* The mask costs a compositing layer, so it is only on the picture
+           that is currently going. Never taken off at the far end — removing
+           it there would put the category back at full strength on top of the
+           one that has just replaced it. */
+        onEnter: () => outPic.setAttribute('data-cat-wiping', ''),
+        onEnterBack: () => {
+          outPic.setAttribute('data-cat-wiping', '');
+          gsap.set(outPic, { autoAlpha: 1 });
+        },
+        onLeaveBack: () => outPic.removeAttribute('data-cat-wiping'),
+        /* By here the mask has taken all of the picture, so this changes
+           nothing the reader can see — but a masked element is still painted
+           and still composited. See the note over the timings. */
+        onLeave: () => gsap.set(outPic, { autoAlpha: 0 }),
       },
     });
 
-    /* The one leaving. `immediateRender: false` — its resting state is on, and
-       the stylesheet already says so; rendering this at build would switch off
-       whichever category the section is currently showing. */
+    /* The copy leaving. `immediateRender: false` on all three of these: their
+       resting state is on, and the stylesheet already says so — rendered at
+       build they would switch off whichever category the section is currently
+       showing. */
     tl.fromTo(
-      leaving,
+      outCopy,
       { autoAlpha: 1 },
-      { autoAlpha: 0, duration: OUT, ease: 'none', immediateRender: false },
+      { autoAlpha: 0, duration: COPY_OUT, ease: 'power1.in', immediateRender: false },
       0,
     );
 
-    /* And the one arriving. This one does render on creation, and has to: it
-       is what parks the screen at 0 in step with the stylesheet, so the
-       section looks the same before this file runs and after. */
-    tl.fromTo(screen, { autoAlpha: 0 }, { autoAlpha: 1, duration: 1 - IN, ease: 'none' }, IN);
+    tl.fromTo(
+      outPic,
+      { '--cat-wipe': 0 },
+      { '--cat-wipe': 155, duration: WIPE_FOR, ease: 'none', immediateRender: false },
+      WIPE_AT,
+    );
+
+    /* The copy arriving. This one DOES render at build, and has to: it is what
+       parks the column at 0 in step with the stylesheet, so the section looks
+       the same before this file runs and after. */
+    tl.fromTo(
+      inCopy,
+      { autoAlpha: 0 },
+      { autoAlpha: 1, duration: COPY_IN_FOR, ease: 'power2.out' },
+      COPY_IN_AT,
+    );
 
     cleanups.push(() => {
       tl.scrollTrigger?.kill();
       tl.kill();
+      outPic.removeAttribute('data-cat-wiping');
+      gsap.set([outPic, outCopy, inCopy], { clearProps: 'opacity,visibility' });
     });
   }
 

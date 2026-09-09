@@ -4,7 +4,11 @@
  *
  * Nothing on this screen moves. That is the whole of the layout: one sticky
  * screen holding every category stacked on top of one another, and the scroll
- * crossfades between them in place. An earlier cut had the copy travelling —
+ * dissolves them away one at a time — the same dissolve, from the bottom edge
+ * upwards behind a wide feather, that brings the reader into this section out
+ * of Overclock. The words are not in that dissolve; they have a fade of their
+ * own that runs earlier and faster, so no two categories are ever readable at
+ * once. An earlier cut had the copy travelling —
  * each block carried up and off the top of the window by the scroll while a
  * sticky ground stayed put — and this replaces it. Two layers moving at
  * different rates is a parallax; one layer changing over is a slide, and a
@@ -168,7 +172,16 @@ const {
   <div class="cat__stick" data-cat-dissolve>
     {
       categories.map((category, index) => (
-        <div class="cat__screen" data-cat-screen>
+        /* Reverse paint order — the FIRST category is the topmost layer.
+           Handing over is a matter of taking the one on top away, so the one
+           underneath has to already be there, whole, waiting. Document order
+           would stack them the other way and there would be nothing to
+           uncover. */
+        <div class="cat__screen" data-cat-screen style={`z-index:${categories.length - index}`}>
+          {/* Picture and veil as one thing, because the mask that takes this
+              category away has to take both — a photograph dissolving out from
+              under its own wash would leave the wash behind as a grey sheet. */}
+          <div class="cat__pic" data-cat-pic>
           {/* The ground. Painted in `tone` underneath so the screen is never
               bare while the file is still loading — or before there is one. */}
           <div class="cat__art" style={`background:${category.tone}`} aria-hidden="true">
@@ -193,12 +206,12 @@ const {
           </div>
 
           {/* Over the picture, under the words. One per screen rather than one
-              for the section: the screens hand over out-then-in with a beat of
-              bare ground between them, so no two veils are ever on at once and
-              there is nothing to double up. */}
+              for the section: it belongs to this category's photograph and
+              leaves with it. */}
           <div class="cat__veil" aria-hidden="true"></div>
+          </div>
 
-          <div class="cat__group">
+          <div class="cat__group" data-cat-copy>
             <span class="cat__num">{category.number}</span>
 
             <h3 class="cat__headline">{category.label}</h3>
@@ -236,7 +249,7 @@ const {
        is shorter than the travelling cut's 155svh by a long way.
 
        Turn this one number to change the pace. */
-    --cat-step: 85svh;
+    --cat-step: 90svh;
 
     /* The copy's inset. Deliberately the shared section padding rather than a
        column inset of its own: Overclock is directly above this and its copy
@@ -298,15 +311,54 @@ const {
     inset: 0;
   }
 
-  /* Stacked, so a category fades in over the one before it and the scroll
-     running backwards fades it out again to reveal that same one. The first is
-     always on: it is the screen the section arrives on, and the only one there
-     is if the script never runs. */
-  .cat__screen:not(:first-child) {
+  /* --- The picture layer ----------------------------------------------------
+     What the handover takes away. Every category's picture is opaque and
+     stacked, first on top, so all a change has to do is dissolve the top one
+     and the next is already underneath at full strength.
+
+     The mask is the same instrument, and the same shape, as the one that
+     brings the reader into this section out of Overclock — see the join note
+     in index.astro. A feather wider than half the screen, so what travels is
+     never an edge.
+
+     Only while a picture is actually going: `data-cat-wiping` is put on by the
+     script for the length of that category's handover. Five permanently masked
+     full-screen layers would be five compositing surfaces for the sake of one
+     that is moving. */
+  .cat__pic {
+    position: absolute;
+    inset: 0;
+  }
+
+  [data-cat-pic][data-cat-wiping] {
+    --cat-wipe: 0;
+    --cat-feather: 55%;
+    -webkit-mask-image: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0) calc(var(--cat-wipe) * 1% - var(--cat-feather)),
+      rgb(0 0 0 / 1) calc(var(--cat-wipe) * 1%)
+    );
+    mask-image: linear-gradient(
+      to top,
+      rgb(0 0 0 / 0) calc(var(--cat-wipe) * 1% - var(--cat-feather)),
+      rgb(0 0 0 / 1) calc(var(--cat-wipe) * 1%)
+    );
+  }
+
+  /* The words do not dissolve with the picture they sit on, and that is the
+     point of separating them. A masked headline comes apart letter by letter
+     from its baseline upwards, and worse, it is still legible over the words
+     of the category arriving underneath. They fade instead, on their own
+     clock, and a good deal earlier — gone before the next set has begun.
+
+     Only the first category's copy is on to start with: without the script
+     that is the one category the section shows, which is the same thing it
+     showed before. */
+  .cat__screen:not(:first-child) .cat__group {
     opacity: 0;
     /* Paired with opacity, and kept in step by GSAP's autoAlpha: four
-       transparent full-screen layers are still four composited surfaces on
-       every scrolled frame, four hidden ones are not. */
+       transparent copy columns are still four composited surfaces on every
+       scrolled frame, four hidden ones are not. */
     visibility: hidden;
   }
 

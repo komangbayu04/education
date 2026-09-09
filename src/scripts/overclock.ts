@@ -268,6 +268,22 @@ function initOverclockHandover(
         if (self.progress >= at) section.setAttribute('data-oc-join', '');
       },
       onLeaveBack: () => section.removeAttribute('data-oc-join'),
+      /* And then the chapter is actually gone rather than merely invisible.
+
+         By this point the mask has taken all of it, so this changes nothing
+         the reader can see — but a masked element is still painted, still
+         composited, and still counts as a dark zone under the nav and as a
+         candidate for the nav's section label. Switching it off is what hands
+         both of those to Our work.
+
+         Callbacks rather than a tween at the tail of the timeline, and that is
+         not a preference. As a tween it did not come back: scrubbed to the end
+         and then back to the start, the element still read `opacity: 0;
+         visibility: hidden`, while the `--oc-wipe` tween beside it — same
+         `immediateRender: false` — rewound correctly every time. Scrolling
+         back up out of Our work left Overclock switched off behind it. */
+      onLeave: () => gsap.set(section, { autoAlpha: 0 }),
+      onEnterBack: () => gsap.set(section, { autoAlpha: 1 }),
     },
   });
 
@@ -287,20 +303,6 @@ function initOverclockHandover(
   if (screen) {
     tl.fromTo(screen, { autoAlpha: 0 }, { autoAlpha: 1, ease: 'none', duration: rest * 0.62 }, at);
   }
-
-  /* And then the chapter is actually gone, rather than merely invisible.
-
-     By this point the mask has taken all of it, so this changes nothing the
-     reader can see — but a masked element is still painted, still composited,
-     and still counts as a dark zone under the nav and as a candidate for the
-     nav's section label. Switching it off is what hands both of those to Our
-     work. */
-  tl.fromTo(
-    section,
-    { autoAlpha: 1 },
-    { autoAlpha: 0, ease: 'none', duration: rest * 0.08, immediateRender: false },
-    at + rest * 0.92,
-  );
 
   return () => {
     tl.scrollTrigger?.kill();
