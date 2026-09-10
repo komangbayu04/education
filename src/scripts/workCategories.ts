@@ -51,12 +51,13 @@ export function initWorkCategories(): () => void {
    * is left. Nothing slides, nothing crossfades, and there is no edge to
    * follow.
    *
-   * The words are not in that dissolve. Two reasons, and the second is the one
-   * that matters: a masked headline comes apart from its baseline upwards,
-   * which reads as damage rather than as a transition; and while it is coming
-   * apart it is still legible over the headline arriving underneath it. So the
-   * copy has a fade of its own, and the whole design of the timing below is
-   * that it is FINISHED before the incoming copy has started.
+   * The words are not in that dissolve, and they are not wiped at all — they
+   * rise and fade. Two reasons, and the second is the one that matters: a
+   * masked headline comes apart from its baseline upwards, which reads as
+   * damage rather than as a transition; and while it is coming apart it is
+   * still legible over the headline arriving underneath it. So the copy has a
+   * movement of its own, and the whole design of the timing below is that it is
+   * FINISHED before the incoming copy has started.
    *
    * Measured against the handover's own length rather than the step's, so the
    * shape holds at any window:
@@ -231,11 +232,13 @@ export function initWorkCategories(): () => void {
    * state to get stranded in: whatever the reader does, the next frame is
    * correct.
    *
-   * What is written is not opacity. The block is wiped from its bottom edge,
-   * the same movement the ground under it makes — see the mask on
-   * `.cat__group`. One variable brings it in and the other takes it away, and
-   * because the two never run at the same time on the same block, neither has
-   * to know about the other.
+   * What is written is a rise and a fade, not a wipe. The ground under the
+   * words is wiped, because a photograph has no baseline to come apart from;
+   * type does, and a masked headline reads as damage rather than as a
+   * departure. So the block travels: up into place as it arrives, and further
+   * up as it leaves — one gesture in one direction, with the next category
+   * coming up into the space the last one left. See `.cat__group` in
+   * WorkCategories.astro for the two variables that carry it.
    *
    * The PICTURES keep their scrub, and should. A lagging wipe cannot produce
    * doubled text — the panels are opaque and stacked, so the worst a late one
@@ -275,12 +278,17 @@ export function initWorkCategories(): () => void {
       alpha.forEach(({ arriving, leaving }, j) => {
         const el = copy(j);
         if (!el) return;
-        /* Written as the two mask variables rather than as opacity: the block
-           is wiped from its bottom edge the way the ground is, not faded. See
-           the mask on `.cat__group` in WorkCategories.astro — 155 in and 0 out
-           is a whole block. */
-        el.style.setProperty('--cat-in', `${arriving * 155}`);
-        el.style.setProperty('--cat-out', `${leaving * 155}`);
+
+        /* One movement in one direction. The block comes up into place as it
+           arrives and keeps going up as it leaves, so the two ends of a
+           handover read as one gesture rather than as a block that arrives
+           from below and then reverses out of the way.
+
+           `arriving` and `leaving` are never both between 0 and 1 on the same
+           block — the timings see to that — so this is a sum rather than a
+           choice between two states. */
+        el.style.setProperty('--cat-y', `${(1 - arriving) - leaving}`);
+        el.style.setProperty('--cat-fade', `${arriving * (1 - leaving)}`);
         el.style.visibility = arriving > 0.002 && leaving < 0.998 ? 'inherit' : 'hidden';
       });
     };
@@ -300,8 +308,8 @@ export function initWorkCategories(): () => void {
       screens.forEach((_, j) => {
         const el = copy(j);
         if (!el) return;
-        el.style.removeProperty('--cat-in');
-        el.style.removeProperty('--cat-out');
+        el.style.removeProperty('--cat-y');
+        el.style.removeProperty('--cat-fade');
         el.style.removeProperty('visibility');
       });
     });
