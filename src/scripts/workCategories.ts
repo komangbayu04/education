@@ -375,8 +375,12 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
   let tiles: HTMLElement[] = [];
 
   /* Built to the window, and rebuilt when it changes: a grid sized for a
-     desktop is a handful of enormous blocks on a phone. */
-  const build = () => {
+     desktop is a handful of enormous blocks on a phone.
+
+     Returns whether it actually replaced the tiles, because the timeline below
+     animates the spans it was handed and a replaced span is not one of them —
+     see `rebuild`. */
+  const build = (): boolean => {
     const size = Math.ceil(Math.max(window.innerWidth, window.innerHeight) / ACROSS);
     const cols = Math.ceil(window.innerWidth / size);
     const rows = Math.ceil(window.innerHeight / size);
@@ -385,15 +389,17 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
     field.style.gridTemplateRows = `repeat(${rows}, ${size}px)`;
 
     const wanted = cols * rows;
-    if (tiles.length === wanted) return;
+    if (tiles.length === wanted) return false;
 
     field.replaceChildren();
     tiles = Array.from({ length: wanted }, () => document.createElement('span'));
     field.append(...tiles);
+    return true;
   };
 
   build();
 
+  const makeTimeline = () => {
   const tl = gsap.timeline({ paused: true });
 
   /* Visible only while it is doing something: a fixed sheet of five hundred
@@ -446,6 +452,33 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
 
   tl.set(field, { visibility: 'hidden' });
 
+    return tl;
+  };
+
+  /* NOT a const, and this is the whole of the bug it fixes.
+
+     The timeline animates the spans it was handed at build time. `build`
+     replaces those spans whenever the tile count changes — which is any resize
+     that crosses a tile boundary, and on a phone that includes the address bar
+     sliding away, because the field is sized to `innerHeight`. After one of
+     those the timeline was still animating a few hundred detached elements:
+     the swap in the middle still fired, so Our work went and Two ways in
+     arrived, with no pixels between them. A transition that disappears after
+     the window is touched and comes back on reload.
+
+     So the tiles and the timeline are rebuilt together, and the new one is put
+     where the old one was — a refresh can land at any point, including the
+     middle of a play. */
+  let tl = makeTimeline();
+
+  const rebuild = () => {
+    if (!build()) return;
+    const at = tl.progress();
+    tl.kill();
+    tl = makeTimeline();
+    tl.progress(at).pause();
+  };
+
   /* How long the two screens overlap, measured off the page rather than read
      out of a stylesheet: it is the gap between Two ways in's top and the top of
      its own first step, which is the stretch where its screen is parked and
@@ -487,7 +520,7 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
     onEnterBack: () => tl.reverse(),
     onLeaveBack: () => tl.progress(0).pause(),
     invalidateOnRefresh: true,
-    onRefresh: build,
+    onRefresh: rebuild,
   });
 
   return () => {
