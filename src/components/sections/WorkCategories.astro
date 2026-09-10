@@ -259,7 +259,12 @@ const {
        is shorter than the travelling cut's 155svh by a long way.
 
        Turn this one number to change the pace. */
-    --cat-step: 90svh;
+    /* A screen per category, up from 90% of one. The handover inside it is no
+       longer a picture dissolving under a fixed block of type — the type has to
+       travel out through the top of the screen first, and 819px of that at
+       1440x900 wants the room. The whole section is half a screen longer for
+       it. */
+    --cat-step: 100svh;
 
     /* The copy's inset. Deliberately the shared section padding rather than a
        column inset of its own: Overclock is directly above this and its copy
@@ -336,67 +341,56 @@ const {
 
   /* --- The picture layer ----------------------------------------------------
      What the handover takes away. Every category's picture is opaque and
-     stacked, first on top, so all a change has to do is dissolve the top one
+     stacked, first on top, so all a change has to do is fade the top one out
      and the next is already underneath at full strength.
 
-     The mask is the same instrument, and the same shape, as the one that
-     brings the reader into this section out of Overclock — see the join note
-     in index.astro. A feather wider than half the screen, so what travels is
-     never an edge.
-
-     Only while a picture is actually going: `data-cat-wiping` is put on by the
-     script for the length of that category's handover. Five permanently masked
-     full-screen layers would be five compositing surfaces for the sake of one
-     that is moving. */
+     A PLAIN FADE, which is why there is nothing here but the box. It was a
+     mask travelling up the frame behind a feather wider than half the screen —
+     the same instrument that brings the reader into this section out of
+     Overclock — and that instrument was chosen for a handover in which the
+     words were still on the picture while it ran. They are not: the copy has
+     risen out through the top of the screen before this starts, so there is
+     nothing for the change to work around and no reason for it to be anything
+     but a fade. `data-cat-wiping` and its compositing layer went with it. */
   .cat__pic {
     position: absolute;
     inset: 0;
   }
 
-  [data-cat-pic][data-cat-wiping] {
-    --cat-wipe: 0;
-    --cat-feather: 55%;
-    -webkit-mask-image: linear-gradient(
-      to top,
-      rgb(0 0 0 / 0) calc(var(--cat-wipe) * 1% - var(--cat-feather)),
-      rgb(0 0 0 / 1) calc(var(--cat-wipe) * 1%)
-    );
-    mask-image: linear-gradient(
-      to top,
-      rgb(0 0 0 / 0) calc(var(--cat-wipe) * 1% - var(--cat-feather)),
-      rgb(0 0 0 / 1) calc(var(--cat-wipe) * 1%)
-    );
-  }
-
-  /* The words RISE AND FADE. They are not wiped, and the mask that wiped them
-     is gone.
+  /* The words SCROLL AWAY. They are not wiped, not nudged, and the mask that
+     wiped them is gone.
 
      A mask takes a block apart from its baseline upwards — the descenders go
      first, then the x-height, and for a moment the headline is a row of
      ascender tips. On a photograph that reads as damage rather than as a
-     departure. It was tried, deliberately, and this is the conclusion of it:
-     the ground can be wiped because a photograph has no baseline, and type
-     cannot for exactly the reason it can.
+     departure. A 40px nudge and a fade was the next attempt and it was too
+     small to be a departure at all: the block dimmed roughly where it stood.
 
-     So the block moves as a block. `--cat-y` runs from 1 to 0 as a category
-     arrives and from 0 to -1 as it leaves, `--cat-fade` is its opacity, and the
-     rise is one length shared by both ends so out and in are the same movement
-     in the same direction — the reader's eye is carried up and the next
-     category comes up into the space it left.
+     What is here now is neither. The block travels the whole way out through
+     the top of the screen, at full strength for all of it, and disappears
+     because it has left the frame — the sticky screen clips, so nothing else
+     has to hide it. Only then does the picture change, and the next category's
+     copy fades up where it rests rather than sliding in to meet it.
 
-     Nothing here is a transition: every value is written by the painter on
-     every frame, so the block cannot be caught mid-way by a scroll that
-     reverses. The easing is in the numbers, not in the stylesheet. */
+     `--cat-y` runs from 0 to -1 as a block leaves; `--cat-fade` is opacity and
+     belongs to the arrival. Nothing here is a CSS transition: every value is
+     written by the painter on every frame, so the block cannot be caught
+     mid-way by a scroll that reverses. */
   :global(html[data-js='true']) .cat__group {
     --cat-y: 0;
     --cat-fade: 1;
-    /* Far enough to read as a departure, short enough that four lines of
-       headline do not travel a visible distance. Bound to the window's height,
-       because that is what the rest of this handover is measured in. */
-    --cat-rise: clamp(1.25rem, 4.5svh, 2.75rem);
+    /* The distance from the top of this box to the bottom of the button, in
+       pixels, written by the painter from the layout — see `measure` in
+       src/scripts/workCategories.ts. At `--cat-y: -1` the block is exactly
+       clear of the top edge.
+
+       A fallback of 0 and not a guess. If the script never runs there is no
+       travel to make, and a stylesheet that invented a distance here would move
+       the copy of a page that has nothing to move it back. */
+    --cat-travel: 0px;
 
     opacity: var(--cat-fade);
-    transform: translate3d(0, calc(var(--cat-y) * var(--cat-rise)), 0);
+    transform: translate3d(0, calc(var(--cat-y) * var(--cat-travel)), 0);
     /* The block is promoted for the length of the section anyway — it is
        repainted every frame — and saying so keeps the type off the main
        thread's paint. */
@@ -638,7 +632,11 @@ const {
   /* --- Responsive ----------------------------------------------------------- */
   @media (max-width: 48rem) {
     .cat {
-      --cat-step: 70svh;
+      /* 90 rather than the 70 it was. The rise is the same distance here in
+         proportion — the copy still has to clear the top of the screen — so a
+         short step is a fast copy: at 80svh it left at 1.6 times the speed of
+         the page, and at 90 it is 1.4, which is where the desktop sits. */
+      --cat-step: 90svh;
     }
 
     /* Straight down rather than across. A phone column is the whole width, so

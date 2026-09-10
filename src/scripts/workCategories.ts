@@ -77,15 +77,32 @@ export function initWorkCategories(): () => void {
    * is NOT in this timeline. It was, as an `autoAlpha: 1 → 0` over the last
    * few percent, and it did not come back: scrubbed to the end and then back
    * to the beginning, the element still read `opacity: 0; visibility: hidden`
-   * — while the `--cat-wipe` tween beside it, carrying the same
+   * — while the picture's own tween beside it, carrying the same
    * `immediateRender: false`, rewound correctly every time. Scrolling back up
    * the page left the picture gone, and the category standing over the next
    * one's photograph. It is a pair of trigger callbacks instead: one place
    * turns it off, one turns it back on, and they are the same boundary read
    * from either side.
    */
-  const START = 'top 60%';
-  const END = 'top 5%';
+  /* ONE STEP PER HANDOVER, exactly — not one window.
+
+     It was 'top 60%' to 'top 5%', a bit over half a window, because all the
+     handover had to do then was dissolve one picture into another. It now has
+     to carry a block of type from the foot of the screen out through the top of
+     it, and that is a real distance — 819px at 1440x900 — so it needs the whole
+     of the scroll a category owns.
+
+     The whole of it and not more. A window is the obvious spelling and it is
+     wrong: `--cat-step` is 100svh on a desktop but 80 on a phone, so a
+     window-long handover overlaps the next one by a fifth of itself there, and
+     what that looks like is a category fading up while it is already rising
+     away. Measured, before the step was read: at 1440x900 with a 90svh step the
+     overlap was 10%, and the arriving copy was 262px into its own exit on the
+     frame it landed. Starting a step's height down the window instead makes
+     every handover end on the pixel the next one begins, at any step and any
+     screen. */
+  const START = (panel: HTMLElement) => () => `top ${panel.offsetHeight}px`;
+  const END = 'top top';
 
   /* The words leave over the first two fifths and arrive over the last half,
      with the thinnest possible gap between them.
@@ -101,11 +118,32 @@ export function initWorkCategories(): () => void {
      the outgoing words are finished before the incoming ones begin, so two
      categories are never legible together — and reduce the stretch where
      neither is from 208px to 20, which is a beat rather than a hole. */
-  const COPY_OUT = 0.42;
-  const WIPE_AT = 0.14;
-  const WIPE_FOR = 0.8;
-  const COPY_IN_AT = 0.46;
-  const COPY_IN_FOR = 0.54;
+  /* THREE BEATS IN ORDER, and the order is the whole of what was asked for:
+     the copy leaves by rising out of the top of the screen, and only once it is
+     gone does the picture change — a plain fade, with nothing else happening
+     during it.
+
+       0   → 0.7   the copy rising, the full distance from where it rests to
+                   clear of the top edge. Linear, so it tracks the gesture.
+       0.7 → 0.88  the picture cross-fading. Nothing else is on the screen.
+       0.88 → 1    the next category's copy fading up, where it rests.
+
+     The rise takes seven tenths because it is the only beat here with a
+     distance of its own to cover. At a 100svh step and 1440x900 that is 630px
+     of scroll for 819px of travel — the copy leaves about a third faster than
+     the page moves, which reads as it being carried away rather than as it
+     being animated. The two fades have no distance, only a duration, and 162px
+     and 108px are enough for both.
+
+     Nothing overlaps. The old arrangement ran the picture under the words for
+     four fifths of the handover and had to be argued about — which fifth was
+     safe, how wide the feather had to be so an edge did not read as an edge.
+     There is no argument to have here: one thing at a time. */
+  const COPY_OUT = 0.7;
+  const FADE_AT = 0.7;
+  const FADE_FOR = 0.18;
+  const COPY_IN_AT = 0.88;
+  const COPY_IN_FOR = 0.12;
 
   const pic = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-pic]') ?? null;
   const copy = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-copy]') ?? null;
@@ -150,41 +188,29 @@ export function initWorkCategories(): () => void {
        owns to the end it belongs to. The scrub still does the whole of the
        middle; it just no longer has the last word on either side of it. */
     const settle = (done: boolean) => {
-      gsap.set(outPic, { '--cat-wipe': done ? 155 : 0, autoAlpha: done ? 0 : 1 });
+      gsap.set(outPic, { autoAlpha: done ? 0 : 1 });
     };
 
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: panel,
-        start: START,
+        start: START(panel),
         end: END,
         /* Smoothed rather than tied frame-for-frame to the gesture, and by the
-           same amount the join out of Overclock uses. A mask edge is read
-           sharply by the eye even when it is soft, so it picks up every jitter
-           in a trackpad. */
+           same amount the join out of Overclock uses — a fade between two
+           photographs picks up every jitter in a trackpad otherwise. */
         scrub: 0.8,
         invalidateOnRefresh: true,
-        /* The mask costs a compositing layer, so it is only on the picture
-           that is currently going. Never taken off at the far end — removing
-           it there would put the category back at full strength on top of the
-           one that has just replaced it. */
-        onEnter: () => outPic.setAttribute('data-cat-wiping', ''),
-        onEnterBack: () => {
-          outPic.setAttribute('data-cat-wiping', '');
-          gsap.set(outPic, { autoAlpha: 1 });
-        },
-        onLeaveBack: () => {
-          outPic.removeAttribute('data-cat-wiping');
-          settle(false);
-        },
-        /* Past the end, everything this handover owns is at its far state — and
-           the picture stops being composited, which by here changes nothing the
-           reader can see because the mask has already taken all of it. */
+        /* Coming back from beyond the end the picture is off AND hidden, and
+           `visibility` is not something an opacity tween will put back. */
+        onEnterBack: () => gsap.set(outPic, { autoAlpha: 1 }),
+        onLeaveBack: () => settle(false),
+        /* Past the end, everything this handover owns is at its far state. */
         onLeave: () => settle(true),
       },
     });
 
-    /* THE DISSOLVE ITSELF, and it is the only thing on this timeline.
+    /* THE FADE ITSELF, and it is the only thing on this timeline.
 
        It went missing for a commit. When the words were taken off this timeline
        and made a function of the scroll instead, the deletion ran from the
@@ -194,20 +220,26 @@ export function initWorkCategories(): () => void {
        one category replaced the next with no gradient and no travel: the change
        without the dissolve.
 
+       A PLAIN OPACITY FADE. It was a mask travelling up the frame behind a
+       feather wider than half the screen, which is a good instrument and the
+       wrong one here: it ran while the words were still on the picture, so it
+       had to be soft enough not to cut through them. With the words gone before
+       it starts there is nothing for it to avoid, and a fade between two
+       photographs that are both already there is the plainest change there is.
+
        `immediateRender: false` because the resting state is a whole picture and
-       the stylesheet already says so — rendered at build this would wipe away
+       the stylesheet already says so — rendered at build this would fade away
        whichever category the section is currently showing. */
     tl.fromTo(
       outPic,
-      { '--cat-wipe': 0 },
-      { '--cat-wipe': 155, duration: WIPE_FOR, ease: 'none', immediateRender: false },
-      WIPE_AT,
+      { opacity: 1 },
+      { opacity: 0, duration: FADE_FOR, ease: 'none', immediateRender: false },
+      FADE_AT,
     );
 
     cleanups.push(() => {
       tl.scrollTrigger?.kill();
       tl.kill();
-      outPic.removeAttribute('data-cat-wiping');
       gsap.set([outPic, outCopy, inCopy], { clearProps: 'opacity,visibility' });
     });
   }
@@ -246,20 +278,41 @@ export function initWorkCategories(): () => void {
    * smoothed dissolve is supposed to look like.
    */
   if (!reduced) {
-    const easeOut = gsap.parseEase('power1.in');
+    /* The rise is LINEAR, so there is no ease for it here. It is meant to read
+       as the copy scrolling up and away, and an eased rise reads as an
+       animation of the copy instead. Only the arrival is eased, because a fade
+       that starts and stops abruptly is the one thing a fade cannot do. */
     const easeIn = gsap.parseEase('power2.out');
     const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
 
-    /* The same two edges the timelines use, as fractions of the window: the
-       step's top from 60% of the way down to 5%. Read here rather than parsed
-       out of START/END so there is one arithmetic, not two that can drift. */
-    const FROM = 0.6;
-    const TO = 0.05;
-
+    /* The same edge the timelines use, and the same arithmetic: a handover runs
+       while its step's top travels from a step's height down the window to the
+       top of it. Expressed against the step rather than against the window so
+       that this and START cannot drift apart — they are the same sentence. */
     const progressOf = (panel: HTMLElement) => {
-      const vh = window.innerHeight || 1;
-      const top = panel.getBoundingClientRect().top;
-      return clamp01((FROM * vh - top) / ((FROM - TO) * vh));
+      const span = panel.offsetHeight || window.innerHeight || 1;
+      return clamp01((span - panel.getBoundingClientRect().top) / span);
+    };
+
+    /* How far a block has to go to be gone, measured off the layout rather than
+       guessed at as a fraction of the window.
+
+       `offsetTop + offsetHeight` of the last child is the distance from the top
+       of the copy box — which is the top of the screen, the box is `inset: 0` —
+       down to the bottom of the button. Move the block up by that and every
+       part of it is above the top edge, exactly, at whatever the window is.
+
+       Offsets and not `getBoundingClientRect`, because this element is
+       transformed most of the time and rects are measured after transforms.
+       Offsets are layout, and layout is what this is asking about. */
+    const measure = () => {
+      screens.forEach((_, j) => {
+        const el = copy(j);
+        if (!el) return;
+        const last = el.lastElementChild as HTMLElement | null;
+        const travel = last ? last.offsetTop + last.offsetHeight : el.offsetHeight;
+        el.style.setProperty('--cat-travel', `${Math.round(travel)}px`);
+      });
     };
 
     const paint = () => {
@@ -271,7 +324,7 @@ export function initWorkCategories(): () => void {
         return {
           arriving:
             j === 0 ? 1 : easeIn(clamp01((progressOf(panels[j]) - COPY_IN_AT) / COPY_IN_FOR)),
-          leaving: next ? easeOut(clamp01(progressOf(next) / COPY_OUT)) : 0,
+          leaving: next ? clamp01(progressOf(next) / COPY_OUT) : 0,
         };
       });
 
@@ -279,17 +332,23 @@ export function initWorkCategories(): () => void {
         const el = copy(j);
         if (!el) return;
 
-        /* One movement in one direction. The block comes up into place as it
-           arrives and keeps going up as it leaves, so the two ends of a
-           handover read as one gesture rather than as a block that arrives
-           from below and then reverses out of the way.
+        /* LEAVING IS A TRAVEL AND ARRIVING IS A FADE, and they are not one
+           gesture reversed.
 
-           `arriving` and `leaving` are never both between 0 and 1 on the same
-           block — the timings see to that — so this is a sum rather than a
-           choice between two states. */
-        el.style.setProperty('--cat-y', `${(1 - arriving) - leaving}`);
-        el.style.setProperty('--cat-fade', `${arriving * (1 - leaving)}`);
-        el.style.visibility = arriving > 0.002 && leaving < 0.998 ? 'inherit' : 'hidden';
+           The block goes by rising the whole way out through the top of the
+           screen — `--cat-y` from 0 to -1 against a distance measured off the
+           layout — and it does not fade while it does. It disappears because it
+           has left the frame, which is what the sticky screen's `overflow` is
+           for. The next one does not come up from below to meet it: it is
+           already where it rests, and only its opacity moves.
+
+           So the outgoing block stays at full strength for the whole of its
+           travel. `arriving` is 1 for it throughout — a block is never arriving
+           and leaving at once — which is why the opacity here reads as
+           `arriving` alone. */
+        el.style.setProperty('--cat-y', `${-leaving}`);
+        el.style.setProperty('--cat-fade', `${arriving}`);
+        el.style.visibility = arriving > 0.002 && leaving < 0.999 ? 'inherit' : 'hidden';
       });
     };
 
@@ -298,9 +357,13 @@ export function initWorkCategories(): () => void {
       start: 'top bottom',
       end: 'bottom top',
       onUpdate: paint,
-      onRefresh: paint,
+      onRefresh: () => {
+        measure();
+        paint();
+      },
     });
 
+    measure();
     paint();
 
     cleanups.push(() => {
@@ -310,6 +373,7 @@ export function initWorkCategories(): () => void {
         if (!el) return;
         el.style.removeProperty('--cat-y');
         el.style.removeProperty('--cat-fade');
+        el.style.removeProperty('--cat-travel');
         el.style.removeProperty('visibility');
       });
     });
