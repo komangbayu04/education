@@ -45,7 +45,9 @@ export function initTwoWays(): () => void {
      `querySelectorAll('[data-offer]')[0]` is Retainer, not Sprint. Taken that
      way round the handover ran backwards: Retainer was masked off to reveal
      Sprint, and Sprint's words faded in at the end of it. Measured, and the
-     giveaway was `tones: ["dark", "light"]`. */
+     giveaway at the time was `tones: ["dark", "light"]` — which is no longer a
+     test of anything, because both panels are white type on a dark photograph
+     now. Read the names if this ever has to be checked again. */
   const over = section.querySelector<HTMLElement>('[data-two-pane] [data-offer]');
   const under = section.querySelector<HTMLElement>(
     '.two__pane--under [data-offer]',

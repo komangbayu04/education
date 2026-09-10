@@ -303,8 +303,7 @@ const photos = [
      section would be a hole rather than a colour, and `cover` can put the
      edges of the frame anywhere.
 
-     Marketing Design is not here yet — its shot is still to come, and until it
-     does that category paints its flat `tone` instead. */
+     All five have one now. */
   /* The founder's portrait in the closing screen.
 
      Kept at its native 590x700 — it is drawn at about 290px wide and the file
@@ -319,17 +318,38 @@ const photos = [
      rescue. */
   { src: `${SRC}/footer/Yarik.png`, name: 'portrait-yarik', maxW: 590, avif: true, quality: 84 },
 
+  /* The two panels Two ways in's window opens onto. Full-bleed grounds, read at
+     the size of the window and not at the size of a card, so they are capped
+     where the category shots are.
+
+     Both are dark photographs and both carry white type, which is the whole
+     reason Sprint's panel changed sides: it was dark ink on a light grey flat,
+     and the same ink on this picture is unreadable. See the scrim on
+     `.offer__art` in Offer.astro for the rest of that. */
+  ...['Sprint.png', 'Retainer.png'].map((file) => ({
+    src: `${SRC}/offer/${file}`,
+    name: `offer-${file.replace('.png', '').toLowerCase()}`,
+    maxW: 2400,
+    avif: true,
+    quality: 80,
+    flatten: true,
+  })),
+
   ...[
     ['Website.png', 'work-website-design', {}],
     ['Product Design.png', 'work-product-design', {}],
     ['Branding.png', 'work-brand-design', {}],
-    /* The top tenth goes, and this is the one crop here that is not about
-       shape. The export has the site's own floating nav drawn into it — the
-       wordmark, "PITCH DECK", and the hamburger, in a capsule at the top of
-       the frame — because it is a mockup of this page. Left in, the reader
-       would see two of them, one live and one photographed, a few pixels
-       apart. What is lost with it is ceiling. */
-    ['Pitch Deck.png', 'work-pitch-deck', { trimTop: 0.1 }],
+    /* Replaced, and the replacement needs no crop. The old export was a mockup
+       of this very page with the site's own floating nav drawn into it — the
+       wordmark, "PITCH DECK" and the hamburger, in a capsule at the top of the
+       frame — so its top tenth was cut off to stop the reader seeing two navs,
+       one live and one photographed, a few pixels apart. This one is a hall
+       with the deck on the screen and no capsule in it; trimming it would only
+       throw away ceiling. */
+    ['Pitch Deck New.png', 'work-pitch-deck', {}],
+    /* The fifth category's shot, at last. Until now it had none and painted its
+       flat `tone` instead. */
+    ['Marketing Design.png', 'work-marketing-design', {}],
   ].map(([file, name, opts]) => ({
     src: `${SRC}/work/${file}`,
     name,

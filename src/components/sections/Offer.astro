@@ -7,14 +7,19 @@
  * full size from the first frame because the window is a clip rather than a
  * box that grows (see TwoWays.astro).
  *
- * Two of them, stacked inside that window: Sprint on a light ground, Retainer
- * on a dark one. The first is on top and is dissolved away to leave the second,
- * from its own bottom edge upwards — see initTwoWays.
+ * Two of them, stacked inside that window, each on a full-bleed photograph of a
+ * race — one car alone at speed for Sprint, a field going round for Retainer.
+ * The first is on top and is dissolved away to leave the second, from its own
+ * bottom edge upwards — see initTwoWays.
  *
- * `tone` is the only thing that differs between them beyond their words. Not a
- * separate component and not a modifier the caller has to remember: a panel is
- * a number, a name, a sentence and a term, and which way round its ink runs is
- * a property of the panel rather than a different kind of thing.
+ * `tone` and `art` are the only things that differ between them beyond their
+ * words. Not a separate component and not a modifier the caller has to
+ * remember: a panel is a number, a name, a sentence and a term, and what it is
+ * printed on is a property of the panel rather than a different kind of thing.
+ *
+ * Both run `dark` — white ink — now that both grounds are photographs. `light`
+ * is still here because a panel without a picture needs it, and it is what
+ * these two were.
  *
  * It is deliberately NOT a section of its own in the page's flow. It is only
  * ever seen through the window, and a second copy below would be the same
@@ -39,6 +44,13 @@ interface Props {
   terms?: string;
   /** Which way round the ink runs. */
   tone?: 'light' | 'dark';
+  /**
+   * The panel's ground, without an extension — an avif and a webp of this name
+   * are expected beside each other, the pair every photograph on this site is
+   * served as. Optional: without one the panel is its flat `tone`, which is
+   * what both of these were until their pictures arrived.
+   */
+  art?: string;
 }
 
 const {
@@ -46,11 +58,34 @@ const {
   name = 'Sprint',
   summary = 'One push, one deadline, everything the moment requires.',
   terms = 'Fixed, 4 weeks and up',
-  tone = 'light',
+  /* Both panels run white now. Sprint was `light` — near-black ink on a grey
+     flat — and that flat is a dark photograph of a car at speed: measured
+     across the block where the sentence sits, it reads 27 to 54 of 255 at every
+     window this was checked at. Dark ink on that is not a style choice, it is
+     an unreadable panel. */
+  tone = 'dark',
+  art = '/media/offer-sprint',
 } = Astro.props;
 ---
 
 <div class:list={['offer', `offer--${tone}`]} data-offer data-offer-tone={tone}>
+  {
+    art && (
+      <div class="offer__art" aria-hidden="true">
+        <picture>
+          <source srcset={`${art}.avif`} type="image/avif" />
+          {/* Lazy, unlike the first category's shot. That one is what the
+              reader is dissolved INTO and has to be decoded before its join
+              starts; this one's box is the whole screen inside a pinned
+              section, so it enters the viewport — and loads — a good while
+              before the window opens onto it. */}
+          <img src={`${art}.webp`} alt="" loading="lazy" decoding="async" />
+        </picture>
+        <span class="offer__scrim"></span>
+      </div>
+    )
+  }
+
   <p class="offer__index" data-offer-copy>
     <span class="offer__mark" aria-hidden="true">//</span>
     {number}
@@ -80,9 +115,10 @@ const {
      in it — the two are one dark stretch and only the words change. It was
      #2b2b2b, a step lighter, and that step was visible at the join.
 
-     Retainer's ground is a photograph in the end. When it arrives it goes in
-     as a full-bleed layer behind the copy, and this black stays underneath it
-     as what the panel is while the file is still loading. */
+     Both grounds are photographs now — see `.offer__art`. These two flats stay
+     as what the panel is while the file is still loading, and the dark one
+     stays for the reason above: it is the black the section below runs on, so
+     the fade out of Retainer has no band in it. */
   .offer {
     position: absolute;
     inset: 0;
@@ -98,6 +134,45 @@ const {
   .offer--dark {
     --offer-ink: #ffffff;
     background: var(--color-bg-included);
+  }
+
+  /* The photograph, behind everything in the panel. Positioned rather than
+     ranked: the two copy blocks are positioned too and come after it, and at
+     equal rank the later one paints on top. */
+  .offer__art {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .offer__art picture,
+  .offer__art img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Dark at both ends and lightest across the middle, which is where the
+     picture is left to be a picture.
+
+     Not decoration. `cover` crops a 1.9 photograph differently at every window,
+     and what it puts under the type changes with it: at 1920x1080 the block
+     behind Sprint's sentence peaks at 83 of 255, and at 390x844 the same block
+     peaks at 231 — a headlight streak, straight under white type. The foot of
+     this gradient takes that 231 down to about 78, which is white at better
+     than 8:1 wherever the crop lands. */
+  .offer__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.42) 0%,
+      rgb(0 0 0 / 0.18) 26%,
+      rgb(0 0 0 / 0.34) 62%,
+      rgb(0 0 0 / 0.66) 100%
+    );
   }
 
   /* Top left, a tenth of the way down — and never nearer the top than the
