@@ -455,6 +455,11 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
   .tmf__card {
     /* Named, because the portrait has to be able to cancel it exactly. */
     --tmf-card-pad: clamp(0.875rem, 1.25vw, 1.125rem);
+    /* One number for the portrait, on the card rather than on the image,
+       because what has to be checked against it is the card's own height: the
+       face is flush to the top-right corner and anything of it taller than the
+       name and role beside it pushes the headline down the card. */
+    --tmf-face: clamp(2.75rem, 4.6vw, 4.25rem);
 
     display: flex;
     flex-direction: column;
@@ -488,13 +493,16 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     color: var(--color-ink-secondary);
   }
 
-  /* Square, and small: it identifies the speaker rather than portraying them.
+  /* Square, and big enough to be a face. It was 36 to 48px — small enough that
+     at a card's own scale it read as a marker beside the name rather than a
+     person, which is what a portrait flush to the card's corner is there to be.
+
      `flex: none` because a portrait that shrank to fit a long name would be a
-     different size on every card. */
+     different size on every card — the one thing this element must not be. */
   .tmf__face {
     flex: none;
-    width: clamp(2.25rem, 3.3vw, 3rem);
-    height: clamp(2.25rem, 3.3vw, 3rem);
+    width: var(--tmf-face);
+    height: var(--tmf-face);
     object-fit: cover;
     /* Into the card's own top-right corner, with the padding cancelled on
        exactly those two sides. The design has it flush — the portrait is part

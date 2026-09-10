@@ -537,16 +537,26 @@ const {
 
   .cat__headline {
     /* 3.9vw is the hero title's own ramp — the two are the largest type on the
-       page and should be the same size at the same window. */
-    max-width: clamp(18rem, 33vw, 29.5rem);
+       page and should be the same size at the same window.
+
+       The cap is 30.5rem and not the 29.5 it reads as, and the extra 16px is
+       for one label. Both numbers here are vw and stay in proportion — the
+       longest two-word label sits at 94% of the measure at every window where
+       they do — but they hit their ceilings at different widths: the box stops
+       growing at 1430 and the type not until 1537. In the stretch above that,
+       "Marketing Design" is 475px of type in 472px of measure and breaks after
+       "Marketing" — a headline wrapping on three pixels. */
+    max-width: clamp(18rem, 33vw, 30.5rem);
     font-size: clamp(1.75rem, 3.9vw, 3.75rem);
     font-weight: 400;
     line-height: 1.14;
     letter-spacing: -0.03em;
   }
 
+  /* The same measure as the headline, which is the point of it — so the two
+     ceilings stay one number. */
   .cat__blurb {
-    max-width: clamp(18rem, 33vw, 29.5rem);
+    max-width: clamp(18rem, 33vw, 30.5rem);
     font-size: clamp(0.9375rem, 1.11vw, 1rem);
     line-height: 1.625;
     letter-spacing: -0.02em;
