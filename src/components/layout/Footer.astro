@@ -233,6 +233,28 @@ const {
      off with no way to reach it. The two parts inside share that screen —
      the band takes what it needs and the photograph takes the rest. */
   .close {
+    /* THE GUTTER, declared once for the whole block.
+
+       It was declared twice — the same clamp on `.fq` and on `.ft` — and a
+       number written twice is a number that drifts. It had already drifted: the
+       narrow rule below re-pointed the band's padding at `--section-padding-x`
+       but left the portrait reading the wide clamp, so between 640 and 768 the
+       quote's left edge and the portrait's right edge were set on two different
+       margins. Everything inside now measures from this one value, so the quote,
+       the portrait, the wordmark and the links share an edge by construction
+       rather than by coincidence.
+
+       5.1vw is the reference's own inset, 73px at 1440. */
+    --ft-gutter: clamp(1.25rem, 5.1vw, 4.5rem);
+
+    /* How far the quote and the portrait sit below the top of the screen, and
+       how far the wordmark row sits above its foot, OVER what the padding
+       already gives them. Both are on the block so the narrow layout can take
+       them back: 40px of lift and 32px of drop is 72px out of a 900-tall window
+       and 72px out of an 844-tall one, and only one of those has room. */
+    --ft-lift: 2.5rem;
+    --fq-drop: 2rem;
+
     position: fixed;
     right: 0;
     bottom: 0;
@@ -304,11 +326,6 @@ const {
      1. The quote region
      ===================================================================== */
   .fq {
-    /* One gutter, symmetric. 5.1vw is the reference's own inset — 73px at
-       1440 — which is nearer the page's shared 49px than the 132 this used to
-       be, and reads as the same margin the rest of the site is set on. */
-    --ft-gutter: clamp(1.25rem, 5.1vw, 4.5rem);
-
     position: relative;
     /* Everything the band does not take. The two together are the closing
        screen and neither has a height of its own any more — the band asks for
@@ -337,7 +354,7 @@ const {
     /* Both ends scale with the window's HEIGHT as well as its width, for the
        same reason the band below is capped: on a short screen this padding is
        the first thing that should give. */
-    padding: clamp(1.5rem, 11svh, 6.5rem) var(--ft-gutter) 0;
+    padding: calc(clamp(1.5rem, 11svh, 6.5rem) + var(--fq-drop)) var(--ft-gutter) 0;
   }
 
   /* Held clear of the portrait's column rather than capped at a fixed measure.
@@ -404,7 +421,10 @@ const {
        gutter — flush to the corner it read as a picture that had slipped off
        the screen rather than one placed on it. */
     right: var(--ft-gutter);
-    top: clamp(1.5rem, 7svh, 4.5rem);
+    /* The same drop the quote takes, so the two move together — the portrait is
+       set level with the name, and a shift applied to one of them only would be
+       a shift out of that alignment. */
+    top: calc(clamp(1.5rem, 7svh, 4.5rem) + var(--fq-drop));
     z-index: 1;
     /* Top right, beside the quote rather than under it — the reference has it
        level with the name and finishing about halfway down the screen.
@@ -438,8 +458,6 @@ const {
      2. The ink band
      ===================================================================== */
   .ft {
-    --ft-gutter: clamp(1.25rem, 5.1vw, 4.5rem);
-
     position: relative;
     z-index: 1;
     /* NO GROUND. It was solid black — `--color-bg-footer` — from when this was
@@ -449,7 +467,7 @@ const {
        as two stacked things. The darkness comes from the scrim on the picture
        now. */
     color: var(--color-ink-invert);
-    padding: 0 var(--ft-gutter) clamp(1.25rem, 3.4svh, 2.25rem);
+    padding: 0 var(--ft-gutter) calc(clamp(1.25rem, 3.4svh, 2.25rem) + var(--ft-lift));
     overflow: visible;
   }
 
@@ -635,12 +653,16 @@ const {
 
   /* --- Narrow ---------------------------------------------------------- */
   @media (max-width: 48rem) {
-    .fq__band {
-      padding-inline: var(--section-padding-x);
-    }
-
-    .ft {
+    /* On the block, so the portrait and the wordmark follow it too. Set on
+       `.fq__band` and `.ft` separately, as it was, it moved the quote's edge and
+       left the portrait's where it was. */
+    .close {
       --ft-gutter: var(--section-padding-x);
+      /* Most of both given back. The screen is fixed, so anything that does not
+         fit is cut off the TOP with no way to scroll to it — 72px of extra
+         padding on an 844-tall phone comes out of the quote. */
+      --ft-lift: 0.75rem;
+      --fq-drop: 0.5rem;
     }
 
     /* Smaller, and the copy is told to keep out of its column. On a phone the
