@@ -133,6 +133,11 @@ const {
     The last step is not slack either. The sticky screen lets go with its
     containing block's final viewport still to scroll, so without it the window
     would reach the corners of the frame on the same pixel the layer let go.
+
+    THEY ARE NOT ALL THE SAME HEIGHT, and the two beats are the reason — see
+    `--two-beat-1` and `--two-beat-2` below. A step is only a length of scroll;
+    which of them can be shortened is a question about what the reader is
+    looking at during it, not about the track being tidy.
   */}
   <ul class="two__track" aria-hidden="true">
     <li class="two__step" data-two-step></li>
@@ -300,8 +305,36 @@ const {
     pointer-events: none;
   }
 
+  /* One screen unless the step says otherwise. Nothing depends on this number
+     except where the NEXT step starts: both animations are triggered on a
+     step's top travelling from the foot of the window to the top of it, which
+     is a viewport of scroll whatever height the step itself has. So a step's
+     height is not the length of what happens during it — it is the pause after
+     it. */
   .two__step {
-    height: 100svh;
+    height: var(--two-step, 100svh);
+  }
+
+  /* The two pauses, and they were a full screen each.
+
+     A beat is there so a panel is given rather than shown in passing. A screen
+     of it is something else: the window has finished opening, Sprint is whole
+     and still, and the reader scrolls a thousand pixels through a frame that
+     does not change before the dissolve will start. Measured at 1440x900 the
+     stretch from the window opening to the next section climbing was 3600px —
+     four screens for two panels.
+
+     Sprint's beat is cut hardest because Sprint is what the reader has just
+     arrived at through the whole opening: it has already been looked at by the
+     time it is still. Retainer keeps more because it arrives out of a dissolve
+     with nothing before it — 1600px between them now, and the two beats are
+     270px and 450px against 900 each. */
+  .two__step:nth-child(3) {
+    --two-step: 30svh;
+  }
+
+  .two__step:nth-child(4) {
+    --two-step: 50svh;
   }
 
   @media (max-width: 48rem) {
