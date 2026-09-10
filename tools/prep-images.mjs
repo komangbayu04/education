@@ -229,10 +229,13 @@ const photos = [
   { src: `${SRC}/braden.png`, name: 'portrait-braden', maxW: 640 },
   { src: `${SRC}/Geoffrey Langford.png`, name: 'portrait-geoffrey', maxW: 640 },
   { src: `${SRC}/Wei Sun.png`, name: 'portrait-wei-sun', maxW: 640 },
-  /* Footer portrait. yarik-cut.png is the Figma cutout (transparent around
-     the figure) — yarik.png is the same shot on a studio white, kept as the
-     source for anywhere a rectangular portrait is still wanted. */
-  { src: `${SRC}/yarik-cut.png`, name: 'portrait-yarik', maxW: 640 },
+  /* The footer portrait used to be built from yarik-cut.png here, and it is
+     built from image/footer/Yarik.png further down instead — the closing
+     screen's own supplied asset, at 590x700 with the semi-transparent ground
+     the design wants. Two entries writing the same name is a race decided by
+     source order, so only one of them may exist. yarik-cut.png and yarik.png
+     stay in image/ as sources for anywhere a cutout or a studio-white
+     rectangle is wanted. */
   { src: `${SRC}/blog1.png`, name: 'journal-1', maxW: 900 },
   { src: `${SRC}/blog2.png`, name: 'journal-2', maxW: 900 },
   { src: `${SRC}/blog3.png`, name: 'journal-3', maxW: 900 },
@@ -302,6 +305,20 @@ const photos = [
 
      Marketing Design is not here yet — its shot is still to come, and until it
      does that category paints its flat `tone` instead. */
+  /* The founder's portrait in the closing screen.
+
+     Kept at its native 590x700 — it is drawn at about 290px wide and the file
+     is a portrait with real edges, so there is nothing to gain from a cap it
+     never reaches.
+
+     NOT flattened, and that is the whole character of it. The dark ground it
+     was cut on carries an alpha of 0.8 while the subject is opaque, so the
+     landscape behind it shows faintly through the box: the picture sits ON the
+     photograph rather than in a hole punched out of it. Flattened it would be a
+     solid rectangle, which is what a border would have had to be drawn to
+     rescue. */
+  { src: `${SRC}/footer/Yarik.png`, name: 'portrait-yarik', maxW: 590, avif: true, quality: 84 },
+
   ...[
     ['Website.png', 'work-website-design', {}],
     ['Product Design.png', 'work-product-design', {}],

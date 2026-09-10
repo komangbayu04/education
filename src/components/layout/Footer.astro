@@ -69,7 +69,10 @@ const {
     'Every client we’ve loved working with had one thing in common: education. At some point we stopped calling it a coincidence. Now it’s the whole practice.',
   image = '/media/quote-ground.webp',
   imageAlt = '',
-  portrait = '/media/portrait-yarik.webp',
+  /* Without an extension — rendered as a <picture> with an avif source and a
+     webp fallback, so this wants portrait-yarik.avif and portrait-yarik.webp
+     beside each other. */
+  portrait = '/media/portrait-yarik',
   portraitAlt = `Portrait of ${name}`,
   links = [
     { label: 'Work', href: '/#work' },
@@ -157,7 +160,21 @@ const {
     <div class="fq__portrait">
       {
         portrait ? (
-          <img src={portrait} alt={portraitAlt} loading="lazy" decoding="async" />
+          /* avif first, webp behind it, the same pair every other photograph on
+             this site is served as. The file carries real transparency — its
+             dark ground sits at 0.8 alpha while the subject is opaque — and
+             both formats keep it, which is what lets the landscape show faintly
+             through the box. */
+          <picture>
+            <source srcset={`${portrait}.avif`} type="image/avif" />
+            {/* Not lazy. The closing screen is fixed to the bottom of the
+                window and uncovered by the section above sliding off it, so a
+                portrait that arrives late arrives DURING that reveal — a
+                pop-in in the middle of a transition, which is the one place a
+                late image is worst. 48KB of avif is not worth deferring for
+                that. */}
+            <img src={`${portrait}.webp`} alt={portraitAlt} decoding="async" />
+          </picture>
         ) : (
           <span class="fq__portrait-fallback" aria-hidden="true" />
         )
@@ -305,6 +322,14 @@ const {
   /* The quote sits in the upper part of the screen, not the middle of a region
      — the reference puts the name a tenth of the way down and the last line of
      the quote just under halfway. */
+  /* The portrait's width, declared here because two rules need it: the portrait
+     is drawn from it and the quote keeps clear of it. Two copies of one number
+     is how they drift apart. */
+  .fq {
+    --fq-portrait-w: clamp(9rem, 20vw, 18rem);
+    --fq-portrait-gap: clamp(1rem, 2.5vw, 2.5rem);
+  }
+
   .fq__band {
     position: relative;
     z-index: 1;
@@ -312,13 +337,28 @@ const {
     /* Both ends scale with the window's HEIGHT as well as its width, for the
        same reason the band below is capped: on a short screen this padding is
        the first thing that should give. */
-    padding: clamp(1.5rem, 9svh, 5.5rem) var(--ft-gutter) 0;
+    padding: clamp(1.5rem, 11svh, 6.5rem) var(--ft-gutter) 0;
   }
 
+  /* Held clear of the portrait's column rather than capped at a fixed measure.
+
+     46rem was enough at 1440, where the portrait starts at 75% of the frame and
+     the quote stops at 56. It is not a rule, it is a coincidence of that one
+     width: at 1024x600 the same 46rem is wider than the room left beside a
+     205px portrait, and the last words of two lines ran under it. Stated as the
+     portrait's own width plus a gap, the clearance holds at every window,
+     because it is the same number the portrait is drawn from. */
   .fq__figure {
     position: relative;
     z-index: 1;
-    max-width: 46rem;
+    /* 46rem is the MEASURE — the width the words are set to — and the two terms
+       after it are the portrait's column, which is padding rather than text.
+       `max-width` bounds the border box, so stating 46rem alone once the
+       padding existed left 412px of content at 1440 and turned four lines of
+       quotation into eight. The clearance has to be added back to the cap it
+       was subtracted from. */
+    max-width: calc(46rem + var(--fq-portrait-w) + var(--fq-portrait-gap));
+    padding-right: calc(var(--fq-portrait-w) + var(--fq-portrait-gap));
     margin: 0;
   }
 
@@ -367,14 +407,20 @@ const {
     top: clamp(1.5rem, 7svh, 4.5rem);
     z-index: 1;
     /* Top right, beside the quote rather than under it — the reference has it
-       level with the name and finishing about halfway down the screen. It was
-       anchored to the foot, from when the quote region was the whole of a much
-       taller section. Its shape is the reference's own: 289 x 383 at 1440. */
-    width: clamp(9rem, 20vw, 18rem);
-    aspect-ratio: 289 / 383;
+       level with the name and finishing about halfway down the screen.
+
+       THE FILE'S OWN SHAPE, 590 x 700. It was 289 x 383, read off a screenshot
+       by scaling its two axes to a 1440x900 frame — and the screenshot is a
+       1.75 rectangle, not a 1.6 one, so that scaling stretched the box a tenth
+       taller than the picture in it. With the box on the picture's ratio there
+       is nothing for `cover` to crop, which is the only reason a portrait needs
+       to be cropped at all. */
+    width: var(--fq-portrait-w);
+    aspect-ratio: 590 / 700;
     pointer-events: none;
   }
 
+  .fq__portrait picture,
   .fq__portrait img,
   .fq__portrait-fallback {
     display: block;
@@ -601,14 +647,10 @@ const {
        quote is the full width of the screen minus a gutter, so without this the
        lines run straight under the portrait — measured at 390, the quote's
        right edge and the portrait's were the same pixel. */
-    .fq__portrait {
+    /* Smaller here, and that is all this has to say: the quote's clearance
+       follows it, because both are the same variable. */
+    .fq {
       --fq-portrait-w: min(28vw, 7rem);
-
-      width: var(--fq-portrait-w);
-    }
-
-    .fq__figure {
-      padding-right: calc(min(28vw, 7rem) + 1rem);
     }
 
     /* One column at this measure: the wordmark, then the links and the contact
