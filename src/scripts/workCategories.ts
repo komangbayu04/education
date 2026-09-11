@@ -1,33 +1,28 @@
-import { gsap, ScrollTrigger } from './gsap';
+import { gsap, ScrollTrigger, SplitText } from './gsap';
 import { prefersReducedMotion } from './utils/device';
 
 /**
- * Our work — categorized. Three jobs, and none of them touches the scroll:
+ * Our work — fantasy.co's services list, and what drives it.
  *
- *   change    the sticky screen holds every category stacked on top of one
- *             another, first on top, and the scroll dissolves them away one at
- *             a time — each picture masked off from its own bottom edge
- *             upwards to leave the next one, which was underneath it all
- *             along. Nothing travels. The words are handled separately from
- *             the pictures they sit on; see the note over the timings.
+ * The layout does most of the work by itself: the titles are in ordinary flow
+ * a screen apart and scroll past a sticky stage. This file adds four things,
+ * each a copy of what fantasy's list component does:
  *
- *   outro     the join below it: a field of tiles paints across the last
- *             category, the layer underneath is swapped, and the same field
- *             clears to leave Two ways in. See initWorkPixels.
+ *   the stage    which category is showing. Set by the titles — a title coming
+ *                up into the window makes its category the one on the stage,
+ *                with the 0.35s fade in the stylesheet.
  *
- * The join ABOVE the section is not here. It belongs to Overclock's pin — this
- * section is pulled up underneath it and dissolved into, rather than arriving
- * under anything of its own — so it lives with the pin, in
- * src/scripts/overclock.ts. `--cat-join` in WorkCategories.astro is the one
- * number the two sides share.
+ *   the texts    the description and button fade up, scrubbed, while their
+ *                title's foot rises from 175px to 350px above the bottom edge.
  *
- * What is deliberately not here is a pin. Sticky is the browser holding an
- * element still inside a scroll it is not otherwise touching, which is exactly
- * what this section wants and is why nothing here takes the scrollbar from the
- * reader.
+ *   the letters  each title's characters (and its number's) blur in over the
+ *                first part of its pass across the window and blur out over the
+ *                last — fantasy's `charsInOut` effect, scrubbed.
  *
- * The layout stands up without any of this: the sticking is CSS, and a script
- * that never runs leaves the first category on the screen and the rest unpainted.
+ *   the outro    the join below: a pixel field hands the last screen to Two
+ *                ways in. See initWorkPixels.
+ *
+ * The join ABOVE the section is Overclock's, in src/scripts/overclock.ts.
  *
  * Returns a cleanup function.
  */
@@ -35,348 +30,182 @@ export function initWorkCategories(): () => void {
   const section = document.querySelector<HTMLElement>('[data-cat]');
   if (!section) return () => {};
 
-  const panels = gsap.utils.toArray<HTMLElement>('[data-cat-panel]', section);
-  const screens = gsap.utils.toArray<HTMLElement>('[data-cat-screen]', section);
-  if (panels.length < 2 || screens.length !== panels.length) return () => {};
+  const layers = gsap.utils.toArray<HTMLElement>('[data-cat-layer]', section);
+  const titles = gsap.utils.toArray<HTMLElement>('[data-cat-title]', section);
+  if (!layers.length || titles.length !== layers.length) return () => {};
 
   const reduced = prefersReducedMotion();
   const cleanups: Array<() => void> = [];
 
-  // --- The change ----------------------------------------------------------
+  // --- The stage -----------------------------------------------------------
   /**
-   * One category giving way to the next, and it is the same movement the
-   * reader was brought into this section by: the picture on top is masked away
-   * from its own bottom edge upwards, behind a feather wider than half the
-   * screen, and the next category — already there, whole, underneath — is what
-   * is left. Nothing slides, nothing crossfades, and there is no edge to
-   * follow.
+   * Fantasy makes a title the active one when it enters the window from either
+   * edge, and leaves the choice alone while no title is on screen. So in the
+   * screen of empty space between two titles the stage shows whichever one the
+   * reader last passed: the upper one on the way down, the lower one on the way
+   * back up.
    *
-   * The words are not in that dissolve, and they are not wiped at all — they
-   * rise and fade. Two reasons, and the second is the one that matters: a
-   * masked headline comes apart from its baseline upwards, which reads as
-   * damage rather than as a transition; and while it is coming apart it is
-   * still legible over the headline arriving underneath it. So the copy has a
-   * movement of its own, and the whole design of the timing below is that it is
-   * FINISHED before the incoming copy has started.
+   * That is reproduced here from POSITION rather than from enter and leave
+   * events, and the difference only shows when the scroll jumps. An anchor
+   * link, a reload halfway down, a flick across three titles in one frame —
+   * events fired in order can leave the stage on a category the reader is
+   * nowhere near. Worked out from where the titles are, it cannot:
    *
-   * Measured against the handover's own length rather than the step's, so the
-   * shape holds at any window:
-   *
-   *   0    → 0.24   the copy leaving. First and quickest.
-   *   0.14 → 0.94   the picture dissolving, most of the stretch.
-   *   0.66 → 0.96   the copy arriving, over a picture already two thirds
-   *                 replaced.
-   *
-   * Which leaves 0.24 to 0.66 — two fifths of every change — with no words on
-   * the screen at all, only one photograph becoming another. That gap is not
-   * waste. It is the only arrangement in which a headline is never competing
-   * with another headline, and it is what the earlier crossfade could not buy
-   * at any speed.
-   *
-   * A fourth step, taking the spent picture out of the compositor entirely,
-   * is NOT in this timeline. It was, as an `autoAlpha: 1 → 0` over the last
-   * few percent, and it did not come back: scrubbed to the end and then back
-   * to the beginning, the element still read `opacity: 0; visibility: hidden`
-   * — while the picture's own tween beside it, carrying the same
-   * `immediateRender: false`, rewound correctly every time. Scrolling back up
-   * the page left the picture gone, and the category standing over the next
-   * one's photograph. It is a pair of trigger callbacks instead: one place
-   * turns it off, one turns it back on, and they are the same boundary read
-   * from either side.
+   *   a title is on screen          that category, always.
+   *   none is, between k and k+1    k or k+1 is right, depending on direction;
+   *                                 whatever is showing is kept if it is one of
+   *                                 those, and set to k if it is not.
+   *   none has arrived yet          the first.
    */
-  /* ONE STEP PER HANDOVER, exactly — not one window.
+  let active = 0;
+  const show = (i: number) => {
+    if (i === active) return;
+    layers[active]?.classList.remove('is-active');
+    layers[i]?.classList.add('is-active');
+    active = i;
+  };
 
-     It was 'top 60%' to 'top 5%', a bit over half a window, because all the
-     handover had to do then was dissolve one picture into another. It now has
-     to carry a block of type from the foot of the screen out through the top of
-     it, and that is a real distance — 819px at 1440x900 — so it needs the whole
-     of the scroll a category owns.
+  layers.forEach((layer, i) => layer.classList.toggle('is-active', i === 0));
 
-     The whole of it and not more. A window is the obvious spelling and it is
-     wrong: `--cat-step` is 100svh on a desktop but 80 on a phone, so a
-     window-long handover overlaps the next one by a fifth of itself there, and
-     what that looks like is a category fading up while it is already rising
-     away. Measured, before the step was read: at 1440x900 with a 90svh step the
-     overlap was 10%, and the arriving copy was 262px into its own exit on the
-     frame it landed. Starting a step's height down the window instead makes
-     every handover end on the pixel the next one begins, at any step and any
-     screen. */
-  const START = (panel: HTMLElement) => () => `top ${panel.offsetHeight}px`;
-  const END = 'top top';
+  const settle = () => {
+    const vh = window.innerHeight;
+    let last = -1;
+    let onScreen = false;
 
-  /* The words leave over the first two fifths and arrive over the last half,
-     with the thinnest possible gap between them.
-
-     THE GAP WAS THE FAULT. Out by 0.24 and in from 0.66 left a third of every
-     handover — 208px of scroll at 1440 — with no words on the screen at all.
-     That was tolerable while they merely faded, because the ends of a fade are
-     soft and the emptiness crept in; wiped, the block leaves cleanly and the
-     nothing that follows is unmistakable. Reported as the text having
-     disappeared, and it had.
-
-     0.42 and 0.46 keep the one property this whole arrangement exists for —
-     the outgoing words are finished before the incoming ones begin, so two
-     categories are never legible together — and reduce the stretch where
-     neither is from 208px to 20, which is a beat rather than a hole. */
-  /* THREE BEATS IN ORDER, and the order is the whole of what was asked for:
-     the copy leaves by rising out of the top of the screen, and only once it is
-     gone does the picture change — a plain fade, with nothing else happening
-     during it.
-
-       0   → 0.7   the copy rising, the full distance from where it rests to
-                   clear of the top edge. Linear, so it tracks the gesture.
-       0.7 → 0.88  the picture cross-fading. Nothing else is on the screen.
-       0.88 → 1    the next category's copy fading up, where it rests.
-
-     The rise takes seven tenths because it is the only beat here with a
-     distance of its own to cover. At a 100svh step and 1440x900 that is 630px
-     of scroll for 819px of travel — the copy leaves about a third faster than
-     the page moves, which reads as it being carried away rather than as it
-     being animated. The two fades have no distance, only a duration, and 162px
-     and 108px are enough for both.
-
-     Nothing overlaps. The old arrangement ran the picture under the words for
-     four fifths of the handover and had to be argued about — which fifth was
-     safe, how wide the feather had to be so an edge did not read as an edge.
-     There is no argument to have here: one thing at a time. */
-  const COPY_OUT = 0.7;
-  const FADE_AT = 0.7;
-  const FADE_FOR = 0.18;
-  const COPY_IN_AT = 0.88;
-  const COPY_IN_FOR = 0.12;
-
-  const pic = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-pic]') ?? null;
-  const copy = (i: number) => screens[i]?.querySelector<HTMLElement>('[data-cat-copy]') ?? null;
-
-  for (let i = 1; i < panels.length; i += 1) {
-    const panel = panels[i];
-    const outPic = pic(i - 1);
-    const outCopy = copy(i - 1);
-    const inCopy = copy(i);
-    if (!panel || !outPic || !outCopy || !inCopy) continue;
-
-    if (reduced) {
-      /* A cut rather than a dissolve, in the middle of the window the change
-         would have used. Each category still gets its own screen — that is
-         content, not decoration — it just arrives without being animated. */
-      const swap = ScrollTrigger.create({
-        trigger: panel,
-        start: 'top 40%',
-        onEnter: () => gsap.set([outPic, outCopy, inCopy], { autoAlpha: gsap.utils.wrap([0, 0, 1]) }),
-        onLeaveBack: () =>
-          gsap.set([outPic, outCopy, inCopy], { autoAlpha: gsap.utils.wrap([1, 1, 0]) }),
-      });
-
-      cleanups.push(() => swap.kill());
-      continue;
-    }
-
-    /* The two definitive states, asserted at the two edges.
-
-       A scrub is a tween that CHASES the scroll: `scrub: 0.8` means the
-       timeline spends most of a second catching up to where the reader already
-       is. That is what makes it feel like a hand on the page, and it is fine as
-       long as the reader is somewhere inside the handover. Thrown past three
-       handovers in one flick, three timelines are all chasing at once, and what
-       the reader sees while they do is two and three headlines on the same
-       pixels — which is the state that was reported, with the ground already on
-       category four and the words still on two and three.
-
-       Crossing an edge is not a matter of degree, so it is not left to the
-       scrub. `onLeave` and `onLeaveBack` fire whether the range was crossed
-       over a hundred frames or in one, and each pins everything this handover
-       owns to the end it belongs to. The scrub still does the whole of the
-       middle; it just no longer has the last word on either side of it. */
-    const settle = (done: boolean) => {
-      gsap.set(outPic, { autoAlpha: done ? 0 : 1 });
-    };
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: panel,
-        start: START(panel),
-        end: END,
-        /* Smoothed rather than tied frame-for-frame to the gesture, and by the
-           same amount the join out of Overclock uses — a fade between two
-           photographs picks up every jitter in a trackpad otherwise. */
-        scrub: 0.8,
-        invalidateOnRefresh: true,
-        /* Coming back from beyond the end the picture is off AND hidden, and
-           `visibility` is not something an opacity tween will put back. */
-        onEnterBack: () => gsap.set(outPic, { autoAlpha: 1 }),
-        onLeaveBack: () => settle(false),
-        /* Past the end, everything this handover owns is at its far state. */
-        onLeave: () => settle(true),
-      },
+    titles.forEach((title, i) => {
+      const { top, bottom } = title.getBoundingClientRect();
+      if (top < vh) {
+        last = i;
+        onScreen = bottom > 0;
+      }
     });
 
-    /* THE FADE ITSELF, and it is the only thing on this timeline.
+    if (last < 0) show(0);
+    else if (onScreen) show(last);
+    else if (active !== last && active !== last + 1) show(last);
+  };
 
-       It went missing for a commit. When the words were taken off this timeline
-       and made a function of the scroll instead, the deletion ran from the
-       comment above the first copy tween to the cleanup below the last — and
-       this sat between them and went with them. What was left was a timeline
-       with nothing in it and two callbacks snapping the mask to either end, so
-       one category replaced the next with no gradient and no travel: the change
-       without the dissolve.
+  const stage = ScrollTrigger.create({
+    trigger: section,
+    start: 'top bottom',
+    end: 'bottom top',
+    onUpdate: settle,
+    onToggle: settle,
+    onRefresh: settle,
+  });
 
-       A PLAIN OPACITY FADE. It was a mask travelling up the frame behind a
-       feather wider than half the screen, which is a good instrument and the
-       wrong one here: it ran while the words were still on the picture, so it
-       had to be soft enough not to cut through them. With the words gone before
-       it starts there is nothing for it to avoid, and a fade between two
-       photographs that are both already there is the plainest change there is.
+  settle();
 
-       `immediateRender: false` because the resting state is a whole picture and
-       the stylesheet already says so — rendered at build this would fade away
-       whichever category the section is currently showing. */
-    tl.fromTo(
-      outPic,
-      { opacity: 1 },
-      { opacity: 0, duration: FADE_FOR, ease: 'none', immediateRender: false },
-      FADE_AT,
-    );
+  cleanups.push(() => {
+    stage.kill();
+    layers.forEach((layer, i) => layer.classList.toggle('is-active', i === 0));
+  });
 
-    cleanups.push(() => {
-      tl.scrollTrigger?.kill();
-      tl.kill();
-      gsap.set([outPic, outCopy, inCopy], { clearProps: 'opacity,visibility' });
-    });
-  }
-
-  // --- The words -----------------------------------------------------------
-  /**
-   * Which category is legible is a FUNCTION OF THE SCROLL, worked out from
-   * scratch on every update. It is not animated and it cannot lag.
-   *
-   * It used to be two tweens per handover inside the scrubbed timeline, and a
-   * scrub is a tween that chases: `scrub: 0.8` means it spends most of a second
-   * catching up to where the reader already is. Thrown past three handovers in
-   * one flick, three timelines chase at once — and what they show on the way is
-   * every category none of them has caught up to yet. Three headlines on the
-   * same pixels, with the ground already two categories ahead. Pinning the
-   * state at each handover's edges did not fix it, because the chase resumes on
-   * the very next tick and overwrites what the edge just set.
-   *
-   * So the words stopped being animated. Every update, each handover's local
-   * progress is read from where its own step actually is on the screen, and
-   * every category's two mask positions are computed from that. There is no
-   * state to get stranded in: whatever the reader does, the next frame is
-   * correct.
-   *
-   * What is written is a rise and a fade, not a wipe. The ground under the
-   * words is wiped, because a photograph has no baseline to come apart from;
-   * type does, and a masked headline reads as damage rather than as a
-   * departure. So the block travels: up into place as it arrives, and further
-   * up as it leaves — one gesture in one direction, with the next category
-   * coming up into the space the last one left. See `.cat__group` in
-   * WorkCategories.astro for the two variables that carry it.
-   *
-   * The PICTURES keep their scrub, and should. A lagging wipe cannot produce
-   * doubled text — the panels are opaque and stacked, so the worst a late one
-   * does is show the previous photograph a moment longer, which is what a
-   * smoothed dissolve is supposed to look like.
-   */
+  // --- The texts and the letters -------------------------------------------
   if (!reduced) {
-    /* The rise is LINEAR, so there is no ease for it here. It is meant to read
-       as the copy scrolling up and away, and an eased rise reads as an
-       animation of the copy instead. Only the arrival is eased, because a fade
-       that starts and stops abruptly is the one thing a fade cannot do. */
-    const easeIn = gsap.parseEase('power2.out');
-    const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
+    const splits: SplitText[] = [];
 
-    /* The same edge the timelines use, and the same arithmetic: a handover runs
-       while its step's top travels from a step's height down the window to the
-       top of it. Expressed against the step rather than against the window so
-       that this and START cannot drift apart — they are the same sentence. */
-    const progressOf = (panel: HTMLElement) => {
-      const span = panel.offsetHeight || window.innerHeight || 1;
-      return clamp01((span - panel.getBoundingClientRect().top) / span);
-    };
+    titles.forEach((title, i) => {
+      const head = title.parentElement;
+      const num = head?.querySelector<HTMLElement>('[data-cat-num]') ?? null;
+      const end = head?.querySelector<HTMLElement>('[data-cat-title-end]') ?? null;
+      const texts = layers[i]?.querySelector<HTMLElement>('[data-cat-texts]') ?? null;
 
-    /* How far a block has to go to be gone, measured off the layout rather than
-       guessed at as a fraction of the window.
+      /* The description and button. `bottom+=100%` is a percentage of the
+         strip's own height, so this runs while the title's foot climbs from one
+         strip-depth to two above the bottom edge — just after the title has
+         come fully into view.
 
-       `offsetTop + offsetHeight` of the last child is the distance from the top
-       of the copy box — which is the top of the screen, the box is `inset: 0` —
-       down to the bottom of the button. Move the block up by that and every
-       part of it is above the top edge, exactly, at whatever the window is.
+         Scrubbed with no smoothing, as fantasy's is, and with no fade back out:
+         once it is up it stays up, and the layer's own fade takes it away when
+         the next category arrives. Scrolled back past, the scrub runs it down. */
+      if (texts && end) {
+        const tween = gsap.fromTo(
+          texts,
+          { opacity: 0 },
+          {
+            opacity: 1,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: end,
+              start: 'bottom+=100% bottom',
+              end: 'bottom+=200% bottom',
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
+          },
+        );
 
-       Offsets and not `getBoundingClientRect`, because this element is
-       transformed most of the time and rects are measured after transforms.
-       Offsets are layout, and layout is what this is asking about. */
-    const measure = () => {
-      screens.forEach((_, j) => {
-        const el = copy(j);
-        if (!el) return;
-        const last = el.lastElementChild as HTMLElement | null;
-        const travel = last ? last.offsetTop + last.offsetHeight : el.offsetHeight;
-        el.style.setProperty('--cat-travel', `${Math.round(travel)}px`);
+        cleanups.push(() => {
+          tween.scrollTrigger?.kill();
+          tween.kill();
+          gsap.set(texts, { clearProps: 'opacity' });
+        });
+      }
+
+      /* The letters, over the title's whole pass: from its top meeting the
+         bottom edge to its foot leaving the top one.
+
+         Fantasy's numbers exactly. Each character takes a quarter of the
+         timeline and the stagger spreads a quarter across all of them, so the
+         blur-in fills the first 0.5 of a 1.25 timeline and the blur-out starts
+         at 0.75 — the headline is whole and sharp for the stretch in between,
+         which is the middle of the window.
+
+         Words and characters only, no lines. Nothing here animates a line, and
+         a line split is the one kind that has to be cut again when the window
+         changes width. */
+      const split = SplitText.create(num ? [num, title] : [title], { type: 'words, chars' });
+      splits.push(split);
+
+      /* Every character put at the start of its blur-in NOW, and not left to
+         the tween below to do.
+
+         A staggered `fromTo` renders its from-state only for the characters
+         whose turn has come. Measured before this line: at rest below the
+         window the number's two characters read 0 and the headline's
+         twenty-seven read 1, sharp — so a title came up over the bottom edge
+         fully drawn, and then each letter snapped to nothing and blurred back
+         in as its stagger reached it. Fantasy renders these hidden in its
+         markup; this is that. */
+      gsap.set(split.chars, { opacity: 0, filter: 'blur(10px)' });
+
+      const tl = gsap.timeline({
+        defaults: { duration: 0.25 },
+        scrollTrigger: { trigger: title, scrub: true, invalidateOnRefresh: true },
       });
-    };
 
-    const paint = () => {
-      /* One pass, and the two ends of every handover are read from the same
-         number — so a category cannot be leaving and arriving by different
-         amounts. */
-      const alpha = screens.map((_, j) => {
-        const next = panels[j + 1];
-        return {
-          arriving:
-            j === 0 ? 1 : easeIn(clamp01((progressOf(panels[j]) - COPY_IN_AT) / COPY_IN_FOR)),
-          leaving: next ? clamp01(progressOf(next) / COPY_OUT) : 0,
-        };
+      tl.fromTo(
+        split.chars,
+        { opacity: 0, filter: 'blur(10px)' },
+        { opacity: 1, filter: 'blur(0px)', ease: 'none', stagger: { amount: 0.25 } },
+        0,
+      );
+
+      /* `fromTo` with its start stated, and `immediateRender: false`, rather
+         than a `to`: a `to` records where it starts from the first time it
+         renders, and a page reloaded past this title renders it before the
+         blur-in above has ever put the letters at full strength. */
+      tl.fromTo(
+        split.chars,
+        { opacity: 1, filter: 'blur(0px)' },
+        {
+          opacity: 0,
+          filter: 'blur(10px)',
+          ease: 'power2.in',
+          stagger: { amount: 0.25 },
+          immediateRender: false,
+        },
+        0.75,
+      );
+
+      cleanups.push(() => {
+        tl.scrollTrigger?.kill();
+        tl.kill();
       });
-
-      alpha.forEach(({ arriving, leaving }, j) => {
-        const el = copy(j);
-        if (!el) return;
-
-        /* LEAVING IS A TRAVEL AND ARRIVING IS A FADE, and they are not one
-           gesture reversed.
-
-           The block goes by rising the whole way out through the top of the
-           screen — `--cat-y` from 0 to -1 against a distance measured off the
-           layout — and it does not fade while it does. It disappears because it
-           has left the frame, which is what the sticky screen's `overflow` is
-           for. The next one does not come up from below to meet it: it is
-           already where it rests, and only its opacity moves.
-
-           So the outgoing block stays at full strength for the whole of its
-           travel. `arriving` is 1 for it throughout — a block is never arriving
-           and leaving at once — which is why the opacity here reads as
-           `arriving` alone. */
-        el.style.setProperty('--cat-y', `${-leaving}`);
-        el.style.setProperty('--cat-fade', `${arriving}`);
-        el.style.visibility = arriving > 0.002 && leaving < 0.999 ? 'inherit' : 'hidden';
-      });
-    };
-
-    const painter = ScrollTrigger.create({
-      trigger: section,
-      start: 'top bottom',
-      end: 'bottom top',
-      onUpdate: paint,
-      onRefresh: () => {
-        measure();
-        paint();
-      },
     });
 
-    measure();
-    paint();
-
-    cleanups.push(() => {
-      painter.kill();
-      screens.forEach((_, j) => {
-        const el = copy(j);
-        if (!el) return;
-        el.style.removeProperty('--cat-y');
-        el.style.removeProperty('--cat-fade');
-        el.style.removeProperty('--cat-travel');
-        el.style.removeProperty('visibility');
-      });
-    });
+    cleanups.push(() => splits.forEach((split) => split.revert()));
   }
 
   // --- The outro -----------------------------------------------------------

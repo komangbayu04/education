@@ -127,22 +127,6 @@
   --tracking-normal: 0em;
   --tracking-wide: 0.1em;
 
-  /* The beat at the foot of Our work: how long its last category is held at
-     full strength, still and legible, after it has arrived and before the
-     section hands over.
-
-     It used to be two things at once — this hold AND the distance Two ways in
-     rode up over it — because the join between them was a dissolve and a
-     dissolve needs both sections in the same place. That overlap is
-     `--two-join` below now, and this is only the beat.
-
-     The last category is the one the reader arrives at and then leaves the
-     section from, so it gets a stretch of standing still before anything
-     starts happening to it. Shrink this and the join begins almost the moment
-     Marketing lands; the beat is the difference between arriving somewhere and
-     passing through it. */
-  --work-outro: 88svh;
-
   /* Our work → Two ways in: how long the two screens overlap, which is also
      how long the pixel reveal between them has to play in.
 
@@ -233,11 +217,6 @@
        reference frames; this is not the place to re-cut it. */
     --section-gap-y: 3rem;
 
-    /* Shorter join. The overlap is a beat on a desktop and a scroll on a
-       phone, and a tall held frame with a white sheet crossing it is long
-       enough there to read as the page having stopped. The same reasoning that
-       cuts --cat-step from 85svh to 70svh in WorkCategories.astro. */
-    --work-outro: 70svh;
     --two-headroom: 16svh;
   }
 }

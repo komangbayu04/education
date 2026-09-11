@@ -1,99 +1,64 @@
 ---
 /**
- * Our work — categorized. The section Overclock hands over to.
+ * Our work — categorized. Built the way fantasy.co builds its services list,
+ * because that is what it was asked to be, piece for piece.
  *
- * Nothing on this screen moves. That is the whole of the layout: one sticky
- * screen holding every category stacked on top of one another, and the scroll
- * dissolves them away one at a time — the same dissolve, from the bottom edge
- * upwards behind a wide feather, that brings the reader into this section out
- * of Overclock. The words are not in that dissolve; they have a fade of their
- * own that runs earlier and faster, so no two categories are ever readable at
- * once. An earlier cut had the copy travelling —
- * each block carried up and off the top of the window by the scroll while a
- * sticky ground stayed put — and this replaces it. Two layers moving at
- * different rates is a parallax; one layer changing over is a slide, and a
- * slide is what a numbered list of services wants to be.
+ * TWO LAYERS, moving at two different speeds, and which one is which is the
+ * whole design:
  *
- * Three things per category, in one frame:
+ *   the stage     one sticky screen. Every category's photograph is on it,
+ *                 stacked, and exactly one is showing. The description and the
+ *                 button live here too, at the foot of the screen, so they do
+ *                 not travel — they are part of the picture, not of the scroll.
  *
- *   the number    01, small, at the top of the copy column.
- *   the copy      headline, pitch and button, at the foot of the left column,
- *                 on the same gutter Overclock's copy sits on — the two
- *                 sections are adjacent and their columns have to line up.
- *   the artwork   the category's shot, full bleed. It IS the ground — the
- *                 section's black is only what is under it while it loads, and
- *                 what shows through the veil.
+ *   the titles    the number and the big headline, in ORDINARY FLOW over the
+ *                 stage, a screen apart from each other. They are the only
+ *                 thing that moves: each one scrolls in from the bottom of the
+ *                 window and out through the top at the speed of the page.
  *
- *                 It was a panel on the right for a day, taken from the
- *                 reference, where the shot is a render on transparency with
- *                 the black of the page around it. Given a real photograph
- *                 that arrangement is a rectangle sitting on a screen with a
- *                 visible edge down the middle of it, which is not what the
- *                 reference looks like at all.
+ * The title is the trigger. When the next one's top comes up over the bottom
+ * edge — which, a screen apart, is the same moment the last one has cleared
+ * the top — the stage changes to its category with a plain 0.35s fade. The
+ * description and button fade up as that title's foot rises past them, and
+ * each title's letters blur in on the way up and blur out on the way off. See
+ * src/scripts/workCategories.ts.
  *
- *   the veil      a dark wash over that shot, heaviest on the left and gone by
- *                 the right. White type needs a ground, and a photograph is
- *                 not one — this is what keeps the column legible whatever the
- *                 category's picture is doing behind it.
+ * The one thing on fantasy's list that is not here is the "View" label that
+ * follows the cursor — left out at the brief's request.
  *
- * The scroll length is `--cat-step` per category and nothing else — no travel
- * to buy room for. Five of them is about four and a half screens, roughly half
- * what the travelling cut cost.
- *
- * Black, and it declares itself so with `data-nav-over="dark"`: the nav's
- * capsule turns to glass over it. The join above it is a black curtain that
- * rises from the foot of the window and fades — see initWorkHandover in
- * src/scripts/workCategories.ts and `[data-handover]` in index.astro.
- *
- * The join below it is a pixel reveal that plays itself: a field of tiles
- * paints across the last category, the layer underneath is swapped, and the
- * same field clears to leave Two ways in. It is the one transition on this
- * page that is not scrubbed. See initWorkPixels in
- * src/scripts/workCategories.ts; `--work-outro` is the beat before it and
- * `--two-join` is the window it plays in, both in globals.css.
- *
- * One layout at every width above the phone breakpoint, and it stands up with
- * the stylesheet alone: without JS the first category is the section and the
- * rest are simply not painted. The crossfades are the only thing the script
- * does here.
+ * Joins, unchanged: Overclock dissolves into the first screen of this (the
+ * pull-up is `--cat-join`, and overclock.ts measures it off `.cat__track`), and
+ * a pixel field hands the last screen over to Two ways in (`--two-join`, and
+ * `[data-cat-dissolve]` is the layer it swaps).
  */
 
 interface Category {
-  /** Rendered as-is — the frame sets these zero-padded. */
+  /** Rendered as-is above the headline. */
   number: string;
+  /** The category's name, in full — what the button is labelled with. */
   label: string;
+  /**
+   * The same name broken into the lines the headline is set in. Authored rather
+   * than left to wrap: at 140px a two-word title is two lines on purpose, the
+   * way fantasy sets "AI Strategy / & Execution", and a measure would put the
+   * break somewhere different at every width.
+   */
+  lines: string[];
   /** One line about the category, under the headline. */
   blurb: string;
-  /** Where "See work" goes. */
   href: string;
-  /**
-   * The flat panel this category's artwork box is painted in while its shot is
-   * still being chosen — a placeholder with the footprint of the real thing,
-   * so the frame is never simply empty on the right.
-   *
-   * Near-black on purpose, and stepped so no two neighbours are the same
-   * value: the crossfade between two categories is the only thing that
-   * announces the change, and on five identical panels the section would read
-   * as one screen that never moves.
-   */
+  /** Painted under the photograph while it is still loading. */
   tone: string;
-  /**
-   * The shot itself, without an extension — rendered as a <picture> with an
-   * avif source and a webp fallback, so '/media/work-website-design' wants
-   * work-website-design.avif and work-website-design.webp beside it.
-   *
-   * Optional, and most of them are still to come: without it the category is
-   * its flat `tone`. Named per category rather than derived, because which
-   * shot stands for a whole category is a choice — swapping one is this line
-   * and nothing else.
-   */
+  /** The shot, without an extension — an avif and a webp of this name. */
   art?: string;
-  /**
-   * `object-position` for that shot, for the ones whose crop needs steering.
-   * The box bleeds off the right and the bottom, so the default holds the
-   * artwork's top-left corner — which is the corner the reference keeps whole.
-   */
+  /** `object-position` for the shot, for the ones whose crop needs steering. */
   focus?: string;
+  /**
+   * The colour the foot of the photograph darkens into, as "r, g, b". Fantasy
+   * tints each item's gradient to its own picture; black is its default and
+   * ours.
+   */
+  gradient?: string;
 }
 
 interface Props {
@@ -102,11 +67,12 @@ interface Props {
 }
 
 const {
-  viewLabel = 'See work',
+  viewLabel = 'Explore',
   categories = [
     {
       number: '01',
       label: 'Website Design & Development',
+      lines: ['Website Design', '& Development'],
       blurb:
         'Marketing sites and platforms, designed and built end to end — so what ships is what was drawn, at the speed the launch actually needs.',
       href: '/work',
@@ -116,6 +82,7 @@ const {
     {
       number: '02',
       label: 'Product Design',
+      lines: ['Product', 'Design'],
       blurb:
         'The screens people use every day: flows, states, and the systems underneath them, drawn so the product stays coherent as it grows.',
       href: '/work',
@@ -125,6 +92,7 @@ const {
     {
       number: '03',
       label: 'Brand Design',
+      lines: ['Brand', 'Design'],
       blurb:
         'Marks, type, colour and motion, with the rules that keep them holding together everywhere the brand turns up.',
       href: '/work',
@@ -134,6 +102,7 @@ const {
     {
       number: '04',
       label: 'Pitch Deck',
+      lines: ['Pitch', 'Deck'],
       blurb:
         'The story a room has to follow in twenty minutes — cut, structured and designed so the argument carries without you narrating it.',
       href: '/work',
@@ -143,6 +112,7 @@ const {
     {
       number: '05',
       label: 'Marketing Design',
+      lines: ['Marketing', 'Design'],
       blurb:
         'Campaign and social work that keeps the brand recognisable at the size a feed actually shows it, in the volume a calendar actually needs.',
       href: '/work',
@@ -161,40 +131,30 @@ const {
   data-cat
 >
   {/*
-    The screen. Stuck to the top of the window for as long as the section is
-    passing, with every category stacked inside it.
+    THE STAGE. Sticky for as long as the section is passing, with every
+    category stacked inside it and one of them showing.
 
-    `position: sticky`, not a pinned ScrollTrigger: sticky is the browser
-    holding an element still inside a scroll it is not otherwise touching,
-    which is exactly what is wanted and is why nothing in this section takes
-    the scrollbar away from the reader. It also means the layout stands up
-    with the stylesheet alone.
+    `data-nav-over="dark"` is on this rather than on the section: the nav reads
+    a zone's box and painted opacity, and this box is the screen — its opacity
+    is whether the reader is looking at this section, so the capsule turns back
+    on the exact frame the pixel field hands over to Two ways in.
+    `data-cat-dissolve` is the layer that field switches off.
   */}
-  {/* `data-nav-over="dark"` is here rather than on the section, and that is not
-      tidiness. The nav reads a zone's bounding box and its painted opacity;
-      the section's box is six thousand pixels tall and stays under the header
-      long after the reader has left it, and its opacity never changes. This
-      layer's box is the screen, and its opacity IS whether the reader is
-      looking at this section — so the capsule turns back to ink on the exact
-      frame the pixel field hands over to Two ways in. On the section, it
-      stayed glass over that section's cream for another eight hundred pixels
-      of scroll. */}
   <div class="cat__stick" data-nav-over="dark" data-cat-dissolve>
     {
       categories.map((category, index) => (
-        /* Reverse paint order — the FIRST category is the topmost layer.
-           Handing over is a matter of taking the one on top away, so the one
-           underneath has to already be there, whole, waiting. Document order
-           would stack them the other way and there would be nothing to
-           uncover. */
-        <div class="cat__screen" data-cat-screen style={`z-index:${categories.length - index}`}>
-          {/* Picture and veil as one thing, because the mask that takes this
-              category away has to take both — a photograph dissolving out from
-              under its own wash would leave the wash behind as a grey sheet. */}
-          <div class="cat__pic" data-cat-pic>
-          {/* The ground. Painted in `tone` underneath so the screen is never
-              bare while the file is still loading — or before there is one. */}
-          <div class="cat__art" style={`background:${category.tone}`} aria-hidden="true">
+        <div class:list={['cat__layer', index === 0 && 'is-active']} data-cat-layer>
+          {/* The whole picture is a way in, as it is on fantasy's list. Out of
+              the tab order and hidden from assistive tech, because the button
+              below is the same link with a name — this one is for the pointer
+              only. */}
+          <a
+            class="cat__media"
+            href={category.href}
+            tabindex="-1"
+            aria-hidden="true"
+            style={`--cat-gradient:${category.gradient ?? '0, 0, 0'};background:${category.tone}`}
+          >
             {category.art && (
               <picture>
                 <source srcset={`${category.art}.avif`} type="image/avif" />
@@ -202,39 +162,31 @@ const {
                   src={`${category.art}.webp`}
                   alt=""
                   decoding="async"
-                  {/* The first category's shot is what the reader is dissolved
-                      into out of Overclock — it has to be decoded before that
-                      join starts, not when it scrolls into view, because by
-                      then it is already on screen and fading up. The rest are
-                      four screens further down. */}
                   loading={index === 0 ? 'eager' : 'lazy'}
                   fetchpriority={index === 0 ? 'high' : undefined}
                   style={category.focus ? `object-position:${category.focus}` : undefined}
                 />
               </picture>
             )}
-          </div>
+          </a>
 
-          {/* Over the picture, under the words. One per screen rather than one
-              for the section: it belongs to this category's photograph and
-              leaves with it. */}
-          <div class="cat__veil" aria-hidden="true"></div>
-          </div>
+          <div class="cat__content">
+            <div class="cat__texts" data-cat-texts>
+              <p class="cat__blurb">{category.blurb}</p>
 
-          <div class="cat__group" data-cat-copy>
-            <span class="cat__num">{category.number}</span>
-
-            <h3 class="cat__headline">{category.label}</h3>
-
-            <p class="cat__blurb">{category.blurb}</p>
-
-            <a class="cat__cta" href={category.href} data-magnetic="0.2">
-              <span class="cat__cta-fill" aria-hidden="true" />
-              <span class="cat__cta-label" data-magnetic-inner>
-                {viewLabel}
-              </span>
-              <span class="u-sr-only">{` — ${category.label}`}</span>
-            </a>
+              <a class="cat__cta" href={category.href}>
+                <span class="cat__cta-label">
+                  {viewLabel}
+                  <svg class="cat__cta-icon" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+                    <path
+                      fill="currentColor"
+                      d="M8.2056 0.8477 L14 7.3477 L8.2056 13.8477 H5.3785 L10.3084 8.3617 H0 V6.3337 H10.3084 L5.3785 0.8477 Z"
+                    />
+                  </svg>
+                </span>
+                <span class="u-sr-only">{` — ${category.label}`}</span>
+              </a>
+            </div>
           </div>
         </div>
       ))
@@ -242,423 +194,419 @@ const {
   </div>
 
   {/*
-    The scroll length, and nothing else — one step per category, empty. The
-    screens above are stacked and stationary, so there is no block whose own
-    height could measure the section: these are what the crossfades are
-    triggered against, and what makes the sticky screen stay.
+    THE TITLES, in flow. A screen of space before the first, a screen between
+    each, and a screen after the last — that spacing is what makes a title's
+    arrival at the bottom edge coincide with the previous one's departure off
+    the top, and so what makes a title the trigger for its own category.
+
+    `.cat__track` is also the measurement Overclock's pin reads: the distance
+    from this section's top to this element's top is the join between them.
   */}
-  <ul class="cat__track" aria-hidden="true">
-    {categories.map(() => <li class="cat__step" data-cat-panel />)}
-  </ul>
+  <div class="cat__track" aria-label="Our services">
+    {
+      categories.map((category) => (
+        <div class="cat__card">
+          <div class="cat__card-inner">
+            <div class="cat__head">
+              <p class="cat__num" data-cat-num>{category.number}</p>
+              {/* A space before each break, so the heading's text — which is
+                  what SplitText names it by — reads as the name and not as
+                  "Website Design& Development". It collapses at the line end
+                  and is never drawn. */}
+              <h3 class="cat__title" data-cat-title>
+                {category.lines.map((line, i) => (
+                  <Fragment>
+                    {line}
+                    {i < category.lines.length - 1 && (
+                      <Fragment>
+                        {' '}
+                        <br />
+                      </Fragment>
+                    )}
+                  </Fragment>
+                ))}
+              </h3>
+              {/* The strip the description's fade is measured off: the foot of
+                  the title, 175px deep. Nothing is drawn in it. */}
+              <span class="cat__title-end" data-cat-title-end aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+      ))
+    }
+  </div>
 </section>
 
 <style>
   .cat {
-    /* What one category costs in scroll. There is no travel to pay for any
-       more — the whole of it is the crossfade and the beat after it — so this
-       is shorter than the travelling cut's 155svh by a long way.
-
-       Turn this one number to change the pace. */
-    /* A screen per category, up from 90% of one. The handover inside it is no
-       longer a picture dissolving under a fixed block of type — the type has to
-       travel out through the top of the screen first, and 819px of that at
-       1440x900 wants the room. The whole section is half a screen longer for
-       it. */
-    --cat-step: 100svh;
-
-    /* The copy's inset. Deliberately the shared section padding rather than a
-       column inset of its own: Overclock is directly above this and its copy
-       sits on that gutter, so anything else would step the two sections' left
-       edges out of line across the join. */
-    --cat-inset-x: var(--section-padding-x);
-
-
-    /* How far this section is pulled up underneath Overclock's last screen.
-
-       The join between the two is a dissolve, and a dissolve needs both
-       states in the same place at the same time: Overclock stays pinned and
-       is masked away from its bottom edge, and what has to be behind it as
-       that happens is this section, already parked at its sticky position and
-       not moving. Overlapping them is what buys that.
-
-       Spent twice, and it has to be. Overclock's pin grows by one of these so
-       the chapter is held still through the join; that growth pushes
-       everything below it down by the same distance, so the first is only
-       cancelling the push and the second is what actually produces the
-       overlap. With one, measured, this section's top still arrived at the
-       window's foot exactly as the join ended and slid up through the whole
-       of it — the join had nothing behind it but the page.
-
-       src/scripts/overclock.ts does not read this number. It measures the
-       distance between this section's top and its track's, which is the same
-       distance by construction and cannot be got wrong by counting. */
+    /* How far this section is pulled up underneath Overclock's last screen —
+       the join between the two is a dissolve, and a dissolve needs both
+       sections in the same place for its length. Spent twice: Overclock's pin
+       grows by one of these, and that growth pushes this section down by the
+       same amount, so one cancels the push and the other makes the overlap.
+       overclock.ts measures it off `.cat__track` rather than reading this. */
     --cat-join: 100svh;
 
+    /* The gutter everything here is set on. The page's own, so the headline
+       lines up under the nav's wordmark the way fantasy's lines up under its
+       logo. */
+    --cat-gutter: var(--section-padding-x);
+
     position: relative;
-    /* Under Overclock for the length of the join above, and over Two ways in
-       for the length of the pixel reveal below — see `--cat-join` above and the
-       ladder in index.astro, which holds the rest of it. */
+    /* Under Overclock for the join above, over Two ways in for the pixel
+       reveal below — see the ladder in index.astro. */
     z-index: 2;
     margin-top: calc(-2 * var(--cat-join));
-    /* The layers sort themselves out inside the section and nowhere else.
-
-       Deliberately not `overflow: clip`. Any overflow other than `visible` on
-       an ancestor makes that ancestor the scrollport a sticky child sticks
-       inside — and this one does not scroll, so the screen would simply sit at
-       the top of the section and leave with it. */
+    /* Not `overflow: clip` — any overflow other than `visible` here would
+       become the scrollport the stage sticks inside, and it does not scroll. */
     isolation: isolate;
-    /* No ground on the section itself — it is on the screen below.
-
-       The section's box outlives its screen by a window: a sticky child lets
-       go with its containing block's last viewport still to scroll. Painted
-       here, that trailing window is a screen of black covering Two ways in
-       long after the pixel reveal has handed over to it — which is exactly
-       what it looked like, the last category leaving and nothing arriving.
-       Painted on the screen, the ground goes when the screen goes. */
     color: var(--color-ink-invert);
-
   }
 
-  /* --- The sticky screen ---------------------------------------------------- */
+  /* =====================================================================
+     The stage
+     ===================================================================== */
   .cat__stick {
     position: sticky;
     top: 0;
     z-index: 1;
     height: 100svh;
-    /* The section's ground, here rather than on the section — see the note
-       above. Opaque in its own right, so what Overclock's mask uncovers is
-       this section already finished rather than a half-faded layer over the
-       page's white. */
+    /* On the stage and not on the section: the section's box outlives the
+       stage by a screen, and a ground painted there would be a screen of black
+       over Two ways in after the pixel field has handed over to it. */
     background: var(--color-bg-work);
-    /* The artwork bleeds past the right and bottom of this box on purpose. */
     overflow: hidden;
   }
 
-  .cat__screen {
+  /* One per category, all stacked, one showing.
+
+     THE CHANGE IS A PLAIN FADE, 0.35s ease-out, and it is time rather than
+     scroll: fantasy's list swaps a Vue `fade` transition on whichever item is
+     active, and this is that transition. Both layers run at once — the one
+     arriving comes up while the one leaving goes — so there is no gap of empty
+     stage between them.
+
+     `visibility` follows the opacity down with a delay the length of the fade,
+     which is what `display: none` at the end of a leave transition does: a
+     layer that has finished going is out of the compositor and cannot be
+     clicked, and one that is arriving is visible from its first frame. */
+  .cat__layer {
     position: absolute;
     inset: 0;
-  }
-
-  /* --- The picture layer ----------------------------------------------------
-     What the handover takes away. Every category's picture is opaque and
-     stacked, first on top, so all a change has to do is fade the top one out
-     and the next is already underneath at full strength.
-
-     A PLAIN FADE, which is why there is nothing here but the box. It was a
-     mask travelling up the frame behind a feather wider than half the screen —
-     the same instrument that brings the reader into this section out of
-     Overclock — and that instrument was chosen for a handover in which the
-     words were still on the picture while it ran. They are not: the copy has
-     risen out through the top of the screen before this starts, so there is
-     nothing for the change to work around and no reason for it to be anything
-     but a fade. `data-cat-wiping` and its compositing layer went with it. */
-  .cat__pic {
-    position: absolute;
-    inset: 0;
-  }
-
-  /* The words SCROLL AWAY. They are not wiped, not nudged, and the mask that
-     wiped them is gone.
-
-     A mask takes a block apart from its baseline upwards — the descenders go
-     first, then the x-height, and for a moment the headline is a row of
-     ascender tips. On a photograph that reads as damage rather than as a
-     departure. A 40px nudge and a fade was the next attempt and it was too
-     small to be a departure at all: the block dimmed roughly where it stood.
-
-     What is here now is neither. The block travels the whole way out through
-     the top of the screen, at full strength for all of it, and disappears
-     because it has left the frame — the sticky screen clips, so nothing else
-     has to hide it. Only then does the picture change, and the next category's
-     copy fades up where it rests rather than sliding in to meet it.
-
-     `--cat-y` runs from 0 to -1 as a block leaves; `--cat-fade` is opacity and
-     belongs to the arrival. Nothing here is a CSS transition: every value is
-     written by the painter on every frame, so the block cannot be caught
-     mid-way by a scroll that reverses. */
-  :global(html[data-js='true']) .cat__group {
-    --cat-y: 0;
-    --cat-fade: 1;
-    /* The distance from the top of this box to the bottom of the button, in
-       pixels, written by the painter from the layout — see `measure` in
-       src/scripts/workCategories.ts. At `--cat-y: -1` the block is exactly
-       clear of the top edge.
-
-       A fallback of 0 and not a guess. If the script never runs there is no
-       travel to make, and a stylesheet that invented a distance here would move
-       the copy of a page that has nothing to move it back. */
-    --cat-travel: 0px;
-
-    opacity: var(--cat-fade);
-    transform: translate3d(0, calc(var(--cat-y) * var(--cat-travel)), 0);
-    /* The block is promoted for the length of the section anyway — it is
-       repainted every frame — and saying so keeps the type off the main
-       thread's paint. */
-    will-change: transform, opacity;
-  }
-
-  /* The old note, kept because the reasoning still holds and only the
-     conclusion moved: the words are handled apart from the picture they sit on
-     precisely so their timing can be different from it.
-
-     Only the first category's copy is on to start with: without the script
-     that is the one category the section shows, which is the same thing it
-     showed before.
-
-     `visibility` ALONE, and the missing `opacity: 0` is the whole point of this
-     note. It was there, and it was correct for as long as the painter wrote an
-     opacity of its own over the top of it. During the stretch when the words
-     were a mask instead, the painter stopped writing opacity — and nothing was
-     overriding this any more, so every category but the first stayed at zero
-     for good, the mask opening and closing underneath a block that was never
-     going to be seen. The painter writes opacity again now, through
-     `--cat-fade`, and this rule still must not.
-
-     Reported as the words not appearing at all past the first category, and my
-     own sweep said the section was fine: it was reading the two mask variables,
-     which were perfect, and had stopped reading the property I had stopped
-     writing. Check what is painted, not what you meant to paint.
-
-     `visibility: hidden` does the whole job here anyway. It hides the block
-     without JS, it keeps four idle copy columns out of the compositor, and it
-     is what the painter toggles. */
-  .cat__screen:not(:first-child) .cat__group {
+    overflow: hidden;
+    opacity: 0;
     visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.35s ease-out,
+      visibility 0s linear 0.35s;
   }
 
-  /* --- The artwork ---------------------------------------------------------- */
-  .cat__art {
+  .cat__layer.is-active {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 0.35s ease-out,
+      visibility 0s linear 0s;
+  }
+
+  .cat__media {
+    --cat-gradient: 0, 0, 0;
+
     position: absolute;
     inset: 0;
+    z-index: 1;
+    display: block;
+    overflow: hidden;
+    pointer-events: auto;
   }
 
-  /* Angled rather than straight across, and gone entirely by the right-hand
-     edge: the copy is a column on the left, so that is the only side that has
-     to be protected, and a wash over the whole frame would just be a grey
-     photograph. The steps in the middle are what keep the ramp from reading as
-     a band — a two-stop gradient across a whole screen has a visible middle. */
-  .cat__veil {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      100deg,
-      rgb(0 0 0 / 0.88) 0%,
-      rgb(0 0 0 / 0.72) 22%,
-      rgb(0 0 0 / 0.38) 52%,
-      rgb(0 0 0 / 0.08) 78%,
-      rgb(0 0 0 / 0) 100%
-    );
-  }
-
-  /* Pinned to the box rather than sized by percentage inside it. `height: 100%`
-     on a <picture> only resolves if every box between it and the panel has a
-     height of its own, which is one refactor away from failing silently — and
-     when it fails the <img> falls back to its intrinsic size and overflows the
-     section instead of filling its corner. */
-  .cat__art picture,
-  .cat__art img {
+  .cat__media picture,
+  .cat__media img {
     position: absolute;
     inset: 0;
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Centred, now that the box is the whole screen: whatever a shot has to
-       give up to fit a window it should give up evenly, off both sides or off
-       the top and bottom. A category whose crop needs steering says so with
-       `focus`. */
     object-position: center;
   }
 
-  /* --- The copy -------------------------------------------------------------
-     At the foot of the left column, on the section's own gutter. Bottom
-     padding rather than centring: the reference sits the block low, and the
-     same measurement dresses Overclock's copy directly above it. */
-  .cat__group {
+  /* Fantasy's two washes, as they are: a faint tint over the whole picture,
+     and the foot of it going dark into the category's own colour — heavier and
+     taller on a phone, where the description sits on more of the picture. */
+  .cat__media::before,
+  .cat__media::after {
+    content: '';
     position: absolute;
-    inset: 0;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-end;
-    gap: clamp(0.875rem, 1.6vh, 1.25rem);
+    bottom: 0;
+    left: 0;
+    z-index: 2;
     width: 100%;
-    max-width: var(--content-max-width);
-    margin-inline: auto;
-    padding-inline: var(--cat-inset-x);
-    padding-bottom: clamp(3rem, 9vh, 6.5rem);
-    /* The artwork is decoration and the copy is not, but this box covers the
-       whole screen so that its own children can be placed in it. Without this
-       it would swallow every pointer event over the artwork. */
+  }
+
+  .cat__media::before {
+    height: 100%;
+    background-color: rgba(var(--cat-gradient), 0.15);
+  }
+
+  .cat__media::after {
+    height: 400px;
+    background: linear-gradient(180deg, rgba(var(--cat-gradient), 0) 0, rgba(var(--cat-gradient), 0.95));
+  }
+
+  /* The description and the button, at the foot of the stage. They do not
+     move: only their opacity is driven, by the title of their own category
+     rising past them. */
+  .cat__content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 100svh;
+    /* Fantasy's three: a phone, a touch screen above 650, and a mouse. The
+       tall touch figure is theirs too — a tablet's browser chrome takes the
+       foot of the screen and the block is lifted clear of it. */
+    padding-bottom: 100px;
     pointer-events: none;
   }
 
-  .cat__group > * {
-    pointer-events: auto;
+  .cat__texts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    width: 100%;
+    max-width: var(--content-max-width);
+    margin-inline: auto;
+    padding-inline: var(--cat-gutter);
   }
 
-  .cat__num {
-    margin-bottom: clamp(0.5rem, 1.4vh, 1rem);
-    font-size: 0.8125rem;
-    letter-spacing: 0.1em;
-    font-variant-numeric: tabular-nums;
-    color: rgb(255 255 255 / 0.5);
+  /* Hidden until its title arrives — the script drives it from here. Gated on
+     JS, so a page without it shows the first category's description. */
+  :global(html[data-js='true']) .cat__texts {
+    opacity: 0;
   }
 
-  .cat__headline {
-    /* 3.9vw is the hero title's own ramp — the two are the largest type on the
-       page and should be the same size at the same window.
-
-       The cap is 30.5rem and not the 29.5 it reads as, and the extra 16px is
-       for one label. Both numbers here are vw and stay in proportion — the
-       longest two-word label sits at 94% of the measure at every window where
-       they do — but they hit their ceilings at different widths: the box stops
-       growing at 1430 and the type not until 1537. In the stretch above that,
-       "Marketing Design" is 475px of type in 472px of measure and breaks after
-       "Marketing" — a headline wrapping on three pixels. */
-    max-width: clamp(18rem, 33vw, 30.5rem);
-    font-size: clamp(1.75rem, 3.9vw, 3.75rem);
-    font-weight: 400;
-    line-height: 1.14;
-    letter-spacing: -0.03em;
-  }
-
-  /* The same measure as the headline, which is the point of it — so the two
-     ceilings stay one number. */
   .cat__blurb {
-    max-width: clamp(18rem, 33vw, 30.5rem);
-    font-size: clamp(0.9375rem, 1.11vw, 1rem);
-    line-height: 1.625;
-    letter-spacing: -0.02em;
-    color: rgb(255 255 255 / 0.62);
+    max-width: 335px;
+    font-size: 20px;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    opacity: 0.6;
+    text-wrap: pretty;
   }
 
-  /* Inverted from the light cut of this section: a black pill on a black
-     ground is not a button. Same proportions, opposite ink. */
+  /* Glass: a quarter-white sheet over a 12px backdrop blur. On hover a white
+     fill sweeps across from the right and the label turns black — fantasy's
+     `--solid --blurred --light` button. */
   .cat__cta {
     position: relative;
+    z-index: 2;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 2.75rem;
-    margin-top: clamp(0.75rem, 2vh, 1.5rem);
-    padding: 0.6875rem 1.625rem;
-    border-radius: 0.625rem;
+    height: 50px;
+    padding: 0 32px;
+    border-radius: 10px;
     overflow: hidden;
-    background: var(--color-bg-primary);
-    color: var(--color-ink);
-    font-size: 0.75rem;
+    color: #ffffff;
+    font-size: 18px;
     font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    will-change: transform;
+    line-height: 1;
+    text-decoration: none;
+    pointer-events: auto;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    transition: color 0.15s ease-out;
   }
 
-  .cat__cta-fill {
+  .cat__cta::before,
+  .cat__cta::after {
+    content: '';
     position: absolute;
     inset: 0;
-    background: var(--color-ink);
-    transform: scaleY(0);
-    transform-origin: bottom center;
-    transition: transform 0.55s var(--ease-out-expo);
+    z-index: 1;
+    border-radius: inherit;
   }
 
-  .cat__cta:hover .cat__cta-fill,
-  .cat__cta:focus-visible .cat__cta-fill {
-    transform: scaleY(1);
+  .cat__cta::before {
+    background-color: rgb(255 255 255 / 0.25);
+  }
+
+  .cat__cta::after {
+    background-color: #ffffff;
+    transform: scaleX(0);
+    transform-origin: right center;
+    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  }
+
+  .cat__cta:hover,
+  .cat__cta:focus-visible {
+    color: #000000;
+  }
+
+  .cat__cta:hover::after,
+  .cat__cta:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left center;
   }
 
   .cat__cta-label {
     position: relative;
-    z-index: 1;
-    transition: color 0.4s var(--ease-out-expo);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  .cat__cta:hover .cat__cta-label,
-  .cat__cta:focus-visible .cat__cta-label {
-    color: var(--color-ink-invert);
+  .cat__cta-icon {
+    width: 12px;
+    height: 12px;
   }
 
-  /* --- The track ------------------------------------------------------------
-     Pulled up over the sticky screen so the first step starts at the section's
-     own top: the screen is in flow and is a window tall, and without this the
-     list would begin a window below where the reader sees the section start.
-     Zero-ink content — these are measurements, not elements. */
+  /* =====================================================================
+     The titles
+     ===================================================================== */
+
+  /* Pulled up over the stage so its top sits a join below the section's own
+     top — the stage is in flow and a screen tall, and without this the list
+     would start a screen further down than the reader sees the section start.
+
+     Then fantasy's spacing: a screen before the first title, a screen between
+     each, a screen after the last. Plus `--two-join` at the foot, which is the
+     window the pixel reveal into Two ways in plays in — the stage has to be
+     held still for it, and a sticky element holds for as long as its section's
+     CONTENT lasts, so it is padding here and not on the section.
+
+     `overflow-x: clip` so a long word at 60px on a narrow phone cannot widen
+     the page. `clip`, not `hidden`, so this does not become a scroll
+     container. */
   .cat__track {
     position: relative;
-    z-index: 0;
-    /* Measurements, not surface. The section's box now outlives its screen by
-       a window — the ground moved to the screen so that stretch is invisible,
-       but an invisible box still takes clicks, and Two ways in is underneath
-       it for the whole of it. */
-    pointer-events: none;
-    /* Two things at once. The window cancels the sticky screen's own height,
-       so the first step begins where the reader sees the section begin rather
-       than a window below it. The join is then added back, because the first
-       window of this section is spent being dissolved into — the screen is
-       there, still, fading up under Overclock — and a category that started
-       counting during it would already be handing over to the next one by the
-       time the reader could see either. */
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 100svh;
     margin-top: calc(-100svh + var(--cat-join));
+    padding: 100svh 0 calc(100svh + var(--two-join));
+    overflow-x: clip;
+    pointer-events: none;
   }
 
-  .cat__step {
-    height: var(--cat-step);
+  .cat__card {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
   }
 
-  /* The beat after Marketing, and then the window the pixel reveal into Two
-     ways in plays in — the second is what holds this section's last screen
-     still while the section underneath it is already in place. See
-     `--work-outro` and `--two-join` in globals.css; the other side of the join
-     reads the second of them too.
-
-     ON THE TRACK, and it has to be. It was `padding-bottom` on the section,
-     and a sticky child is constrained by its containing block's CONTENT box —
-     padding is outside it. So the screen let go 1692px early: Marketing
-     scrolled away under the reader while the section's own black ground, which
-     does extend through the padding, went on covering Two ways in behind it.
-     What that looked like was the last category sliding off and a screen of
-     nothing following it. Measured: the sticky released at 9090 where the
-     arithmetic wanted 10782, and the difference was exactly these two numbers.
-
-     As padding on the track it is content of the section rather than space
-     around it, the containing block grows by it, and the screen stays put for
-     the whole of it. */
-  .cat__track {
-    padding-bottom: calc(var(--work-outro) + var(--two-join));
+  .cat__card-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    max-width: var(--content-max-width);
+    margin-inline: auto;
+    padding-inline: var(--cat-gutter);
   }
 
-  /* --- Responsive ----------------------------------------------------------- */
-  @media (max-width: 48rem) {
-    .cat {
-      /* 90 rather than the 70 it was. The rise is the same distance here in
-         proportion — the copy still has to clear the top of the screen — so a
-         short step is a fast copy: at 80svh it left at 1.6 times the speed of
-         the page, and at 90 it is 1.4, which is where the desktop sits. */
-      --cat-step: 90svh;
+  .cat__head {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cat__num {
+    font-size: 20px;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Fantasy's `h2-alt`: 60, 90 and 140px, set solid and tracked in. The
+     phone figure is held under 14.5vw so "Development" fits a 360 screen. */
+  .cat__title {
+    font-family: var(--font-display);
+    font-size: min(60px, 14.5vw);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .cat__title-end {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 175px;
+    pointer-events: none;
+  }
+
+  /* =====================================================================
+     Breakpoints — fantasy's own, 650 and 1440
+     ===================================================================== */
+  @media (min-width: 650px) {
+    .cat__media::after {
+      height: 350px;
+      background: linear-gradient(180deg, rgba(var(--cat-gradient), 0) 0, rgba(var(--cat-gradient), 0.85));
     }
 
-    /* Straight down rather than across. A phone column is the whole width, so
-       there is no clear side for an angled wash to fade towards — the copy
-       sits at the foot of the screen and the protection has to be under it. */
-    .cat__veil {
-      background: linear-gradient(
-        to top,
-        rgb(0 0 0 / 0.9) 0%,
-        rgb(0 0 0 / 0.72) 34%,
-        rgb(0 0 0 / 0.4) 62%,
-        rgb(0 0 0 / 0.2) 100%
-      );
+    .cat__content {
+      padding-bottom: 300px;
     }
 
-    .cat__headline,
     .cat__blurb {
-      max-width: none;
+      max-width: 400px;
+      font-size: 18px;
     }
 
-    .cat__headline {
-      font-size: clamp(1.75rem, 8vw, 2.5rem);
+    .cat__num {
+      font-size: 18px;
+    }
+
+    .cat__title {
+      font-size: 90px;
+    }
+  }
+
+  @media (min-width: 650px) and (max-width: 1023.98px) {
+    .cat__title-end {
+      height: 125px;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .cat__blurb,
+    .cat__num {
+      font-size: 20px;
+    }
+
+    .cat__title {
+      font-size: 140px;
+    }
+  }
+
+  /* A mouse: the block sits 50px off the foot. Stated last so it wins over the
+     touch figures above at any width. */
+  @media (hover: hover) and (pointer: fine) {
+    .cat__content {
+      padding-bottom: 50px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cat__layer,
+    .cat__layer.is-active {
+      transition: none;
+    }
+
+    :global(html[data-js='true']) .cat__texts {
+      opacity: 1;
     }
   }
 </style>
