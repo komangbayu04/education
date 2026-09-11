@@ -26,15 +26,25 @@
  * The one thing on fantasy's list that is not here is the "View" label that
  * follows the cursor — left out at the brief's request.
  *
- * Joins, unchanged: Overclock dissolves into the first screen of this (the
- * pull-up is `--cat-join`, and overclock.ts measures it off `.cat__track`), and
- * a pixel field hands the last screen over to Two ways in (`--two-join`, and
- * `[data-cat-dissolve]` is the layer it swaps).
+ * OVERCLOCK IS THE FIRST ITEM. It was a chapter of its own above this one,
+ * pinned, dissolving into Our work behind a mask; it is folded in now so the
+ * list runs from it. It keeps the opening it had — the film arrives small on
+ * black and grows to the full screen as the section comes up — and from the
+ * moment it is full it is an item like the rest: its title rises in from the
+ * bottom, and "Case study" stands over it where the categories have a number,
+ * as fantasy's own list labels its case study. `--cat-opening` is how much
+ * scroll the growth gets after the stage has stuck.
+ *
+ * The join below is unchanged: a pixel field hands the last screen over to
+ * Two ways in (`--two-join`, and `[data-cat-dissolve]` is the layer it swaps).
  */
 
 interface Category {
   /** Rendered as-is above the headline. */
-  number: string;
+  number?: string;
+  /** Stands where the number would, for an item that is not a numbered
+      category — the case study. */
+  eyebrow?: string;
   /** The category's name, in full — what the button is labelled with. */
   label: string;
   /**
@@ -51,6 +61,12 @@ interface Category {
   tone: string;
   /** The shot, without an extension — an avif and a webp of this name. */
   art?: string;
+  /** A film instead of a shot, without an extension — a webm and an mp4. */
+  video?: string;
+  /** The film's first frame, without an extension, as webp. */
+  poster?: string;
+  /** The button's label, where it differs from the list's. */
+  cta?: string;
   /** `object-position` for the shot, for the ones whose crop needs steering. */
   focus?: string;
   /**
@@ -69,6 +85,23 @@ interface Props {
 const {
   viewLabel = 'Explore',
   categories = [
+    {
+      eyebrow: 'Case study',
+      label: 'Overclock',
+      lines: ['Overclock'],
+      blurb:
+        'An AI capability partner for enterprise teams, delivering ten-week accelerator cohorts, workflow-based corporate training, and embedded technical consulting.',
+      href: '/work/overclock',
+      video: '/media/overclock-cover',
+      poster: '/media/overclock-cover-poster',
+      /* The chapter's own crop: the subject stands in the upper half and the
+         foot of the frame is desk, so `cover` spends its whole crop there. */
+      focus: 'right top',
+      tone: '#000000',
+      /* Fantasy's case study button says "See how" where its services say
+         "Explore". */
+      cta: 'See how',
+    },
     {
       number: '01',
       label: 'Website Design & Development',
@@ -130,6 +163,12 @@ const {
   data-nav-section="Our work"
   data-cat
 >
+  {/* Where the opening ends: the film has finished growing when this reaches
+      the top of the window. A marker rather than arithmetic in the script, so
+      the growth and the first title's arrival are both measured off the same
+      `--cat-opening` and cannot drift apart. */}
+  <span class="cat__opening" data-cat-opening aria-hidden="true"></span>
+
   {/*
     THE STAGE. Sticky for as long as the section is passing, with every
     category stacked inside it and one of them showing.
@@ -155,18 +194,39 @@ const {
             aria-hidden="true"
             style={`--cat-gradient:${category.gradient ?? '0, 0, 0'};background:${category.tone}`}
           >
-            {category.art && (
-              <picture>
-                <source srcset={`${category.art}.avif`} type="image/avif" />
-                <img
-                  src={`${category.art}.webp`}
-                  alt=""
-                  decoding="async"
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  fetchpriority={index === 0 ? 'high' : undefined}
-                  style={category.focus ? `object-position:${category.focus}` : undefined}
-                />
-              </picture>
+            {category.video ? (
+              /* Scenery, not a player: muted so it may start itself, looping
+                 because it has no end to arrive at, the poster so the stage is
+                 never blank while it decodes. `data-cat-grow` is what the
+                 opening scales. */
+              <video
+                class="cat__film"
+                data-cat-grow
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="auto"
+                poster={category.poster ? `${category.poster}.webp` : undefined}
+                tabindex="-1"
+                style={category.focus ? `object-position:${category.focus}` : undefined}
+              >
+                <source src={`${category.video}.webm`} type="video/webm" />
+                <source src={`${category.video}.mp4`} type="video/mp4" />
+              </video>
+            ) : (
+              category.art && (
+                <picture>
+                  <source srcset={`${category.art}.avif`} type="image/avif" />
+                  <img
+                    src={`${category.art}.webp`}
+                    alt=""
+                    decoding="async"
+                    loading={index <= 1 ? 'eager' : 'lazy'}
+                    style={category.focus ? `object-position:${category.focus}` : undefined}
+                  />
+                </picture>
+              )
             )}
           </a>
 
@@ -176,7 +236,7 @@ const {
 
               <a class="cat__cta" href={category.href}>
                 <span class="cat__cta-label">
-                  {viewLabel}
+                  {category.cta ?? viewLabel}
                   <svg class="cat__cta-icon" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
                     <path
                       fill="currentColor"
@@ -194,13 +254,11 @@ const {
   </div>
 
   {/*
-    THE TITLES, in flow. A screen of space before the first, a screen between
-    each, and a screen after the last — that spacing is what makes a title's
-    arrival at the bottom edge coincide with the previous one's departure off
-    the top, and so what makes a title the trigger for its own category.
-
-    `.cat__track` is also the measurement Overclock's pin reads: the distance
-    from this section's top to this element's top is the join between them.
+    THE TITLES, in flow. The opening and then a screen of space before the
+    first, a screen between each, and a screen after the last — that spacing is
+    what makes a title's arrival at the bottom edge coincide with the previous
+    one's departure off the top, and so what makes a title the trigger for its
+    own category.
   */}
   <div class="cat__track" aria-label="Our services">
     {
@@ -208,7 +266,7 @@ const {
         <div class="cat__card">
           <div class="cat__card-inner">
             <div class="cat__head">
-              <p class="cat__num" data-cat-num>{category.number}</p>
+              <p class="cat__num" data-cat-num>{category.eyebrow ?? category.number}</p>
               {/* A space before each break, so the heading's text — which is
                   what SplitText names it by — reads as the name and not as
                   "Website Design& Development". It collapses at the line end
@@ -239,13 +297,11 @@ const {
 
 <style>
   .cat {
-    /* How far this section is pulled up underneath Overclock's last screen —
-       the join between the two is a dissolve, and a dissolve needs both
-       sections in the same place for its length. Spent twice: Overclock's pin
-       grows by one of these, and that growth pushes this section down by the
-       same amount, so one cancels the push and the other makes the overlap.
-       overclock.ts measures it off `.cat__track` rather than reading this. */
-    --cat-join: 100svh;
+    /* The scroll the opening gets after the stage has stuck. The growth starts
+       earlier than that — when the section is 70% up the window, as
+       Overclock's always did — so the film is opening while the section is
+       still arriving, and it is full by the time this has been scrolled. */
+    --cat-opening: 100svh;
 
     /* The gutter everything here is set on. The page's own, so the headline
        lines up under the nav's wordmark the way fantasy's lines up under its
@@ -253,14 +309,23 @@ const {
     --cat-gutter: var(--section-padding-x);
 
     position: relative;
-    /* Under Overclock for the join above, over Two ways in for the pixel
-       reveal below — see the ladder in index.astro. */
+    /* Under the hero, which overhangs this by the tail of its gradient, and
+       over Two ways in for the pixel reveal below — see the ladder in
+       index.astro. */
     z-index: 2;
-    margin-top: calc(-2 * var(--cat-join));
     /* Not `overflow: clip` — any overflow other than `visible` here would
        become the scrollport the stage sticks inside, and it does not scroll. */
     isolation: isolate;
     color: var(--color-ink-invert);
+  }
+
+  .cat__opening {
+    position: absolute;
+    top: var(--cat-opening);
+    left: 0;
+    width: 1px;
+    height: 0;
+    pointer-events: none;
   }
 
   /* =====================================================================
@@ -321,6 +386,7 @@ const {
     pointer-events: auto;
   }
 
+  .cat__film,
   .cat__media picture,
   .cat__media img {
     position: absolute;
@@ -472,11 +538,13 @@ const {
      The titles
      ===================================================================== */
 
-  /* Pulled up over the stage so its top sits a join below the section's own
-     top — the stage is in flow and a screen tall, and without this the list
-     would start a screen further down than the reader sees the section start.
+  /* Pulled up over the stage so its top is the section's own top — the stage
+     is in flow and a screen tall, and without this the list would start a
+     screen further down than the reader sees the section start.
 
-     Then fantasy's spacing: a screen before the first title, a screen between
+     Then the opening, and fantasy's spacing: a screen before the first title
+     (counted from the end of the opening, so the first title's top reaches the
+     bottom edge on the scroll the film finishes growing), a screen between
      each, a screen after the last. Plus `--two-join` at the foot, which is the
      window the pixel reveal into Two ways in plays in — the stage has to be
      held still for it, and a sticky element holds for as long as its section's
@@ -491,8 +559,8 @@ const {
     display: flex;
     flex-direction: column;
     gap: 100svh;
-    margin-top: calc(-100svh + var(--cat-join));
-    padding: 100svh 0 calc(100svh + var(--two-join));
+    margin-top: -100svh;
+    padding: calc(var(--cat-opening) + 100svh) 0 calc(100svh + var(--two-join));
     overflow-x: clip;
     pointer-events: none;
   }
@@ -528,11 +596,13 @@ const {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Fantasy's `h2-alt`: 60, 90 and 140px, set solid and tracked in. The
-     phone figure is held under 14.5vw so "Development" fits a 360 screen. */
+  /* Fantasy's `h2-alt` less 16px at every size — 44, 74 and 124px against
+     its 60, 90 and 140, at the brief's request. Set solid and tracked in, as
+     theirs is. The phone figure keeps a 14.5vw ceiling so a long word can
+     never be wider than a very narrow screen. */
   .cat__title {
     font-family: var(--font-display);
-    font-size: min(60px, 14.5vw);
+    font-size: min(44px, 14.5vw);
     font-weight: 400;
     line-height: 1;
     letter-spacing: -0.03em;
@@ -570,7 +640,7 @@ const {
     }
 
     .cat__title {
-      font-size: 90px;
+      font-size: 74px;
     }
   }
 
@@ -587,7 +657,7 @@ const {
     }
 
     .cat__title {
-      font-size: 140px;
+      font-size: 124px;
     }
   }
 

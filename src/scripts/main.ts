@@ -39,9 +39,9 @@ function initPage(): void {
       initTimeline(),
       initWorkCursor(),
       initCaseStudy(),
-      /* Overclock's own pinned scrub — it arrives small on black with its film
-         running, opens to the screen, then speaks. The stepped scene that used
-         to carry it is gone; see the note at the end of initHero. */
+      /* A no-op on the home page: Overclock is Our work's first item now and
+         its opening lives in initWorkCategories. Kept for a page that still
+         renders the chapter on its own. */
       initOverclock(),
       initCredibility(),
       initWorkCategories(),

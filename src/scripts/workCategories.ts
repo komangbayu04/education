@@ -22,7 +22,9 @@ import { prefersReducedMotion } from './utils/device';
  *   the outro    the join below: a pixel field hands the last screen to Two
  *                ways in. See initWorkPixels.
  *
- * The join ABOVE the section is Overclock's, in src/scripts/overclock.ts.
+ * And one thing before any of them, for the first item — Overclock's opening,
+ * the film growing from small on black to the full screen as the section
+ * arrives. See `--cat-opening` in WorkCategories.astro.
  *
  * Returns a cleanup function.
  */
@@ -36,6 +38,56 @@ export function initWorkCategories(): () => void {
 
   const reduced = prefersReducedMotion();
   const cleanups: Array<() => void> = [];
+
+  // --- The opening ---------------------------------------------------------
+  /**
+   * Overclock's arrival, as it was when it was a chapter of its own: the film
+   * is already running in a small box low in the middle of a black screen as
+   * the section comes up, and grows to fill it. Scaled, not clipped — the whole
+   * frame is in the box from the first moment, at the size the box is.
+   *
+   * The same numbers the chapter had: 44% and 8% low to full, `power2.inOut`,
+   * starting when the section is 70% up the window, smoothed by 0.6. It ends
+   * when the opening marker reaches the top, which is the scroll the first
+   * title's top reaches the bottom edge on.
+   *
+   * Playing from the first frame it is on the page, not from the moment it is
+   * big enough to look at: a film that starts when it is visible reads as a
+   * video element loading.
+   */
+  const film = section.querySelector<HTMLVideoElement>('video[data-cat-grow]');
+  const opening = section.querySelector<HTMLElement>('[data-cat-opening]');
+
+  if (film) {
+    film.muted = true;
+    void film.play().catch(() => {});
+  }
+
+  if (film && opening && !reduced) {
+    const grow = gsap.fromTo(
+      film,
+      { scale: 0.44, yPercent: 8, transformOrigin: '50% 50%' },
+      {
+        scale: 1,
+        yPercent: 0,
+        ease: 'power2.inOut',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top 30%',
+          endTrigger: opening,
+          end: 'top top',
+          scrub: 0.6,
+          invalidateOnRefresh: true,
+        },
+      },
+    );
+
+    cleanups.push(() => {
+      grow.scrollTrigger?.kill();
+      grow.kill();
+      gsap.set(film, { clearProps: 'transform' });
+    });
+  }
 
   // --- The stage -----------------------------------------------------------
   /**

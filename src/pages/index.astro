@@ -5,7 +5,10 @@ import Hero from '../components/sections/Hero.astro';
    untouched in src/components/sections/. Putting it back is this import, the
    pixel field and `data-scene-next` layer below, and hero.ts already resumes
    the hero → Showcase phase when `[data-scene-next]` is in the page. */
-import Overclock from '../components/sections/Overclock.astro';
+/* Overclock is out of the page as a chapter of its own: it is the first item
+   of Our work now, opening and all — see WorkCategories.astro. The component
+   is untouched in src/components/sections/, and src/scripts/overclock.ts
+   returns a no-op when it cannot find `[data-project="overclock"]`. */
 /* Bedford and CELPIP are out of the scene until their case studies exist.
    A chapter that hands over to a page nobody can read yet is a promise the
    site cannot keep. The components are untouched in
@@ -54,16 +57,9 @@ import Footer from '../components/layout/Footer.astro';
       it, at Overclock. */}
   <Hero />
 
-  {/* Overclock, and it is an ordinary section now.
-
-      It used to be a stacked layer inside a pinned "scene" that also held the
-      hero, with a gesture-stepper moving between them behind fields of
-      scattered tiles. All of that is gone — see the note at the end of
-      initHero in src/scripts/hero.ts. Overclock has a pinned scrub of its own
-      instead (src/scripts/overclock.ts): it arrives small on black with its
-      film already running, grows to fill the screen, and only then says
-      anything. */}
-  <Overclock />
+  {/* Overclock used to stand here, pinned, and dissolve into Our work. It is
+      Our work's first item now: the film still arrives small on black and
+      grows to the screen, and from there it runs as the list does. */}
 
   {/*
     After Overclock. It runs to about eight screens of its own.
@@ -229,9 +225,6 @@ import Footer from '../components/layout/Footer.astro';
     z-index: 1;
   }
 
-  :global([data-project='overclock']) {
-    z-index: 3;
-  }
 
   /* THE LADDER, in one place, because it is one arrangement.
 
@@ -261,20 +254,6 @@ import Footer from '../components/layout/Footer.astro';
 
      The numbers themselves carry no meaning beyond their order. */
 
-  :global([data-project='overclock'][data-oc-join]) {
-    --oc-wipe: 0;
-    --oc-feather: 55%;
-    -webkit-mask-image: linear-gradient(
-      to top,
-      rgb(0 0 0 / 0) calc(var(--oc-wipe) * 1% - var(--oc-feather)),
-      rgb(0 0 0 / 1) calc(var(--oc-wipe) * 1%)
-    );
-    mask-image: linear-gradient(
-      to top,
-      rgb(0 0 0 / 0) calc(var(--oc-wipe) * 1% - var(--oc-feather)),
-      rgb(0 0 0 / 1) calc(var(--oc-wipe) * 1%)
-    );
-  }
 
   /* The scene's stylesheet is gone with the scene.
 
