@@ -2,551 +2,308 @@
 /**
  * Hero — first viewport.
  *
- * The artwork is a looping video (public/media/hero-video.*), not a still. It
- * replaces the pre-composited canopy/ground photo that used to sit here, so the
- * stage is landscape now rather than portrait — see .hero__stage.
+ * Two pictures, one behind the other: the inside of a train carriage in front,
+ * with its window cut clean out of the image, and the tree beyond it showing
+ * through the hole. The copy stands on the carriage.
  *
- * It plays itself: autoplay + muted + playsinline is the only combination every
- * browser lets start without a gesture, and the source is encoded without an
- * audio track so `muted` is a statement of fact rather than a mute button.
- * `loop` is what makes it continuous.
+ * Scrolled, and pinned while it is: the copy fades and lifts away first, then
+ * the carriage is zoomed about its own window until the frame has gone past
+ * every edge of the screen, while the tree behind it moves only 20%. That
+ * difference is the effect — two layers at two rates read as travelling
+ * through the window, where one layer zoomed would read as enlarging a
+ * photograph. Then the pin lets go and Our work comes up, its film growing from
+ * small on black as it always has. src/scripts/hero.ts.
  *
- * Motion lives in src/scripts/hero.ts, hooked on data-hero-* attributes.
+ * THE WINDOW is described below in the carriage image's own pixels. The script
+ * works out from those where the opening lands on any screen and how far the
+ * zoom has to go for the frame to clear it. When the real carriage replaces the
+ * placeholder, those four numbers and the image's size change with it and
+ * nothing else does.
  */
 interface Props {
-  /** Broken by hand, not by wrapping — the three lines are the composition. */
+  /** Broken by hand — the two lines are the composition. */
   lines?: string[];
+  /** The line under the headline, on the right. */
+  subLines?: string[];
   primaryLabel?: string;
   primaryHref?: string;
   ctaLabel?: string;
   ctaHref?: string;
-  /** The cue under the actions. */
   scrollLabel?: string;
-  /** What the full-bleed frame says once the reveal has finished. Rendered
-   *  with set:html so the phrase in the middle can carry weight. */
-  revealLines?: string[];
-  /** Extensionless base under /media — .avif and .webp are both requested. */
-  image?: string;
-  imageAlt?: string;
+  /** The carriage, extensionless under /media — .avif and .webp. */
+  train?: string;
+  trainWidth?: number;
+  trainHeight?: number;
+  /** The window opening in the carriage image, in its pixels: x, y, width, height. */
+  hole?: [number, number, number, number];
+  /** The view through it, extensionless under /media. */
+  tree?: string;
+  treeAlt?: string;
+  treeWidth?: number;
+  treeHeight?: number;
+  /** `object-position` for the view, to put the tree in the window. */
+  treeFocus?: string;
 }
 
 const {
-  lines = ['We design for', 'the learning', 'economy.'],
+  lines = ['We Design', 'Credibility'],
+  subLines = ['For learning', 'economy'],
   primaryLabel = 'Book a call',
   primaryHref = '/contact',
   ctaLabel = 'See the work',
   ctaHref = '/work',
   scrollLabel = 'Scroll down',
-  /* One sentence, broken where the frame breaks it. The middle phrase is the
-     one the headline above has already used, so it is the phrase that carries
-     weight here too. */
-  revealLines = [
-    'Tribe helps the <strong>learning</strong>',
-    '<strong>economy</strong> close the gap between',
-    'product and brand.',
-  ],
-  image = '/media/hero-tree',
-  imageAlt = 'A person reading under a broad tree on open grassland',
+  /* A PLACEHOLDER carriage, drawn to the reference's proportions with a real
+     transparent window, so the zoom can be built and measured before the
+     photograph exists. tools: image/hero/train-placeholder.png. */
+  train = '/media/hero-train',
+  trainWidth = 2400,
+  trainHeight = 1500,
+  hole = [535, 160, 1380, 890],
+  tree = '/media/hero-tree',
+  treeAlt = 'A person reading under a broad tree on open grassland, seen through a train window',
+  treeWidth = 2400,
+  treeHeight = 1606,
+  treeFocus = '50% 55%',
 } = Astro.props;
 ---
 
-<section class="hero" data-hero data-chapter-section="1" data-nav-section="Home" aria-labelledby="hero-title">
-  <div class="hero__texture" aria-hidden="true"></div>
+<section
+  class="hero"
+  data-hero
+  data-chapter-section="1"
+  data-nav-section="Home"
+  data-nav-over="dark"
+  aria-labelledby="hero-title"
+>
+  {/* The two pictures. The view first, so the carriage paints over it. */}
+  <div
+    class="hero__scene"
+    data-hero-scene
+    data-img-w={trainWidth}
+    data-img-h={trainHeight}
+    data-hole-x={hole[0]}
+    data-hole-y={hole[1]}
+    data-hole-w={hole[2]}
+    data-hole-h={hole[3]}
+  >
+    <picture class="hero__layer">
+      <source srcset={`${tree}.avif`} type="image/avif" />
+      <img
+        class="hero__img hero__img--tree"
+        data-hero-tree
+        src={`${tree}.webp`}
+        alt={treeAlt}
+        width={treeWidth}
+        height={treeHeight}
+        decoding="async"
+        fetchpriority="high"
+        style={`object-position:${treeFocus}`}
+      />
+    </picture>
 
-  {/* The drawn guides: two hairline verticals and one large circle. Purely
-      decorative, and early in the section so they paint under the artwork and
-      the copy without needing a z-index of their own. */}
-  <div class="hero__guides" aria-hidden="true">
+    <picture class="hero__layer">
+      <source srcset={`${train}.avif`} type="image/avif" />
+      <img
+        class="hero__img hero__img--train"
+        data-hero-train
+        src={`${train}.webp`}
+        alt=""
+        width={trainWidth}
+        height={trainHeight}
+        decoding="async"
+        fetchpriority="high"
+      />
+    </picture>
+  </div>
+
+  {/* The drawn guides: two hairline verticals and a large circle. They leave
+      with the copy. */}
+  <div class="hero__guides" data-hero-copy aria-hidden="true">
     <span class="hero__guide hero__guide--left"></span>
     <span class="hero__guide hero__guide--right"></span>
     <span class="hero__ring"></span>
-    <span class="hero__ring hero__ring--inner"></span>
   </div>
 
-  {/*
-    The artwork. One photograph, two shapes: a portrait window on the left
-    while the hero is at rest, and the whole viewport once the reveal has run.
+  <div class="hero__main">
+    <div class="hero__head" data-hero-copy>
+      {/* The two squares on the guides, level with the headline's first line. */}
+      <span class="hero__marker hero__marker--left" aria-hidden="true"></span>
+      <span class="hero__marker hero__marker--right" aria-hidden="true"></span>
 
-    It is a still, not a film. The looping video that used to be here had the
-    whole composition baked into it — the tree left, the clear ground right,
-    even the white squares along the bottom — so the frame only read correctly
-    at one size and the squares could not take part in anything. The still
-    carries the photograph and nothing else; the window and the squares belong
-    to the page, so both can move.
+      <h1 class="hero__title" id="hero-title">
+        {lines.map((line) => <span class="hero__line">{line}</span>)}
+      </h1>
 
-    Two layers, and the second one is the whole mechanism:
-
-      .hero__media   the photograph. Full-bleed, `cover`, and NEVER touched —
-                     no transform, no scale, no shift, at any point in the
-                     page's life. What you see in the small frame is the same
-                     pixels at the same size you will see when the frame is the
-                     whole screen; nothing about the picture changes, only how
-                     much of it is uncovered.
-
-      .hero__pixels  the mask, and it is made of squares. A field of tiles in
-                     the page's own ground colour covering the whole viewport,
-                     with the ones over the resting frame taken out from the
-                     start — so what the reader arrives on is a portrait box of
-                     photograph in a field of page. Scrolling takes the rest of
-                     the tiles away in random order, and that is the reveal: the
-                     picture is uncovered a square at a time.
-
-    There is deliberately no transition between a small frame and a large one.
-    An earlier cut animated a `clip-path` window across the screen and scaled
-    the photograph inside it, which is a different idea — the frame travelling
-    and growing. This one has no travel and no growth: one photograph, fixed,
-    and a mask that dissolves.
-  */}
-  <figure class="hero__stage" data-hero-stage>
-    {/*
-      Nested on purpose. .hero__stage carries the scroll-driven scale (it
-      has to — pointer parallax also translates it). Hover needs its own
-      scale, on its own element, or the two tweens would fight over the
-      same property on the same target.
-    */}
-    <div class="hero__zoom" data-hero-zoom>
-      <div class="hero__base" data-hero-base>
-        <picture>
-          <source srcset={`${image}.avif`} type="image/avif" />
-          <img
-            class="hero__media"
-            data-hero-media
-            src={`${image}.webp`}
-            alt={imageAlt}
-            width="2878"
-            height="1926"
-            decoding="async"
-            fetchpriority="high"
-          />
-        </picture>
-      </div>
-
-      {/* Built by src/scripts/hero.ts, which needs the viewport to know how
-          many. Empty here so there is nothing to clear up first, and inert:
-          the squares are the artwork's edge, not a control. */}
-      <div class="hero__pixels" data-hero-pixels aria-hidden="true"></div>
-
-      {/* Two darkenings, and they are different jobs.
-
-          The veil is a thin wash over the finished photograph — it arrives with
-          the last of the tiles and stays for the hold. White type on a bright
-          sky is the reason: the sentence sits over the top third of the frame,
-          which is the brightest part of it.
-
-          The fall is the way out. Black, rising from the foot of the screen
-          across the hold, until the whole frame is under it — so the section
-          that follows can begin on black without a cut between them. */}
-      <div class="hero__veil" data-hero-veil aria-hidden="true"></div>
-      <div class="hero__fall" data-hero-fall aria-hidden="true"></div>
-    </div>
-  </figure>
-
-  {/* What the full frame says. In the markup rather than written in by the
-      script, so it is real text in the document at every moment — the script
-      only ever changes how it is drawn. Out of the accessibility tree until
-      the reveal brings it in. */}
-  <p class="hero__reveal" data-hero-reveal aria-hidden="true">
-    {revealLines.map((line) => (
-      <span class="hero__reveal-line" data-hero-reveal-line>
-        <Fragment set:html={line} />
-      </span>
-    ))}
-  </p>
-
-  <div class="hero__grid u-container">
-    <!-- The headline and who it is for at the top, the pitch and the two ways
-         in at the bottom. The gap between them is the column, not a margin —
-         see .hero__lede's margin-top: auto. -->
-    <div class="hero__col hero__col--text">
-      <span class="hero__gap hero__gap--lead" aria-hidden="true"></span>
-
-      <div class="hero__head">
-        <h1 class="hero__title" id="hero-title" data-hero-title>
-          {lines.map((line) => <span class="hero__line">{line}</span>)}
-        </h1>
-      </div>
-
-      {/* The spacing around and inside the copy, as boxes rather than margins.
-          All three are elastic: see .hero__gap. */}
-      <span class="hero__gap hero__gap--mid" aria-hidden="true"></span>
-
-      <div class="hero__lede">
-        {/* The tagline and the pitch paragraph that used to stand here are
-            gone. The reference sets this column as a headline and two ways in
-            and nothing else, and the sentence they carried is the one the
-            full-bleed frame says a scroll later — kept once rather than
-            twice. */}
-        <div class="hero__actions" data-hero-aside-item>
-          <a class="btn" href={primaryHref} data-magnetic="0.2">
-            <span class="btn__fill" aria-hidden="true"></span>
-            <span class="btn__label" data-magnetic-inner>{primaryLabel}</span>
-          </a>
-
-          <a class="btn btn--ghost" href={ctaHref} data-magnetic="0.2">
-            <span class="btn__fill" aria-hidden="true"></span>
-            <span class="btn__label" data-magnetic-inner>{ctaLabel}</span>
-          </a>
-        </div>
-      </div>
-
-      {/* The cue. Under the actions and quiet, because it only says what the
-          page already wants — the rest of this section is a scroll away. */}
-      <p class="hero__scroll" data-hero-aside-item>
-        <span class="hero__scroll-mouse" aria-hidden="true">
-          <span class="hero__scroll-wheel"></span>
-        </span>
-        <span class="hero__scroll-label">{scrollLabel}</span>
+      <p class="hero__sub">
+        {subLines.map((line) => <span class="hero__line">{line}</span>)}
       </p>
+    </div>
 
-      <span class="hero__gap hero__gap--foot" aria-hidden="true"></span>
+    <div class="hero__actions" data-hero-copy>
+      <a class="hero__btn" href={primaryHref} data-magnetic="0.2">
+        <span class="hero__btn-fill" aria-hidden="true"></span>
+        <span class="hero__btn-label" data-magnetic-inner>{primaryLabel}</span>
+      </a>
+
+      <a class="hero__btn hero__btn--ghost" href={ctaHref} data-magnetic="0.2">
+        <span class="hero__btn-fill" aria-hidden="true"></span>
+        <span class="hero__btn-label" data-magnetic-inner>{ctaLabel}</span>
+      </a>
     </div>
   </div>
+
+  <p class="hero__scroll" data-hero-copy>
+    <span class="hero__scroll-mouse" aria-hidden="true">
+      <span class="hero__scroll-wheel"></span>
+    </span>
+    <span class="hero__scroll-label">{scrollLabel}</span>
+  </p>
 </section>
 
 <style>
   .hero {
-    /* Above the section that follows it, and that is what makes the overhang
-       mean anything.
+    /* The page's measurements, all read off the reference frame as shares of
+       its width: the copy's left edge, the guides' inset, and where the line
+       under the headline starts. */
+    --hero-left: 9.2vw;
+    --hero-guide-inset: 5.6vw;
+    --hero-sub-left: 57.2vw;
 
-       The picture runs past the foot of this section on purpose — that strip
-       is where the gradient lives — but a strip hanging out of a box still
-       obeys paint order, and the next section is later in the document. So
-       Overclock was drawn straight over the last 64 pixels of the photograph:
-       the grass, and the base of the tree. What looked like the image being
-       cropped was the next section's top edge sitting on top of it.
-
-       One line, and it only has to out-rank what comes immediately after —
-       this section is scrolled off the screen long before anything else on
-       the page is reached. */
+    /* Top of the page's paint ladder — see the note in index.astro. It only has
+       to out-rank Our work, which comes up under it when the pin lets go. */
     position: relative;
-    /* Top of the page's paint ladder — see the note in index.astro, which sets
-       the rest of it. Every chapter has to out-rank the one after it for as
-       long as its own handover lasts, and document order gives the opposite;
-       this one only has to out-rank Overclock, which it overhangs by the tail
-       of its own gradient. */
     z-index: 4;
-
-    /* Two rectangles, and they are different kinds of thing.
-
-       --hero-frame-* is the RESTING FRAME: the box of photograph the reader
-       arrives on. A size in pixels rather than insets into the stage, because
-       it is a drawn rectangle and a drawn rectangle has a size — stated as
-       fractions it changed shape at every window, which is not what a
-       composition does. Only its left edge is a fraction, since where the box
-       sits across the page does follow the page; it is vertically centred,
-       and the copy has the right of the screen.
-
-       --hero-subject-* is THE SUBJECT: where the tree and the person are
-       inside the PHOTOGRAPH, as insets into the image. Stated against the
-       picture and not the screen because it is a fact about the picture.
-
-       The script fits the second into the first: it works out the scale and
-       offset that put the subject inside the frame, and that is the
-       photograph's resting transform. So the frame can move and the subject
-       follows it, at any viewport, with nothing hand-matched — which is what
-       "flexible" has to mean here. Neither number knows about the other; the
-       arithmetic between them lives in one place, in hero.ts. */
-    /* 496 x 649 at 1440 wide, and proportional to the screen from there — so
-       a broader window gets a broader frame rather than the same rectangle
-       stranded in the middle of more page. Written as the ratio those two
-       numbers are of 1440 (34.44% and 45.07%) rather than as the pixels, so
-       the pair cannot drift apart when one is edited.
-
-       The height follows the WIDTH, not the height of the window. It is a
-       drawn rectangle with a shape, and tying its two sides to two different
-       axes is what makes a shape stop being one — on a short wide screen it
-       would flatten. What stops it running off a short screen is the clamp in
-       hero.ts, which caps it against the stage. */
-    /* Fractions of the stage's WIDTH, not lengths.
-
-       They read like percentages because that is what they are: 496 and 649
-       against a 1440 screen. Stated as `vw` first and that was wrong in a way
-       worth recording — a custom property is not resolved to pixels unless it
-       has been registered, so `getPropertyValue` handed the script the string
-       "34.444vw" and `parseFloat` took the 34 and threw the unit away. The
-       frame came out 34 pixels wide, which is one tile. Plain numbers cannot
-       be misread that way: the script multiplies, and there is no unit to
-       lose. */
-    --hero-frame-w: 0.3;
-    --hero-frame-h: 0.39;
-    --hero-frame-l: 0.17;
-    /* How far below the middle the box sits, as a share of the stage.
-
-       Centred exactly, a frame this size still puts its top edge close to the
-       nav — and the nav is a floating pill, so "close" reads as the artwork
-       running into it rather than as two things sharing a screen. Dropped, the
-       gap above is clearly bigger than the pill and the box is unmistakably
-       below it. The clamp in hero.ts is what stops this pushing the foot off a
-       short screen. */
-    --hero-frame-drop: 0.05;
-
-    --hero-subject-l: 0.25;
-    --hero-subject-r: 0.24;
-    --hero-subject-t: 0.17;
-    --hero-subject-b: 0.1;
-
-    /* Air above the copy, on top of the nav's own band. Roughly a third of what
-       it was: with the artwork no longer a column beside the type but the
-       section's ground, this padding was the only thing holding the headline
-       down, and it sat a good 50px lower than the composition wanted. */
-    --hero-pad-top: clamp(0.5rem, 1.1vw, 1.5rem);
-
-    /* Where the copy starts. The hero's own top padding restated as a value
-       rather than only applied as one, so anything that has to line up with
-       the copy can read the same number instead of a hand-matched copy. */
-    --hero-media-top: calc(var(--nav-height) + var(--hero-pad-top));
-
-    /* The artwork's own size and placement variables used to live here — a
-       scale, a two-axis offset and a left-edge feather, all of them tuning how
-       a `contain`ed video sat inside its box. Every one is gone with that
-       video: the photograph is `cover`, full-bleed, and never transformed, so
-       there is nothing left to place. See .hero__media. */
-
-    /* The copy's own shift, left of where the grid puts it. Deepened from
-       -28px: the artwork moved right when the resting frame did, and the
-       column stayed where it was — so the gap between the two closed and the
-       headline lost the air on its left that the composition is built on. */
-    --hero-copy-x: -72px;
-    /* Was 38px, a downward nudge against the film. It is 0 because the copy is
-       centred vertically now, and a nudge is the one thing that cannot survive
-       that: it moves the block off the middle by its own value and doubles
-       into the difference between the space above the headline and the space
-       below the buttons. Kept as a declared 0 rather than deleted — it is read
-       inside a `var()` below, and an undeclared one invalidates the whole
-       declaration. */
-    --hero-copy-y: 0px;
-
-
-    position: relative;
-    /* The video's own white, so its edge does not draw a box — see
-       --color-bg-hero. */
-    background: var(--color-bg-hero);
-    /* Exactly one viewport. The scroll scene depends on this: a scene shorter
-       than the viewport makes the end of the pin unreachable. Room for the
-       overlaid nav is reserved with padding instead of layout height. */
+    /* Exactly one viewport: the pin holds this box, and a hero taller than the
+       screen would have its foot cut off for the whole of the zoom. */
     height: 100svh;
     min-height: 34rem;
-    /* The same inset top and bottom, and the symmetry is the point: the copy
-       centres itself inside this box, so the box has to be centred in the
-       section or the copy is not. The top inset clears the nav and the bottom
-       had nothing to answer it — measured at 1440x900 that put 287px above the
-       headline against 116px under the buttons, which reads as copy sitting on
-       the floor rather than as a centred block.
-
-       It costs height, and on a short screen that comes out of the elastic gaps
-       rather than out of the copy: they collapse before anything is pushed
-       past the fold. */
-    padding-block: calc(var(--nav-height) + var(--hero-pad-top));
+    overflow: hidden;
+    /* What shows for the moment before the carriage has decoded — its own
+       near-black, so there is no flash of white. */
+    background: #0b0907;
+    color: var(--color-ink-invert);
   }
 
-  /* --- Drawn guides ---------------------------------------------------------
-     Two verticals and a circle, all hairlines, all taken off the reference
-     frame rather than placed by eye.
-
-     The circle was solved, not guessed. Its arc crosses the top edge of the
-     frame at 215 and 1065 and the bottom edge at 95 and 1185, of a 1282x743
-     view — four points, which is more than enough to pin a circle down. Half
-     widths of 425 at the top and 545 at the bottom put its centre below the
-     middle:
-
-       r^2 - cy^2 = 425^2     and     r^2 - (H - cy)^2 = 545^2
-       -> cy = 450 (60.5% of the height), r = 619 (48.27% of the width)
-
-     Both crossings reproduce exactly from those two numbers, so what is below
-     is the frame's geometry rather than an impression of it.
-
-     The diameter is a percentage of the width and `aspect-ratio` supplies the
-     height, so the ring scales with the viewport and stays a circle rather
-     than becoming an ellipse on a short window.
-
-     The verticals measured 10.76% in on the left and 11.39% on the right — one
-     symmetric inset read twice with a few pixels of error either way. 11% is
-     the mean, used on both sides.
-
-     Desktop only, at the same 1200px the two-column hero itself needs. Below
-     it the section is one column with the video behind the copy, and a circle
-     wider than the screen with two rules through it is noise rather than
-     structure. */
-  .hero__guides {
-    display: none;
-  }
-
-  @media (min-width: 1200px) {
-    /* Gone from the wide layout. It was a faint pixel grid masked to the
-       right-hand side, and with the drawn guides above now carrying that side
-       of the composition the two were competing for the same empty space. It
-       stays below 1200px, where there are no guides. */
-    .hero__texture {
-      display: none;
-    }
-
-    .hero__guides {
-      position: absolute;
-      inset: 0;
-      display: block;
-      overflow: hidden;
-      pointer-events: none;
-      /* How far in the two verticals sit. Named because the inner circle is
-         derived from it — see .hero__ring--inner — so the two cannot drift
-         apart if this is ever retuned. */
-      --hero-guide-inset: 11%;
-      /* Over the artwork, under the copy. The stage is z-index 0 and these
-         come before it in the document, so with no z-index of their own they
-         painted underneath and the video's frame cut both circles wherever it
-         overlapped them. 1 puts them across the film; the copy column is 2 and
-         still sits on top of everything. They take no pointer events, so
-         nothing about what is clickable changes. */
-      z-index: 1;
-    }
-
-    .hero__guide,
-    .hero__ring {
-      position: absolute;
-      /* Faint enough to read as paper rather than as drawn lines, and a fifth
-         stronger than the 0.07 it started at — at that value the arcs were
-         only really there on a good screen. */
-      border-color: rgb(10 10 10 / 0.085);
-      border-style: solid;
-    }
-
-    .hero__guide {
-      top: 0;
-      bottom: 0;
-      border-width: 0 0 0 1px;
-    }
-
-    .hero__guide--left {
-      left: var(--hero-guide-inset);
-    }
-
-    .hero__guide--right {
-      right: var(--hero-guide-inset);
-    }
-
-    /* Two of them, concentric. The outer one is the circle solved from the
-       frame; the inner is sized to meet the verticals, which is the only
-       number it needs — everything else it shares. */
-    .hero__ring {
-      --hero-ring-d: 96.27%;
-
-      left: 50%;
-      top: 60.5%;
-      width: var(--hero-ring-d);
-      aspect-ratio: 1;
-      translate: -50% -50%;
-      border-width: 1px;
-      border-radius: 50%;
-    }
-
-    /* Tangent to the two verticals rather than a fraction of the outer ring.
-       Centred at 50%, a circle touches a line 11% in from the edge when its
-       radius is the 39% between them — so its diameter is the width less both
-       insets. Written that way rather than as the 78% it works out to, so it
-       stays touching if --hero-guide-inset ever moves. */
-    .hero__ring--inner {
-      --hero-ring-d: calc(100% - 2 * var(--hero-guide-inset));
-    }
-  }
-
-  /* Faint pixel field behind the copy, masked so it only ever sits on the
-     right-hand side — the same technique as .showcase__texture and
-     .two__texture, so the three read as one motif rather than three. */
-  .hero__texture {
+  /* =====================================================================
+     The two pictures
+     ===================================================================== */
+  .hero__scene,
+  .hero__layer {
     position: absolute;
     inset: 0;
-    background-image:
-      repeating-linear-gradient(90deg, rgb(0 0 0 / 0.018) 0 3.5rem, transparent 3.5rem 7rem),
-      repeating-linear-gradient(0deg, rgb(0 0 0 / 0.018) 0 3.5rem, transparent 3.5rem 7rem);
-    mask-image: radial-gradient(46% 52% at 82% 44%, #000 0%, transparent 74%);
+  }
+
+  .hero__layer {
+    display: block;
+  }
+
+  /* Both full-bleed and `cover`. The carriage is also `center`, and the script
+     depends on that: it reproduces exactly this fit to find where the window
+     opening lands on the screen. */
+  .hero__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    will-change: transform;
+  }
+
+  /* =====================================================================
+     The guides and the markers
+     ===================================================================== */
+  .hero__guides {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
     pointer-events: none;
   }
 
-  /* One column, on the right. The artwork is no longer a column beside it —
-     it is the section's ground — so the grid's only job is to hold the copy
-     where the video leaves room for it. The empty first track is that room:
-     it is what keeps the copy off the tree at every width, and it is sized in
-     the same 1.55 : 1 proportion the two columns used to share. */
-  .hero__grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-    gap: clamp(1.5rem, 4vw, 5.5rem);
-    align-items: stretch;
-    height: 100%;
+  .hero__guide,
+  .hero__ring {
+    position: absolute;
+    border: 0 solid rgb(255 255 255 / 0.14);
   }
 
-  .hero__col--text {
-    grid-column: 2;
+  .hero__guide {
+    top: 0;
+    bottom: 0;
+    border-left-width: 1px;
   }
 
-  .hero__col {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
+  .hero__guide--left {
+    left: var(--hero-guide-inset);
   }
 
-  /* Type sits above the artwork — the canopy reaches into the copy's column. */
-  .hero__col--text {
-    position: relative;
+  .hero__guide--right {
+    right: var(--hero-guide-inset);
+  }
+
+  /* One circle across the frame, a little below the middle, as in the
+     reference: its arcs cross the carriage on either side of the window. */
+  .hero__ring {
+    top: 62%;
+    left: 50%;
+    width: 96%;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border-width: 1px;
+    border-radius: 50%;
+  }
+
+  /* On the guides, level with the headline's first line. Positioned from the
+     headline's own box, so they stay level with it wherever it lands. */
+  .hero__marker {
+    position: absolute;
+    top: 0.18em;
+    width: 9px;
+    height: 9px;
+    background: #ffffff;
+    font-size: var(--hero-title-size);
+  }
+
+  .hero__marker--left {
+    left: calc(var(--hero-guide-inset) - var(--hero-left) - 4px);
+  }
+
+  .hero__marker--right {
+    left: calc(100vw - var(--hero-guide-inset) - var(--hero-left) - 5px);
+  }
+
+  /* =====================================================================
+     The copy
+     ===================================================================== */
+
+  /* The headline and the buttons as one column anchored to the foot of the
+     screen, with the gap between them fixed — so on a short window the whole
+     block moves up together rather than the headline being left to run into
+     the buttons. */
+  .hero__main {
+    --hero-title-size: clamp(2.5rem, 7vw, 7.5rem);
+
+    position: absolute;
+    left: var(--hero-left);
+    bottom: 6.9%;
     z-index: 2;
-    /* Its own pair — see the note at the top of this file. Applied to the
-       column and not to the grid track, so the track keeps its measure and the
-       headline still breaks where it was set to.
-
-       `left`/`top` on an already-relative box, not a transform, and that is
-       load-bearing. hero.ts animates this column out of the scene with a `y`
-       tween; GSAP writes that as an inline `transform`, having first read the
-       CSS one and folded it in. An inline style beats the `transform: none`
-       the narrow layout relies on, so the desktop offset survived every
-       resize — drag a wide window down to a phone and the copy stayed 28px
-       left, clipped against the gutter, until the page was reloaded. It looked
-       right after a reload only because GSAP reads `none` at that width and
-       writes x: 0.
-
-       Moving it to the `translate` property does not help: GSAP nulls the
-       independent transform properties on anything it animates, writing
-       `translate: none; rotate: none; scale: none` alongside its own
-       `transform`. `left`/`top` are the only offsets here it has no reason to
-       touch, and on a relative box they move the paint without moving the
-       flow — so the animation composes over them instead of replacing them. */
-    left: var(--hero-copy-x);
-    top: var(--hero-copy-y);
-  }
-
-  /* --- Headline -----------------------------------------------------------
-     Sized so the longest line — "Credibility" — fits its column at every
-     width, because it may not wrap and it may not be cut.
-
-     Both of those are load-bearing: the three lines are broken by hand, so
-     `white-space: nowrap` is what keeps the composition, and hero.ts splits
-     this into masked lines for the intro, which means every line sits in an
-     overflow:hidden box. A line wider than the column is therefore silently
-     sliced rather than wrapped — which is what the old headline was doing to
-     "for" before it was resized.
-
-     The copy column is the 1fr of `1.55fr 1fr` inside the container, and this
-     face sets "Credibility" at about 4.7 × its font size. 5vw leaves roughly
-     a third of the column spare at every width, and the 6rem cap is the same
-     slack once the container stops growing at 1920. */
-  .hero__head {
     display: flex;
     flex-direction: column;
-    gap: clamp(0.5rem, 0.9vw, 0.75rem);
+    align-items: flex-start;
+    gap: clamp(2.5rem, 14svh, 8rem);
+  }
+
+  .hero__head {
+    position: relative;
   }
 
   .hero__title {
-    /* 16px down from where this sat: 5vw put it at 72px on a 1440 screen and
-       it is 56px there now. The clamp is scaled by the same ratio rather than
-       having 16px taken off each end — a fixed subtraction changes the
-       headline by a different proportion at every width, which is how a type
-       scale stops being one. */
-    font-size: clamp(1.75rem, 3.9vw, 4.6875rem);
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--hero-title-size);
     font-weight: 400;
-    line-height: var(--leading-display);
-    letter-spacing: -0.025em;
-    /* None on the desktop row. --hero-pad-top above is the air over the
-       headline, and a second helping here was the other half of why it sat
-       low. The phone rule further down keeps its own. */
-    padding-top: 0;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
   }
 
   .hero__line {
@@ -554,480 +311,111 @@ const {
     white-space: nowrap;
   }
 
-  /* --- Lede ----------------------------------------------------------------
-     The pitch and the two ways in, pushed to the foot of the column by the
-     auto margin rather than by a fixed offset — so the space between it and
-     the headline is whatever the viewport has left, at any height. */
-  /* Pushed to the foot of the column by the auto margin, and then held well
-     clear of it by the bottom one — which is the knob that decides how high
-     this block sits, since nothing under it is fixed. It was 44px, which put
-     the pitch and the buttons in the section's bottom corner with about 195px
-     of empty column standing between them and the tagline. */
-  .hero__lede {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1rem, 1.6vw, 1.5rem);
-  }
-
-  /* The spacing around and inside the copy: above the headline, between it and
-     the pitch, and under the buttons. Three boxes rather than three margins.
-
-     The spacing was margins first, and went through three tries. `auto` read
-     well at the height it was designed against and nowhere else — on a
-     1061x1285 tablet it opened to roughly 750px, the headline at the top of the
-     screen and the buttons at the bottom with nothing between them. A 29svh
-     clamp fixed that end and broke the other: the scene pins this section at
-     exactly one viewport, so on a short screen the buttons it pushed past the
-     bottom edge were cut off rather than scrolled to. Subtracting a fixed 32rem
-     from the viewport height covered the short case only as long as the copy
-     was the height it was on the screen I measured — at 1263 wide the headline
-     takes a third line and the same subtraction is 70px short.
-
-     The mistake in all three is that a margin is written in advance, and how
-     much room is left is not knowable in advance: it depends on where the
-     headline wraps, and that depends on the width. So the space is a box now,
-     and it measures itself.
-
-     Growing into the free space takes what the column has and nothing more, so
-     it cannot overflow — when the copy fills the column there is none to take
-     and these collapse to nothing. Each cap is the other end, holding a gap at
-     its designed size instead of letting it run on a tall screen. No viewport
-     maths, and no breakpoint.
-
-     All three are grow-only, and none has a height of its own. That part is
-     deliberate: the column's grid row is content sized, so it grows with what
-     is in it and there is never negative free space for flex-shrink to work
-     on. A height here would be a height everywhere, overflow included — an
-     earlier version gave the foot gap `height: clamp(2.5rem, 7.5vw, 7.5rem)`
-     and at 1263x480 it sat at its full 95px while the buttons hung 53px past
-     the bottom edge. Written as a cap on space it can only claim, it lets go
-     by itself.
-
-     Together they are also what centres the copy. The lead and foot gaps grow
-     at the same rate and have no cap, so whatever is left after the middle gap
-     reaches its own is split evenly above and below — the block sits in the
-     middle of the column without `justify-content: center`, which centres by
-     overflowing equally in both directions and would push the headline up
-     under the nav on a short screen. These cannot overflow at all. */
-  .hero__gap {
-    flex: 1 1 0;
-    min-height: 0;
-  }
-
-  /* Capped, because this one is a step inside the copy rather than air around
-     it: uncapped it takes a third of the column on a tall screen and the pitch
-     drifts away from the headline it belongs to. Everything it cannot use goes
-     to the two outside gaps, which is what keeps the block centred rather than
-     bottom heavy — the whole free space used to land here, and the copy sat on
-     the floor of the section with the headline stranded at the ceiling. */
-  .hero__gap--mid {
-    /* The floor is this one's alone. The outside gaps are air and may go to
-       nothing, but this is the space between two pieces of copy: at 1263x560
-       the column ran out, all three collapsed together, and the pitch came to
-       rest against the line above it. */
-    min-height: 1.25rem;
-    max-height: clamp(2rem, 7vh, 5.5rem);
+  /* Hangs off the foot of the headline, on the right of the frame — the
+     reference starts it just under the headline's last line. */
+  .hero__sub {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: calc(var(--hero-sub-left) - var(--hero-left));
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.25rem, 2.8vw, 3.25rem);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: rgb(255 255 255 / 0.75);
   }
 
   .hero__actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 1.25rem;
   }
 
-  /* --- Media ---------------------------------------------------------------
-     The section's ground, covering the whole viewport behind everything else.
-     It used to be a column in the grid, which cropped a composition cut for
-     the full frame down to half the width. */
-  /* Pinned to the foot of the section rather than filling it, and shorter than
-     it by --hero-media-h. Two things come out of that:
-
-     the frame gets smaller, because `contain` fits it to this box and the box
-     is no longer the whole screen; and it stands *on* the section's bottom
-     edge, which is what stops the grass reading as cut off. Filling the height,
-     the artwork ran to the bottom of the window with nothing under it, so the
-     edge of the video and the edge of the screen were the same line and the
-     picture looked sliced by it rather than seated on it. */
-  .hero__stage {
-    position: absolute;
-    /* Top levelled with the headline, foot on the section's own — so the box
-       is everything below the line "We" starts on, and the frame is as large
-       as that leaves room for. Its width follows, since `contain` keeps the
-       ratio.
-
-       A share of the height (78%) came first and was the wrong control: it set
-       the artwork's size directly and let the top edge land wherever that
-       worked out, which was a good 70px below the headline. Stated as two
-       edges instead, the size is a result and the alignment is the rule. */
-    /* Full height, not levelled with the headline. The inset used to start
-       this box at --hero-media-top so its top edge lined up with the line "We"
-       starts on. That cost the artwork size for an alignment nobody can see:
-       the frame is `contain`ed and seated on the box's floor, so the empty
-       band the inset created was simply video-white above the composition —
-       the same colour as the section. Removing it lets `contain` fit a frame
-       bound by the width instead of the height, which is the larger of the
-       two. The artwork does not move; only its size changes. */
-    inset: 0;
-    z-index: 0;
-    width: 100%;
-    height: auto;
-    margin: 0;
-    /* Pointer parallax is applied here. */
-    will-change: transform;
-  }
-
-  /* Same box as .hero__stage (inset: 0 inside a sized, positioned parent), so
-     inserting it changes nothing about where .hero__base ends up — it only
-     gives the hover zoom a scale target of its own, independent from the
-     scroll-driven scale on .hero__stage. */
-  .hero__zoom {
-    position: absolute;
-    inset: 0;
-    transform-origin: 50% 50%;
-    will-change: transform;
-  }
-
-  /* --- Held back until the frame has been worked out ------------------------
-     What the reader saw on every reload was the photograph at its own full
-     size, filling the window, and then it snapped into the small frame on the
-     left. That is not an animation going wrong — it is the picture being
-     painted before the script that frames it has run. The <img> is eager and
-     high priority, so it arrives early on purpose; the resting frame is
-     measured, so it cannot be stated in CSS ahead of the measurement.
-
-     So the artwork waits. `initHeroReveal` measures and renders the first frame
-     synchronously, and `initHero` sets `data-hero-ready` straight after —
-     unconditionally, including on the paths where the reveal bails out early,
-     because a flag that can fail to arrive is an artwork that can stay hidden
-     for good. What shows in the meantime is the section's own ground, which is
-     the colour the hero is anyway.
-
-     Gated on the JS flag, so a page without the script never hides its own
-     picture waiting for something that is not coming. */
-  :global(html[data-js='true']) .hero__zoom {
-    opacity: 0;
-  }
-
-  :global(html[data-js='true']) .hero[data-hero-ready] .hero__zoom {
-    opacity: 1;
-    /* Short, and an arrival rather than a fade: the copy over it is already
-       brought in on its own clock, so a picture that took its time here would
-       be the second thing the reader waits for. */
-    transition: opacity 0.3s var(--ease-out-expo, ease-out);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) .hero[data-hero-ready] .hero__zoom {
-      transition: none;
-    }
-  }
-
-  /* Full width, and the picture's own height at that width — 1.494 : 1, so on
-     any window wider than it is tall the box runs past the bottom of the
-     screen. That overhang is the point: it is where the gradient stacks, and
-     it is why nothing is cropped off the foot of the photograph. Anchored to
-     the top rather than inset on all four sides, since it is the bottom that
-     is meant to overflow. */
-  .hero__base {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    /* Never shorter than the screen: on a narrow window the picture's own
-       height at full width falls below the viewport, and a media box that
-       stops short of the fold is a band of page under the artwork. There the
-       `cover` on the image crops it instead, which is the right trade at a
-       width where there was never room for an overhang. */
-    /* Against the stage's own height — `100%` — and NOT against `100svh`.
-
-       They are not the same number once the section is pinned: ScrollTrigger
-       puts an explicit height on the element it pins, and `svh` goes on
-       reporting the browser's small-viewport height. Measured, the hero was
-       1000px tall while `svh` said 900, so a box sized to `svh` came out
-       964 — thirty-six pixels short of the bottom of the screen, and that gap
-       was a band of page under the photograph exactly where the picture was
-       supposed to be running out. `100%` is whatever the section actually is,
-       pinned or not. */
-    height: max(100%, calc(100vw / 1.494));
-  }
-
-  /* The photograph. Full-bleed and `cover` — the size it ends at.
-
-     It does not stay that size. The script gives it a resting transform that
-     shrinks it and moves it left, so that the tree and the person land inside
-     the resting frame whole; scrolling runs that transform back to nothing,
-     which is the picture arriving at the size the stylesheet already gives it
-     here. So `cover` is the destination, and the transform is how far from it
-     the picture currently is.
-
-     No `object-position` offset, though. Where the picture sits at rest is the
-     transform's business, and two mechanisms moving the same image is how they
-     end up fighting.
-
-     `cover`, and the trade it makes is the deliberate one.
-
-     The choice is forced by the shapes: the photograph is 1.49 wide to tall
-     and a screen is wider than that, so one of the two axes has to give.
-     `contain` gives the width — the picture is whole but stands in the middle
-     of the page with a margin down each side, which at 1440 was about 47px and
-     on a broad monitor is far more. `cover` gives the height — the picture
-     runs edge to edge and loses a band off the top and the bottom.
-
-     This is `cover` because the frame is the point: a photograph inset from
-     both sides reads as a picture placed on a page, and what the reveal has
-     been building to is the picture BEING the page.
-
-     `object-position: center`, so what it loses it loses evenly. That is the
-     whole of the protection here — the crop is symmetric, so the tree stays on
-     its own axis and the horizon stays where the composition put it. The band
-     is real and it grows with the screen's width: at 1440x900 it is about 32px
-     off each end, and on a 1920x940 screen nearer 170px. */
-  .hero__media {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    transform-origin: 50% 50%;
-    will-change: transform;
-  }
-
-  /* --- The field -----------------------------------------------------------
-     One grid over the whole stage, sized and filled by src/scripts/hero.ts.
-
-     This is the mask, not an effect over one. Every tile is opaque at rest
-     except the block of them standing over the resting frame, which is what
-     makes that frame: a rectangle of photograph in a field of page colour. The
-     scroll takes the rest away in random order.
-
-     The hole is cut by the script rather than stated here, because which tiles
-     fall inside it depends on how many tiles there are, which depends on the
-     viewport. --hero-frame-* above is the rectangle it cuts.
-
-     The hole's edge is deliberately ragged. A clean rectangle of missing tiles
-     reads as a box that happens to be drawn in squares; squares stepping in and
-     out of the edge read as the picture having been cut out of the page, which
-     is the reference's own detail and the reason the field is made of elements
-     at all.
-
-     Painted in the hero's own ground, so a square over the photograph reads as
-     a hole in it rather than as a white tile on top of it. */
-  .hero__pixels {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    grid-template-columns: repeat(var(--px-cols, 1), var(--px-size, 40px));
-    grid-auto-rows: var(--px-size, 40px);
-    pointer-events: none;
-    /* Clipped, and it has to be. The field is whole tiles and the frame is
-       whatever the window happens to be, so the last column and the last row
-       almost always overrun — measured at 1440x900, a 42-column grid of 36px
-       tiles is 1512 wide against a 1440 frame. Unclipped that is 72px of
-       document nobody can see and everybody can scroll to: the page had a
-       horizontal scrollbar from the hero all the way to the footer.
-
-       `clip` rather than `hidden`. They cut the same, but `hidden` makes this a
-       scroll container, and a scroll container is the box any sticky descendant
-       sticks inside — the mistake this page has already made twice. There are
-       none in here today; `clip` means there is nothing to find out the hard
-       way if one ever arrives. */
-    overflow: clip;
-  }
-
-  /* A pixel over its grid cell, and then a little more.
-
-     The extra pixel is the whole reason this rule is not just `100%`. A tile
-     lands wherever the grid's fractional track puts it, so two neighbours meet
-     on a boundary that is rarely a whole device pixel — and the browser leaves
-     a hairline of whatever is behind them showing through. Across a field this
-     is not one seam, it is a drawn grid over the artwork: the photograph's sky
-     comes through every vertical and every horizontal.
-
-     Overlapping by a pixel closes them. Done with the box's own size rather
-     than a `box-shadow` spread or an `outline` of the same colour, both of
-     which paint a second surface per tile — over a thousand of them, on every
-     frame of a scrubbed reveal.
-
-     `will-change` is deliberately absent: the tiles only ever change opacity,
-     and promoting a thousand of them to their own layers costs far more than
-     it saves. */
-  .hero__pixels :global(span) {
-    display: block;
-    width: calc(100% + 1px);
-    height: calc(100% + 1px);
-    background: var(--color-bg-hero);
-    opacity: 0;
-  }
-
-  /* --- The two darkenings -------------------------------------------------
-     Both cover the stage and neither takes the pointer. Under the sentence in
-     paint order — .hero__reveal carries z-index 2 — so what they darken is the
-     photograph and never the words on it. */
-  .hero__veil,
-  .hero__fall {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    opacity: 0;
-  }
-
-  /* The stage stops clipping, so the strip of photograph below the fold — and
-     the gradient stacked under it — are there to be scrolled to rather than
-     cut off at the window's edge. */
-  .hero__stage {
-    overflow: visible;
-  }
-
-  /* Thin. 20% is enough to hold white type against the sky and little enough
-     that the photograph is not visibly dimmed — the picture is the point of
-     the reveal, and a scrim heavy enough to be comfortable is a scrim heavy
-     enough to be seen. */
-  .hero__veil {
-    background: rgb(0 0 0 / 0.2);
-    /* The photograph's height, not the stage's.
-
-       `inset: 0` gave it the section's 900px while the picture runs to 964, so
-       the last strip of photograph was the only part of it never darkened —
-       and the veil's own bottom edge drew a line straight across the image
-       where the two stopped agreeing. It has to cover exactly what it is
-       tinting, which is the picture, so it is sized from the same expression
-       .hero__base is. */
-    bottom: auto;
-    height: max(100%, calc(100vw / 1.494));
-  }
-
-  /* And the fall, which is not a curtain and is not animated.
-
-     It sits BELOW the locked screen — `top: 100%` — and it is simply always
-     there. While the hero is pinned it is off the bottom of the window and
-     nobody sees it; when the pin lets go and the page carries the hero up, it
-     comes into view the way anything below the fold does.
-
-     That is the difference from what was here before. A gradient tweened up
-     over a pinned photograph is a curtain drawn over a still frame: the
-     picture does not leave, the words do not leave, and the section underneath
-     never arrives. Stacked below instead, it is scenery the scroll reaches,
-     and what the reader watches is the page moving.
-
-     Transparent at its top so it starts on the photograph's own bottom edge
-     with no seam, solid well before its foot so the section under it begins on
-     flat black. */
-  .hero__fall {
-    top: 100%;
-    bottom: auto;
-    /* Exactly the strip of photograph that hangs below the locked screen, and
-       not a pixel more. That strip is `imageHeight - stageHeight`, and the
-       image's height is its own ratio against the full width — the same 1.494
-       .hero__base is built from.
-
-       Sized to the space rather than given a height of its own, because the
-       two numbers have to be the same number. At 900svh tall it had 900px to
-       fade across and 64px of picture to fade over: by the time the photograph
-       ran out the black was about 7% of the way in, so the foot of the image
-       met the section below it as a hard line. Fitted, it reaches full black
-       exactly as the picture ends.
-
-       `100%` and not `100svh` for the same reason .hero__base uses it: the
-       pinned section's real height is not what `svh` reports, and a gradient
-       measured against the wrong one starts in the wrong place.
-
-       `max(0px, …)` because on a narrow window the picture is shorter than the
-       screen and there is no overhang at all — a negative height is not a
-       shorter gradient, it is an invalid declaration. */
-    /* One pixel past the foot of the photograph, for the same reason the tiles
-       overlap each other: the photograph's bottom and the next section's top
-       land on a boundary that is rarely a whole device pixel, and the browser
-       leaves a hairline of whatever is behind them showing through. Against
-       two blacks that hairline is faint, but it is a drawn line across the
-       join — which is the one place the join must not have one. Running the
-       black a pixel into the section below closes it, and costs nothing:
-       what it overlaps is already the same colour. */
-    height: max(0px, calc(100vw / 1.494 - 100% + 1px));
-    opacity: 1;
-    /* Nought at the top, solid at the bottom, and nothing in between to tune.
-       A midpoint stop is what let the fade finish somewhere other than where
-       the picture does. */
-    background: linear-gradient(to bottom, rgb(0 0 0 / 0) 0%, #000 100%);
-  }
-
-  /* --- What the full frame says -------------------------------------------
-     Centred on the viewport rather than placed in the copy column: by the time
-     it is on screen the photograph is the whole page and there is no column
-     left to belong to. Above the artwork and below the nav.
-
-     The blur is the entrance and it is on each line, not on the block: the
-     lines arrive one after another, and a filter on the parent would sharpen
-     all three at once however they were staggered. */
-  .hero__reveal {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
+  .hero__btn {
+    position: relative;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.1em;
-    margin: 0;
-    padding-inline: var(--page-gutter, clamp(1.25rem, 5vw, 4rem));
-    color: var(--color-ink-invert);
-    font-size: clamp(1.375rem, 2.4vw, 2.25rem);
-    font-weight: 400;
-    line-height: 1.3;
-    letter-spacing: -0.02em;
-    text-align: center;
-    text-wrap: balance;
-    /* Inert until the reveal hands it over — it is over the photograph, and a
-       paragraph nobody can see should not be taking clicks off it either. */
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    /* Sky behind white type is bright at the top of the frame. A soft shadow
-       rather than a scrim, so the photograph is not dimmed to carry three
-       lines of text. */
-    text-shadow: 0 1px 24px rgb(0 0 0 / 0.35);
+    height: 45px;
+    padding: 0 1.5rem;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    will-change: transform;
   }
 
-  .hero__reveal-line {
-    display: block;
+  .hero__btn--ghost {
+    background: transparent;
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.7);
   }
 
-  .hero__reveal :global(strong) {
-    font-weight: 600;
+  .hero__btn-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-ink);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
   }
 
-  /* --- The scroll cue ------------------------------------------------------ */
+  .hero__btn--ghost .hero__btn-fill {
+    background: #ffffff;
+  }
+
+  .hero__btn-label {
+    position: relative;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .hero__btn:hover,
+  .hero__btn:focus-visible {
+    box-shadow: inset 0 0 0 1px #ffffff;
+  }
+
+  .hero__btn:hover .hero__btn-fill,
+  .hero__btn:focus-visible .hero__btn-fill {
+    transform: scaleY(1);
+  }
+
+  .hero__btn:hover .hero__btn-label,
+  .hero__btn:focus-visible .hero__btn-label {
+    color: #ffffff;
+  }
+
+  .hero__btn--ghost:hover .hero__btn-label,
+  .hero__btn--ghost:focus-visible .hero__btn-label {
+    color: var(--color-ink);
+  }
+
+  /* Level with the buttons, at the right of the frame. */
   .hero__scroll {
+    position: absolute;
+    left: 83.3%;
+    bottom: 6.9%;
+    z-index: 2;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    /* On the picture's own bottom line.
-
-       Taken out of the column's flow to get there: as a flowed block its
-       position was whatever the blocks above it left over, which put it a
-       short step under the buttons and nowhere near the artwork. The two are
-       across the page from each other and the eye reads them as a pair, so
-       they have to share a line.
-
-       `--hero-frame-foot` is that line, published by hero.ts from the frame it
-       has just laid out — see the note there for why it is passed rather than
-       worked out again here. The fallback keeps the cue on the page in the
-       moment before the script has run. */
-    position: absolute;
-    left: 0;
-    bottom: var(--hero-frame-foot, 12vh);
+    gap: 1rem;
+    height: 45px;
     margin: 0;
-    color: var(--color-ink-secondary);
+    color: #ffffff;
     font-family: var(--font-display);
     font-size: 0.6875rem;
     font-weight: 500;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     line-height: 1;
   }
 
-  /* Drawn rather than an icon file: it is two rounded rectangles, and an
-     asset for that is a request for two rounded rectangles. */
   .hero__scroll-mouse {
     position: relative;
     display: block;
@@ -1035,7 +423,7 @@ const {
     height: 1.75rem;
     border: 1px solid currentcolor;
     border-radius: 999px;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 
   .hero__scroll-wheel {
@@ -1065,261 +453,41 @@ const {
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .hero__scroll-wheel {
-      animation: none;
-    }
-  }
-
-  /* --- Buttons ------------------------------------------------------------- */
-  .btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.8125rem 1.75rem;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    background: var(--color-ink);
-    color: var(--color-ink-invert);
-    font-family: var(--font-display);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    will-change: transform;
-  }
-
-  /* The second way in: the same button with its two grounds swapped, so the
-     pair reads as one primary and one secondary rather than as two designs.
-     Its hover therefore fills rather than empties — see below. */
-  .btn--ghost {
-    background: transparent;
-    color: var(--color-ink);
-    box-shadow: inset 0 0 0 1px var(--color-line-strong);
-  }
-
-  .btn__fill {
-    position: absolute;
-    inset: 0;
-    background: var(--color-bg-primary);
-    transform: scaleY(0);
-    transform-origin: bottom center;
-    transition: transform 0.55s var(--ease-out-expo);
-  }
-
-  .btn--ghost .btn__fill {
-    background: var(--color-ink);
-  }
-
-  .btn__label {
-    position: relative;
-    transition: color 0.4s var(--ease-out-expo);
-  }
-
-  .btn:hover,
-  .btn:focus-visible {
-    box-shadow: inset 0 0 0 1px var(--color-ink);
-  }
-
-  .btn:hover .btn__fill,
-  .btn:focus-visible .btn__fill {
-    transform: scaleY(1);
-  }
-
-  .btn:hover .btn__label,
-  .btn:focus-visible .btn__label {
-    color: var(--color-ink);
-  }
-
-  /* Inverted from the rule above, because this button starts inverted. */
-  .btn--ghost:hover .btn__label,
-  .btn--ghost:focus-visible .btn__label {
-    color: var(--color-ink-invert);
-  }
-
-  /* --- Pre-animation state (only when JS is live) ------------------------- */
-  :global(html[data-js='true']) .hero__title,
-  :global(html[data-js='true']) [data-hero-aside-item] {
-    opacity: 0;
-  }
-
-  /* Nothing to hold here any more. The artwork's resting state used to be a
-     clip-path this rule shut on its own floor for the intro to open; the frame
-     is cut out of the tile field now, and the field is built by the script — so
-     before the script runs there is no field, and the photograph standing
-     full-bleed for those few frames is the honest thing to show rather than a
-     flash of an empty box. */
-
-  /* --- Responsive ---------------------------------------------------------
-     1199px, not 75rem: this must not overlap the (min-width: 1200px) gate that
-     builds the pinned handover, or at exactly 1200px the hero would be both
-     content-height and forced into a viewport-tall pinned scene. */
-  /* Still exactly one viewport below the desktop row: the handover pins this
-     scene at every width now, so anything past 100svh is clipped rather than
-     scrolled to. The media row takes what the title and the aside leave
-     (minmax(0, 1fr) — the 0 minimum is what lets it shrink below the image's
-     intrinsic height), which is what makes this hold on a short phone without
-     a per-device image size. */
-  /* The single-column hero, and it starts at the phone breakpoint now rather
-     than at 1199px.
-
-     The premise of collapsing early was that the contained film would be a
-     short band with clear page above and below it, leaving the full width free
-     for the copy. That stopped being true: at 1061x1285 the band is 597 tall
-     and the copy sits straight on the tree, buttons and all. The film is cut
-     for two columns, so between 768 and 1199 it now keeps them — measured, the
-     copy column comes out 358px wide at 1024 and 280px at 800, clearing the
-     tree by 54px and 43px, with the headline fitting at both. */
-
+  /* =====================================================================
+     Phone
+     ===================================================================== */
   @media (max-width: 48rem) {
-    .hero {
-      --hero-pad-top: clamp(1rem, 3vw, 2rem);
-      padding-bottom: clamp(1rem, 3vw, 2rem);
-      /* The recut already insets the tree inside the 402×874 frame. Fit the
-         whole frame; shrinking it further just stamps a complete picture. */
-      --hero-mobile-fit: 1;
-    }
-
-    .hero__grid {
-      grid-template-columns: minmax(0, 1fr);
-      align-content: start;
-      height: auto;
-      position: relative;
-      z-index: 2;
-    }
-
-    .hero__col--text {
-      grid-column: 1;
-      left: auto;
-      top: auto;
-    }
-
-    .hero__gap {
+    .hero__guides,
+    .hero__marker,
+    .hero__scroll {
       display: none;
     }
 
-    /* Full section. Do not put the film in a leftover row under the copy:
-       that box's top edge landed on the sky, and anything peeking above it
-       (the rounded crown) was sheared into a hard line, overflow:visible
-       or not — parents still clip. */
-    .hero__stage {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: auto;
-      overflow: visible;
-      z-index: 0;
-      will-change: auto;
-      container-type: size;
+    .hero__main {
+      --hero-title-size: clamp(2.5rem, 12vw, 3.75rem);
+
+      left: var(--section-padding-x);
+      right: var(--section-padding-x);
+      bottom: 2.5rem;
+      gap: 2rem;
     }
 
-    .hero__zoom,
-    .hero__base {
-      overflow: visible;
-      will-change: auto;
+    /* Under the headline rather than hanging off it to the right: a phone has
+       no right-hand side to put it on. */
+    .hero__sub {
+      position: static;
+      margin-top: 0.75rem;
+      font-size: 1.375rem;
     }
 
-    /* Nothing to restate here. The frame is derived from the subject's place
-       in the photograph, so it follows the picture to whatever shape the screen
-       is without a second set of numbers to keep in step.
-
-       The whole 402x874 mobile film block that used to be here is gone with the
-       video it sized: one photograph under one field of tiles needs no second
-       cut of the artwork. */
-
-    :global(html[data-js='true']) .hero__base {
-      clip-path: none;
-    }
-  }
-
-  @media (max-width: 48rem) {
-
-    /* --- The copy, as two blocks ---------------------------------------
-       The headline is one thing and the two ways in are another, so the step
-       between those groups is bigger than the step inside either. Everything
-       is already left-aligned on the section's own gutter, so only the
-       vertical steps are set here.
-
-       (This used to describe a tagline and a pitch paragraph as well. Both are
-       gone from the column — see the props at the top of this file.) */
-    .hero__head {
-      gap: 0.25rem;
-    }
-
-    .hero__col--text {
-      gap: 1rem;
-    }
-
-
-    /* One line, not three stacked words. The lines are spans, so inline is
-       all it takes — plus a real space between them, since the markup has
-       none: they were written as separate block lines.
-
-       They keep the base rule's nowrap. Relaxing it here, which is what this
-       block used to do, let each span break on its own and quietly outranked
-       the nowrap on the title: an inline child's own white-space wins over
-       the inherited one, so the headline went on wrapping to three lines with
-       the property that was supposed to stop it sitting right above it. */
-    .hero__line {
-      display: inline;
-    }
-
-    /* `:not(:empty)` is load-bearing. SplitText copies this class onto the
-       spans it generates when it re-splits the headline, and some come out
-       empty — measured, the h1 held six .hero__line spans: an empty one,
-       "We", an empty one, "Design", an empty one, "Credibility". Each empty
-       span still matched :not(:last-child) and rendered a space of its own,
-       and the first child of the box being one of them is what set the
-       headline 6.7px in from the tagline and body under it. Only a span with
-       a word in it earns a space after it. */
-    .hero__line:not(:empty):not(:last-child)::after {
-      content: '\00a0';
-    }
-
-    .hero__title {
-      /* One line, guaranteed: nowrap decides it, and the size is what makes
-         that safe — a line wider than its column is silently sliced here
-         rather than wrapped, because hero.ts masks each one for the intro.
-
-         Measured rather than guessed: "We Design Credibility" sets at 9.66
-         times its font size on one line, so 7.7vw leaves 17% of the gutters
-         spare at 390px and 15% at 320px.
-
-         Measure it with a detached probe, not a Range over this element —
-         SplitText replaces the contents with block-level line divs, so a
-         Range returns the column's width whatever the type is doing, which
-         reads as "exactly full" at every size. */
-      font-size: clamp(1.375rem, 7.7vw, 2.5rem);
-      white-space: nowrap;
-      padding-top: 0.5rem;
-    }
-
-    /* Every pixel this block gives back goes to the artwork: the hero is
-       exactly one viewport, so the film's row is whatever the copy leaves. */
-    .hero__lede {
+    .hero__actions {
       gap: 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-  }
-
-  /* Short phones (Safari with the chrome up — iPhone 15 lands around 664svh).
-     The pad is the only room left to give the film; fitting is already handled
-     by max-height above. */
-  @media (max-width: 48rem) and (max-height: 720px) {
-    .hero {
-      --hero-pad-top: 0.5rem;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    :global(html[data-js='true']) .hero__title,
-    :global(html[data-js='true']) [data-hero-aside-item] {
-      opacity: 1;
-    }
-
-    :global(html[data-js='true']) .hero__base {
-      clip-path: none;
+    .hero__scroll-wheel {
+      animation: none;
     }
   }
 </style>
