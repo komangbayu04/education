@@ -14,11 +14,15 @@
  * photograph. Then the pin lets go and Our work comes up, its film growing from
  * small on black as it always has. src/scripts/hero.ts.
  *
- * THE WINDOW is described below in the carriage image's own pixels. The script
- * works out from those where the opening lands on any screen and how far the
- * zoom has to go for the frame to clear it. When the real carriage replaces the
- * placeholder, those four numbers and the image's size change with it and
- * nothing else does.
+ * THE WINDOW is described below in the carriage image's own pixels, read off
+ * the file's own alpha channel. The script works out from those where the
+ * opening lands on any screen and how far the zoom has to go for the frame to
+ * clear it. Swap the carriage and those four numbers change with it; nothing
+ * else does.
+ *
+ * The two photographs are the same size and were composed against each other,
+ * so both are `cover` at `center` and the tree lands in the window without
+ * anything being placed by hand.
  */
 interface Props {
   /** Broken by hand — the two lines are the composition. */
@@ -53,18 +57,22 @@ const {
   ctaLabel = 'See the work',
   ctaHref = '/work',
   scrollLabel = 'Scroll down',
-  /* A PLACEHOLDER carriage, drawn to the reference's proportions with a real
-     transparent window, so the zoom can be built and measured before the
-     photograph exists. tools: image/hero/train-placeholder.png. */
+  /* The carriage, with its three windows cut out of the image. The opening
+     below was measured off the encoded file's own alpha rather than typed in:
+     582, 208, 1238 x 828 of 2400 x 1551. */
   train = '/media/hero-train',
   trainWidth = 2400,
-  trainHeight = 1500,
-  hole = [535, 160, 1380, 890],
+  trainHeight = 1551,
+  hole = [582, 208, 1238, 828],
   tree = '/media/hero-tree',
   treeAlt = 'A person reading under a broad tree on open grassland, seen through a train window',
   treeWidth = 2400,
-  treeHeight = 1606,
-  treeFocus = '50% 55%',
+  treeHeight = 1551,
+  /* Centre, and it has to be. The two photographs are the same size and were
+     composed against each other, so `cover` puts them through the same
+     arithmetic and the tree lands in the window by construction. Any other
+     `object-position` here would pull the pair apart. */
+  treeFocus = 'center',
 } = Astro.props;
 ---
 
