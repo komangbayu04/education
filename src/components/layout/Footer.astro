@@ -53,13 +53,22 @@ import { pixelField } from '../../lib/pixelField';
    column, so the two axes are swapped again where the cells are placed.
 
    Two fields, one per breakpoint, because a cell's column is baked into its
-   inline style and a band cannot be re-columned in CSS. 24 across is the
-   chunkiness the home page's own handover uses — 22 across the longer edge of
-   the window; at 24 columns that is 60px at 1440. Ten across on a phone keeps
-   the squares the same size rather than the same count. */
+   inline style and a band cannot be re-columned in CSS.
+
+   FINER THAN THE CHAPTER HANDOVERS, at 48 across — 30px at 1440, where the
+   home page's own field works out to 60. It was 24, matching that field, and
+   that was too coarse: a chapter handover is a whole screen of tiles going off
+   at once and can carry blocks that size, where this is a three-inch strip at
+   the foot of the page and the same square in it reads as a row of tabs rather
+   than as a dissolve. 48 and 20 are the figures the case-study seams use, which
+   is the same job as this one.
+
+   The band keeps the depth it had by taking twice as many rows, so what changed
+   is the size of the squares and nothing else. Twenty across on a phone keeps
+   them the same SIZE there rather than the same count. */
 const SEAM = {
-  wide: { cols: 24, rows: 3, density: [0.88, 0.46, 0.15] },
-  narrow: { cols: 10, rows: 3, density: [0.86, 0.44, 0.14] },
+  wide: { cols: 48, rows: 6, density: [0.92, 0.72, 0.5, 0.3, 0.14, 0.05] },
+  narrow: { cols: 20, rows: 6, density: [0.9, 0.7, 0.48, 0.28, 0.13, 0.05] },
 };
 
 const seams = {
@@ -299,16 +308,17 @@ const {
     z-index: 0;
     display: flex;
     flex-direction: column;
-    /* A CELL SHORT OF THE SCREEN, and anchored to the foot — so what is left
-       uncovered at the top is the last strip of the section above, and it stays
-       there. The block used to be the whole screen and the page ended with the
-       section above it gone entirely.
+    /* SHORT OF THE SCREEN, and anchored to the foot — so what is left uncovered
+       at the top is the last strip of the section above, and it stays there. The
+       block used to be the whole screen and the page ended with the section
+       above it gone entirely.
 
-       One cell exactly, which is why it is written as one: the strip is the
-       solid first row of the same grid the squares below it fall out of, so the
-       seam reads as one thing at any width instead of as a margin that happens
-       to sit near some pixels. */
-    height: calc(100svh - var(--close-cell));
+       A whole number of cells, which is why it is written as cells: the strip is
+       the solid first rows of the same grid the squares below it fall out of, so
+       the seam reads as one thing at any width instead of as a margin that
+       happens to sit near some pixels. Two of them, because the cells halved and
+       the strip should not have halved with them. */
+    height: calc(100svh - var(--close-peek));
   }
 
   /* The grid the seam is built on, and the cell the block is shortened by.
@@ -320,11 +330,13 @@ const {
      cell is a share of the window's width. */
   .close,
   .close__spacer {
-    --close-cols: 24;
+    --close-cols: 48;
     --close-cell: calc(100vw / var(--close-cols));
-    /* The band is three of those cells deep. Named, because two things below
-       have to stay out from under it and neither should be counting cells. */
-    --close-band: calc(3 * var(--close-cell));
+    /* The band is six of those cells deep, and the strip left uncovered above
+       it is two. Both named, because four rules below depend on them and none
+       of them should be counting cells. */
+    --close-band: calc(6 * var(--close-cell));
+    --close-peek: calc(2 * var(--close-cell));
   }
 
   /* The distance the page needs so there is something left to scroll once the
@@ -332,7 +344,7 @@ const {
      written by src/scripts/footer.ts; the fallback is what the block works out
      to on its own, which is the right answer at every ordinary window. */
   .close__spacer {
-    height: var(--close-h, calc(100svh - var(--close-cell)));
+    height: var(--close-h, calc(100svh - var(--close-peek)));
   }
 
   /* --- The seam -------------------------------------------------------------
@@ -357,18 +369,18 @@ const {
   }
 
   .close__seam--wide {
-    grid-template-columns: repeat(24, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    aspect-ratio: 24 / 3;
+    grid-template-columns: repeat(48, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    aspect-ratio: 48 / 6;
   }
 
   /* Off by default; the narrow layout at the foot of this file swaps the pair
      over. */
   .close__seam--narrow {
     display: none;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    aspect-ratio: 10 / 3;
+    grid-template-columns: repeat(20, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    aspect-ratio: 20 / 6;
   }
 
   .close__seam span {
@@ -466,9 +478,10 @@ const {
        And it cannot be solved by choosing a taller padding, because the two
        measurements do not scale together. The band is a share of the window's
        WIDTH and this padding is a share of its HEIGHT: measured at 1440x900 the
-       band came down to 180px with the name starting at 131, and at 1920x1080
+       band comes down to 180px with the name starting at 131, and at 1920x1080
        the gap is wider still. A floor is the only figure that holds at every
-       shape of window. */
+       shape of window — and it is stated against `--close-band`, so it followed
+       the squares getting finer without being touched. */
     padding: max(
         calc(clamp(1.5rem, 11svh, 6.5rem) + var(--fq-drop)),
         calc(var(--close-band) + 1rem)
@@ -777,12 +790,12 @@ const {
 
   /* --- Narrow ---------------------------------------------------------- */
   @media (max-width: 48rem) {
-    /* Ten cells across instead of twenty-four, so the squares stay the size
-       they are on a desktop rather than the count. The block is shortened by
-       one of these, as it is up there. */
+    /* Twenty cells across instead of forty-eight, so the squares stay the size
+       they are on a desktop rather than the count. Everything measured off them
+       — the band's depth and the strip above it — follows on its own. */
     .close,
     .close__spacer {
-      --close-cols: 10;
+      --close-cols: 20;
     }
 
     .close__seam--wide {
