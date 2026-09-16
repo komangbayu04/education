@@ -264,21 +264,18 @@ const {
   }
 
   /* --- Leaving ---------------------------------------------------------------
-     Sprint travels a screen upwards and off, and Retainer comes up a little
-     behind it. The script owns both transforms; all this does is warn the
-     compositor, and only while there is something to warn it about —
-     `data-offer-wiping` is put on for the length of that handover and, at the
-     far end, left on, because a transform is what is holding Sprint off the
-     screen.
+     Sprint fades and Retainer settles forward from a little larger behind it.
+     The script owns both; all this does is warn the compositor, and only while
+     there is something to warn it about — `data-offer-wiping` is put on for the
+     length of that handover and, at the far end, left on, because it is an
+     opacity that is holding Sprint off the screen.
 
-     This was a mask: a feather 55% of the screen deep, wiping upwards, the same
-     instrument as the join out of Overclock. It is the right instrument there
-     and the wrong one between two photographs this much alike — most of the
-     scroll went on both of them showing at part strength at once, which reads
-     as one picture ghosting rather than two changing. Nothing is blended now.
-     See initOfferHandover in src/scripts/twoWays.ts. */
+     Two earlier answers are in the history here and both failed the same way,
+     by having a mechanism you could see: a masked wipe smeared, a slide put a
+     hard edge across the photograph. See initOfferHandover in
+     src/scripts/twoWays.ts for what replaced them and why. */
   [data-offer][data-offer-wiping] {
-    will-change: transform;
+    will-change: opacity, transform;
   }
 
   /* --- Held back until the window is open ----------------------------------

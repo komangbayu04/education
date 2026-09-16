@@ -32,23 +32,20 @@ import { prefersReducedMotion } from './utils/device';
  * Returns a cleanup function.
  */
 /**
- * How much of the handover Sprint takes to travel its screen.
+ * How much of the handover the crossfade takes.
  *
  * It ends well short of the step, and that margin is what keeps the two
- * sentences apart. A slide carries the old panel's type off the top with it, so
- * the type is legible for almost the whole of the travel — stepping the
- * timeline in fortieths at 390x844 with this at 0.86, five of the forty-one
- * frames had a strip of Sprint's sentence still at the top of the screen while
- * Retainer's was already up at the foot. Two headlines, in two places, at once.
- * Finishing the travel first leaves room to bring the new one in after the old
- * one has gone, rather than over it.
+ * sentences apart: Sprint's type fades with the panel carrying it, and
+ * Retainer's does not begin until that panel is gone. Measured when this was a
+ * slide and ran to 0.86, five of forty-one sampled frames had both sentences on
+ * the screen at once — in two different places, which is worse than either.
  */
-const SLIDE = 0.7;
+const FADE = 0.7;
 /**
- * How far below its place Retainer starts, as a share of the screen. Anything
- * under 1 is safe; see the note on initOfferHandover for the proof.
+ * The scale Retainer arrives from. Its only job is to be a scale Sprint is not
+ * at, so the two never line up while they are mixed — see initOfferHandover.
  */
-const LAG = 0.12;
+const ARRIVE = 1.08;
 
 /** How much of the window's opening the copy takes to leave. */
 const COPY_FOR = 0.4;
@@ -261,40 +258,49 @@ export function initTwoWays(): () => void {
 }
 
 /**
- * Sprint → Retainer, once the window is a whole screen. SPRINT LEAVES THE
- * FRAME, and Retainer — already there, whole, from the first frame — is what it
- * uncovers.
+ * Sprint → Retainer, once the window is a whole screen.
  *
- * IT WAS A DISSOLVE AND IT SHOULD NOT HAVE BEEN. The panel on top was masked
- * away from its bottom edge upwards behind a feather 55% of the screen deep,
- * which is the instrument that brings the reader out of Overclock and changes
- * Our work's categories over, and it is right in both of those places. It is
- * wrong here. A feather that deep means most of the scroll is spent with more
- * than half the screen showing BOTH photographs at part strength — and these
- * two are a doorway onto grass and a lawn under a blue wall, near enough alike
- * for the blend to read as one picture ghosting rather than as two pictures
- * changing.
+ * THIRD ANSWER, AND THE FIRST TWO BOTH FAILED THE SAME TEST: the mechanism was
+ * visible. That is what "seamless" is asking for here, and it is the thing to
+ * design against.
  *
- * So nothing is blended now. Sprint travels one screen upwards and off, at full
- * strength the whole way, and every pixel on screen belongs to exactly one of
- * the two panels at every moment of it.
+ * The first was a mask — a feather 55% of the screen deep, wiping upwards, the
+ * instrument that brings the reader out of Overclock and changes Our work's
+ * categories over. The mechanism showed as a SMEAR: at any moment one part of
+ * the screen was at a quarter strength, another at three quarters, so the two
+ * photographs were being mixed by different amounts in different places, which
+ * the eye reads as one picture ghosting rather than two changing.
  *
- * Retainer moves a little too, in the same direction, from an eighth of a
- * screen low. That is depth and not decoration: a reveal where the thing
- * underneath is perfectly still reads as a sticker being peeled off a picture,
- * and this reads as the two of them lying at different distances.
+ * The second was a slide, and it traded that for a HARD EDGE TRAVELLING across
+ * the frame. Nothing was blended, which was the point, but a straight line
+ * crossing a photograph is about as visible as a mechanism gets — the deep
+ * feather on the first one existed precisely to avoid it.
  *
- * IT CANNOT OPEN A GAP, and that is arithmetic rather than a margin of safety.
- * Sprint's bottom edge is at `(1 - p)·h` and Retainer's top edge is at
- * `LAG·(1 - p)·h`, so with any LAG below 1 the first is below the second for
- * every p short of 1, and at p = 1 they meet exactly at the top of the screen.
- * The two share an ease for the same reason — the inequality holds between the
- * eased values, not the raw ones, and only while both are eased the same way.
+ * So: no edge and no gradient. A UNIFORM CROSSFADE, the whole frame mixed by
+ * the same amount at every point of it, which is the one kind of blend with
+ * nothing in it to follow. Sprint's opacity is the only thing that changes
+ * about it, and Retainer is behind it at full strength from the first frame, so
+ * the mix is exact and there is no third state anywhere on the screen.
  *
- * The words still leave separately, though it hardly shows now. Both panels set
- * their type in the same corner, and the fade is what keeps the state
- * reversible under a scrub: by the time it runs, Sprint's sentence has already
- * travelled off the top of the screen.
+ * `power2.inOut` on the fade, and that is not a taste: an even mix of two
+ * similar photographs is the frame that ghosts, so the ease is chosen to spend
+ * as little of the scroll near half as it can while still starting and stopping
+ * gently. Linear would sit at 50/50 through the middle of the move.
+ *
+ * And Retainer settles from 1.08 rather than sitting still. This is the part
+ * that stops a dissolve reading as a double exposure: at the moment the two are
+ * evenly mixed they are at DIFFERENT SCALES, so nothing in one lines up with
+ * anything in the other, and what the eye gets is one picture coming forward
+ * instead of two pictures printed on each other. Only the arriving panel moves
+ * — a counter-scale on both would put them at the same size at the crossover,
+ * which is the alignment this exists to break. It is the same language as the
+ * film that opens Our work, which also arrives from larger than the frame.
+ *
+ * The words leave separately, and they have to. Both panels set their type in
+ * the same corner, so a fade taking Sprint's sentence away gradually would be
+ * doing it directly on top of Retainer's arriving. They are only ever legible
+ * one at a time: the first goes with its own panel and the second does not
+ * begin until the panel under it is the whole frame.
  *
  * Scrubbed, so the reader drives it and can run it backwards.
  */
@@ -320,8 +326,8 @@ function initOfferHandover(parts: {
   const settle = (done: boolean) => {
     if (parts.overWords.length) gsap.set(parts.overWords, { autoAlpha: done ? 0 : 1 });
     if (underWords.length) gsap.set(underWords, { autoAlpha: done ? 1 : 0 });
-    gsap.set(over, { yPercent: done ? -100 : 0 });
-    if (under) gsap.set(under, { yPercent: done ? 0 : LAG * 100 });
+    gsap.set(over, { autoAlpha: done ? 0 : 1 });
+    if (under) gsap.set(under, { scale: done ? 1 : ARRIVE });
     if (zone) gsap.set(zone, { opacity: done ? 1 : 0 });
   };
 
@@ -348,44 +354,50 @@ function initOfferHandover(parts: {
     },
   });
 
-  /* Sprint, one screen up and off. Linear, and deliberately so: this is
-     scrubbed, so linear is the panel going exactly as far as the reader has
-     pushed it — which is the whole of what makes a slide feel solid rather than
-     animated at you. The trigger's own 0.8 of smoothing is what takes the
-     hard edges off the start and the stop.
+  /* Sprint's opacity, and nothing else about it. Retainer is behind it at full
+     strength already, so this one number IS the mix — the same everywhere on
+     the frame, with no edge and no gradient anywhere in it.
 
-     `immediateRender: false`, so building this cannot move a panel the reader
-     is looking at. */
+     `immediateRender: false`, so building this cannot switch off a panel the
+     reader is looking at. */
   tl.fromTo(
     over,
-    { yPercent: 0 },
-    { yPercent: -100, ease: 'none', duration: SLIDE, immediateRender: false },
+    { autoAlpha: 1 },
+    { autoAlpha: 0, ease: 'power2.inOut', duration: FADE, immediateRender: false },
     0,
   );
 
-  /* And Retainer up behind it, from an eighth of a screen low to nothing. Same
-     ease and same stretch as the panel above — see the note at the top for why
-     those two have to match rather than merely look similar. */
+  /* And Retainer settling forward from a little larger, over the same stretch.
+
+     `power1.inOut`, and the ease is the whole point of the tween. What this is
+     for is the two panels being at DIFFERENT scales at the frame where they are
+     most evenly mixed, and that frame is the middle. Measured with `power2.out`
+     on it: the scale was 1.02 by a quarter of the way through and 1.0025 by
+     half, so at the 50/50 crossover the two pictures were within one per cent
+     of each other — which is not a difference, it is an alignment, and an
+     alignment is the double exposure this exists to prevent. Eased in and out,
+     the crossover falls at about 1.04, which displaces the arriving picture's
+     edges by up to 2% of the screen against the leaving one. */
   if (under) {
     tl.fromTo(
       under,
-      { yPercent: LAG * 100 },
-      { yPercent: 0, ease: 'none', duration: SLIDE, immediateRender: false },
+      { scale: ARRIVE },
+      { scale: 1, ease: 'power1.inOut', duration: FADE, immediateRender: false },
       0,
     );
   }
 
-  /* Sprint's words, after the panel carrying them has gone. Nothing is visible
-     to fade by then and that is the point: the sentence leaves by travelling
-     off the screen, the way everything else on that panel does. What this tween
-     is really for is the scrub — running the page backwards has to bring them
-     back, and only something on this timeline will. */
+  /* Sprint's words, held at full strength until the panel they are written on
+     has gone. They are inside it, so its own fade has already taken them — this
+     is what keeps that state reversible under a scrub, and what stops them
+     coming back at half strength over Retainer's sentence if the reader runs
+     the page backwards through here. */
   if (parts.overWords.length) {
     tl.fromTo(
       parts.overWords,
       { autoAlpha: 1 },
       { autoAlpha: 0, ease: 'none', duration: 0.1, immediateRender: false },
-      SLIDE,
+      FADE,
     );
   }
 
@@ -397,7 +409,7 @@ function initOfferHandover(parts: {
       underWords,
       { autoAlpha: 0 },
       { autoAlpha: 1, ease: 'power2.out', duration: 0.22 },
-      SLIDE + 0.04,
+      FADE + 0.04,
     );
   }
 
@@ -411,7 +423,7 @@ function initOfferHandover(parts: {
     tl.scrollTrigger?.kill();
     tl.kill();
     over.removeAttribute('data-offer-wiping');
-    gsap.set(over, { clearProps: 'transform' });
+    gsap.set(over, { clearProps: 'opacity,visibility,transform' });
     if (under) gsap.set(under, { clearProps: 'transform' });
     if (zone) gsap.set(zone, { clearProps: 'opacity' });
   };
