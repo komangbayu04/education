@@ -154,11 +154,21 @@ const {
   */}
   <div
     class="close__zone"
-    data-nav-over="dark"
     data-nav-section="Get in touch"
     data-close-zone
     aria-hidden="true"
   >
+    {/* The dark half of the signal, and only below the pixel seam.
+
+        It was on the zone itself, whose box starts at the very top of the
+        block — and the block's top is the cream strip of the section above,
+        with the seam's cream squares under it. So the nav turned to glass,
+        white words on a clear capsule, over what was still cream, and the
+        name in it went unreadable the moment the pixels came into view. This
+        box starts where the seam ends, which is below the capsule at every
+        window the page allows, so the bar keeps its solid black the whole way
+        down. The name still changes: `data-nav-section` stays on the zone. */}
+    <span class="close__dark" data-nav-over="dark"></span>
   </div>
 
   {/* ONE photograph for the whole screen, not one for the quote and a black
@@ -452,6 +462,16 @@ const {
     z-index: 2;
     opacity: 0;
     pointer-events: none;
+  }
+
+  /* Inside the zone, so the nav's `painted()` still reads the zone's fade as
+     this box's own — the nav multiplies every ancestor's opacity. */
+  .close__dark {
+    position: absolute;
+    top: var(--close-band);
+    right: 0;
+    bottom: 0;
+    left: 0;
   }
 
   /* =====================================================================
