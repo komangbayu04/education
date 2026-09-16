@@ -233,7 +233,11 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     {/* In flow, half a screen down, so it starts in the middle of the first
         screen and `position: sticky` holds it there from the first pixel.
         Nothing else is in that screen — the scatter begins a screen below. */}
-    <h2 class="tmf__title" id="tmf-title" data-tmf-title>{title}</h2>
+    {/* The words sit in a block of their own inside the heading, because the
+        heading itself has no height — see `.tmf__title` in the scatter rules. */}
+    <h2 class="tmf__title" id="tmf-title" data-tmf-title>
+      <span class="tmf__title-text" data-tmf-title-text>{title}</span>
+    </h2>
 
     <ul class="tmf__films" data-tmf-films>
       {
@@ -894,12 +898,16 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
        bottom margin is exactly half a screen: it stops at the one moment the
        stage's foot reaches the bottom of the window. The title is centred in
        the section's last full screen, and from there the two leave together.
-       No translate, because the flex centring does the lifting and does not
-       need to know the title's height to do it. */
+
+       NOT A FLEX CONTAINER, which is what this first was, and it broke the
+       title into one word a line. SplitText wraps every word in an element
+       before it measures where the lines fall, and every child of a flex
+       container is blockified into an item of its own — so in a column the
+       words stacked one per row, and SplitText faithfully cut ten lines out
+       of a two-line heading. Measured at 1440: ten lines, each the full 711px.
+       The words live in `.tmf__title-text` instead, an ordinary block that is
+       lifted half its own height below. */
     height: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     /* UNDER the tiles. The tiles are the testimonials and the line is what
        they are passing over, so a tile covers the words rather than the words
        being printed across the tile.
@@ -920,6 +928,15 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
        the middle of the screen and the films underneath are the only controls
        this section has. */
     pointer-events: none;
+  }
+
+  /* The words, hanging off the heading's zero-height line and lifted by half
+     their own height so they are centred on it. A percentage translate is of
+     the element's own box, so this needs no figure for how tall the title is —
+     two lines at 1440, three or four on a phone. */
+  :global(html[data-js='true']) .tmf__title-text {
+    display: block;
+    translate: 0 -50%;
   }
 
   /* Over the title now. The list covers the whole stage and has nothing to be

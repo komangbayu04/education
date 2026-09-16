@@ -286,7 +286,11 @@ function initReveal(section: HTMLElement, cleanups: Array<() => void>): void {
   const cutTitle = () => {
     if (dead || !title) return;
 
-    split = SplitText.create(title, { type: 'lines', mask: 'lines' });
+    /* The words' own block, not the heading: the heading is a zero-height
+       line the words hang from, and splitting inside it would put the masks
+       in a box with no height. */
+    const words = title.querySelector<HTMLElement>('[data-tmf-title-text]') ?? title;
+    split = SplitText.create(words, { type: 'lines', mask: 'lines' });
     /* The stylesheet hides the whole heading until this point, so nothing
        flashes unsplit; from here the masks are what hide it. */
     gsap.set(title, { opacity: 1 });
