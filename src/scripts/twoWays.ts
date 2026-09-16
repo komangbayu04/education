@@ -31,6 +31,25 @@ import { prefersReducedMotion } from './utils/device';
  *
  * Returns a cleanup function.
  */
+/**
+ * How much of the handover Sprint takes to travel its screen.
+ *
+ * It ends well short of the step, and that margin is what keeps the two
+ * sentences apart. A slide carries the old panel's type off the top with it, so
+ * the type is legible for almost the whole of the travel — stepping the
+ * timeline in fortieths at 390x844 with this at 0.86, five of the forty-one
+ * frames had a strip of Sprint's sentence still at the top of the screen while
+ * Retainer's was already up at the foot. Two headlines, in two places, at once.
+ * Finishing the travel first leaves room to bring the new one in after the old
+ * one has gone, rather than over it.
+ */
+const SLIDE = 0.7;
+/**
+ * How far below its place Retainer starts, as a share of the screen. Anything
+ * under 1 is safe; see the note on initOfferHandover for the proof.
+ */
+const LAG = 0.12;
+
 /** How much of the window's opening the copy takes to leave. */
 const COPY_FOR = 0.4;
 /** How far above the window's edge the sentence's last line ends up. */
@@ -242,21 +261,40 @@ export function initTwoWays(): () => void {
 }
 
 /**
- * Sprint → Retainer, once the window is a whole screen.
+ * Sprint → Retainer, once the window is a whole screen. SPRINT LEAVES THE
+ * FRAME, and Retainer — already there, whole, from the first frame — is what it
+ * uncovers.
  *
- * The same movement the reader was brought out of Overclock by, which is what
- * was asked for: the panel on top is masked away from its own bottom edge
- * upwards behind a feather wider than half the screen, and the one underneath
- * — already there, whole, from the first frame — is what is left. Nothing
- * slides, nothing scales, and there is no edge to follow.
+ * IT WAS A DISSOLVE AND IT SHOULD NOT HAVE BEEN. The panel on top was masked
+ * away from its bottom edge upwards behind a feather 55% of the screen deep,
+ * which is the instrument that brings the reader out of Overclock and changes
+ * Our work's categories over, and it is right in both of those places. It is
+ * wrong here. A feather that deep means most of the scroll is spent with more
+ * than half the screen showing BOTH photographs at part strength — and these
+ * two are a doorway onto grass and a lawn under a blue wall, near enough alike
+ * for the blend to read as one picture ghosting rather than as two pictures
+ * changing.
  *
- * The words are handled apart from the grounds they sit on, and that is the one
- * place this differs from a literal copy of that join. Both panels set their
- * type in the same corner, so a mask taking the first one's sentence away
- * gradually would be doing it directly on top of the second one's sentence
- * arriving — three lines of one headline at half strength over three lines of
- * another. They are only ever legible one at a time here: the first is gone by
- * a quarter of the way through and the second does not begin until two thirds.
+ * So nothing is blended now. Sprint travels one screen upwards and off, at full
+ * strength the whole way, and every pixel on screen belongs to exactly one of
+ * the two panels at every moment of it.
+ *
+ * Retainer moves a little too, in the same direction, from an eighth of a
+ * screen low. That is depth and not decoration: a reveal where the thing
+ * underneath is perfectly still reads as a sticker being peeled off a picture,
+ * and this reads as the two of them lying at different distances.
+ *
+ * IT CANNOT OPEN A GAP, and that is arithmetic rather than a margin of safety.
+ * Sprint's bottom edge is at `(1 - p)·h` and Retainer's top edge is at
+ * `LAG·(1 - p)·h`, so with any LAG below 1 the first is below the second for
+ * every p short of 1, and at p = 1 they meet exactly at the top of the screen.
+ * The two share an ease for the same reason — the inequality holds between the
+ * eased values, not the raw ones, and only while both are eased the same way.
+ *
+ * The words still leave separately, though it hardly shows now. Both panels set
+ * their type in the same corner, and the fade is what keeps the state
+ * reversible under a scrub: by the time it runs, Sprint's sentence has already
+ * travelled off the top of the screen.
  *
  * Scrubbed, so the reader drives it and can run it backwards.
  */
@@ -268,7 +306,7 @@ function initOfferHandover(parts: {
   underWords: HTMLElement[];
   zone: HTMLElement | null;
 }): () => void {
-  const { steps, over, underWords, zone } = parts;
+  const { steps, over, under, underWords, zone } = parts;
   /* The fourth step. The first is the window opening and the second is the beat
      on Sprint — a panel the reader has only just been shown should not start
      leaving in the same movement that finished showing it. */
@@ -282,7 +320,8 @@ function initOfferHandover(parts: {
   const settle = (done: boolean) => {
     if (parts.overWords.length) gsap.set(parts.overWords, { autoAlpha: done ? 0 : 1 });
     if (underWords.length) gsap.set(underWords, { autoAlpha: done ? 1 : 0 });
-    gsap.set(over, { '--offer-wipe': done ? 155 : 0 });
+    gsap.set(over, { yPercent: done ? -100 : 0 });
+    if (under) gsap.set(under, { yPercent: done ? 0 : LAG * 100 });
     if (zone) gsap.set(zone, { opacity: done ? 1 : 0 });
   };
 
@@ -295,10 +334,10 @@ function initOfferHandover(parts: {
          read sharply by the eye even when it is soft. */
       scrub: 0.8,
       invalidateOnRefresh: true,
-      /* The mask is only worth its compositing layer while it is doing
-         something. Never taken off at the far end — removing it there would put
-         Sprint back at full strength on top of the panel that has replaced
-         it. */
+      /* The compositing hint is only worth its layer while something is
+         moving. Never taken off at the far end — Sprint is still a screen above
+         where it started there, and it is the transform that is holding it
+         there. */
       onEnter: () => over.setAttribute('data-offer-wiping', ''),
       onEnterBack: () => over.setAttribute('data-offer-wiping', ''),
       onLeave: () => settle(true),
@@ -309,44 +348,71 @@ function initOfferHandover(parts: {
     },
   });
 
-  /* Sprint's words first and quickest, so they are gone before Retainer's
-     start. `immediateRender: false`: their resting state is on, and by this
-     point the window's own timeline has put them there. */
-  if (parts.overWords.length) {
+  /* Sprint, one screen up and off. Linear, and deliberately so: this is
+     scrubbed, so linear is the panel going exactly as far as the reader has
+     pushed it — which is the whole of what makes a slide feel solid rather than
+     animated at you. The trigger's own 0.8 of smoothing is what takes the
+     hard edges off the start and the stop.
+
+     `immediateRender: false`, so building this cannot move a panel the reader
+     is looking at. */
+  tl.fromTo(
+    over,
+    { yPercent: 0 },
+    { yPercent: -100, ease: 'none', duration: SLIDE, immediateRender: false },
+    0,
+  );
+
+  /* And Retainer up behind it, from an eighth of a screen low to nothing. Same
+     ease and same stretch as the panel above — see the note at the top for why
+     those two have to match rather than merely look similar. */
+  if (under) {
     tl.fromTo(
-      parts.overWords,
-      { autoAlpha: 1 },
-      { autoAlpha: 0, ease: 'power1.in', duration: 0.24, immediateRender: false },
+      under,
+      { yPercent: LAG * 100 },
+      { yPercent: 0, ease: 'none', duration: SLIDE, immediateRender: false },
       0,
     );
   }
 
-  /* Then the ground it was on. */
-  tl.fromTo(
-    over,
-    { '--offer-wipe': 0 },
-    { '--offer-wipe': 155, ease: 'none', duration: 0.8, immediateRender: false },
-    0.14,
-  );
+  /* Sprint's words, after the panel carrying them has gone. Nothing is visible
+     to fade by then and that is the point: the sentence leaves by travelling
+     off the screen, the way everything else on that panel does. What this tween
+     is really for is the scrub — running the page backwards has to bring them
+     back, and only something on this timeline will. */
+  if (parts.overWords.length) {
+    tl.fromTo(
+      parts.overWords,
+      { autoAlpha: 1 },
+      { autoAlpha: 0, ease: 'none', duration: 0.1, immediateRender: false },
+      SLIDE,
+    );
+  }
 
-  /* And Retainer's words last, over a ground already two thirds replaced. This
-     one renders at build, and has to: it is what parks them at 0 in step with
-     the stylesheet. */
+  /* And Retainer's words last of all, on a screen that is already entirely its
+     own and has stopped moving. This one renders at build, and has to: it is
+     what parks them at 0 in step with the stylesheet. */
   if (underWords.length) {
-    tl.fromTo(underWords, { autoAlpha: 0 }, { autoAlpha: 1, ease: 'power2.out', duration: 0.3 }, 0.66);
+    tl.fromTo(
+      underWords,
+      { autoAlpha: 0 },
+      { autoAlpha: 1, ease: 'power2.out', duration: 0.22 },
+      SLIDE + 0.04,
+    );
   }
 
   /* And the nav's reading of the ground, on the same clock as the ground
      itself. The box draws nothing — its opacity is a signal, not a surface. */
   if (zone) {
-    tl.fromTo(zone, { opacity: 0 }, { opacity: 1, ease: 'none', duration: 0.4 }, 0.3);
+    tl.fromTo(zone, { opacity: 0 }, { opacity: 1, ease: 'none', duration: 0.35, immediateRender: false }, 0.25);
   }
 
   return () => {
     tl.scrollTrigger?.kill();
     tl.kill();
     over.removeAttribute('data-offer-wiping');
-    gsap.set(over, { clearProps: '--offer-wipe' });
+    gsap.set(over, { clearProps: 'transform' });
+    if (under) gsap.set(under, { clearProps: 'transform' });
     if (zone) gsap.set(zone, { clearProps: 'opacity' });
   };
 }

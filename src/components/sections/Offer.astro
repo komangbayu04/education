@@ -263,25 +263,22 @@ const {
     border-radius: 50%;
   }
 
-  /* --- Being dissolved away --------------------------------------------------
-     Only on the panel that is currently going: `data-offer-wiping` is put on by
-     the script for the length of that handover. The same instrument, and the
-     same shape, as the mask that brings the reader out of Overclock and the one
-     that changes Our work's categories over — a feather wider than half the
-     screen, so what travels is never an edge. */
+  /* --- Leaving ---------------------------------------------------------------
+     Sprint travels a screen upwards and off, and Retainer comes up a little
+     behind it. The script owns both transforms; all this does is warn the
+     compositor, and only while there is something to warn it about —
+     `data-offer-wiping` is put on for the length of that handover and, at the
+     far end, left on, because a transform is what is holding Sprint off the
+     screen.
+
+     This was a mask: a feather 55% of the screen deep, wiping upwards, the same
+     instrument as the join out of Overclock. It is the right instrument there
+     and the wrong one between two photographs this much alike — most of the
+     scroll went on both of them showing at part strength at once, which reads
+     as one picture ghosting rather than two changing. Nothing is blended now.
+     See initOfferHandover in src/scripts/twoWays.ts. */
   [data-offer][data-offer-wiping] {
-    --offer-wipe: 0;
-    --offer-feather: 55%;
-    -webkit-mask-image: linear-gradient(
-      to top,
-      rgb(0 0 0 / 0) calc(var(--offer-wipe) * 1% - var(--offer-feather)),
-      rgb(0 0 0 / 1) calc(var(--offer-wipe) * 1%)
-    );
-    mask-image: linear-gradient(
-      to top,
-      rgb(0 0 0 / 0) calc(var(--offer-wipe) * 1% - var(--offer-feather)),
-      rgb(0 0 0 / 1) calc(var(--offer-wipe) * 1%)
-    );
+    will-change: transform;
   }
 
   /* --- Held back until the window is open ----------------------------------
