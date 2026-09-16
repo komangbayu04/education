@@ -47,6 +47,17 @@ interface Props {
   treeHeight?: number;
   /** `object-position` for the view, to put the tree in the window. */
   treeFocus?: string;
+  /**
+   * Where the tree is inside the landscape, as fractions of the image: the top
+   * of the crown, the foot of the trunk, and the trunk's own line across. Read
+   * off the file rather than guessed, and what the script frames the end of the
+   * zoom against.
+   */
+  treeCrown?: number;
+  treeBase?: number;
+  treeAxis?: number;
+  /** What the full frame says once the landscape has arrived. */
+  revealLines?: string[];
 }
 
 const {
@@ -73,6 +84,18 @@ const {
      arithmetic and the tree lands in the window by construction. Any other
      `object-position` here would pull the pair apart. */
   treeFocus = 'center',
+  /* Measured on image/hero/new-bga.png: crown at 15.7% of its height, the
+     trunk meeting the grass at 64.4%, the trunk on the middle. */
+  treeCrown = 0.157,
+  treeBase = 0.644,
+  treeAxis = 0.499,
+  /* One sentence, broken where the frame breaks it. The middle phrase carries
+     the weight — it is the one the headline has already used. */
+  revealLines = [
+    'Tribe helps the <strong>learning</strong>',
+    '<strong>economy</strong> close the gap between',
+    'product and brand.',
+  ],
 } = Astro.props;
 ---
 
@@ -94,6 +117,9 @@ const {
     data-hole-y={hole[1]}
     data-hole-w={hole[2]}
     data-hole-h={hole[3]}
+    data-tree-crown={treeCrown}
+    data-tree-base={treeBase}
+    data-tree-axis={treeAxis}
   >
     <picture class="hero__layer">
       <source srcset={`${tree}.avif`} type="image/avif" />
@@ -124,6 +150,16 @@ const {
       />
     </picture>
   </div>
+
+  {/* What the full frame says, once the carriage has gone and the landscape has
+      settled. Real text in the document from the first moment — the script only
+      changes how it is drawn — and out of the accessibility tree until it is
+      brought in. */}
+  <p class="hero__reveal" data-hero-reveal aria-hidden="true">
+    {revealLines.map((line) => (
+      <span class="hero__reveal-line"><Fragment set:html={line} /></span>
+    ))}
+  </p>
 
   {/* The drawn guides: two hairline verticals and a large circle. They leave
       with the copy. */}
@@ -216,6 +252,49 @@ const {
     object-fit: cover;
     object-position: center;
     will-change: transform;
+  }
+
+  /* =====================================================================
+     What the full frame says
+     ===================================================================== */
+
+  /* Centred on the screen: by the time it is readable the landscape is the
+     whole page and there is no column left to belong to. Above the pictures and
+     below the nav. */
+  .hero__reveal {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.12em;
+    margin: 0;
+    padding-inline: var(--section-padding-x);
+    font-family: var(--font-display);
+    font-size: clamp(1.375rem, 2.9vw, 2.75rem);
+    font-weight: 400;
+    line-height: 1.32;
+    letter-spacing: -0.02em;
+    text-align: center;
+    /* Sky behind white type is bright at the top of the frame. A soft shadow
+       rather than a scrim, so the landscape is not dimmed to carry a
+       sentence. */
+    text-shadow: 0 1px 24px rgb(0 0 0 / 0.35);
+    /* Inert until the scroll hands it over — it is over the picture, and a
+       sentence nobody can see should not be taking clicks off it either. */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .hero__reveal-line {
+    display: block;
+  }
+
+  .hero__reveal :global(strong) {
+    font-weight: 600;
   }
 
   /* =====================================================================
