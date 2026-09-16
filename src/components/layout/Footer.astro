@@ -63,12 +63,17 @@ import { pixelField } from '../../lib/pixelField';
    than as a dissolve. 48 and 20 are the figures the case-study seams use, which
    is the same job as this one.
 
-   The band keeps the depth it had by taking twice as many rows, so what changed
-   is the size of the squares and nothing else. Twenty across on a phone keeps
-   them the same SIZE there rather than the same count. */
+   THREE ROWS, and the depth came down with the squares. Six rows of the finer
+   cell kept the band at the depth the coarse one had, and that depth was the
+   whole trouble: it is a share of the window's WIDTH, so at 1910 it came to
+   239px — and on a window 895 tall that is a quarter of the screen taken out of
+   the footer's budget before a word of it is set. Measured there, it pushed the
+   quote 256px down, the portrait 64px past the foot of its own section and over
+   the links, and the wordmark up through the quote. Twenty across on a phone
+   keeps the squares the same SIZE there rather than the same count. */
 const SEAM = {
-  wide: { cols: 48, rows: 6, density: [0.92, 0.72, 0.5, 0.3, 0.14, 0.05] },
-  narrow: { cols: 20, rows: 6, density: [0.9, 0.7, 0.48, 0.28, 0.13, 0.05] },
+  wide: { cols: 48, rows: 3, density: [0.92, 0.55, 0.18] },
+  narrow: { cols: 20, rows: 3, density: [0.9, 0.52, 0.16] },
 };
 
 const seams = {
@@ -332,11 +337,21 @@ const {
   .close__spacer {
     --close-cols: 48;
     --close-cell: calc(100vw / var(--close-cols));
-    /* The band is six of those cells deep, and the strip left uncovered above
-       it is two. Both named, because four rules below depend on them and none
-       of them should be counting cells. */
-    --close-band: calc(6 * var(--close-cell));
-    --close-peek: calc(2 * var(--close-cell));
+
+    /* The band is three of those cells deep and the strip above it is one —
+       BOTH CAPPED AGAINST THE SCREEN'S HEIGHT, which is the correction.
+
+       A cell is a share of the width and that is right for a square; it is
+       wrong as a claim on a page whose budget is vertical. Uncapped, a wide
+       short window handed the seam a quarter of the screen: 239px of band at
+       1910x895, against 120 at 1910x1600. The cap only bites where the window
+       is short, and where it does the cells squash rather than the layout
+       breaking — 40x39 at 1910x895, which is not a squareness anyone can see.
+
+       Named, because four rules below depend on them and none of them should be
+       counting cells. */
+    --close-band: min(calc(3 * var(--close-cell)), 13svh);
+    --close-peek: min(var(--close-cell), 4.5svh);
   }
 
   /* The distance the page needs so there is something left to scroll once the
@@ -358,6 +373,10 @@ const {
      `aspect-ratio` is the grid's own shape, so every square is a square and the
      band is exactly `rows` cells deep — three of the same cell the block above
      is shortened by. */
+  /* The height is the band's own variable rather than an `aspect-ratio` on the
+     width, and that is what lets the cap above reach it at all: a ratio would
+     go on deriving the depth from the width and ignore the window's height,
+     which is the fault this is fixing. */
   .close__seam {
     position: absolute;
     top: 0;
@@ -365,13 +384,13 @@ const {
     right: 0;
     z-index: 1;
     display: grid;
+    height: var(--close-band);
     pointer-events: none;
   }
 
   .close__seam--wide {
     grid-template-columns: repeat(48, 1fr);
-    grid-template-rows: repeat(6, 1fr);
-    aspect-ratio: 48 / 6;
+    grid-template-rows: repeat(3, 1fr);
   }
 
   /* Off by default; the narrow layout at the foot of this file swaps the pair
@@ -379,8 +398,7 @@ const {
   .close__seam--narrow {
     display: none;
     grid-template-columns: repeat(20, 1fr);
-    grid-template-rows: repeat(6, 1fr);
-    aspect-ratio: 20 / 6;
+    grid-template-rows: repeat(3, 1fr);
   }
 
   .close__seam span {
@@ -457,7 +475,23 @@ const {
      is drawn from it and the quote keeps clear of it. Two copies of one number
      is how they drift apart. */
   .fq {
-    --fq-portrait-w: clamp(9rem, 20vw, 18rem);
+    /* AND A CEILING ON THE PICTURE, in the window's height.
+
+       The width alone decided this, and the height is what it has to fit in:
+       the portrait is 1.19 times as tall as it is wide and it is absolutely
+       placed, so nothing stopped it running out of the bottom of this section.
+       Measured at 1910x895 it finished 64px inside the band below, over the
+       links and the email — and at 1920x700 it would be 100px out.
+
+       The second term is what is left of the screen once the band at the foot,
+       the strip at the top and the quote's own drop have taken theirs, turned
+       back into a width by the picture's ratio. It does nothing at an ordinary
+       window — 288px either way at 1440x900 — and only takes over where there
+       is genuinely no room. */
+    --fq-portrait-w: min(
+      clamp(9rem, 20vw, 18rem),
+      calc((100svh - 30rem) * 590 / 700)
+    );
     --fq-portrait-gap: clamp(1rem, 2.5vw, 2.5rem);
   }
 
