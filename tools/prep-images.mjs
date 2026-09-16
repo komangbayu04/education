@@ -105,6 +105,56 @@ async function keyOutGround(file, box, key, { solid = 8, edge = 30 } = {}) {
   return sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
 }
 
+/**
+ * Turns the portrait's dark ground into a faint sheet of white.
+ *
+ * The source is a cutout on a near-black ground (mean rgb 18, 16, 20) carried
+ * at alpha 204 — 0.8 — with the subject opaque at 255, and nothing else in the
+ * file at either value but a one-to-two-pixel antialiased rim between them. So
+ * alpha alone says which pixel is which, with no colour key and no guessing:
+ *
+ *   204 and under   ground   → white, at `alpha`
+ *   255             subject  → untouched
+ *   205–254         the rim  → both at once, in proportion
+ *
+ * The rim is what needs care. Its colour already has the black ground mixed
+ * into it, so moving only its alpha would leave a dark hairline round the
+ * whole silhouette on the new light ground. `t` is how much of a rim pixel is
+ * subject, and the rest is lifted toward white by the same share the ground
+ * was.
+ */
+async function whitenGround(file, alpha) {
+  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const GROUND = 204;
+  const to = Math.round(alpha * 255);
+  let ground = 0;
+  let rim = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a === 255) continue;
+    if (a <= GROUND) {
+      data[i] = data[i + 1] = data[i + 2] = 255;
+      data[i + 3] = to;
+      ground++;
+      continue;
+    }
+    const t = (a - GROUND) / (255 - GROUND);
+    for (let c = 0; c < 3; c++) data[i + c] = Math.round(data[i + c] + (255 - data[i + c]) * (1 - t));
+    data[i + 3] = Math.round(to + (255 - to) * t);
+    rim++;
+  }
+
+  console.log(`whitened ${file}: ${ground} ground px → white at ${alpha}, ${rim} rim px blended`);
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
+}
+
+/* White at 0.16 — faint enough to read as a lighter pane of the photograph
+   behind it rather than as a card, which is the difference from the dark
+   ground this replaces: that read as a hole in the picture, this as glass on
+   it. */
+const yarikOnWhite = await whitenGround(`${SRC}/footer/Yarik.png`, 0.16);
+
 const overclockCut = await keyOutGround(`${SRC}/Overclock.png`, overclockBox, [214, 214, 214]);
 
 // image 3.png (Bedford) and image 4.png (CELPIP) are clean transparent
@@ -310,13 +360,17 @@ const photos = [
      is a portrait with real edges, so there is nothing to gain from a cap it
      never reaches.
 
-     NOT flattened, and that is the whole character of it. The dark ground it
-     was cut on carries an alpha of 0.8 while the subject is opaque, so the
-     landscape behind it shows faintly through the box: the picture sits ON the
-     photograph rather than in a hole punched out of it. Flattened it would be a
-     solid rectangle, which is what a border would have had to be drawn to
-     rescue. */
-  { src: `${SRC}/footer/Yarik.png`, name: 'portrait-yarik', maxW: 590, avif: true, quality: 84 },
+     NOT flattened, and that is the whole character of it. The subject is
+     opaque and the ground around it is not, so the landscape behind shows
+     through the box: the picture sits ON the photograph. Flattened it would be
+     a solid rectangle, which is what a border would have had to be drawn to
+     rescue.
+
+     The ground is no longer the file's own, though. It was cut on near-black
+     at 0.8, which read as a dark hole in the photograph; whitenGround above
+     swaps it for white at 0.16 before this is encoded, so it reads as a pale
+     pane over it instead. */
+  { src: yarikOnWhite, name: 'portrait-yarik', maxW: 590, avif: true, quality: 84 },
 
   /* The two panels Two ways in's window opens onto. Full-bleed grounds, read at
      the size of the window and not at the size of a card, so they are capped
