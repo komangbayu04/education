@@ -242,9 +242,8 @@ const {
     display: block;
   }
 
-  /* Both full-bleed and `cover`. The carriage is also `center`, and the script
-     depends on that: it reproduces exactly this fit to find where the window
-     opening lands on the screen. */
+  /* Both full-bleed and `cover`, and the script reproduces exactly this fit to
+     find where the window opening lands on the screen. */
   .hero__img {
     display: block;
     width: 100%;
@@ -252,6 +251,38 @@ const {
     object-fit: cover;
     object-position: center;
     will-change: transform;
+  }
+
+  /* THE LANDSCAPE'S BOX IS THE PICTURE, not the screen — and that distinction
+     is what was cutting the top off.
+
+     `object-fit: cover` crops the image TO ITS BOX, so with the box at the size
+     of the screen the picture has nothing outside the frame to give: move that
+     box down to seat the tree and its own top edge comes into view, with the
+     section's near-black behind it. Measured at 1920x896, a 72px band.
+
+     So the script gives this element the covering rectangle itself — the box is
+     then bigger than the screen on one axis, and the part that used to be
+     cropped away is still there, off-frame, waiting for the end of the zoom to
+     move it in. Everything about that box is written inline, because the script
+     is where the numbers are; what is left here is the two caps it has to beat.
+
+     The page's own reset gives every image `max-width: 100%`, which is right
+     everywhere else and wrong for a box meant to be wider than its parent:
+     capped, it collapsed back to the screen's width, and the sides of a phone
+     were bare at the end of the zoom.
+
+     Nothing is set here for the box itself, so before the script runs — or
+     without it — the rule above stands and the picture is an ordinary
+     full-bleed `cover`. */
+  .hero__img--tree {
+    /* Positioned, because the script places this box by its own edges. Static —
+       which is what was left here for a moment — ignores `left` and `top`
+       silently: the box took the size it was given and stayed in the corner,
+       and the tree sat outside the window before the zoom began. */
+    position: absolute;
+    max-width: none;
+    max-height: none;
   }
 
   /* =====================================================================

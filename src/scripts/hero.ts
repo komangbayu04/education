@@ -99,23 +99,68 @@ export function initHero(): () => void {
     const cy = top + h / 2;
     const scale = Math.max((2 * Math.max(cx, vw - cx)) / w, (2 * Math.max(cy, vh - cy)) / h, 1);
 
-    /* The landscape's end frame, against the same origin the zoom turns about.
-       Two things are being asked for at once — the crown at one height and the
-       foot of the trunk at another — which is a scale AND a shift, not a scale
-       alone: the distance between them fixes the scale, and where they land
-       fixes the shift. */
-    const crown = oy + read('treeCrown') * ih * s;
-    const base = oy + read('treeBase') * ih * s;
-    const axis = ox + read('treeAxis') * iw * s;
-    const treeScale = ((TREE_BASE - TREE_TOP) * vh) / Math.max(base - crown, 1);
+    /* THE LANDSCAPE'S BOX IS THE PICTURE. `ox`/`oy` and the two sizes below are
+       the covering rectangle — bigger than the screen on one axis — and the
+       element is given exactly that box, so what this arithmetic describes is
+       what is painted. See `.hero__img--tree` in Hero.astro for the fault this
+       fixes. */
+    const boxW = iw * s;
+    const boxH = ih * s;
+
+    /* Placed by its own edges rather than by `inset: 0` and `margin: auto`.
+       Auto margins centre an oversized box on one axis only: measured at
+       390x844, the box centred vertically and sat hard against the left, which
+       put the tree outside the window before the zoom had even begun. `right`
+       and `bottom` are cleared because the stylesheet's `inset: 0` would
+       otherwise fight the two edges set here. */
+    Object.assign(tree.style, {
+      right: 'auto',
+      bottom: 'auto',
+      margin: '0',
+      left: `${ox}px`,
+      top: `${oy}px`,
+      width: `${boxW}px`,
+      height: `${boxH}px`,
+    });
+
+    /* The end frame, against the same origin the zoom turns about. Two things
+       are asked for at once — the crown at one height and the foot of the trunk
+       at another — which is a scale AND a shift, not a scale alone: the distance
+       between them fixes the scale, and where they land fixes the shift. */
+    const crown = oy + read('treeCrown') * boxH;
+    const base = oy + read('treeBase') * boxH;
+    const axis = ox + read('treeAxis') * boxW;
+
+    /* Never under 1. Below it the picture is smaller than the screen and the
+       page shows down both sides — which is what the framing asks for on a wide,
+       short window, where four fifths of a short height is less than the tree
+       already covers. */
+    const treeScale = Math.max(((TREE_BASE - TREE_TOP) * vh) / Math.max(base - crown, 1), 1);
+
+    /* What the picture can afford to move without leaving the screen. The
+       framing is a wish; this is the room, and the wish is clamped into it —
+       so the frame is always full, and the tree is where it was asked to be
+       wherever there are pixels to spare for it. */
+    const maxY = -(cy + (oy - cy) * treeScale);
+    const minY = vh - (cy + (oy + boxH - cy) * treeScale);
+    const maxX = -(cx + (ox - cx) * treeScale);
+    const minX = vw - (cx + (ox + boxW - cx) * treeScale);
+    const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 
     return {
       origin: `${cx}px ${cy}px`,
       scale: scale * OVERSHOOT,
+      /* THE SAME POINT, IN THE LANDSCAPE'S OWN COORDINATES. `transform-origin`
+         is measured from an element's top-left corner, not from the screen's —
+         and the landscape's box starts off-screen now, so the carriage's origin
+         written on it lands somewhere else entirely. Measured at 1920x896, the
+         tree settled at 14.6% instead of the 11% asked for, the whole of the
+         error being the box's own offset. */
+      treeOrigin: `${cx - ox}px ${cy - oy}px`,
       tree: {
         scale: treeScale,
-        x: vw / 2 - (cx + (axis - cx) * treeScale),
-        y: TREE_TOP * vh - (cy + (crown - cy) * treeScale),
+        x: clamp(vw / 2 - (cx + (axis - cx) * treeScale), minX, maxX),
+        y: clamp(TREE_TOP * vh - (cy + (crown - cy) * treeScale), minY, maxY),
       },
     };
   };
@@ -181,12 +226,12 @@ export function initHero(): () => void {
      instead of still accelerating when it gets there. */
   tl.fromTo(
     tree,
-    { scale: 1, x: 0, y: 0, transformOrigin: () => frame.origin },
+    { scale: 1, x: 0, y: 0, transformOrigin: () => frame.treeOrigin },
     {
       scale: () => frame.tree.scale,
       x: () => frame.tree.x,
       y: () => frame.tree.y,
-      transformOrigin: () => frame.origin,
+      transformOrigin: () => frame.treeOrigin,
       duration: ZOOM_TO - ZOOM_AT,
       ease: 'power1.inOut',
       immediateRender: false,
@@ -219,6 +264,15 @@ export function initHero(): () => void {
     tl.kill();
     gsap.set(copy, { clearProps: 'opacity,transform' });
     gsap.set([train, tree], { clearProps: 'transform,transformOrigin' });
+    Object.assign(tree.style, {
+      right: '',
+      bottom: '',
+      margin: '',
+      left: '',
+      top: '',
+      width: '',
+      height: '',
+    });
     if (reveal) {
       gsap.set(reveal, { clearProps: 'opacity,visibility,transform' });
       reveal.setAttribute('aria-hidden', 'true');
