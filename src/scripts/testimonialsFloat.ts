@@ -345,6 +345,110 @@ function initReveal(section: HTMLElement, cleanups: Array<() => void>): void {
 }
 
 /**
+ * A shadow on every tile that is over the title's words, and on none that are
+ * not.
+ *
+ * The title sits under the tiles, so a tile crossing it covers it — and the
+ * shadow is what says which is on top. It belongs to the crossing, not to the
+ * tile: on the rest of the ground the tiles are flat, and the lift appears
+ * only for as long as there are words underneath to be lifted off.
+ *
+ * WHAT COUNTS AS "OVER THE WORDS" is the painted line, not the heading's box.
+ * The box is the full measure, 711px at 1440, and the second line of this
+ * title is a good deal shorter than that — so testing against the box would
+ * shadow a tile that is only beside the words, in the empty end of a line.
+ * The horizontal extent is taken from the text itself, line by line; the
+ * vertical from the heading's box, which is exactly the height of its lines.
+ *
+ * Every tile against every line, per scroll update. That is a handful of
+ * rectangles on elements the browser has already laid out, and it has to be
+ * live: the title is sticky and the tiles are scaled by a scrub, so neither
+ * box is anywhere a cached number would still describe.
+ *
+ * Runs under reduced motion too. The shadow is a statement about stacking, not
+ * an effect; the stylesheet only drops its transition there.
+ */
+function initTitleShadows(section: HTMLElement, cleanups: Array<() => void>): void {
+  const title = section.querySelector<HTMLElement>('[data-tmf-title]');
+  const stage = section.querySelector<HTMLElement>('[data-tmf-stage]');
+  const tiles = gsap.utils.toArray<HTMLElement>('[data-tmf-film]', section);
+  if (!title || !stage || !tiles.length) return;
+
+  const range = document.createRange();
+
+  /** The painted words, as one rectangle per line. */
+  const words = () => {
+    const box = title.getBoundingClientRect();
+    /* TEXT NODES ONLY, one at a time. A range over the whole heading also
+       reports the boxes of the elements inside it, and SplitText's masks and
+       lines are blocks the full width of the measure — measured, every line's
+       middle came back at the screen's centre and its width at 711px whatever
+       the line actually held, which is the heading's box again by another
+       route. Grouped by row afterwards, since a line is several runs. */
+    const rects: DOMRect[] = [];
+    const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.textContent?.trim()) continue;
+      range.selectNodeContents(node);
+      rects.push(...range.getClientRects());
+    }
+    const rows = new Map<number, { left: number; right: number }>();
+    for (const r of rects) {
+      if (r.width < 1 || r.height < 1) continue;
+      const key = Math.round(r.top);
+      const row = rows.get(key);
+      if (row) {
+        row.left = Math.min(row.left, r.left);
+        row.right = Math.max(row.right, r.right);
+      } else {
+        rows.set(key, { left: r.left, right: r.right });
+      }
+    }
+    /* The rows carry their horizontal extent. The vertical comes from the
+       heading's box shared out between them in order — the box is exactly the
+       height of its lines, where the masks' own rectangles are not — so a tile
+       beside the short second line is tested against that line alone and not
+       against the long one above it. */
+    const ordered = [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, row]) => row);
+    const step = box.height / Math.max(ordered.length, 1);
+    return ordered.map((row, i) => ({
+      ...row,
+      top: box.top + i * step,
+      bottom: box.top + (i + 1) * step,
+    }));
+  };
+
+  const apply = () => {
+    const lines = words();
+    tiles.forEach((tile) => {
+      const t = tile.getBoundingClientRect();
+      const over = lines.some(
+        (l) => t.left < l.right && t.right > l.left && t.top < l.bottom && t.bottom > l.top,
+      );
+      tile.toggleAttribute('data-over-title', over);
+    });
+  };
+
+  const clear = () => tiles.forEach((tile) => tile.removeAttribute('data-over-title'));
+
+  const watcher = ScrollTrigger.create({
+    trigger: stage,
+    start: 'top bottom',
+    end: 'bottom top',
+    onUpdate: apply,
+    onRefresh: apply,
+    onToggle: (self) => (self.isActive ? apply() : clear()),
+  });
+
+  apply();
+
+  cleanups.push(() => {
+    watcher.kill();
+    clear();
+  });
+}
+
+/**
  * Testimonials, the scrolled cut — the entrances, the silent previews, and
  * the lightbox that opens a film in full.
  *
@@ -385,6 +489,7 @@ export function initTestimonialsFloat(): () => void {
   initLightbox(section, previews, cleanups);
 
   if (!prefersReducedMotion()) initReveal(section, cleanups);
+  initTitleShadows(section, cleanups);
 
   return () => {
     cleanups.forEach((fn) => fn());

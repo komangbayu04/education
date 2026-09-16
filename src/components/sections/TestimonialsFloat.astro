@@ -873,31 +873,22 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
   :global(html[data-js='true']) .tmf__title {
     position: sticky;
     top: 50svh;
-    /* OVER the tiles, not under them — and it stays readable across every one
-       of them because of the blend below. */
-    z-index: 3;
+    /* UNDER the tiles. The tiles are the testimonials and the line is what
+       they are passing over, so a tile covers the words rather than the words
+       being printed across the tile.
+
+       It used to be the other way up, drawn over everything in
+       `mix-blend-mode: difference` so it could never be covered — an x-ray
+       that inverted whatever it crossed. That is gone with it: under the tiles
+       there is only the cream ground behind the line, so it is plain ink.
+       What marks a tile crossing it now is the tile's own shadow — see
+       `.tmf__film[data-over-title]` below and initTitleShadows in
+       src/scripts/testimonialsFloat.ts. */
+    z-index: 1;
     max-width: min(44.4375rem, calc(100% - 2 * var(--section-padding-x)));
     margin: 50svh auto 0;
     translate: 0 -50%;
-
-    /* The x-ray. `difference` subtracts the type from whatever is behind it, so
-       the line is never a colour of its own — it is always the inverse of the
-       thing it is crossing. On the section's cream it comes out near-black,
-       which is what it looked like before; on a white card it goes to true
-       black; on a dark film it goes light. The words cannot be covered,
-       because there is nothing to cover: they ARE the difference.
-
-       White is the source colour that makes that work — |backdrop - 255| is
-       the inverse of the backdrop, which is the whole effect. It is never seen
-       as white.
-
-       Nothing here creates an isolating stacking context between this and the
-       tiles, which is what lets the blend see them: `.tmf__stage` is
-       positioned but carries no `z-index`, and the section is `flow-root`
-       rather than `isolate`. Either of those would have left the line blending
-       with the ground alone and going flat the moment a tile crossed it. */
-    color: #fff;
-    mix-blend-mode: difference;
+    color: var(--color-ink);
 
     /* A line lying over the tiles would otherwise take their presses: it spans
        the middle of the screen and the films underneath are the only controls
@@ -905,9 +896,8 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     pointer-events: none;
   }
 
-  /* Under the title now, and still over the ground. The list covers the whole
-     stage and has nothing to be pressed, so it hands pointer events back; only
-     the tiles take them. */
+  /* Over the title now. The list covers the whole stage and has nothing to be
+     pressed, so it hands pointer events back; only the tiles take them. */
   :global(html[data-js='true']) .tmf__films {
     display: block;
     position: absolute;
@@ -925,6 +915,26 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     /* The layer above sets `pointer-events: none` so the title underneath stays
        selectable between the tiles; each tile takes it back for itself. */
     pointer-events: auto;
+    transition: box-shadow 0.45s var(--ease-out-expo);
+  }
+
+  /* LIFTED OFF THE LINE, and only while it is over it.
+
+     The script sets this for exactly as long as the tile's box overlaps the
+     painted words — not the heading's box, which runs the full measure on a
+     line that may be half as long — so a tile passing beside the title in the
+     same band of the screen does not pick it up. It is the only thing that
+     says one is above the other now that the line no longer inverts through
+     the tiles, and it goes again the moment the words are clear.
+
+     Two layers, a wide soft one for the lift and a tight one under the edge so
+     the tile does not read as floating in fog. Drawn on the tile's own box,
+     which a film's `overflow: hidden` does not clip — that clips its contents,
+     not its shadow. */
+  :global(html[data-js='true']) .tmf__film[data-over-title] {
+    box-shadow:
+      0 28px 64px -18px rgb(0 0 0 / 0.32),
+      0 6px 18px -8px rgb(0 0 0 / 0.2);
   }
 
   /* And a card is still as tall as its own words here.
@@ -963,6 +973,14 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
   @media (prefers-reduced-motion: no-preference) {
     :global(html[data-js='true']) .tmf__title {
       opacity: 0;
+    }
+  }
+
+  /* The shadow still comes and goes — it says what is on top of what, which is
+     content — but it arrives rather than fading in. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html[data-js='true']) .tmf__film {
+      transition: none;
     }
   }
 
