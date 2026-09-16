@@ -24,7 +24,15 @@
  * src/scripts/workCategories.ts.
  *
  * The one thing on fantasy's list that is not here is the "View" label that
- * follows the cursor — left out at the brief's request.
+ * follows the cursor — left out at the brief's request. The button is not
+ * fantasy's either any more: it is the hero's, to the property, so the page
+ * has one button and not two.
+ *
+ * FIVE OF THE SIX PICTURES ARE DARK AND ONE IS NOT. Marketing Design is a film
+ * of line art on paper white, so that item alone runs black type, a black
+ * button and a white foot gradient, and it is not one of the nav's dark zones.
+ * `ink` on a category is what says so; see the prop for the measurements that
+ * made it necessary.
  *
  * OVERCLOCK IS THE FIRST ITEM. It was a chapter of its own above this one,
  * pinned, dissolving into Our work behind a mask; it is folded in now so the
@@ -75,6 +83,21 @@ interface Category {
    * ours.
    */
   gradient?: string;
+  /**
+   * `'dark'` for an item whose picture is LIGHT — the type on it is inverted,
+   * and so is its button.
+   *
+   * Every other item here is white type on a dark photograph, which is the
+   * list's whole look, and nothing would have needed saying if Marketing
+   * Design's film were not line art on paper white. Measured on it: 239-255
+   * of 255 across the left third of the frame, where the headline travels.
+   * White on that is a contrast ratio of about 1.07:1 — not dim, invisible.
+   *
+   * The alternative was to drop a scrim over the film until white would sit on
+   * it, which is to say to stop it being white. This inverts the type instead
+   * and leaves the artwork alone.
+   */
+  ink?: 'dark';
 }
 
 interface Props {
@@ -90,7 +113,7 @@ const {
       label: 'Overclock',
       lines: ['Overclock'],
       blurb:
-        'An AI capability partner for enterprise teams, delivering ten-week accelerator cohorts, workflow-based corporate training, and embedded technical consulting.',
+        'An AI capability partner for enterprise teams: accelerator cohorts, workflow-based training, and embedded consulting.',
       href: '/work/overclock',
       video: '/media/overclock-cover',
       poster: '/media/overclock-cover-poster',
@@ -107,7 +130,7 @@ const {
       label: 'Website Design & Development',
       lines: ['Website Design', '& Development'],
       blurb:
-        'Marketing sites and platforms, designed and built end to end — so what ships is what was drawn, at the speed the launch actually needs.',
+        'Marketing sites and platforms, designed and built end to end — so what ships is what was drawn, at the speed the launch needs.',
       href: '/work',
       art: '/media/work-website-design',
       tone: '#101010',
@@ -117,7 +140,7 @@ const {
       label: 'Product Design',
       lines: ['Product', 'Design'],
       blurb:
-        'The screens people use every day: flows, states, and the systems underneath them, drawn so the product stays coherent as it grows.',
+        'The screens people use every day: flows, states and the systems under them, drawn so the product stays coherent as it grows.',
       href: '/work',
       art: '/media/work-product-design',
       tone: '#151515',
@@ -137,7 +160,7 @@ const {
       label: 'Pitch Deck',
       lines: ['Pitch', 'Deck'],
       blurb:
-        'The story a room has to follow in twenty minutes — cut, structured and designed so the argument carries without you narrating it.',
+        'The story a room has to follow in twenty minutes — cut and designed so the argument carries without you narrating it.',
       href: '/work',
       art: '/media/work-pitch-deck',
       tone: '#151515',
@@ -147,10 +170,15 @@ const {
       label: 'Marketing Design',
       lines: ['Marketing', 'Design'],
       blurb:
-        'Campaign and social work that keeps the brand recognisable at the size a feed actually shows it, in the volume a calendar actually needs.',
+        'Campaign and social work that stays recognisable at the size a feed shows it, in the volume a calendar actually needs.',
       href: '/work',
-      art: '/media/work-marketing-design',
-      tone: '#101010',
+      /* The one item that is line art on white — see `ink` above for what that
+         costs and why the three properties below travel together. */
+      video: '/media/work-marketing',
+      poster: '/media/work-marketing-poster',
+      tone: '#ffffff',
+      gradient: '255, 255, 255',
+      ink: 'dark',
     },
   ],
 } = Astro.props;
@@ -173,16 +201,28 @@ const {
     THE STAGE. Sticky for as long as the section is passing, with every
     category stacked inside it and one of them showing.
 
-    `data-nav-over="dark"` is on this rather than on the section: the nav reads
-    a zone's box and painted opacity, and this box is the screen — its opacity
-    is whether the reader is looking at this section, so the capsule turns back
-    on the exact frame the pixel field hands over to Two ways in.
-    `data-cat-dissolve` is the layer that field switches off.
+    THE NAV'S DARK ZONES ARE THE LAYERS, not this box, and that moved the day
+    one of the pictures turned out to be white. The nav declares a ground dark
+    rather than sampling it, and this box is dark for the whole section — so
+    over Marketing Design's film the wordmark stayed white on white paper.
+
+    A layer is exactly the right unit for it: the nav's test is a box behind the
+    mark AND a painted opacity of at least a half, which is the same crossfade
+    these layers already run. Nothing about the handover below changes either,
+    because `painted()` walks the ancestors — the stage's own fade into Two ways
+    in still counts against every layer inside it.
+
+    `data-cat-dissolve` is the layer the pixel field switches off.
   */}
-  <div class="cat__stick" data-nav-over="dark" data-cat-dissolve>
+  <div class="cat__stick" data-cat-dissolve>
     {
       categories.map((category, index) => (
-        <div class:list={['cat__layer', index === 0 && 'is-active']} data-cat-layer>
+        <div
+          class:list={['cat__layer', index === 0 && 'is-active']}
+          data-cat-layer
+          data-ink={category.ink}
+          data-nav-over={category.ink === 'dark' ? undefined : 'dark'}
+        >
           {/* The whole picture is a way in, as it is on fantasy's list. Out of
               the tab order and hidden from assistive tech, because the button
               below is the same link with a name — this one is for the pointer
@@ -198,10 +238,12 @@ const {
               /* Scenery, not a player: muted so it may start itself, looping
                  because it has no end to arrive at, the poster so the stage is
                  never blank while it decodes. `data-cat-grow` is what the
-                 opening scales. */
+                 opening scales, and ONLY the first item's is marked with it:
+                 there are two films on this list now, and the script takes the
+                 first `video[data-cat-grow]` it finds. */
               <video
                 class="cat__film"
-                data-cat-grow
+                data-cat-grow={index === 0 ? true : undefined}
                 autoplay
                 muted
                 loop
@@ -234,16 +276,14 @@ const {
             <div class="cat__texts" data-cat-texts>
               <p class="cat__blurb">{category.blurb}</p>
 
-              <a class="cat__cta" href={category.href}>
-                <span class="cat__cta-label">
-                  {category.cta ?? viewLabel}
-                  <svg class="cat__cta-icon" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
-                    <path
-                      fill="currentColor"
-                      d="M8.2056 0.8477 L14 7.3477 L8.2056 13.8477 H5.3785 L10.3084 8.3617 H0 V6.3337 H10.3084 L5.3785 0.8477 Z"
-                    />
-                  </svg>
-                </span>
+              {/* The hero's button, to the property — its height, its radius,
+                  its uppercase label, the fill that wipes up from the foot on
+                  hover, and the magnetic lean. It was a glass capsule with an
+                  arrow in it, which is fantasy's button and not this site's;
+                  asked for one button, the page has one button. */}
+              <a class="cat__cta" href={category.href} data-magnetic="0.2">
+                <span class="cat__cta-fill" aria-hidden="true"></span>
+                <span class="cat__cta-label" data-magnetic-inner>{category.cta ?? viewLabel}</span>
                 <span class="u-sr-only">{` — ${category.label}`}</span>
               </a>
             </div>
@@ -263,7 +303,7 @@ const {
   <div class="cat__track" aria-label="Our services">
     {
       categories.map((category) => (
-        <div class="cat__card">
+        <div class="cat__card" data-ink={category.ink}>
           <div class="cat__card-inner">
             <div class="cat__head">
               <p class="cat__num" data-cat-num>{category.eyebrow ?? category.number}</p>
@@ -416,6 +456,13 @@ const {
     background-color: rgba(var(--cat-gradient), 0.15);
   }
 
+  /* A 15% white veil over white paper is a duller white and nothing else — it
+     buys no contrast for type that is black now. Dropped, so the film is the
+     colour it was drawn. */
+  .cat__layer[data-ink='dark'] .cat__media::before {
+    background-color: transparent;
+  }
+
   .cat__media::after {
     height: 400px;
     background: linear-gradient(180deg, rgba(var(--cat-gradient), 0) 0, rgba(var(--cat-gradient), 0.95));
@@ -457,6 +504,11 @@ const {
     opacity: 0;
   }
 
+  /* THREE LINES, and it is the measure that holds them to it rather than a
+     clamp: a `line-clamp` would keep the count by hiding whatever did not fit,
+     which is the same thing as not having written it. At 16px this measure
+     takes about 42 characters, so the copy above is cut to fit three of them
+     and every item was measured at the widths below. */
   .cat__blurb {
     max-width: 335px;
     font-size: 20px;
@@ -466,72 +518,92 @@ const {
     text-wrap: pretty;
   }
 
-  /* Glass: a quarter-white sheet over a 12px backdrop blur. On hover a white
-     fill sweeps across from the right and the label turns black — fantasy's
-     `--solid --blurred --light` button. */
+  /* THE HERO'S BUTTON. Same height, same radius, same uppercase label at the
+     same size and tracking, the same fill wiping up from the foot on hover and
+     the same ring left behind, and the same magnetic lean — see `.hero__btn` in
+     Hero.astro, which every figure here is taken from rather than matched by
+     eye.
+
+     What is gone is a glass capsule with an arrow in it, 50px tall on a 10px
+     radius. That is fantasy's button, and it was right while this section was
+     being built to fantasy's list; it is wrong on a page whose every other
+     button is the hero's. */
   .cat__cta {
     position: relative;
     z-index: 2;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 50px;
-    padding: 0 32px;
-    border-radius: 10px;
+    height: 45px;
+    padding: 0 1.5rem;
+    border-radius: 4px;
     overflow: hidden;
-    color: #ffffff;
-    font-size: 18px;
+    background: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
     font-weight: 500;
-    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     text-decoration: none;
     pointer-events: auto;
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    transition: color 0.15s ease-out;
+    will-change: transform;
   }
 
-  .cat__cta::before,
-  .cat__cta::after {
-    content: '';
+  .cat__cta-fill {
     position: absolute;
     inset: 0;
-    z-index: 1;
-    border-radius: inherit;
-  }
-
-  .cat__cta::before {
-    background-color: rgb(255 255 255 / 0.25);
-  }
-
-  .cat__cta::after {
-    background-color: #ffffff;
-    transform: scaleX(0);
-    transform-origin: right center;
-    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-  }
-
-  .cat__cta:hover,
-  .cat__cta:focus-visible {
-    color: #000000;
-  }
-
-  .cat__cta:hover::after,
-  .cat__cta:focus-visible::after {
-    transform: scaleX(1);
-    transform-origin: left center;
+    background: var(--color-ink);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
   }
 
   .cat__cta-label {
     position: relative;
     z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    transition: color 0.4s var(--ease-out-expo);
   }
 
-  .cat__cta-icon {
-    width: 12px;
-    height: 12px;
+  .cat__cta:hover,
+  .cat__cta:focus-visible {
+    box-shadow: inset 0 0 0 1px #ffffff;
+  }
+
+  .cat__cta:hover .cat__cta-fill,
+  .cat__cta:focus-visible .cat__cta-fill {
+    transform: scaleY(1);
+  }
+
+  .cat__cta:hover .cat__cta-label,
+  .cat__cta:focus-visible .cat__cta-label {
+    color: #ffffff;
+  }
+
+  /* On a light picture the same button turned over: ink where it was white and
+     white where it was ink, so the hover still ends on the ground the button
+     started from. */
+  .cat__layer[data-ink='dark'] .cat__texts {
+    color: var(--color-ink);
+  }
+
+  .cat__layer[data-ink='dark'] .cat__cta {
+    background: var(--color-ink);
+    color: #ffffff;
+  }
+
+  .cat__layer[data-ink='dark'] .cat__cta-fill {
+    background: #ffffff;
+  }
+
+  .cat__layer[data-ink='dark'] .cat__cta:hover,
+  .cat__layer[data-ink='dark'] .cat__cta:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+
+  .cat__layer[data-ink='dark'] .cat__cta:hover .cat__cta-label,
+  .cat__layer[data-ink='dark'] .cat__cta:focus-visible .cat__cta-label {
+    color: var(--color-ink);
   }
 
   /* =====================================================================
@@ -596,24 +668,36 @@ const {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Fantasy's `h2-alt` less 16px at every size — 44, 74 and 124px against
-     its 60, 90 and 140, at the brief's request. Set solid and tracked in, as
-     theirs is. The phone figure keeps a 14.5vw ceiling so a long word can
-     never be wider than a very narrow screen. */
+  /* Down again, to 36, 58 and 96px. These began as fantasy's `h2-alt` — 60, 90
+     and 140 — came down 16px at every size once, and are cut by a further fifth
+     here: a proportion rather than another flat figure, which would take the
+     same bite out of a phone's title as out of a 1440's. Set solid and tracked
+     in. The phone figure keeps a vw ceiling so a long word can never be wider
+     than a very narrow screen. */
   .cat__title {
     font-family: var(--font-display);
-    font-size: min(44px, 14.5vw);
+    font-size: min(36px, 12vw);
     font-weight: 400;
     line-height: 1;
     letter-spacing: -0.03em;
   }
 
+  /* Black on a light picture. The title is over the stage but not inside the
+     layer, so it is flagged on its own card rather than inherited. */
+  .cat__card[data-ink='dark'] .cat__title,
+  .cat__card[data-ink='dark'] .cat__num {
+    color: var(--color-ink);
+  }
+
+  /* The window the description's fade is measured in, stated as a depth at the
+     foot of the title — so it comes down with the type rather than staying at a
+     figure set against a title a fifth taller. */
   .cat__title-end {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 175px;
+    height: 140px;
     pointer-events: none;
   }
 
@@ -630,9 +714,13 @@ const {
       padding-bottom: 300px;
     }
 
+    /* 16px from here up and at every width above it, where this used to step
+       18 and then 20 — one body size on a desktop, as asked. The measure comes
+       down with it: 400px of 16px type is four lines of this copy, 340 is
+       three. */
     .cat__blurb {
-      max-width: 400px;
-      font-size: 18px;
+      max-width: 340px;
+      font-size: 16px;
     }
 
     .cat__num {
@@ -640,24 +728,23 @@ const {
     }
 
     .cat__title {
-      font-size: 74px;
+      font-size: 58px;
     }
   }
 
   @media (min-width: 650px) and (max-width: 1023.98px) {
     .cat__title-end {
-      height: 125px;
+      height: 100px;
     }
   }
 
   @media (min-width: 1440px) {
-    .cat__blurb,
     .cat__num {
       font-size: 20px;
     }
 
     .cat__title {
-      font-size: 124px;
+      font-size: 96px;
     }
   }
 

@@ -335,21 +335,16 @@ const photos = [
     flatten: true,
   })),
 
+  /* Three of these were replaced wholesale; the names they are written to did
+     not change, so nothing in the markup had to. Marketing Design is not here
+     at all any more — it is a film now (public/media/work-marketing.*, from
+     image/video/marketing-vid.mp4), which this script does not touch, the way
+     Overclock's cover is. */
   ...[
-    ['Website.png', 'work-website-design', {}],
-    ['Product Design.png', 'work-product-design', {}],
+    ['Webdes.png', 'work-website-design', {}],
+    ['Product New.png', 'work-product-design', {}],
     ['Branding.png', 'work-brand-design', {}],
-    /* Replaced, and the replacement needs no crop. The old export was a mockup
-       of this very page with the site's own floating nav drawn into it — the
-       wordmark, "PITCH DECK" and the hamburger, in a capsule at the top of the
-       frame — so its top tenth was cut off to stop the reader seeing two navs,
-       one live and one photographed, a few pixels apart. This one is a hall
-       with the deck on the screen and no capsule in it; trimming it would only
-       throw away ceiling. */
-    ['Pitch Deck New.png', 'work-pitch-deck', {}],
-    /* The fifth category's shot, at last. Until now it had none and painted its
-       flat `tone` instead. */
-    ['Marketing Design.png', 'work-marketing-design', {}],
+    ['Pitch New2.png', 'work-pitch-deck', {}],
   ].map(([file, name, opts]) => ({
     src: `${SRC}/work/${file}`,
     name,
