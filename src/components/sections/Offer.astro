@@ -158,11 +158,12 @@ const {
      picture is left to be a picture.
 
      Not decoration. `cover` crops a 1.9 photograph differently at every window,
-     and what it puts under the type changes with it: at 1920x1080 the block
-     behind Sprint's sentence peaks at 83 of 255, and at 390x844 the same block
-     peaks at 231 — a headlight streak, straight under white type. The foot of
-     this gradient takes that 231 down to about 78, which is white at better
-     than 8:1 wherever the crop lands. */
+     and what it puts under the type changes with it. Measured on the pictures
+     these two panels carry, as the brightest pixel anywhere under the type —
+     an average is no use, one bright cloud behind one word is enough to lose a
+     line. On a desktop both are comfortable: the worst of the four blocks is
+     Sprint's sentence at 5.93:1 at 1920x1080 and 4.57:1 at 1440x900, against
+     Retainer's 15.2 and 12.9. */
   .offer__scrim {
     position: absolute;
     inset: 0;
@@ -316,6 +317,36 @@ const {
     .offer__summary {
       max-width: none;
       font-size: clamp(1.375rem, 6.4vw, 2rem);
+    }
+
+    /* AND THE SCRIM IS HEAVIER ON A PHONE, because the crop is what changes.
+
+       These are 1.9 photographs and a phone is 0.46, so `cover` throws away
+       two thirds of the width and keeps the middle — and the middle of Sprint's
+       picture is the doorway it is shot through, open onto lit grass and sky.
+       Measured at 390x844 on the desktop scrim: the brightest pixel under the
+       sentence is 248 of 255, which the scrim leaves at 150 and white type
+       reads on at 2.94:1. That is below the 3:1 this size of type is allowed
+       even as large text, and it looks it.
+
+       Steering the crop was the other way out and it costs more than it saves.
+       Swept across the whole width at this size: the picture only clears 4.5:1
+       once the frame has been pulled to within a tenth of its left edge, which
+       is a phone looking at a wall and one runner rather than at the doorway
+       the photograph is about.
+
+       So the middle and foot come down instead — 0.52 and 0.74 against 0.34 and
+       0.66 — and the picture keeps its composition. That leaves the sentence at
+       5.2:1, the number at 6.3, and Retainer, which had 10.5:1 to spare, still
+       well clear. */
+    .offer__scrim {
+      background: linear-gradient(
+        180deg,
+        rgb(0 0 0 / 0.5) 0%,
+        rgb(0 0 0 / 0.34) 26%,
+        rgb(0 0 0 / 0.52) 62%,
+        rgb(0 0 0 / 0.74) 100%
+      );
     }
   }
 </style>

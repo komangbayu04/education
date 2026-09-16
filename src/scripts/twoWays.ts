@@ -15,9 +15,11 @@ import { prefersReducedMotion } from './utils/device';
  * fifth of the screen to all of it would take its own headline with it.
  *
  * Scrubbed against the second step of the section's track, so the reader drives
- * it and can run it backwards. The copy goes as the window opens — it belongs
- * to this screen and not to the one arriving, and left up it would sit over the
- * top of another section's own words.
+ * it and can run it backwards. The copy rises and goes as the window opens —
+ * it belongs to this screen and not to the one arriving, and left up it would
+ * sit over the top of another section's own words. It lifts rather than merely
+ * fading because the window's edge climbs through where it stands; see the
+ * tween for the arithmetic that sizes the lift.
  *
  * The join ABOVE this section is not here. It is a pixel field that paints over
  * the last category of Our work and clears to leave this screen, and it lives
@@ -29,6 +31,13 @@ import { prefersReducedMotion } from './utils/device';
  *
  * Returns a cleanup function.
  */
+/** How much of the window's opening the copy takes to leave. */
+const COPY_FOR = 0.4;
+/** How far above the window's edge the sentence's last line ends up. */
+const COPY_CLEAR = 24;
+/** And a rise of at least this share of the screen, whatever the geometry. */
+const COPY_LEAST = 0.08;
+
 export function initTwoWays(): () => void {
   const section = document.querySelector<HTMLElement>('[data-two]');
   if (!section) return () => {};
@@ -65,7 +74,7 @@ export function initTwoWays(): () => void {
     return () => {
       gsap.set(section, { clearProps: '--two-win-t,--two-win-x' });
       gsap.set([...overWords, ...underWords], { clearProps: 'opacity,visibility' });
-      if (copy) gsap.set(copy, { clearProps: 'opacity,visibility' });
+      if (copy) gsap.set(copy, { clearProps: 'opacity,visibility,transform' });
     };
   }
 
@@ -129,15 +138,70 @@ export function initTwoWays(): () => void {
     0,
   );
 
-  /* And the copy leaves early — well before the window has reached it. Its
-     sentence is about the choice the reader is being offered, and the moment
-     the next section is most of the screen it is a line of type from somewhere
-     else lying over it. */
+  /* AND THE COPY RISES AS IT GOES, which it did not: it stood exactly where it
+     was and faded, so the window's top edge climbed THROUGH the sentence and
+     cut its last line in half while the words were still legible. Measured at
+     736x694: the sentence's foot is at 308px and the window's edge reaches
+     140px by the time the fade is over — 168px of headline drawn inside the
+     picture.
+
+     THE DISTANCE IS WORKED OUT, NOT CHOSEN. `foot` is where the sentence ends,
+     taken from layout rather than from painted pixels: `offsetTop` is transform
+     free, so it reads the same before this tween has run and in the middle of
+     it, which `getBoundingClientRect()` would not. `edge` is where the window's
+     top will have climbed to at the moment the copy is gone, straight out of
+     the tween above — the opening is `power2.out` across the whole timeline, so
+     the share of the resting inset still left at `COPY_FOR` of it is
+     `(1 - COPY_FOR)³`.
+
+     CUBED, AND THAT IS NOT A TYPO FOR SQUARED. GSAP counts its powers from
+     `power1` for a quadratic, so `power2` is a cubic. Squared here put the
+     window's edge at 211px when it was really at 126, and the sentence was
+     left with 10px of clearance where it was supposed to have 24 — measured at
+     1440x900, and the arithmetic was only ever a third of a line away from
+     cutting type again.
+
+     The gap between the two, plus a margin, is what the copy has to travel for
+     its last line to be clear before the edge arrives. The floor keeps a
+     visible lift on a layout where the two would never have met anyway, because
+     a rise is what was asked for and not merely the absence of a collision.
+
+     A function value, so `invalidateOnRefresh` on the trigger re-reads it: the
+     sentence is three lines at 1440 and five on a phone, and its foot moves
+     with every one of them. */
   if (copy) {
+    const title = section.querySelector<HTMLElement>('.two__title');
+    const screen = section.querySelector<HTMLElement>('.two__stick');
+
+    const rise = () => {
+      /* THE STICKY SCREEN, not the section. The section is the whole track this
+         scrolls through — 5220px at 1440x900 — so measured against it the
+         window's edge landed a screen and a half below the fold, the difference
+         came out negative, and every rise fell through to the floor: 418px
+         instead of 267, taken from a number that was never a viewport. */
+      const vh = screen?.clientHeight || window.innerHeight;
+      const foot = title ? title.offsetTop + title.offsetHeight : 0.45 * vh;
+      const edge = (parseFloat(restT()) / 100) * (1 - COPY_FOR) ** 3 * vh;
+      return -Math.max(foot - edge + COPY_CLEAR, COPY_LEAST * vh);
+    };
+
+    /* Two tweens over the same stretch rather than one, because the two halves
+       of this want opposite eases and a tween has one. The fade holds on and
+       then goes; the lift starts at once and eases off — which is what makes it
+       read as the copy leaving rather than as the copy being switched off while
+       something slid. One tween carrying both would have to pick, and either
+       choice is wrong for the other property. */
     tl.fromTo(
       copy,
       { autoAlpha: 1 },
-      { autoAlpha: 0, ease: 'power1.in', duration: 0.34, immediateRender: false },
+      { autoAlpha: 0, ease: 'power1.in', duration: COPY_FOR, immediateRender: false },
+      0,
+    );
+
+    tl.fromTo(
+      copy,
+      { y: 0 },
+      { y: rise, ease: 'power2.out', duration: COPY_FOR, immediateRender: false },
       0,
     );
   }
@@ -173,7 +237,7 @@ export function initTwoWays(): () => void {
     tl.kill();
     gsap.set(section, { clearProps: '--two-win-t,--two-win-x' });
     gsap.set([...overWords, ...underWords], { clearProps: 'opacity,visibility' });
-    if (copy) gsap.set(copy, { clearProps: 'opacity,visibility' });
+    if (copy) gsap.set(copy, { clearProps: 'opacity,visibility,transform' });
   };
 }
 

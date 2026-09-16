@@ -326,9 +326,12 @@ const photos = [
      reason Sprint's panel changed sides: it was dark ink on a light grey flat,
      and the same ink on this picture is unreadable. See the scrim on
      `.offer__art` in Offer.astro for the rest of that. */
-  ...['Sprint.png', 'Retainer.png'].map((file) => ({
+  ...[
+    ['Sprinnt.png', 'offer-sprint'],
+    ['Retainer1.png', 'offer-retainer'],
+  ].map(([file, name]) => ({
     src: `${SRC}/offer/${file}`,
-    name: `offer-${file.replace('.png', '').toLowerCase()}`,
+    name,
     maxW: 2400,
     avif: true,
     quality: 80,
