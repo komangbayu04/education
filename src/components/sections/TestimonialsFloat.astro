@@ -60,14 +60,20 @@ const {
 } = Astro.props;
 
 /**
- * A screen of white before the scatter, in svh.
+ * The ground before the scatter, in svh.
  *
  * The frame opens with two tiles already up beside the title, and read cold
  * that way the heading never gets a moment of its own — you arrive on a wall.
- * So the whole scatter is pushed down by a screen: the title holds the first
- * one alone, and the tiles come up past it after.
- */
-const LEAD = 100;
+ * So the scatter is pushed down: the title has the screen to itself on the way
+ * up to the middle, and the first tile arrives as it gets there.
+ *
+ * It was a whole screen, and that was too long. Measured at 1440x900, the title
+ * locked into the middle and then sat there alone for another 532px of scroll
+ * before the first tile's top reached the bottom edge — on top of the half
+ * screen it had already been alone for, rising to the middle. At 45 the first
+ * tile comes over the bottom edge about as the title settles: the approach is
+ * still the heading's own, and nothing is spent after it. */
+const LEAD = 45;
 
 /**
  * The scatter's own height, in svh — the frame's 1688 of 2038 against its
@@ -873,6 +879,27 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
   :global(html[data-js='true']) .tmf__title {
     position: sticky;
     top: 50svh;
+    /* A ZERO-HEIGHT BOX ON THE MIDDLE LINE, with the words overflowing it
+       evenly above and below — and that is what keeps it centred to the end.
+
+       It was a box as tall as its lines, stuck with its top on the middle and
+       lifted half its own height by a translate. A sticky box stops when its
+       margin box meets the foot of its container, so that one stopped with the
+       stage's foot one title-height under the middle — and then rode the
+       stage's foot up the screen. Measured at the end of the section, the
+       heading sat 160px off the bottom of the cream with the footer coming up
+       under it, which is the report.
+
+       With no height there is nothing of the box below the middle line, and the
+       bottom margin is exactly half a screen: it stops at the one moment the
+       stage's foot reaches the bottom of the window. The title is centred in
+       the section's last full screen, and from there the two leave together.
+       No translate, because the flex centring does the lifting and does not
+       need to know the title's height to do it. */
+    height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     /* UNDER the tiles. The tiles are the testimonials and the line is what
        they are passing over, so a tile covers the words rather than the words
        being printed across the tile.
@@ -886,8 +913,7 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
        src/scripts/testimonialsFloat.ts. */
     z-index: 1;
     max-width: min(44.4375rem, calc(100% - 2 * var(--section-padding-x)));
-    margin: 50svh auto 0;
-    translate: 0 -50%;
+    margin: 50svh auto;
     color: var(--color-ink);
 
     /* A line lying over the tiles would otherwise take their presses: it spans

@@ -357,8 +357,9 @@ function initReveal(section: HTMLElement, cleanups: Array<() => void>): void {
  * The box is the full measure, 711px at 1440, and the second line of this
  * title is a good deal shorter than that — so testing against the box would
  * shadow a tile that is only beside the words, in the empty end of a line.
- * The horizontal extent is taken from the text itself, line by line; the
- * vertical from the heading's box, which is exactly the height of its lines.
+ * Both extents are taken from the text itself, line by line. The heading's box
+ * cannot give the vertical any more: it is zero high, a line the words overflow
+ * evenly above and below so it stays centred when the section ends.
  *
  * Every tile against every line, per scroll update. That is a handful of
  * rectangles on elements the browser has already laid out, and it has to be
@@ -378,7 +379,6 @@ function initTitleShadows(section: HTMLElement, cleanups: Array<() => void>): vo
 
   /** The painted words, as one rectangle per line. */
   const words = () => {
-    const box = title.getBoundingClientRect();
     /* TEXT NODES ONLY, one at a time. A range over the whole heading also
        reports the boxes of the elements inside it, and SplitText's masks and
        lines are blocks the full width of the measure — measured, every line's
@@ -392,7 +392,7 @@ function initTitleShadows(section: HTMLElement, cleanups: Array<() => void>): vo
       range.selectNodeContents(node);
       rects.push(...range.getClientRects());
     }
-    const rows = new Map<number, { left: number; right: number }>();
+    const rows = new Map<number, { left: number; right: number; top: number; bottom: number }>();
     for (const r of rects) {
       if (r.width < 1 || r.height < 1) continue;
       const key = Math.round(r.top);
@@ -400,22 +400,16 @@ function initTitleShadows(section: HTMLElement, cleanups: Array<() => void>): vo
       if (row) {
         row.left = Math.min(row.left, r.left);
         row.right = Math.max(row.right, r.right);
+        row.top = Math.min(row.top, r.top);
+        row.bottom = Math.max(row.bottom, r.bottom);
       } else {
-        rows.set(key, { left: r.left, right: r.right });
+        rows.set(key, { left: r.left, right: r.right, top: r.top, bottom: r.bottom });
       }
     }
-    /* The rows carry their horizontal extent. The vertical comes from the
-       heading's box shared out between them in order — the box is exactly the
-       height of its lines, where the masks' own rectangles are not — so a tile
-       beside the short second line is tested against that line alone and not
-       against the long one above it. */
-    const ordered = [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, row]) => row);
-    const step = box.height / Math.max(ordered.length, 1);
-    return ordered.map((row, i) => ({
-      ...row,
-      top: box.top + i * step,
-      bottom: box.top + (i + 1) * step,
-    }));
+    /* Each row is its own rectangle, top and bottom included: text-node
+       rectangles are the line boxes the glyphs sit in, which is what a tile
+       has to overlap to be over the words. */
+    return [...rows.values()];
   };
 
   const apply = () => {
