@@ -127,26 +127,41 @@ export function initFooter(): () => void {
 
      Measured against the spacer, which is the only element on the page whose
      position IS the reveal: the block itself never moves. */
+  /* NOT ON A PHONE. The block is in the page there rather than fixed behind
+     it (see the note at the foot of Footer.astro), so its box is only under the
+     bar when it really is under the bar — and the spacer this would be measured
+     against is not displayed. The zone is simply left painted.
+
+     `gsap.matchMedia` rather than one reading of the query, so a tablet turned
+     across 768px swaps modes: each branch's tween and inline opacity are
+     reverted by gsap when its query stops matching, and the other is built. */
   if (zone && spacer) {
-    const tween = gsap.fromTo(
-      zone,
-      { opacity: 0 },
-      {
-        opacity: 1,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: spacer,
-          start: 'top bottom',
-          end: 'top 35%',
-          scrub: true,
-          invalidateOnRefresh: true,
+    const mm = gsap.matchMedia();
+
+    mm.add('(max-width: 48rem)', () => {
+      gsap.set(zone, { opacity: 1 });
+    });
+
+    mm.add('(min-width: 48.0625rem)', () => {
+      gsap.fromTo(
+        zone,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: spacer,
+            start: 'top bottom',
+            end: 'top 35%',
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
         },
-      },
-    );
+      );
+    });
 
     cleanups.push(() => {
-      tween.scrollTrigger?.kill();
-      tween.kill();
+      mm.revert();
       gsap.set(zone, { clearProps: 'opacity' });
     });
   }

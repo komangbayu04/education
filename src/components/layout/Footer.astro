@@ -912,6 +912,114 @@ const {
       flex-wrap: wrap;
       gap: 1rem 2rem;
     }
+
+    /* =====================================================================
+       A phone: IN THE PAGE, NOT FIXED BEHIND IT.
+
+       The closing screen is uncovered from behind the last section, and that
+       only works while it fits in one screen — a fixed block taller than the
+       window has its top above the window for good, and there is no scrolling
+       to it. On a phone it does not fit and never can: the quote, the
+       wordmark, four links at a finger's height, the contact and the legal
+       line add up to more than any phone is tall. Every rule above that
+       squeezed it (the portrait's ceiling, the lifts given back) was trading
+       one collision for the next. Measured at 300x813 before this: the quote
+       was 269px tall in a quote region of 267, and ran down through the
+       wordmark, the legal line and the links. At 390x844 it cleared the foot
+       of its region by 2px.
+
+       So here it is ordinary page. It follows the section above in flow, it
+       is as tall as what is in it, and all of it can be scrolled to. The seam
+       still opens it — its squares still fall from the top edge — and the
+       nav's reading of it still works, because the zone is now simply where
+       it is: src/scripts/footer.ts stops fading it and leaves it painted.
+       ===================================================================== */
+    .close__spacer {
+      display: none;
+    }
+
+    .close {
+      position: relative;
+      height: auto;
+    }
+
+    .fq__band {
+      height: auto;
+    }
+
+    /* THE QUOTE TAKES THE WIDTH, under the name and the portrait rather than
+       beside the portrait. Held clear of the portrait's column it was set in
+       160px at 300 wide — eight lines for four. The name keeps the column
+       clearance instead, and is held open to the portrait's own height, so the
+       quote cannot start until the picture has ended. */
+    .fq__figure {
+      max-width: none;
+      padding-right: 0;
+    }
+
+    .fq__who {
+      min-height: calc(var(--fq-portrait-w) * 700 / 590);
+      padding-right: calc(var(--fq-portrait-w) + var(--fq-portrait-gap));
+    }
+
+    /* Room between the end of the quote and the wordmark, now that nothing
+       else is making it — in flow the two simply follow each other. */
+    .ft {
+      padding-top: clamp(2.5rem, 8vw, 3.5rem);
+    }
+
+    .ft__meta {
+      gap: 1.75rem;
+    }
+
+    /* The links in two columns. One column at a finger's height is four rows of
+       44px and most of a screen of four words; two is half of that. */
+    /* `minmax(0, max-content)`, not bare `max-content`: a column may shrink
+       below its longest link and wrap it, rather than push the pair wider than
+       the screen. Measured at 300 wide with bare `max-content`, the two columns
+       came to 295px in 260 of room. */
+    .ft__nav ul {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, max-content));
+      gap: 0.25rem clamp(1.25rem, 6vw, 2rem);
+    }
+
+    /* And one column below 336px, because there is no pair of columns that
+       fits. The links do not wrap — each is one line at a finger's height —
+       so a column narrower than "What founders say" does not wrap the phrase,
+       it runs it into the column beside it: measured at 300 wide, that link
+       and "Blog" overlapped. */
+    @media (max-width: 21rem) {
+      .ft__nav ul {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    /* `align-self: stretch` undoes the wide layout's `end`, which in this
+       column is the right-hand edge rather than the foot — and a cluster wider
+       than its room, aligned right, spills off the LEFT of the screen. That is
+       what it did at 300 wide: the links, the email and the button all began
+       15px outside the window. */
+    .ft__cluster {
+      flex-direction: column;
+      align-self: stretch;
+      min-width: 0;
+      gap: 1.5rem;
+    }
+
+    /* The legal line last, where a reader looks for it — it was between the
+       wordmark and the links. */
+    .ft__wordmark {
+      order: 0;
+    }
+
+    .ft__cluster {
+      order: 1;
+    }
+
+    .ft__legal {
+      order: 2;
+    }
   }
 
 </style>
