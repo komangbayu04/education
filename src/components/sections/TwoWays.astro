@@ -206,20 +206,22 @@ const {
   }
 
   /* --- The copy -------------------------------------------------------------
-     The label sits against the left gutter at the top of the screen; the
-     sentence sits in the right half, below it. They are not a block — the
-     reference has them at opposite corners of the upper half, and the empty
-     left is part of the composition. */
-  /* Measured off the reference at 1440x900: the label's baseline sits a
-     quarter of the way down the screen, well clear of the floating header
-     rather than tucked under it. The `max` is the floor for a short window,
-     where a quarter of the screen stops being clear of anything — the same
-     guard the offer panel's own index carries.
+     ONE CENTRED BLOCK: the label, and the sentence under it, both on the middle
+     of the screen and both set centred.
 
-     The left inset is the page's shared gutter, not the reference's own 76px.
-     Two ways in follows Our work directly and Our work's copy column sits on
-     that gutter; a section that stepped its left edge 27px inwards halfway
-     down a scroll would read as a mistake rather than as a decision. */
+     This was two things at opposite corners of the upper half — the label
+     against the left gutter, the sentence in the right-hand quarter, and the
+     empty left a deliberate part of it. That is the reference's composition and
+     it is not this one any more.
+
+     Centred HORIZONTALLY only. The window this screen opens rests with its top
+     edge 62% of the way down (56% on a phone), so the lower half of the screen
+     is spoken for; a block centred vertically as well would be sitting behind
+     the picture before the reader had finished reading it. The vertical figure
+     stays as it was, measured at 1440x900 so the label's baseline falls a
+     quarter of the way down, with a floor that keeps it clear of the floating
+     header on a short window — the same guard the offer panel's own index
+     carries. */
   .two__copy {
     position: absolute;
     inset: 0;
@@ -227,6 +229,7 @@ const {
       var(--section-padding-x) 0;
     max-width: var(--content-max-width);
     margin-inline: auto;
+    text-align: center;
   }
 
   .two__eyebrow {
@@ -237,14 +240,14 @@ const {
     color: var(--color-ink-secondary);
   }
 
-  /* The right-hand half, and held off the right edge as well as the left: the
-     reference stops the measure about 8% short of the frame, which is what
-     puts the sentence in the upper-right quarter rather than against the
-     corner. Three lines at 1440, which is the shape the reference draws. */
+  /* The measure is unchanged and only the way it is placed is: `margin-inline:
+     auto` where there was `margin-left: auto` and a 4vw hold-off from the right
+     edge. Keeping the width matters — a centred line is read from its middle
+     outwards, and a sentence allowed to run the whole way across a 1920 screen
+     would be one long line rather than the three this is set to break into. */
   .two__title {
     width: clamp(20rem, 42vw, 38rem);
-    margin-left: auto;
-    margin-right: 4vw;
+    margin-inline: auto;
     margin-top: clamp(3rem, 9.5svh, 5.5rem);
     font-size: clamp(1.375rem, 2.36vw, 2.25rem);
     font-weight: 400;
@@ -345,10 +348,10 @@ const {
       --two-win-x: 6%;
     }
 
+    /* A phone column is narrower than the floor of that measure, so the
+       sentence takes the column and the centring is the column's own. */
     .two__title {
       width: auto;
-      margin-left: 0;
-      margin-right: 0;
     }
   }
 </style>
