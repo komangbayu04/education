@@ -9,11 +9,15 @@ import { gsap, ScrollTrigger } from './gsap';
  * cannot be done in a stylesheet.
  *
  * ONE: the spacer's height. The page needs somewhere to scroll once the
- * sections have ended, and that distance is the closing block's own height. A
- * screen is the right answer nearly always and it is what the stylesheet says
- * on its own; this makes it exact, which matters on a window too short for the
- * block to fit in one, where a screen of spacer would leave part of the footer
- * permanently above the top of the window.
+ * sections have ended, and that distance is the closing block's own height —
+ * which is a screen less one cell of the pixel seam, since the block stops
+ * short of the top so the section above keeps a strip of itself showing. The
+ * stylesheet works that out on its own; this makes it exact, which matters on a
+ * window too short for the block to fit in, where a spacer taken on trust would
+ * leave part of the footer permanently above the top of the window.
+ *
+ * And the seam's colour, which belongs with the measuring for the same reason:
+ * it is a fact about the page rather than about any animation. See paintSeam.
  *
  * TWO: telling the nav when the footer is actually visible. The block is
  * `position: fixed`, so its box has been in the window since the first pixel
@@ -41,9 +45,46 @@ export function initFooter(): () => void {
   const cleanups: Array<() => void> = [];
 
   // --- The spacer ----------------------------------------------------------
+  /**
+   * What colour the pixel seam at the top of the block is painted in.
+   *
+   * The block stops a cell short of the screen now, so the last strip of the
+   * section above it stays visible and the squares fall out of that strip into
+   * the footer. Which means they have to be ITS colour, and which section it is
+   * is not fixed: chapter 8 ships as three variations and the reader picks one
+   * in the browser, the film wall and the orbit grid on white and the scattered
+   * one on the page's cream. A seam hard-coded to either is a band of the wrong
+   * colour rather than a dissolve, on a third of the readers.
+   *
+   * So it is read rather than declared — walking back from the spacer past
+   * whichever variations have switched themselves off, and taking the first
+   * painted ground it finds. Re-read on every refresh, because the variation
+   * can be changed without the page reloading.
+   */
+  const paintSeam = () => {
+    let node = spacer?.previousElementSibling as HTMLElement | null;
+
+    while (node) {
+      const style = getComputedStyle(node);
+      if (style.display !== 'none') {
+        const ground = style.backgroundColor;
+        /* Transparent is not an answer — it means this element paints nothing
+           and what shows through it is something else's ground. */
+        if (ground && !/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(ground)) {
+          close.style.setProperty('--close-seam', ground);
+          return;
+        }
+      }
+      node = node.previousElementSibling as HTMLElement | null;
+    }
+
+    close.style.removeProperty('--close-seam');
+  };
+
   const measure = () => {
     const h = Math.round(close.getBoundingClientRect().height);
     if (h > 0) root.style.setProperty('--close-h', `${h}px`);
+    paintSeam();
   };
 
   measure();
@@ -113,5 +154,6 @@ export function initFooter(): () => void {
   return () => {
     cleanups.forEach((fn) => fn());
     root.style.removeProperty('--close-h');
+    close.style.removeProperty('--close-seam');
   };
 }

@@ -39,6 +39,33 @@
  * that decision on every future page.
  */
 import markRaw from '../../assets/footer-wordmark.svg?raw';
+import { pixelField } from '../../lib/pixelField';
+
+/* THE SEAM. The closing block no longer starts at the top of the screen: it is
+   a cell short of it, so the last section keeps a strip of itself showing above
+   the fold, and the edge between the two is pixels rather than a ruled line.
+
+   The same language as every other join on this site, and built the same way —
+   a seeded field, rolled at build so a deploy cannot silently reshuffle the
+   artwork. Read as rows rather than columns: the density runs DOWN the band,
+   densest at the top and thinning to nothing, so the section above dissolves
+   into the footer instead of stopping at it. pixelField indexes its density by
+   column, so the two axes are swapped again where the cells are placed.
+
+   Two fields, one per breakpoint, because a cell's column is baked into its
+   inline style and a band cannot be re-columned in CSS. 24 across is the
+   chunkiness the home page's own handover uses — 22 across the longer edge of
+   the window; at 24 columns that is 60px at 1440. Ten across on a phone keeps
+   the squares the same size rather than the same count. */
+const SEAM = {
+  wide: { cols: 24, rows: 3, density: [0.88, 0.46, 0.15] },
+  narrow: { cols: 10, rows: 3, density: [0.86, 0.44, 0.14] },
+};
+
+const seams = {
+  wide: pixelField(31771, SEAM.wide.cols, SEAM.wide.density),
+  narrow: pixelField(58204, SEAM.narrow.cols, SEAM.narrow.density),
+};
 
 interface FooterLink {
   label: string;
@@ -135,6 +162,16 @@ const {
       )
     }
     <span class="close__scrim"></span>
+  </div>
+
+  {/* The pixel seam, over the photograph and under everything written on it.
+      Decorative: the strip of the section above and the squares falling out of
+      it say nothing the page does not already say. */}
+  <div class="close__seam close__seam--wide" aria-hidden="true">
+    {seams.wide.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+  </div>
+  <div class="close__seam close__seam--narrow" aria-hidden="true">
+    {seams.narrow.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
   </div>
 
 <section class="fq">
@@ -262,15 +299,80 @@ const {
     z-index: 0;
     display: flex;
     flex-direction: column;
-    height: 100svh;
+    /* A CELL SHORT OF THE SCREEN, and anchored to the foot — so what is left
+       uncovered at the top is the last strip of the section above, and it stays
+       there. The block used to be the whole screen and the page ended with the
+       section above it gone entirely.
+
+       One cell exactly, which is why it is written as one: the strip is the
+       solid first row of the same grid the squares below it fall out of, so the
+       seam reads as one thing at any width instead of as a margin that happens
+       to sit near some pixels. */
+    height: calc(100svh - var(--close-cell));
+  }
+
+  /* The grid the seam is built on, and the cell the block is shortened by.
+     Stated on both because both need it: the spacer's fallback has to work out
+     to the same height the block actually is.
+
+     `100vw` and not `100%`: the block is a fixed element spanning the initial
+     containing block, and the band inside it is laid on the same span, so the
+     cell is a share of the window's width. */
+  .close,
+  .close__spacer {
+    --close-cols: 24;
+    --close-cell: calc(100vw / var(--close-cols));
+    /* The band is three of those cells deep. Named, because two things below
+       have to stay out from under it and neither should be counting cells. */
+    --close-band: calc(3 * var(--close-cell));
   }
 
   /* The distance the page needs so there is something left to scroll once the
      section above has ended. `--close-h` is the block's measured height and is
-     written by src/scripts/footer.ts; the fallback is the same screen the
-     block is, which is the right answer at every ordinary window. */
+     written by src/scripts/footer.ts; the fallback is what the block works out
+     to on its own, which is the right answer at every ordinary window. */
   .close__spacer {
-    height: var(--close-h, 100svh);
+    height: var(--close-h, calc(100svh - var(--close-cell)));
+  }
+
+  /* --- The seam -------------------------------------------------------------
+     Squares of the colour of the section ABOVE, falling into the footer from
+     its top edge. src/scripts/footer.ts writes `--close-seam` by reading that
+     section's own ground, because which section it is changes: the film wall
+     and the orbit grid are white and the scattered one is the page's cream, and
+     a seam painted in the wrong one of those is a band of the wrong colour
+     rather than a dissolve.
+
+     `aspect-ratio` is the grid's own shape, so every square is a square and the
+     band is exactly `rows` cells deep — three of the same cell the block above
+     is shortened by. */
+  .close__seam {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    display: grid;
+    pointer-events: none;
+  }
+
+  .close__seam--wide {
+    grid-template-columns: repeat(24, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    aspect-ratio: 24 / 3;
+  }
+
+  /* Off by default; the narrow layout at the foot of this file swaps the pair
+     over. */
+  .close__seam--narrow {
+    display: none;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    aspect-ratio: 10 / 3;
+  }
+
+  .close__seam span {
+    background: var(--close-seam, var(--color-bg-primary));
   }
 
   /* The photograph, behind everything in the block. */
@@ -354,7 +456,24 @@ const {
     /* Both ends scale with the window's HEIGHT as well as its width, for the
        same reason the band below is capped: on a short screen this padding is
        the first thing that should give. */
-    padding: calc(clamp(1.5rem, 11svh, 6.5rem) + var(--fq-drop)) var(--ft-gutter) 0;
+    /* CLEAR OF THE SEAM, with the old figure kept wherever it already was.
+
+       The squares are painted under this — the two carry the same z-index and
+       this comes later in the document — so nothing is ever drawn ON the quote.
+       That is not the whole problem: white type sitting on a cream square is
+       unreadable whichever of them is in front.
+
+       And it cannot be solved by choosing a taller padding, because the two
+       measurements do not scale together. The band is a share of the window's
+       WIDTH and this padding is a share of its HEIGHT: measured at 1440x900 the
+       band came down to 180px with the name starting at 131, and at 1920x1080
+       the gap is wider still. A floor is the only figure that holds at every
+       shape of window. */
+    padding: max(
+        calc(clamp(1.5rem, 11svh, 6.5rem) + var(--fq-drop)),
+        calc(var(--close-band) + 1rem)
+      )
+      var(--ft-gutter) 0;
   }
 
   /* Held clear of the portrait's column rather than capped at a fixed measure.
@@ -424,7 +543,12 @@ const {
     /* The same drop the quote takes, so the two move together — the portrait is
        set level with the name, and a shift applied to one of them only would be
        a shift out of that alignment. */
-    top: calc(clamp(1.5rem, 7svh, 4.5rem) + var(--fq-drop));
+    /* Under the same floor as the quote's own padding, so the two stay level
+       and the picture does not cut up through the squares. */
+    top: max(
+      calc(clamp(1.5rem, 7svh, 4.5rem) + var(--fq-drop)),
+      calc(var(--close-band) + 1rem)
+    );
     z-index: 1;
     /* Top right, beside the quote rather than under it — the reference has it
        level with the name and finishing about halfway down the screen.
@@ -653,6 +777,22 @@ const {
 
   /* --- Narrow ---------------------------------------------------------- */
   @media (max-width: 48rem) {
+    /* Ten cells across instead of twenty-four, so the squares stay the size
+       they are on a desktop rather than the count. The block is shortened by
+       one of these, as it is up there. */
+    .close,
+    .close__spacer {
+      --close-cols: 10;
+    }
+
+    .close__seam--wide {
+      display: none;
+    }
+
+    .close__seam--narrow {
+      display: grid;
+    }
+
     /* On the block, so the portrait and the wordmark follow it too. Set on
        `.fq__band` and `.ft` separately, as it was, it moved the quote's edge and
        left the portrait's where it was. */
