@@ -169,3 +169,30 @@ window.addEventListener(
     ScrollTrigger.refresh();
   }, 200),
 );
+
+/* THE SAME CHECK, TAKEN WHILE SCROLLING — in case the resize never arrived.
+
+   Everything above hangs on a resize event, and a resize that is missed leaves
+   every pin at the old screen's height in pixels: the hero stops short of the
+   bottom of the window and the fixed footer shows through under it. Reported
+   again at 1208x698 after the listener was fixed, so it is not enough to be
+   right about the event; the page has to notice the screen changed on its own.
+   Reading one fixed box every quarter second while the reader scrolls is
+   nothing, and the first scroll after any change of size re-measures. Bars
+   alone still do not count: `lvh` does not move with them. */
+let lastCheck = 0;
+window.addEventListener(
+  'scroll',
+  () => {
+    const now = performance.now();
+    if (now - lastCheck < 250) return;
+    lastCheck = now;
+    const nextWidth = window.innerWidth;
+    const nextLarge = largeHeight();
+    if (nextWidth === viewportWidth && nextLarge === viewportLarge) return;
+    viewportWidth = nextWidth;
+    viewportLarge = nextLarge;
+    ScrollTrigger.refresh();
+  },
+  { passive: true },
+);

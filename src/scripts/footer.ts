@@ -143,6 +143,22 @@ export function initFooter(): () => void {
     });
 
     mm.add('(min-width: 48.0625rem)', () => {
+      /* THE BLOCK IS NOT PAINTED UNTIL ITS SPACER IS ON SCREEN. It is behind the
+         page and fully covered until then, so hiding it changes nothing a
+         reader can see — except when something above has come up short. A pin
+         left at an old window's height is exactly that, and the footer's
+         copyright and links showed through the gap under the hero. An
+         IntersectionObserver is asked by the browser on the real layout of the
+         moment, so there are no stored measurements in it to go stale. */
+      const guard = new IntersectionObserver(
+        ([entry]) => {
+          const below = !entry.isIntersecting && entry.boundingClientRect.top > 0;
+          close.style.visibility = below ? 'hidden' : '';
+        },
+        { rootMargin: '0px 0px 1px 0px' },
+      );
+      guard.observe(spacer);
+
       gsap.fromTo(
         zone,
         { opacity: 0 },
@@ -158,6 +174,11 @@ export function initFooter(): () => void {
           },
         },
       );
+
+      return () => {
+        guard.disconnect();
+        close.style.visibility = '';
+      };
     });
 
     cleanups.push(() => {
