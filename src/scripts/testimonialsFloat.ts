@@ -87,11 +87,9 @@ function initPreviews(section: HTMLElement, cleanups: Array<() => void>): Previe
  * browser handles focus, Escape and putting focus back afterwards. The source
  * is dropped again on close so nothing is left buffering behind the page.
  *
- * TWO LAYOUTS, BY THE FILM'S SHAPE. `data-orient` on the dialog is what the
- * stylesheet reads: landscape runs the film across with the words under it,
- * portrait stands it on the left with the words beside it. The shape comes off
- * the tile's own preview, which has already loaded its metadata, so the right
- * layout is up on the first frame; the full film's metadata confirms it.
+ * ONE LAYOUT, WHATEVER THE FILM'S SHAPE: it is shown as an upright crop, so a
+ * landscape interview and a portrait one sit in the same frame. Only a film
+ * narrower than the crop keeps its own ratio, so nothing of it is cut away.
  *
  * THE ARROWS step through the films only, in the order the tiles give them, and
  * wrap. Left and right arrow keys do the same.
@@ -123,10 +121,12 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
 
   let current = -1;
 
+  /** The design's upright frame, 277 by 331. */
+  const FRAME = 277 / 331;
   const shape = (width: number, height: number) => {
     if (!width || !height) return;
-    dialog.style.setProperty('--tmf-ar', String(width / height));
-    dialog.dataset.orient = height > width ? 'portrait' : 'landscape';
+    if (width / height < FRAME) dialog.style.setProperty('--tmf-ar', String(width / height));
+    else dialog.style.removeProperty('--tmf-ar');
   };
 
   /** Point the player and the words at one film. */
@@ -138,7 +138,6 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
     video.pause();
     frame.removeAttribute('data-playing');
     dialog.style.removeProperty('--tmf-ar');
-    dialog.dataset.orient = 'landscape';
     shape(preview.videoWidth, preview.videoHeight);
 
     video.src = preview.currentSrc || preview.src;

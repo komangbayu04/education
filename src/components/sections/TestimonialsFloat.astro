@@ -328,14 +328,13 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     </ul>
   </div>
 
-  {/* The full testimonial. One dialog for every film, and two layouts in it,
-      picked by the shape of the film on screen (`data-orient`, set by the
-      script): a landscape film runs across with the words under it, a portrait
-      one stands on the left with the words beside it. Each film's copy is its
-      own panel, `display: contents`, so its pieces sit straight in the dialog's
+  {/* The full testimonial. One dialog for every film: the film standing on
+      the left under the client's mark, and beside it the speaker, the headline
+      and, level with the film's foot, the quote. Each film's copy is its own
+      panel, `display: contents`, so its pieces sit straight in the dialog's
       grid around the one shared player. The arrows step through the films
       only — a card has nothing to play. */}
-  <dialog class="tmf__lb" data-tmf-lb data-orient="landscape" aria-label="Testimonial">
+  <dialog class="tmf__lb" data-tmf-lb aria-label="Testimonial">
     <div class="tmf__lb-body" data-tmf-lb-body>
       <div class="tmf__lb-frame" data-tmf-lb-frame>
         <video class="tmf__lb-video" data-tmf-lb-video playsinline preload="none"></video>
@@ -655,8 +654,9 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
      the two edges and the way out in the corner. Two layouts, by the film's
      shape — see the markup. */
   .tmf__lb {
-    /* The film's shape, 16:9 until the script has read the real one. */
-    --tmf-ar: calc(16 / 9);
+    /* The film's shape on screen: an upright crop of it, the design's 277 by
+       331. A film already narrower than that keeps its own — see the script. */
+    --tmf-ar: calc(277 / 331);
     /* The margin the arrows stand in. */
     --tmf-lb-side: clamp(3.5rem, 8vw, 7.5rem);
 
@@ -697,39 +697,10 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     align-items: start;
   }
 
-  /* --- Landscape: the speaker and the mark over the film, the headline and
-     the quote under it. The room the words need is taken off the height before
-     the film gets any, so a short window shrinks the film and never pushes the
-     quote off the foot. */
-  .tmf__lb[data-orient='landscape'] .tmf__lb-body {
-    width: min(100%, 75rem, max(calc((100svh - 20rem) * var(--tmf-ar)), 28rem));
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      'who  logo'
-      'film film'
-      'head text';
-    column-gap: clamp(2rem, 5vw, 5rem);
-    row-gap: clamp(1rem, 2.4svh, 1.5rem);
-  }
-
-  .tmf__lb[data-orient='landscape'] .tmf__lb-logo {
-    justify-self: end;
-    align-self: center;
-    object-position: right center;
-  }
-
-  .tmf__lb[data-orient='landscape'] .tmf__lb-who {
-    align-self: center;
-  }
-
-  .tmf__lb[data-orient='landscape'] .tmf__lb-headline {
-    max-width: 17em;
-  }
-
-  /* --- Portrait: the mark over the film, and beside it the speaker, the
+  /* The mark over the film, and beside it the speaker, the
      headline under them and the quote at the foot, level with the film's. */
-  .tmf__lb[data-orient='portrait'] .tmf__lb-body {
-    --fh: min(max(calc(100svh - 12rem), 22rem), 46rem);
+  .tmf__lb .tmf__lb-body {
+    --fh: min(max(calc(100svh - 15rem), 22rem), 44rem);
 
     grid-template-columns: calc(var(--fh) * var(--tmf-ar)) minmax(0, 24rem);
     grid-template-rows: auto auto auto minmax(0, 1fr) auto;
@@ -742,23 +713,23 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     column-gap: clamp(2rem, 3.5vw, 3rem);
   }
 
-  .tmf__lb[data-orient='portrait'] .tmf__lb-logo {
+  .tmf__lb .tmf__lb-logo {
     margin-bottom: 1rem;
   }
 
-  .tmf__lb[data-orient='portrait'] .tmf__lb-frame {
+  .tmf__lb .tmf__lb-frame {
     height: var(--fh);
   }
 
-  .tmf__lb[data-orient='portrait'] .tmf__lb-face {
+  .tmf__lb .tmf__lb-face {
     display: none;
   }
 
-  .tmf__lb[data-orient='portrait'] .tmf__lb-headline {
+  .tmf__lb .tmf__lb-headline {
     margin-top: 1.5rem;
   }
 
-  .tmf__lb[data-orient='portrait'] .tmf__lb-text {
+  .tmf__lb .tmf__lb-text {
     padding-top: 1.5rem;
   }
 
@@ -962,7 +933,7 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
       padding: 3.5rem var(--tmf-lb-side) 5.5rem;
     }
 
-    .tmf__lb[data-orient] .tmf__lb-body {
+    .tmf__lb .tmf__lb-body {
       width: 100%;
       grid-template-columns: minmax(0, 1fr) auto;
       grid-template-rows: none;
@@ -975,25 +946,25 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
       column-gap: 1rem;
     }
 
-    .tmf__lb[data-orient='portrait'] .tmf__lb-frame {
+    .tmf__lb .tmf__lb-frame {
       justify-self: center;
       width: auto;
       height: min(50svh, calc((100vw - 2 * var(--tmf-lb-side)) / var(--tmf-ar)));
     }
 
-    .tmf__lb[data-orient] .tmf__lb-logo {
+    .tmf__lb .tmf__lb-logo {
       justify-self: end;
       align-self: center;
       margin: 0;
       object-position: right center;
     }
 
-    .tmf__lb[data-orient] .tmf__lb-face {
+    .tmf__lb .tmf__lb-face {
       display: block;
     }
 
-    .tmf__lb[data-orient] .tmf__lb-headline,
-    .tmf__lb[data-orient] .tmf__lb-text {
+    .tmf__lb .tmf__lb-headline,
+    .tmf__lb .tmf__lb-text {
       margin: 0;
       padding: 0;
     }
