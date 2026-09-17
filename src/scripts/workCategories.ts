@@ -28,6 +28,9 @@ import { prefersReducedMotion } from './utils/device';
  *
  * Returns a cleanup function.
  */
+/** How far above the description the title's foot has to be before it fades in. */
+const TEXTS_CLEAR = 16;
+
 export function initWorkCategories(): () => void {
   const section = document.querySelector<HTMLElement>('[data-cat]');
   if (!section) return () => {};
@@ -163,15 +166,30 @@ export function initWorkCategories(): () => void {
       const end = head?.querySelector<HTMLElement>('[data-cat-title-end]') ?? null;
       const texts = layers[i]?.querySelector<HTMLElement>('[data-cat-texts]') ?? null;
 
-      /* The description and button. `bottom+=100%` is a percentage of the
-         strip's own height, so this runs while the title's foot climbs from one
-         strip-depth to two above the bottom edge — just after the title has
-         come fully into view.
+      /* The description and button, once the title has CLEARED THEM.
+
+         Measured from where the block actually is, not from the bottom edge.
+         This ran while the title's foot climbed from one strip-depth to two
+         above the bottom of the window — fantasy's figure, and a fixed one — and
+         the block it was fading in stands at the foot of the screen with a
+         height of its own. On a short phone those are the same stretch of
+         screen: measured at 320x568, the letters of "Product Design" and "Brand
+         Design" were still passing through the description while it was more
+         than half drawn. On a desktop it was the same collision at lower
+         opacity, which is why nothing flagged it there.
+
+         So it starts when the title's foot is a little above the TOP of the
+         block, and runs for the same strip-depth it always has. `offsetTop` is
+         the block's place on the stage in layout — the stage is the screen
+         while it is stuck, so that is its height on the screen too — and it is
+         read again on every refresh, because the block's height changes with
+         the width and with how many lines the description takes.
 
          Scrubbed with no smoothing, as fantasy's is, and with no fade back out:
          once it is up it stays up, and the layer's own fade takes it away when
          the next category arrives. Scrolled back past, the scrub runs it down. */
       if (texts && end) {
+        const clearOf = () => texts.offsetTop - TEXTS_CLEAR;
         const tween = gsap.fromTo(
           texts,
           { opacity: 0 },
@@ -180,8 +198,8 @@ export function initWorkCategories(): () => void {
             ease: 'none',
             scrollTrigger: {
               trigger: end,
-              start: 'bottom+=100% bottom',
-              end: 'bottom+=200% bottom',
+              start: () => `bottom ${Math.round(clearOf())}px`,
+              end: () => `bottom ${Math.round(clearOf() - end.offsetHeight)}px`,
               scrub: true,
               invalidateOnRefresh: true,
             },
