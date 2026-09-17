@@ -992,20 +992,56 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     pointer-events: auto;
   }
 
+  /* A PHONE: A COLUMN WITH ONE GAP, not six measured positions.
+
+     The frame's scatter places every tile at a percentage of the stage's
+     height, which only works while a tile's height is known in advance — and a
+     card's is not: it is as tall as its words, and on a phone the words are
+     most of the width. So the spots that had room for a card at 1440 did not
+     have it at 390. Two faults came out of that, both reported:
+
+       - Cards were given a FILM'S aspect ratio. The card rule and the film rule
+         had the same specificity here and the film rule came second, so a card
+         was locked to a shape and its logo ran out of the bottom of it.
+       - The gaps were whatever the percentages left, so they varied from tile
+         to tile and a card could come down over the film below it.
+
+     Here the tiles are in flow, one under the other, with a single gap. The
+     scatter survives sideways: each tile keeps the frame's own left offset and
+     width for a phone, so the column still zig-zags. The stage is as tall as
+     its tiles; `--nt` and `--nh` are no longer read at this width.
+
+     The title still sits in the middle of the screen and under the tiles. Its
+     half-screen bottom margin now puts the first tile's top at the foot of the
+     window as the title settles, and the half screen of padding under the
+     last tile is what lets that tile finish passing over the title before the
+     title lets go. */
   @media (max-width: 48rem) {
     :global(html[data-js='true']) .tmf__stage {
-      height: var(--nh);
+      height: auto;
     }
 
-    :global(html[data-js='true']) .tmf__film--card {
-      aspect-ratio: auto;
+    :global(html[data-js='true']) .tmf__films {
+      position: relative;
+      inset: auto;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(2rem, 9vw, 3rem);
+      padding-bottom: 50svh;
     }
 
     :global(html[data-js='true']) .tmf__film {
-      left: var(--nl);
-      top: var(--nt);
+      position: relative;
+      left: auto;
+      top: auto;
       width: var(--nw);
+      margin-left: var(--nl);
       aspect-ratio: var(--nar);
+    }
+
+    /* Two classes, so it outranks the film rule above whatever the order. */
+    :global(html[data-js='true']) .tmf__film.tmf__film--card {
+      aspect-ratio: auto;
     }
   }
 
