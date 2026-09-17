@@ -128,7 +128,13 @@ export function initWorkCategories(): () => void {
     let onScreen = false;
 
     titles.forEach((title, i) => {
-      const { top, bottom } = title.getBoundingClientRect();
+      /* The whole head — the number over the title — and not the title alone.
+         The number comes over the bottom edge first, and measured against the
+         title it was on the screen for a scroll step before the stage had
+         changed: at 390x844, with the description 32px off the foot, "05"
+         touched the bottom of the previous item's button. The head's foot is
+         the title's foot, so nothing changes about when an item leaves. */
+      const { top, bottom } = (title.parentElement ?? title).getBoundingClientRect();
       if (top < vh) {
         last = i;
         onScreen = bottom > 0;

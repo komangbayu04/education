@@ -480,10 +480,21 @@ const {
     align-items: flex-end;
     width: 100%;
     height: 100svh;
-    /* Fantasy's three: a phone, a touch screen above 650, and a mouse. The
-       tall touch figure is theirs too — a tablet's browser chrome takes the
-       foot of the screen and the block is lifted clear of it. */
-    padding-bottom: 100px;
+    /* ONE POSITION AT EVERY WIDTH AND FOR EVERY KIND OF POINTER: 50px off the
+       foot of the screen, which is where a desktop with a mouse always had it.
+
+       Fantasy uses three figures — 100px on a phone, 300px on a touch screen
+       above 650, and 50px for a mouse — and the tall touch one is what made the
+       block sit a third of the way up the picture on a tablet, or in a desktop
+       browser's device mode, which reports a touch screen. Both were reported
+       as too high, and as inconsistent with the desktop, which they were.
+
+       Fantasy lifts it for a tablet's browser chrome. That is already paid for
+       here: the screen is `100svh`, the SMALL viewport, the height with the
+       browser's bars showing, so the only thing left at the foot for this to
+       clear is the home indicator — which is what the safe-area term is. A
+       phone takes a little less, as it has less screen to give. */
+    padding-bottom: calc(3.125rem + env(safe-area-inset-bottom, 0px));
     pointer-events: none;
   }
 
@@ -704,15 +715,19 @@ const {
   /* =====================================================================
      Breakpoints — fantasy's own, 650 and 1440
      ===================================================================== */
+  /* A phone: 2rem rather than 50px, the same position scaled to less screen. */
+  @media (max-width: 649.98px) {
+    .cat__content {
+      padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
   @media (min-width: 650px) {
     .cat__media::after {
       height: 350px;
       background: linear-gradient(180deg, rgba(var(--cat-gradient), 0) 0, rgba(var(--cat-gradient), 0.85));
     }
 
-    .cat__content {
-      padding-bottom: 300px;
-    }
 
     /* 16px from here up and at every width above it, where this used to step
        18 and then 20 — one body size on a desktop, as asked. The measure comes
@@ -748,13 +763,6 @@ const {
     }
   }
 
-  /* A mouse: the block sits 50px off the foot. Stated last so it wins over the
-     touch figures above at any width. */
-  @media (hover: hover) and (pointer: fine) {
-    .cat__content {
-      padding-bottom: 50px;
-    }
-  }
 
   @media (prefers-reduced-motion: reduce) {
     .cat__layer,
