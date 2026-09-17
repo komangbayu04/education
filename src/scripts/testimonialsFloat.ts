@@ -79,51 +79,106 @@ function initPreviews(section: HTMLElement, cleanups: Array<() => void>): Previe
 }
 
 /**
- * The lightbox — the full testimonial over a white ground: the film on the
- * left, what they said beside it.
+ * The lightbox — the full testimonial on the section's own ground.
  *
  * One <dialog> for every film, with a panel of copy per film already in the
- * markup; pressing a film points the player at that film's source, unhides its
- * panel, holds the previews and the page's scroll, and opens it modally. The
- * browser handles focus, Escape and putting focus back on the film afterwards.
- * The source is dropped again on close so the film is not left buffering
- * behind the page.
+ * markup. Pressing a film points the one player at it, shows its panel, holds
+ * the previews and the page's scroll, and opens the dialog modally; the
+ * browser handles focus, Escape and putting focus back afterwards. The source
+ * is dropped again on close so nothing is left buffering behind the page.
  *
- * Opening is a reveal of its own: the screen fades up, the film settles in
- * from just under its own size, and the copy beside it rises a block at a
- * time. Under reduced motion it is simply there.
+ * TWO LAYOUTS, BY THE FILM'S SHAPE. `data-orient` on the dialog is what the
+ * stylesheet reads: landscape runs the film across with the words under it,
+ * portrait stands it on the left with the words beside it. The shape comes off
+ * the tile's own preview, which has already loaded its metadata, so the right
+ * layout is up on the first frame; the full film's metadata confirms it.
+ *
+ * THE ARROWS step through the films only, in the order the tiles give them, and
+ * wrap. Left and right arrow keys do the same.
  */
 function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<() => void>): void {
   const dialog = section.querySelector<HTMLDialogElement>('[data-tmf-lb]');
+  const body = section.querySelector<HTMLElement>('[data-tmf-lb-body]');
   const frame = section.querySelector<HTMLElement>('[data-tmf-lb-frame]');
   const video = section.querySelector<HTMLVideoElement>('[data-tmf-lb-video]');
+  const play = section.querySelector<HTMLButtonElement>('[data-tmf-lb-play]');
   const close = section.querySelector<HTMLButtonElement>('[data-tmf-lb-close]');
-  if (!dialog || !frame || !video || !close) return;
+  if (!dialog || !body || !frame || !video || !play || !close) return;
   // No modal dialog, no lightbox — the previews still play in place.
   if (typeof dialog.showModal !== 'function') return;
 
   const panels = gsap.utils.toArray<HTMLElement>('[data-tmf-lb-panel]', section);
+  const buttons = gsap.utils.toArray<HTMLElement>('[data-tmf-open]', section);
   const controller = new AbortController();
   const { signal } = controller;
   const reduced = prefersReducedMotion();
 
-  const open = (button: HTMLElement) => {
-    const film = button.closest<HTMLElement>('[data-tmf-film]');
-    const preview = film?.querySelector<HTMLVideoElement>('[data-tmf-video]');
-    if (!preview) return;
+  /** Each film's source and poster, by its index, read off its tile. */
+  const films = new Map<number, HTMLVideoElement>();
+  buttons.forEach((button) => {
+    const preview = button.closest('[data-tmf-film]')?.querySelector<HTMLVideoElement>('[data-tmf-video]');
+    if (preview) films.set(Number(button.dataset.tmfOpen), preview);
+  });
+  const order = [...films.keys()].sort((a, b) => a - b);
 
-    // Back to the default shape until this film says what shape it is.
-    frame.style.removeProperty('--tmf-ar');
+  let current = -1;
+
+  const shape = (width: number, height: number) => {
+    if (!width || !height) return;
+    dialog.style.setProperty('--tmf-ar', String(width / height));
+    dialog.dataset.orient = height > width ? 'portrait' : 'landscape';
+  };
+
+  /** Point the player and the words at one film. */
+  const show = (index: number, withSound: boolean) => {
+    const preview = films.get(index);
+    if (!preview) return null;
+    current = index;
+
+    video.pause();
+    frame.removeAttribute('data-playing');
+    dialog.style.removeProperty('--tmf-ar');
+    dialog.dataset.orient = 'landscape';
+    shape(preview.videoWidth, preview.videoHeight);
+
     video.src = preview.currentSrc || preview.src;
     if (preview.poster) video.poster = preview.poster;
     else video.removeAttribute('poster');
 
-    const index = button.dataset.tmfOpen;
     let panel: HTMLElement | null = null;
     panels.forEach((el) => {
-      el.hidden = el.dataset.tmfLbPanel !== index;
+      el.hidden = Number(el.dataset.tmfLbPanel) !== index;
       if (!el.hidden) panel = el;
     });
+
+    if (withSound) void video.play().catch(() => {});
+    return panel as HTMLElement | null;
+  };
+
+  /* The panel is `display: contents`, so it has no box to animate — its
+     pieces and the film are what move. */
+  const pieces = (panel: HTMLElement | null) => [frame, ...(panel ? [...panel.children] : [])];
+
+  const arrive = (panel: HTMLElement | null) => {
+    if (reduced) return;
+    gsap.fromTo(
+      pieces(panel),
+      { autoAlpha: 0, y: 14 },
+      {
+        autoAlpha: 1,
+        y: 0,
+        duration: 0.6,
+        ease: 'power3.out',
+        stagger: 0.05,
+        overwrite: true,
+        clearProps: 'transform,opacity,visibility',
+      },
+    );
+  };
+
+  const open = (button: HTMLElement) => {
+    const panel = show(Number(button.dataset.tmfOpen), false);
+    if (!films.has(current)) return;
 
     previews.hold();
     getLenis()?.stop();
@@ -137,39 +192,40 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
         { autoAlpha: 0 },
         { autoAlpha: 1, duration: 0.35, ease: 'power2.out', overwrite: true },
       );
-      gsap.fromTo(
-        frame,
-        { scale: 0.97 },
-        { scale: 1, duration: 0.5, ease: 'power3.out', overwrite: true },
-      );
-      /* The copy arrives after the film, a block at a time — the mark, then
-         what they said, then who said it. Cleared afterwards so a panel shown
-         again is not left carrying the last open's transform. */
-      const blocks = panel ? [...(panel as HTMLElement).children] : [];
-      if (blocks.length) {
-        gsap.fromTo(
-          blocks,
-          { autoAlpha: 0, y: 18 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            duration: 0.7,
-            ease: 'power3.out',
-            stagger: 0.08,
-            delay: 0.12,
-            overwrite: true,
-            clearProps: 'transform',
-          },
-        );
-      }
+      arrive(panel);
     }
 
     // The press is the gesture that lets it play with sound.
     void video.play().catch(() => {});
   };
 
-  /* Out, then closed — the dialog's own close is a cut, and the screen is the
-     thing being looked at. */
+  let stepping = false;
+  const step = (by: number) => {
+    if (!dialog.open || stepping || order.length < 2) return;
+    const at = order.indexOf(current);
+    const next = order[(at + by + order.length) % order.length];
+
+    if (reduced) {
+      show(next, true);
+      return;
+    }
+
+    stepping = true;
+    const leaving = panels.find((el) => !el.hidden) ?? null;
+    gsap.to(pieces(leaving), {
+      autoAlpha: 0,
+      duration: 0.2,
+      ease: 'power2.in',
+      overwrite: true,
+      onComplete: () => {
+        gsap.set(pieces(leaving), { clearProps: 'opacity,visibility' });
+        arrive(show(next, true));
+        stepping = false;
+      },
+    });
+  };
+
+  /* Out, then closed — the dialog's own close is a cut. */
   let closing = false;
   const requestClose = () => {
     if (closing || !dialog.open) return;
@@ -191,9 +247,12 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
     'close',
     () => {
       closing = false;
+      stepping = false;
+      current = -1;
       video.pause();
       video.removeAttribute('src');
       video.load();
+      frame.removeAttribute('data-playing');
       gsap.set(dialog, { clearProps: 'opacity,visibility' });
       document.documentElement.removeAttribute('data-tmf-open');
       getLenis()?.start();
@@ -212,10 +271,45 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
     { signal },
   );
 
+  dialog.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'ArrowRight') step(1);
+      else if (event.key === 'ArrowLeft') step(-1);
+      else return;
+      event.preventDefault();
+    },
+    { signal },
+  );
+
   close.addEventListener('click', requestClose, { signal });
 
-  // The ground around the film. A click on the dialog element itself, rather
-  // than on anything inside it, is a click outside.
+  gsap.utils.toArray<HTMLElement>('[data-tmf-lb-step]', section).forEach((button) => {
+    button.addEventListener('click', () => step(Number(button.dataset.tmfLbStep)), { signal });
+  });
+
+  /* The play mark starts the film; once it is playing the browser's own
+     controls take over, and when it stops the mark comes back. */
+  play.addEventListener('click', () => void video.play().catch(() => {}), { signal });
+
+  video.addEventListener(
+    'play',
+    () => {
+      frame.setAttribute('data-playing', '');
+      video.controls = true;
+    },
+    { signal },
+  );
+
+  const stopped = () => {
+    frame.removeAttribute('data-playing');
+    video.controls = false;
+  };
+  video.addEventListener('pause', stopped, { signal });
+  video.addEventListener('ended', stopped, { signal });
+  video.addEventListener('emptied', stopped, { signal });
+
+  // The ground around the film. A click on the dialog itself is a click outside.
   dialog.addEventListener(
     'click',
     (event) => {
@@ -224,19 +318,10 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
     { signal },
   );
 
-  /* The frame takes the film's own shape, so a 4:3 recording is not shown
-     pillarboxed inside a 16:9 box on a white ground. */
-  video.addEventListener(
-    'loadedmetadata',
-    () => {
-      if (video.videoWidth && video.videoHeight) {
-        frame.style.setProperty('--tmf-ar', String(video.videoWidth / video.videoHeight));
-      }
-    },
-    { signal },
-  );
+  // The full film's own word on its shape.
+  video.addEventListener('loadedmetadata', () => shape(video.videoWidth, video.videoHeight), { signal });
 
-  gsap.utils.toArray<HTMLElement>('[data-tmf-open]', section).forEach((button) => {
+  buttons.forEach((button) => {
     button.addEventListener('click', () => open(button), { signal });
   });
 

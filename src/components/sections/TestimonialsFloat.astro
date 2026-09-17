@@ -328,44 +328,64 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     </ul>
   </div>
 
-  {/* The full testimonial: the film on the left, what they said beside it.
-      One dialog for every film — the script unhides the panel belonging to
-      whichever one was pressed. */}
-  <dialog class="tmf__lb" data-tmf-lb aria-label="Testimonial">
-    <p class="tmf__lb-title" aria-hidden="true">{title}</p>
-
-    <div class="tmf__lb-body">
+  {/* The full testimonial. One dialog for every film, and two layouts in it,
+      picked by the shape of the film on screen (`data-orient`, set by the
+      script): a landscape film runs across with the words under it, a portrait
+      one stands on the left with the words beside it. Each film's copy is its
+      own panel, `display: contents`, so its pieces sit straight in the dialog's
+      grid around the one shared player. The arrows step through the films
+      only — a card has nothing to play. */}
+  <dialog class="tmf__lb" data-tmf-lb data-orient="landscape" aria-label="Testimonial">
+    <div class="tmf__lb-body" data-tmf-lb-body>
       <div class="tmf__lb-frame" data-tmf-lb-frame>
-        <video class="tmf__lb-video" data-tmf-lb-video controls playsinline preload="none"></video>
+        <video class="tmf__lb-video" data-tmf-lb-video playsinline preload="none"></video>
+        <button class="tmf__lb-play" type="button" data-tmf-lb-play aria-label="Play">
+          <svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges">
+            <path
+              fill="currentColor"
+              fill-rule="evenodd"
+              d="M4 2h2v1h1v1h1v1h1v1h1v1h1v2h-1v1h-1v1h-1v1h-1v1h-1v1h-2zM6 5v6h1v-1h1v-1h1v-2h-1v-1h-1v-1z"
+            />
+          </svg>
+        </button>
       </div>
 
-      <div class="tmf__lb-panels">
-        {
-          filmed.map((item, i) => (
-            <figure class="tmf__lb-panel" data-tmf-lb-panel={i} hidden>
-              {item.logo && <img class="tmf__lb-logo" src={item.logo} alt={item.company} />}
-
-              <blockquote class="tmf__lb-quote">
-                <p class="tmf__lb-headline">{item.headline}</p>
-                <p class="tmf__lb-text">{item.quote}</p>
-              </blockquote>
-
-              <figcaption class="tmf__lb-who">
-                <span>
-                  <span class="tmf__lb-name">{item.name}</span>
-                  <span class="tmf__lb-role">{item.role}</span>
-                </span>
-                {item.logo && <img class="tmf__lb-mark" src={item.logo} alt="" />}
-              </figcaption>
-            </figure>
-          ))
-        }
-      </div>
+      {
+        filmed.map((item, i) => (
+          <figure class="tmf__lb-panel" data-tmf-lb-panel={i} hidden>
+            <figcaption class="tmf__lb-who">
+              {item.photo && <img class="tmf__lb-face" src={item.photo} alt="" loading="lazy" />}
+              <span>
+                <span class="tmf__lb-name">{item.name}</span>
+                <span class="tmf__lb-role">{item.role}</span>
+              </span>
+            </figcaption>
+            {item.logo ? (
+              <img class="tmf__lb-logo" src={item.logo} alt={item.company} loading="lazy" />
+            ) : (
+              <span class="tmf__lb-logo tmf__lb-logo--text">{item.company}</span>
+            )}
+            <p class="tmf__lb-headline">{item.headline}</p>
+            <blockquote class="tmf__lb-text">{item.quote}</blockquote>
+          </figure>
+        ))
+      }
     </div>
+
+    {filmed.length > 1 && (
+      <>
+        <button class="tmf__lb-step tmf__lb-step--prev" type="button" data-tmf-lb-step="-1" aria-label="Previous testimonial">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10.5 2.5 5 8l5.5 5.5" stroke="currentColor" stroke-width="1.4" /></svg>
+        </button>
+        <button class="tmf__lb-step tmf__lb-step--next" type="button" data-tmf-lb-step="1" aria-label="Next testimonial">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 2.5 11 8l-5.5 5.5" stroke="currentColor" stroke-width="1.4" /></svg>
+        </button>
+      </>
+    )}
 
     <button class="tmf__lb-close" type="button" data-tmf-lb-close aria-label="Close">
       <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M2 2l12 12M14 2 2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="1.4" />
       </svg>
     </button>
   </dialog>
@@ -631,9 +651,15 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
   }
 
   /* ===================== Lightbox =====================
-     A white screen: the film on the left, what they said on the right, the
-     section's own title still at the top and the way out at the foot. */
+     The section's own ground and rule, the film in the middle, the arrows at
+     the two edges and the way out in the corner. Two layouts, by the film's
+     shape — see the markup. */
   .tmf__lb {
+    /* The film's shape, 16:9 until the script has read the real one. */
+    --tmf-ar: calc(16 / 9);
+    /* The margin the arrows stand in. */
+    --tmf-lb-side: clamp(3.5rem, 8vw, 7.5rem);
+
     position: fixed;
     inset: 0;
     width: 100vw;
@@ -643,8 +669,13 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     margin: 0;
     padding: 0;
     border: 0;
-    background: var(--color-bg-primary);
+    background-color: var(--color-bg-twoways);
+    background-image:
+      repeating-linear-gradient(to right, var(--tmf-rule) 0 1px, transparent 1px 20%),
+      repeating-linear-gradient(to bottom, var(--tmf-rule) 0 1px, transparent 1px clamp(8rem, 12.5vw, 11rem));
     color: var(--color-ink);
+    /* Scrolls only on a window too short for the floors below. */
+    overflow-y: auto;
   }
 
   .tmf__lb:not([open]) {
@@ -653,171 +684,263 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
 
   .tmf__lb[open] {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    align-items: center;
-    justify-items: center;
-    gap: clamp(1rem, 2.4vh, 2rem);
-    padding: clamp(1.5rem, 5.9vh, 3.3125rem) var(--section-padding-x) clamp(1.25rem, 3.4vh, 2.3125rem);
+    place-items: safe center;
+    padding: clamp(3.5rem, 8svh, 5rem) var(--tmf-lb-side);
   }
 
   .tmf__lb::backdrop {
-    background: var(--color-bg-primary);
+    background: var(--color-bg-twoways);
   }
 
-  .tmf__lb-title {
-    max-width: 28ch;
-    margin: 0;
-    font-family: var(--font-display);
-    font-size: clamp(1.0625rem, 1.6vw, 1.4375rem);
-    line-height: 1.28;
-    letter-spacing: -0.02em;
-    text-align: center;
-    text-wrap: balance;
-  }
-
-  /* The film and the panel beside it. The film is the one with a shape to
-     keep, so it is measured first and the row takes its height; `stretch` then
-     hands that same height to the panel, which is what puts the client's mark
-     level with the top of the film and their name level with its foot. */
   .tmf__lb-body {
-    display: flex;
-    align-items: stretch;
-    justify-content: center;
-    gap: clamp(1.5rem, 3.75vw, 3.375rem);
-    width: min(100%, 87.5rem);
-    max-height: 100%;
+    display: grid;
+    align-items: start;
   }
 
-  /* Off the screen rather than off the column, and in the film's own shape:
-     sized by width until the screen is too short, then by height, so it runs
-     edge to edge in its box with no bars either way. The proportions are the
-     frame's own (858 of 1440 across, 570 of 900 down). 16:9 until the script
-     has read the real ratio off the file. */
-  .tmf__lb-frame {
-    --tmf-ar: calc(16 / 9);
+  /* --- Landscape: the speaker and the mark over the film, the headline and
+     the quote under it. The room the words need is taken off the height before
+     the film gets any, so a short window shrinks the film and never pushes the
+     quote off the foot. */
+  .tmf__lb[data-orient='landscape'] .tmf__lb-body {
+    width: min(100%, 75rem, max(calc((100svh - 20rem) * var(--tmf-ar)), 28rem));
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'who  logo'
+      'film film'
+      'head text';
+    column-gap: clamp(2rem, 5vw, 5rem);
+    row-gap: clamp(1rem, 2.4svh, 1.5rem);
+  }
 
-    flex: none;
+  .tmf__lb[data-orient='landscape'] .tmf__lb-logo {
+    justify-self: end;
+    align-self: center;
+    object-position: right center;
+  }
+
+  .tmf__lb[data-orient='landscape'] .tmf__lb-who {
+    align-self: center;
+  }
+
+  .tmf__lb[data-orient='landscape'] .tmf__lb-headline {
+    max-width: 17em;
+  }
+
+  /* --- Portrait: the mark over the film, and beside it the speaker, the
+     headline under them and the quote at the foot, level with the film's. */
+  .tmf__lb[data-orient='portrait'] .tmf__lb-body {
+    --fh: min(max(calc(100svh - 12rem), 22rem), 46rem);
+
+    grid-template-columns: calc(var(--fh) * var(--tmf-ar)) minmax(0, 24rem);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'logo .'
+      'film who'
+      'film head'
+      'film .'
+      'film text';
+    column-gap: clamp(2rem, 3.5vw, 3rem);
+  }
+
+  .tmf__lb[data-orient='portrait'] .tmf__lb-logo {
+    margin-bottom: 1rem;
+  }
+
+  .tmf__lb[data-orient='portrait'] .tmf__lb-frame {
+    height: var(--fh);
+  }
+
+  .tmf__lb[data-orient='portrait'] .tmf__lb-face {
+    display: none;
+  }
+
+  .tmf__lb[data-orient='portrait'] .tmf__lb-headline {
+    margin-top: 1.5rem;
+  }
+
+  .tmf__lb[data-orient='portrait'] .tmf__lb-text {
+    padding-top: 1.5rem;
+  }
+
+  .tmf__lb-frame {
+    grid-area: film;
     position: relative;
-    width: min(59.6vw, calc(63.4svh * var(--tmf-ar)));
+    width: 100%;
     aspect-ratio: var(--tmf-ar);
     overflow: hidden;
-    background: #000;
+    background: #d9d8d5;
   }
 
   .tmf__lb-video {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
   }
 
-  .tmf__lb-panels {
-    flex: 0 1 clamp(15rem, 25.6vw, 23rem);
+  /* The play mark, square and white, on the middle of the film. While the
+     film plays it gives way to the browser's own controls. */
+  .tmf__lb-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
     display: grid;
-    min-height: 0;
+    place-items: center;
+    width: clamp(2.5rem, 3.4vw, 3rem);
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    background: #fff;
+    color: var(--color-ink);
+    translate: -50% -50%;
+    cursor: pointer;
+    transition:
+      scale 0.3s var(--ease-out-expo),
+      opacity 0.2s ease;
+  }
+
+  .tmf__lb-play svg {
+    width: 55%;
+  }
+
+  .tmf__lb-play:hover,
+  .tmf__lb-play:focus-visible {
+    scale: 1.08;
+  }
+
+  .tmf__lb-frame[data-playing] .tmf__lb-play {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .tmf__lb-panel {
-    grid-area: 1 / 1;
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1.25rem, 2vw, 1.75rem);
-    margin: 0;
-    min-height: 0;
-    overflow-y: auto;
+    display: contents;
   }
 
   .tmf__lb-panel[hidden] {
     display: none;
   }
 
-  .tmf__lb-logo {
-    width: auto;
-    max-width: clamp(6.25rem, 9.1vw, 8.1875rem);
-    max-height: 1.625rem;
-    object-fit: contain;
-    object-position: left center;
-  }
-
-  .tmf__lb-quote {
+  .tmf__lb-who {
+    grid-area: who;
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.625rem;
     margin: 0;
   }
 
-  .tmf__lb-headline {
-    font-family: var(--font-display);
-    font-size: clamp(1.25rem, 1.95vw, 1.75rem);
-    line-height: 1.26;
-    letter-spacing: -0.015em;
-    text-wrap: pretty;
-  }
-
-  .tmf__lb-text {
-    font-size: clamp(0.875rem, 1.04vw, 0.9375rem);
-    line-height: 1.73;
-    color: var(--color-ink-secondary);
-  }
-
-  /* Pushed to the foot of the panel, so it sits level with the bottom of the
-     film however tall the quote runs. */
-  .tmf__lb-who {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-top: auto;
-    padding-top: 1.5rem;
+  .tmf__lb-face {
+    flex: none;
+    width: 2rem;
+    aspect-ratio: 1;
+    object-fit: cover;
   }
 
   .tmf__lb-name {
     display: block;
     font-family: var(--font-display);
-    font-size: clamp(1rem, 1.4vw, 1.25rem);
-    font-weight: 500;
-    line-height: 1.5;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.35;
   }
 
   .tmf__lb-role {
     display: block;
-    font-size: 0.875rem;
-    line-height: 1.43;
+    font-size: 0.75rem;
+    line-height: 1.4;
     color: var(--color-ink-secondary);
   }
 
-  .tmf__lb-mark {
-    flex: none;
-    max-width: clamp(5rem, 7.4vw, 6.625rem);
-    max-height: 1.3125rem;
+  .tmf__lb-logo {
+    grid-area: logo;
+    width: auto;
+    max-width: clamp(5.5rem, 8vw, 7rem);
+    max-height: 1.375rem;
     object-fit: contain;
-    object-position: right center;
+    object-position: left center;
   }
 
-  .tmf__lb-close {
+  .tmf__lb-logo--text {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .tmf__lb-headline {
+    grid-area: head;
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    text-wrap: pretty;
+  }
+
+  .tmf__lb-text {
+    grid-area: text;
+    margin: 0;
+    font-size: clamp(0.75rem, 0.85vw, 0.8125rem);
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+
+  /* The arrows: white squares on the middle of the screen's two edges. */
+  .tmf__lb-step {
+    position: absolute;
+    top: 50%;
     display: grid;
     place-items: center;
-    width: 3.375rem;
+    width: 2.25rem;
     aspect-ratio: 1;
     padding: 0;
     border: 0;
-    border-radius: 50%;
-    background: var(--color-ink);
-    color: var(--color-ink-invert);
+    background: #fff;
+    color: var(--color-ink);
+    translate: 0 -50%;
     cursor: pointer;
-    transition:
-      scale 0.3s var(--ease-out-expo),
-      opacity 0.3s var(--ease-out-expo);
+    transition: scale 0.3s var(--ease-out-expo);
+  }
+
+  .tmf__lb-step svg {
+    width: 1.125rem;
+  }
+
+  .tmf__lb-step--prev {
+    left: calc((var(--tmf-lb-side) - 2.25rem) / 2);
+  }
+
+  .tmf__lb-step--next {
+    right: calc((var(--tmf-lb-side) - 2.25rem) / 2);
+  }
+
+  .tmf__lb-step:hover,
+  .tmf__lb-step:focus-visible {
+    scale: 1.08;
+  }
+
+  .tmf__lb-close {
+    position: absolute;
+    top: clamp(0.75rem, 2svh, 1.25rem);
+    right: clamp(0.75rem, 2vw, 1.25rem);
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-ink);
+    cursor: pointer;
+    transition: scale 0.3s var(--ease-out-expo);
   }
 
   .tmf__lb-close svg {
-    width: 0.8125rem;
+    width: 1rem;
   }
 
   .tmf__lb-close:hover,
   .tmf__lb-close:focus-visible {
-    scale: 1.08;
-    opacity: 0.86;
+    scale: 1.12;
   }
 
   /* Scroll held while the film is up — the same rule the open menu uses. */
@@ -825,38 +948,85 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     overflow: hidden;
   }
 
-  /* ===================== Responsive ===================== */
-  @media (max-width: 60rem) {
-    /* The panel under the film rather than beside it: at this width a 15rem
-       column leaves the film too small to read a face in. */
-    .tmf__lb-body {
-      flex-direction: column;
-      align-items: center;
-      gap: 1.25rem;
+  /* --- A hand: one column, read top to bottom and scrolling if it has to,
+     with the arrows moved off the film's sides to the foot of the screen. */
+  @media (max-width: 48rem) {
+    .tmf__lb {
+      --tmf-lb-side: var(--section-padding-x);
+
       overflow-y: auto;
     }
 
-    .tmf__lb-frame {
-      width: min(100%, calc(42svh * var(--tmf-ar)));
+    .tmf__lb[open] {
+      place-items: start center;
+      padding: 3.5rem var(--tmf-lb-side) 5.5rem;
     }
 
-    .tmf__lb-panels {
-      flex: 0 0 auto;
-      align-self: stretch;
+    .tmf__lb[data-orient] .tmf__lb-body {
+      width: 100%;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: none;
+      grid-template-areas:
+        'who  logo'
+        'film film'
+        'head head'
+        'text text';
+      row-gap: 1.25rem;
+      column-gap: 1rem;
     }
 
-    .tmf__lb-who {
-      padding-top: 0.5rem;
+    .tmf__lb[data-orient='portrait'] .tmf__lb-frame {
+      justify-self: center;
+      width: auto;
+      height: min(50svh, calc((100vw - 2 * var(--tmf-lb-side)) / var(--tmf-ar)));
     }
-  }
 
-  @media (max-width: 48rem) {
-    .tmf__title {
-      font-size: clamp(1.375rem, 6.4vw, 1.75rem);
+    .tmf__lb[data-orient] .tmf__lb-logo {
+      justify-self: end;
+      align-self: center;
+      margin: 0;
+      object-position: right center;
+    }
+
+    .tmf__lb[data-orient] .tmf__lb-face {
+      display: block;
+    }
+
+    .tmf__lb[data-orient] .tmf__lb-headline,
+    .tmf__lb[data-orient] .tmf__lb-text {
+      margin: 0;
+      padding: 0;
+    }
+
+    .tmf__lb-text {
+      font-size: 0.875rem;
+    }
+
+    .tmf__lb-step {
+      position: fixed;
+      top: auto;
+      bottom: 1rem;
+      width: 2.75rem;
+      translate: none;
+    }
+
+    .tmf__lb-step--prev {
+      left: var(--tmf-lb-side);
+    }
+
+    .tmf__lb-step--next {
+      right: var(--tmf-lb-side);
     }
 
     .tmf__lb-close {
-      width: 2.875rem;
+      position: fixed;
+    }
+  }
+
+  /* ===================== Responsive ===================== */
+  @media (max-width: 48rem) {
+    .tmf__title {
+      font-size: clamp(1.375rem, 6.4vw, 1.75rem);
     }
   }
 
