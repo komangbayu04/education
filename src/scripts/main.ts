@@ -124,18 +124,48 @@ document.addEventListener('astro:after-swap', () => {
 });
 
 // Layout shifts on resize invalidate every trigger's measurements.
+
+/**
+ * The LARGE viewport's height, in pixels — what `100lvh` resolves to.
+ *
+ * It is the one height a browser's collapsing bars do not move: when the URL
+ * bar slides away the visible height grows, and `lvh` was already the height
+ * with it gone. So a change in it means the screen itself changed.
+ */
+const lvhProbe = document.createElement('div');
+lvhProbe.setAttribute('aria-hidden', 'true');
+lvhProbe.style.cssText =
+  'position:fixed;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none';
+document.body.appendChild(lvhProbe);
+const largeHeight = () => Math.round(lvhProbe.getBoundingClientRect().height);
+
 let viewportWidth = window.innerWidth;
+let viewportLarge = largeHeight();
+
 window.addEventListener(
   'resize',
   debounce(() => {
     if (prefersReducedMotion()) return;
-    /* iOS fires resize when the URL bar shows or hides. Width does not
-       change; height does, by ~80px. Refreshing every pin and rebuilding the
-       scene's tile fields on that is a long frame right as the reader leaves
-       Overclock — the scroll freezes until the work finishes. */
-    const next = window.innerWidth;
-    if (isTouch() && next === viewportWidth) return;
-    viewportWidth = next;
+    const nextWidth = window.innerWidth;
+    const nextLarge = largeHeight();
+
+    /* A touch screen skips the refresh when ONLY ITS BARS moved, and nothing
+       else. iOS fires resize as the URL bar shows or hides, by ~80px, and
+       refreshing every pin and rebuilding the scene's tile fields on that is a
+       long frame right as the reader is scrolling.
+
+       It used to skip whenever the width was unchanged, and that also swallowed
+       every real change of height: a tablet's split screen, a desktop browser's
+       device mode resized by its frame. The hero's pin writes its height into
+       the page in pixels when it is refreshed, so without one the pinned hero
+       kept the old, shorter height and the fixed footer showed through the gap
+       under it — reported at 801x698. The bars never change `lvh`; a real
+       resize does. */
+    const onlyBars = nextWidth === viewportWidth && nextLarge === viewportLarge;
+    if (isTouch() && onlyBars) return;
+
+    viewportWidth = nextWidth;
+    viewportLarge = nextLarge;
     ScrollTrigger.refresh();
   }, 200),
 );

@@ -218,9 +218,22 @@ const {
        to out-rank Our work, which comes up under it when the pin lets go. */
     position: relative;
     z-index: 4;
-    /* Exactly one viewport: the pin holds this box, and a hero taller than the
-       screen would have its foot cut off for the whole of the zoom. */
-    height: 100svh;
+    /* THE LARGE VIEWPORT, not the small one — and only the painting follows it.
+
+       The pin holds this box at a height in pixels, and at `100svh` that is the
+       screen with the browser's bars showing. When a phone or tablet slides its
+       URL bar away the window grows past it, and the strip uncovered at the
+       foot is whatever is behind the page — on a tablet, the fixed footer.
+       `100lvh` is already the height with the bars gone, so there is no taller
+       window for the picture to fall short of.
+
+       What is anchored to the foot is measured from the SMALL viewport instead,
+       through `--hero-bars`, so the copy is never set under a bar that is
+       showing. On a screen without collapsing bars the two are the same number
+       and nothing here moves. */
+    --hero-bars: calc(100lvh - 100svh);
+
+    height: 100lvh;
     min-height: 34rem;
     overflow: hidden;
     /* What shows for the moment before the carriage has decoded — its own
@@ -294,7 +307,8 @@ const {
      below the nav. */
   .hero__reveal {
     position: absolute;
-    inset: 0;
+    /* Centred on what is visible with the bars showing. */
+    inset: 0 0 var(--hero-bars);
     z-index: 3;
     display: flex;
     flex-direction: column;
@@ -403,7 +417,7 @@ const {
 
     position: absolute;
     left: var(--hero-left);
-    bottom: 6.9%;
+    bottom: calc(var(--hero-bars) + 6.9svh);
     z-index: 2;
     display: flex;
     flex-direction: column;
@@ -518,7 +532,7 @@ const {
   .hero__scroll {
     position: absolute;
     left: 83.3%;
-    bottom: 6.9%;
+    bottom: calc(var(--hero-bars) + 6.9svh);
     z-index: 2;
     display: flex;
     align-items: center;
@@ -586,7 +600,7 @@ const {
 
       left: var(--section-padding-x);
       right: var(--section-padding-x);
-      bottom: 2.5rem;
+      bottom: calc(var(--hero-bars) + 2.5rem);
       gap: 2rem;
     }
 
