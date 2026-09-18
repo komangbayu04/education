@@ -167,6 +167,16 @@ const START = 1;
         </li>
       ))}
     </ol>
+
+    {/* AND THE QUIET ONE. No drawing, no numbers, no counting: the five lines
+        in two columns, each with the same small bullet the staircase uses, and
+        nothing else. It is the option that also simplifies the block below —
+        see the coverage rules in the stylesheet. */}
+    <ul class="inc__plain">
+      {included.map((item) => (
+        <li>{item}</li>
+      ))}
+    </ul>
   </div>
 
   <div class="inc__block inc__block--split">
@@ -445,6 +455,44 @@ const START = 1;
     display: block;
   }
 
+  /* Two columns of plain lines, and the bullets are the staircase's own so the
+     three readings of this list are recognisably the same list. */
+  .inc__plain {
+    display: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(1.5rem, 4vw, 4rem);
+    row-gap: clamp(0.5rem, 1.2vw, 0.875rem);
+    margin-top: clamp(1.5rem, 4svh, 2.5rem);
+  }
+
+  .inc__plain li {
+    display: flex;
+    align-items: baseline;
+    font-size: clamp(0.9375rem, 1.1vw, 1.0625rem);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: rgb(255 255 255 / 0.9);
+  }
+
+  .inc__plain li::before {
+    content: '';
+    flex: none;
+    width: 3px;
+    height: 3px;
+    margin-right: 0.75rem;
+    translate: 0 -0.3em;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  :global(html[data-var-promises='plain']) .inc__promise {
+    display: none;
+  }
+
+  :global(html[data-var-promises='plain']) .inc__plain {
+    display: grid;
+  }
+
   /* --- The coverage ---------------------------------------------------------
      The heading on the left and, in the other column, the kinds of work with
      the shots of whichever one is being read. */
@@ -541,6 +589,44 @@ const START = 1;
   .inc__shot--2 {
     flex-basis: 56%;
     margin-top: clamp(0.75rem, 2vw, 1.75rem);
+  }
+
+  /* --- The coverage, made plain ---------------------------------------------
+     The same nine kinds of work with everything answering removed: no shots
+     beside them, nothing to point at, nothing lighting up. They are set small
+     and in two columns, which is a list of what we do rather than a thing to
+     be played with — and the section loses a screen of height with them.
+
+     The buttons stay buttons in the markup, because the markup is shared and
+     the choice is the reader's; here they are simply told to behave like the
+     text they are. */
+  :global(html[data-var-promises='plain']) .inc__cover {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :global(html[data-var-promises='plain']) .inc__shots {
+    display: none;
+  }
+
+  :global(html[data-var-promises='plain']) .inc__kinds {
+    display: block;
+    columns: 2;
+    column-gap: clamp(1.5rem, 4vw, 4rem);
+  }
+
+  :global(html[data-var-promises='plain']) .inc__kind {
+    font-size: clamp(0.9375rem, 1.1vw, 1.0625rem);
+    line-height: 1.9;
+    letter-spacing: -0.01em;
+    color: rgb(255 255 255 / 0.9);
+    cursor: default;
+  }
+
+  /* Nothing to hover and nothing current: with no artwork to change, a lit
+     line would be pointing at nothing. */
+  :global(html[data-var-promises='plain']) .inc__kind[aria-current='true'],
+  :global(html[data-var-promises='plain']) .inc__kind:hover {
+    color: rgb(255 255 255 / 0.9);
   }
 
   /* --- The ask --------------------------------------------------------------
@@ -679,6 +765,16 @@ const START = 1;
 
     .inc__row-pix {
       display: none;
+    }
+
+    /* One column for both plain lists: two columns of a phone's width are two
+       columns of single words. */
+    .inc__plain {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    :global(html[data-var-promises='plain']) .inc__kinds {
+      columns: 1;
     }
   }
 </style>
