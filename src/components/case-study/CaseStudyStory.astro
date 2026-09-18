@@ -1,0 +1,209 @@
+---
+/**
+ * Case-study story — a labelled statement, one wide frame, and a pair under it.
+ *
+ * The frame's arrangement, in the order it reads:
+ *
+ *   the claim   an eyebrow at the gutter and the statement under it, four
+ *               lines at the measure the heading is set to.
+ *
+ *   the wide    one frame the width of the column, which is where the piece
+ *               that has to be seen whole goes — a construction, a board, a
+ *               composition.
+ *
+ *   the pair    a large frame on the left and, beside it, a narrower one with
+ *               a note under it. They start on the same line and the left one
+ *               runs deeper, because it is wider and the two are cut to the
+ *               same shape.
+ *
+ * EVERY FRAME IS A PLACEHOLDER UNTIL IT IS FED. With no `src` and no `video` it
+ * is drawn as its own black rectangle at the right size, so the page stands up
+ * complete and the artwork drops into the same boxes when it lands. `src` is an
+ * image (extensionless — an avif and a webp are requested from it), `video` is
+ * footage (extensionless — webm and mp4), and `ratio` lets a frame keep the
+ * shape of whatever goes in it rather than the layout's guess.
+ */
+
+export interface StoryFrame {
+  src?: string;
+  video?: string;
+  poster?: string;
+  alt?: string;
+  ratio?: string;
+}
+
+interface Props {
+  /** Anchors the section's label — unique on the page. */
+  id?: string;
+  eyebrow?: string;
+  heading: string;
+  /** The frame across the column. */
+  wide?: StoryFrame;
+  /** The larger of the pair, on the left. */
+  large?: StoryFrame;
+  /** The narrower one beside it. */
+  small?: StoryFrame;
+  /** The note under the narrow frame. It belongs to the pair, not the section. */
+  note?: string;
+}
+
+const { id = 'cs-story', eyebrow = 'A system with a story', heading, wide, large, small, note } =
+  Astro.props;
+
+const labelId = `${id}-label`;
+
+/** The wide frame's shape, off the frame: 623 by 346. */
+const WIDE = '16 / 9';
+/** And the pair's, which are cut to one shape whatever their widths. */
+const PAIR = '7 / 8';
+---
+
+<section class="cs-story u-container" aria-labelledby={labelId} data-cs-reveal>
+  <p class="cs-story__eyebrow u-label" id={labelId}>{eyebrow}</p>
+  <h2 class="cs-story__heading">{heading}</h2>
+
+  {
+    wide && (
+      <figure class="cs-story__frame cs-story__wide" style={`--ratio:${wide.ratio ?? WIDE}`}>
+        {wide.video ? (
+          <video autoplay muted loop playsinline preload="metadata" poster={wide.poster} aria-label={wide.alt} tabindex="-1">
+            <source src={`${wide.video}.webm`} type="video/webm" />
+            <source src={`${wide.video}.mp4`} type="video/mp4" />
+          </video>
+        ) : wide.src ? (
+          <picture>
+            <source srcset={`${wide.src}.avif`} type="image/avif" />
+            <img src={`${wide.src}.webp`} alt={wide.alt ?? ''} loading="lazy" decoding="async" />
+          </picture>
+        ) : null}
+      </figure>
+    )
+  }
+
+  {
+    (large || small) && (
+      <div class="cs-story__pair">
+        {[
+          { frame: large, cls: 'cs-story__large' },
+          { frame: small, cls: 'cs-story__small' },
+        ].map(
+          ({ frame, cls }) =>
+            frame && (
+              <figure class:list={['cs-story__frame', cls]} style={`--ratio:${frame.ratio ?? PAIR}`}>
+                {frame.video ? (
+                  <video autoplay muted loop playsinline preload="metadata" poster={frame.poster} aria-label={frame.alt} tabindex="-1">
+                    <source src={`${frame.video}.webm`} type="video/webm" />
+                    <source src={`${frame.video}.mp4`} type="video/mp4" />
+                  </video>
+                ) : frame.src ? (
+                  <picture>
+                    <source srcset={`${frame.src}.avif`} type="image/avif" />
+                    <img src={`${frame.src}.webp`} alt={frame.alt ?? ''} loading="lazy" decoding="async" />
+                  </picture>
+                ) : null}
+              </figure>
+            ),
+        )}
+
+        {note && <p class="cs-story__note">{note}</p>}
+      </div>
+    )
+  }
+</section>
+
+<style>
+  .cs-story {
+    padding-block: var(--cs-section-y, clamp(3rem, 6vw, 5.5rem));
+  }
+
+  .cs-story__eyebrow {
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-story__heading {
+    /* In em, so the frame's four lines survive the fluid type scale. */
+    max-width: 21em;
+    margin-top: clamp(0.75rem, 1.4vw, 1.125rem);
+    font-size: clamp(1.375rem, 2.7vw, 2.4375rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  .cs-story__frame {
+    position: relative;
+    margin: 0;
+    aspect-ratio: var(--ratio);
+    overflow: hidden;
+    /* The placeholder ground and the letterbox behind anything whose shape does
+       not match the slot exactly. */
+    background: #000;
+  }
+
+  .cs-story__frame img,
+  .cs-story__frame video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cs-story__wide {
+    margin-top: clamp(1.75rem, 3.4vw, 3rem);
+  }
+
+  /* The pair. The note is the second column's second row, so the space between
+     the narrow frame and its note is the row gap rather than a margin, and the
+     left frame simply runs past both — it is deeper because it is wider and
+     the two are the same shape. */
+  .cs-story__pair {
+    display: grid;
+    grid-template-columns: minmax(0, 56fr) minmax(0, 35fr);
+    grid-template-rows: auto auto;
+    column-gap: clamp(1.25rem, 3.3vw, 3rem);
+    row-gap: clamp(1rem, 1.8vw, 1.5rem);
+    align-items: start;
+    margin-top: clamp(1.25rem, 2.4vw, 2rem);
+  }
+
+  .cs-story__large {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .cs-story__small {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .cs-story__note {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: var(--text-caption);
+    line-height: 1.6;
+    color: var(--color-ink-secondary);
+  }
+
+  /* One column on a phone: the narrow frame is narrower still at this width,
+     and a note set against it would be three words to a line. */
+  @media (max-width: 48rem) {
+    .cs-story__pair {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cs-story__large {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .cs-story__small {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .cs-story__note {
+      grid-column: 1;
+      grid-row: 3;
+    }
+  }
+</style>

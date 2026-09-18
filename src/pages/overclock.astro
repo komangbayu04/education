@@ -15,6 +15,7 @@ import Base from '../layouts/Base.astro';
 import CaseStudyHero from '../components/case-study/CaseStudyHero.astro';
 import CaseStudyIntro from '../components/case-study/CaseStudyIntro.astro';
 import CaseStudyBand from '../components/case-study/CaseStudyBand.astro';
+import CaseStudyStory from '../components/case-study/CaseStudyStory.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
 import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
@@ -89,6 +90,19 @@ const note =
     />
 
     <CaseStudyBand ratio="16 / 9" />
+
+    {/* The identity, and the three frames that carry it: the construction
+        across the column, then the pair with its note. ALL THREE ARE EMPTY —
+        black rectangles at the right size until the artwork lands. */}
+    <CaseStudyStory
+      id="cs-system"
+      eyebrow="A system with a story"
+      heading="Overclock needed an identity that could grow with it: a recognisable visual language, a cast of characters, and a system built for every new cohort."
+      wide={{ alt: 'Overclock, the mark and how it is built' }}
+      large={{ alt: 'Overclock, the cast of characters' }}
+      small={{ alt: 'Overclock, the system in use' }}
+      note="Overclock Accelerator runs cohort programs for individuals, including AI Ops, and separate training for teams and executives inside companies. It teaches working engineers and operators to build and ship with AI."
+    />
 
     {/* Program. The statement alone — the artwork for it is the pair below,
         which is why no tiles are passed. */}
