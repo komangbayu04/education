@@ -91,16 +91,16 @@ const {
  * one column on each side and the whole thing falls at 45 degrees — the same
  * angle the list beside it steps at.
  *
- * SEVEN ROWS, not five. The drawing is the size it should be and the squares
- * inside it were too big for it, so the rule is run further and the cell is cut
- * to match: thirteen columns of 46px where there were nine of 66, which is the
- * same 594 across.
+ * SIX ROWS. The drawing is the size it should be and the squares inside it
+ * were too big for it, so the rule is run further and the cell is cut to
+ * match: eleven columns of 54px where there were nine of 66, which is the same
+ * 594 across.
  *
- * It ran to eight for a while, and eight is where the pattern fills its last
- * row completely — a solid band of squares across the foot. That band is what
- * closed the shape off and it was asked for gone, so the drawing stops a row
- * short of it and ends on four squares instead. */
-const TRI_ROWS = 7;
+ * It ran to eight for a while — eight is where the pattern fills its last row
+ * completely, a solid band across the foot — and then to seven. Both of those
+ * bottom rows were asked for gone, so it stops here, on the pair of squares
+ * that row six ends with. */
+const TRI_ROWS = 6;
 const TRI_COLS = 2 * TRI_ROWS - 1;
 
 const odd = (row: number, k: number) => {
@@ -205,10 +205,10 @@ const START = 1;
        edges step in and out read as a mistake rather than as a decision. */
     --inc-gutter: var(--section-padding-x);
 
-    /* One square of the triangle: 46px at 1440. Thirteen of them across keeps
-       the drawing the same four tenths of the measure it was at 66 — the size
-       was right and only the grain was too coarse. */
-    --inc-cell: clamp(0.9375rem, 3.17vw, 2.85rem);
+    /* One square of the triangle: 54px at 1440. Eleven of them across keeps the
+       drawing the same four tenths of the measure it was at 66 — the size was
+       right and only the grain was too coarse. */
+    --inc-cell: clamp(1.125rem, 3.75vw, 3.375rem);
 
     /* And the step the list moves by, which is NOT the cell. It was, back when
        the squares were small enough that one of them was a sensible indent; at
