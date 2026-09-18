@@ -196,10 +196,18 @@ const START = 1;
        edges step in and out read as a mistake rather than as a decision. */
     --inc-gutter: var(--section-padding-x);
 
-    /* One square of the triangle, and the step the list moves by — the same
-       number, because the two shapes are the same shape. 39px at 1440, off the
-       reference. */
-    --inc-cell: clamp(1.375rem, 2.7vw, 2.4375rem);
+    /* One square of the triangle: 66px at 1440, off the reference. The
+       triangle is nine of them across, so it is a good four tenths of the
+       measure and reads as the drawing it is rather than as an ornament beside
+       the list. */
+    --inc-cell: clamp(1.375rem, 4.6vw, 4.125rem);
+
+    /* And the step the list moves by, which is NOT the cell. It was, back when
+       the squares were small enough that one of them was a sensible indent; at
+       this size five lines each a square further in would walk the last one
+       clean off the right-hand edge. The reference steps them by about 29px at
+       1440 — a bullet's worth, not a square's. */
+    --inc-step: clamp(0.625rem, 2vw, 1.8125rem);
 
     position: relative;
     /* OVER Two ways in, and this is the one place on the page where a section
@@ -260,12 +268,17 @@ const START = 1;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    gap: clamp(1.5rem, 4vw, 4.5rem);
+    gap: 0;
     margin-top: clamp(1.5rem, 4svh, 2.5rem);
   }
 
+  /* Pulled back over the triangle's last column, which is empty on every row
+     but the bottom one — so the first line starts where the drawing has
+     already thinned out and the two shapes read as one composition instead of
+     two columns with a corridor between them. */
   .inc__steps {
     flex: none;
+    margin-left: calc(-1 * var(--inc-cell));
   }
 
   .inc__tri {
@@ -296,7 +309,7 @@ const START = 1;
     display: flex;
     align-items: center;
     min-height: var(--inc-cell);
-    padding-left: calc(var(--i) * var(--inc-cell));
+    padding-left: calc(var(--i) * var(--inc-step));
     font-size: clamp(0.875rem, 1.04vw, 0.9375rem);
     line-height: 1.5;
     letter-spacing: -0.01em;
