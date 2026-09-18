@@ -1,23 +1,26 @@
 ---
 /**
- * Case study — Overclock.
+ * Case study — Overclock, at /overclock.
  *
  * The destination behind the Overclock chapter on the home page: its title,
  * its "View work" tile and the next-project panel on Nerd Apply all point
  * here. Content lives in this file rather than a data module — same pattern
  * as college-counseling-platform.astro — so a reader of the codebase finds
  * the copy on the page.
+ *
+ * It sat at /work/overclock, which still answers: astro.config.mjs redirects
+ * it here, so anything already pointing at the old address keeps working.
  */
-import Base from '../../layouts/Base.astro';
-import CaseStudyHero from '../../components/case-study/CaseStudyHero.astro';
-import CaseStudyIntro from '../../components/case-study/CaseStudyIntro.astro';
-import CaseStudyBand from '../../components/case-study/CaseStudyBand.astro';
-import CaseStudyOverview from '../../components/case-study/CaseStudyOverview.astro';
-import CaseStudyVideos from '../../components/case-study/CaseStudyVideos.astro';
-import CaseStudyExperience from '../../components/case-study/CaseStudyExperience.astro';
-import CaseStudyResult from '../../components/case-study/CaseStudyResult.astro';
-import CaseStudyNext from '../../components/case-study/CaseStudyNext.astro';
-import Footer from '../../components/layout/Footer.astro';
+import Base from '../layouts/Base.astro';
+import CaseStudyHero from '../components/case-study/CaseStudyHero.astro';
+import CaseStudyIntro from '../components/case-study/CaseStudyIntro.astro';
+import CaseStudyBand from '../components/case-study/CaseStudyBand.astro';
+import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
+import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
+import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
+import CaseStudyResult from '../components/case-study/CaseStudyResult.astro';
+import CaseStudyNext from '../components/case-study/CaseStudyNext.astro';
+import Footer from '../components/layout/Footer.astro';
 
 const title = 'Overclock';
 const summary =
@@ -31,10 +34,20 @@ const intro =
   {/* The nav is overlaid, not stacked — see Nav.astro. On the home page the
       hero reserves that height itself; here the page has to. */}
   <div class="cs">
+    {/* The head is the fact row rather than a standfirst — see `facts` in
+        CaseStudyHero. The summary still stands as the page's description in
+        the document head, and the introduction under the hero says it in
+        prose. */}
     <CaseStudyHero
       title={title}
-      summary={summary}
-      tags={['Accelerator', 'Brand Design', 'Web Design']}
+      facts={[
+        { label: 'Type', values: ['Full Build'] },
+        { label: 'Stage', values: ['Leader'] },
+        {
+          label: 'Deliverables',
+          values: ['Brand Design', 'Web Design', 'Engineering', 'Marketing'],
+        },
+      ]}
       image="/media/overclock-device"
       imageAlt="Overclock running on a tablet"
       video="/media/overclock-cover"
