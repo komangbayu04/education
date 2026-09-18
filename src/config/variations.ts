@@ -57,12 +57,6 @@ export const VARIATIONS: VariationAxis[] = [
          whole screen, one promise a row, numbered, with a run of squares at
          the end of each that grows as the list does. */
       { id: 'ledger', label: 'Ruled table' },
-      /* The quiet one, and the only option that changes the block underneath
-         as well: the promises as two plain columns, and the kinds of work as
-         a list of words with no artwork beside them and nothing to point at.
-         For a reader who is here to find out what we do rather than to be
-         shown it. */
-      { id: 'plain', label: 'Plain list' },
     ],
   },
   {
