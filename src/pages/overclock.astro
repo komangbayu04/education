@@ -14,6 +14,7 @@
 import Base from '../layouts/Base.astro';
 import CaseStudyHero from '../components/case-study/CaseStudyHero.astro';
 import CaseStudyIntro from '../components/case-study/CaseStudyIntro.astro';
+import CaseStudyBand from '../components/case-study/CaseStudyBand.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
 import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
@@ -74,6 +75,20 @@ const note =
       main={{ alt: 'Overclock, mark construction' }}
       side={{ alt: 'Overclock, motion study' }}
     />
+
+    {/* The vision: the claim set in from the gutter, and the whole screen
+        under it. THE BAND IS EMPTY ON PURPOSE — it is the page's black at
+        16:9 until the film or the still for it lands, at which point it takes
+        `video` (extensionless, webm and mp4) or a different `ratio` and
+        nothing below it moves. */}
+    <CaseStudyOverview
+      id="cs-vision"
+      indent
+      eyebrow="The vision"
+      heading="Build a distinctive brand and scalable digital system that turns AI curiosity into practical capability."
+    />
+
+    <CaseStudyBand ratio="16 / 9" />
 
     {/* Program. The statement alone — the artwork for it is the pair below,
         which is why no tiles are passed. */}

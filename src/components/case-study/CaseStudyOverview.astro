@@ -50,6 +50,16 @@ interface Props {
    *  full-bleed band carries the artwork underneath instead. */
   wide?: Tile;
   side?: Tile;
+  /**
+   * Starts the words a fifth of the way across instead of at the gutter.
+   *
+   * The frame does this where the statement is followed by a full-bleed band:
+   * the band runs edge to edge, so the copy over it is set in from both sides
+   * and the two read as a pair rather than as a column with a picture after
+   * it. Artwork inside the section, if any, is unaffected — it keeps the
+   * section's own columns.
+   */
+  indent?: boolean;
 }
 
 const {
@@ -60,6 +70,7 @@ const {
   caption,
   wide,
   side,
+  indent = false,
 } = Astro.props;
 
 const labelId = `${id}-label`;
@@ -74,7 +85,7 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
 ---
 
 <section
-  class:list={['cs-ov', 'u-container', `cs-ov--${layout}`]}
+  class:list={['cs-ov', 'u-container', `cs-ov--${layout}`, { 'cs-ov--indent': indent }]}
   aria-labelledby={labelId}
   data-cs-reveal
 >
@@ -268,6 +279,21 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
   .cs-ov__eyebrow {
     position: relative;
     color: var(--color-ink-secondary);
+  }
+
+  /* 19% of the page at 1440, which is where the frame starts these lines. A
+     percentage, so it holds its proportion rather than drifting with the
+     window, and dropped on a phone where an indent is only lost measure. */
+  .cs-ov--indent .cs-ov__eyebrow,
+  .cs-ov--indent .cs-ov__head {
+    margin-left: 16%;
+  }
+
+  @media (max-width: 48rem) {
+    .cs-ov--indent .cs-ov__eyebrow,
+    .cs-ov--indent .cs-ov__head {
+      margin-left: 0;
+    }
   }
 
   .cs-ov__heading {
