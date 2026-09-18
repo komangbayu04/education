@@ -45,10 +45,27 @@ interface Props {
   small?: StoryFrame;
   /** The note under the narrow frame. It belongs to the pair, not the section. */
   note?: string;
+  /**
+   * Runs the large frame off the left-hand edge of the screen.
+   *
+   * The frame does this where the piece is a scene rather than a document — a
+   * machine on a desk, a room — so it reads as something the page is looking
+   * at part of rather than a picture placed on it. The narrow frame and its
+   * note stay where they are.
+   */
+  bleed?: boolean;
 }
 
-const { id = 'cs-story', eyebrow = 'A system with a story', heading, wide, large, small, note } =
-  Astro.props;
+const {
+  id = 'cs-story',
+  eyebrow = 'A system with a story',
+  heading,
+  wide,
+  large,
+  small,
+  note,
+  bleed = false,
+} = Astro.props;
 
 const labelId = `${id}-label`;
 
@@ -58,7 +75,11 @@ const WIDE = '16 / 9';
 const PAIR = '7 / 8';
 ---
 
-<section class="cs-story u-container" aria-labelledby={labelId} data-cs-reveal>
+<section
+  class:list={['cs-story', 'u-container', { 'cs-story--bleed': bleed }]}
+  aria-labelledby={labelId}
+  data-cs-reveal
+>
   <p class="cs-story__eyebrow u-label" id={labelId}>{eyebrow}</p>
   <h2 class="cs-story__heading">{heading}</h2>
 
@@ -171,6 +192,19 @@ const PAIR = '7 / 8';
     grid-row: 1 / span 2;
   }
 
+  /* Off the left edge and past the page's gutter. A negative margin on a grid
+     item that is stretched to its column widens it by the same amount, so the
+     frame grows to the left and its right-hand edge — the one the narrow frame
+     is measured against — does not move. `dvw` so a visible scrollbar cannot
+     turn the bleed into horizontal scroll. */
+  .cs-story--bleed {
+    overflow: hidden;
+  }
+
+  .cs-story--bleed .cs-story__large {
+    margin-left: calc(-1 * (var(--section-padding-x) + 6dvw));
+  }
+
   .cs-story__small {
     grid-column: 2;
     grid-row: 1;
@@ -194,6 +228,12 @@ const PAIR = '7 / 8';
     .cs-story__large {
       grid-column: 1;
       grid-row: 1;
+    }
+
+    /* Half as far on a phone: the gutter is already small and a deep bleed
+       would take most of the picture off the screen. */
+    .cs-story--bleed .cs-story__large {
+      margin-left: calc(-1 * var(--section-padding-x));
     }
 
     .cs-story__small {
