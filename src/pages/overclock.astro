@@ -123,14 +123,16 @@ const note =
       feature={{ alt: 'Arlo, Novo and Vero' }}
     />
 
-    {/* The people. Nine tiles butted together — the wall is the point, so it
-        is one picture rather than nine. All nine are empty until the stills or
-        the clips land; each takes `src` or `video` on its own. */}
+    {/* The people, as ONE picture rather than a grid of them: the wall of
+        faces is a single export, so how they sit against each other belongs to
+        the artwork. Empty until it lands — `src` for a still, `video` for a
+        recording. */}
     <CaseStudyGrid
       id="cs-humans"
       eyebrow="Humans in the loop"
       heading="People choose education on trust. Instructors, operators, and graduates appear as themselves—alongside the characters built to represent them."
-      tiles={Array.from({ length: 9 }, (_, i) => ({ alt: `Overclock cohort, frame ${i + 1}` }))}
+      columns={1}
+      tiles={[{ alt: 'Overclock cohort on a call' }]}
     />
 
     {/* The output, as a shelf that runs off both edges: the piece in the
@@ -147,6 +149,19 @@ const note =
         { width: 30, ratio: '3 / 4', alt: 'Overclock, programme one-pager' },
       ]}
     />
+
+    {/* The site itself: the claim set in from the gutter, and the whole screen
+        under it — the same pair as the vision above. The band is empty until
+        the capture lands, at which point it takes `video` for a recording or a
+        `ratio` of its own. */}
+    <CaseStudyOverview
+      id="cs-world"
+      indent
+      eyebrow="A world built to ship"
+      heading="A flexible identity that turns every touchpoint, from a cohort launch to a sales deck, into part of the same story."
+    />
+
+    <CaseStudyBand ratio="16 / 9" />
 
     {/* Program. The statement alone — the artwork for it is the pair below,
         which is why no tiles are passed. */}

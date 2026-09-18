@@ -1,11 +1,16 @@
 ---
 /**
- * Case-study grid — a labelled statement, and a wall of frames under it.
+ * Case-study grid — a labelled statement, and the artwork under it.
  *
- * The frame uses this where the point is how MANY there are: nine faces on a
- * call, a contact sheet, a set of covers. So the tiles are all one size and
- * butted almost against each other — the wall is the picture, and a gutter
- * wide enough to read as spacing would turn it back into nine pictures.
+ * ONE FRAME, USUALLY. A contact sheet, a wall of faces on a call, a set of
+ * covers: it arrives as a single export, because how the pieces sit against
+ * each other is part of what is being shown and reassembling it here out of
+ * separate files would make that composition the CSS's guess. Pass one tile
+ * and `columns` of 1, which is what the Overclock page does.
+ *
+ * Several tiles is the other case, for artwork that really is separate pieces.
+ * They are all one size and butted almost against each other — a gutter wide
+ * enough to read as spacing turns a wall back into a row of pictures.
  *
  * The copy is set in from the gutter, on the same line the other statements on
  * the page start on.
@@ -80,10 +85,11 @@ const labelId = `${id}-label`;
       margin-left: 0;
     }
 
-    /* Two across on a phone: at three, a 16:9 tile is 110px wide and a face in
-       it is the size of a full stop. */
+    /* Two across on a phone, for the several-tiles case: at three, a 16:9 tile
+       is 110px wide and a face in it is the size of a full stop. One tile is
+       one tile — `min()` leaves it alone. */
     .cs-grid__wall {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(min(var(--cols), 2), minmax(0, 1fr));
     }
   }
 </style>
