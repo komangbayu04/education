@@ -4,22 +4,26 @@
  *
  * Three blocks down one black screen, in the order the reference sets them:
  *
- *   the cards     what every engagement comes with, one to a card, numbered.
- *                 A row that runs off the right-hand edge — the reference
- *                 shows the fifth card cut by the frame, which is what says
- *                 there are more of them than fit.
+ *   the promises  what every engagement comes with, as a stepped list beside a
+ *                 pixel triangle. Each line starts one step further in than the
+ *                 one above it, so the list falls away to the right as the
+ *                 triangle falls away to the left — the two shapes are the same
+ *                 shape, mirrored across the block.
  *
- *   the coverage  what the work actually covers, as a wrapped field of pills
- *                 held to the right half. The last one is a count of what the
- *                 list has left out rather than another kind of work.
+ *   the coverage  what the work actually covers, as a column of the kinds of
+ *                 work with the shots of whichever one is being read beside it.
  *
  *   the ask       one line and a button, under a rule.
  *
  * WHERE THIS CAME FROM. All of it was in the old Two ways in, in prose: a
  * six-item "Both models include" grid and a single paragraph listing twelve
  * kinds of work. That section became a threshold with two panels behind a
- * window (TwoWays.astro), and this is where its content went. The words are
- * unchanged except that the paragraph is now the things it was listing.
+ * window (TwoWays.astro), and this is where its content went.
+ *
+ * The promises were a row of numbered cards that ran off the right-hand edge
+ * and could be dragged; the coverage was a field of pills. Both are gone, and
+ * with the cards went the only reason this section had a script of its own
+ * besides the list below.
  *
  * The client band underneath is Clients.astro, which was already in the page
  * directly after this and already carries the reference's own label. It is not
@@ -27,15 +31,17 @@
  * run rather than as a section ending and another starting.
  */
 
-interface Card {
+/** A kind of work, and the two shots shown while it is being read. */
+interface Cover {
   label: string;
+  shots: [string, string];
 }
 
 interface Props {
   includedTitle?: string;
-  included?: Card[];
+  included?: string[];
   coverTitle?: string;
-  cover?: string[];
+  cover?: Cover[];
   ctaTitle?: string;
   ctaLabel?: string;
   ctaHref?: string;
@@ -43,34 +49,66 @@ interface Props {
 
 const {
   includedTitle = 'Both models include',
+  /* Shortest first, longest last. The list is set as a staircase and the lines
+     step to the right as they go down, so a long line at the top would be the
+     widest thing in the block at its narrowest indent — the staircase only
+     reads as one if the lines grow with it. */
   included = [
-    { label: 'A senior team assigned to your account' },
-    { label: 'Art direction from the founder on every deliverable' },
-    { label: 'Brand, web, product, and marketing under one team' },
-    { label: 'Weekly calls and async reviews in Figma' },
-    { label: 'Slack access to the people doing the work' },
-    { label: 'Daily updates and momentum' },
+    'Daily updates and momentum',
+    'Weekly calls and async reviews in Figma',
+    'A senior team assigned to your account',
+    'Art direction from the founder on every deliverable',
+    'Brand, web, product, and marketing under one team',
   ],
   coverTitle = "What's type of work we cover?",
-  /* The last entry is deliberately not a kind of work — the reference ends the
-     field with a count of what it has not listed, which is what keeps ten pills
-     from reading as the whole of it. */
+  /* PLACEHOLDER SHOTS. Design systems and email design have no work on file
+     yet, so they borrow the nearest thing — product for one, landing pages for
+     the other. They should be replaced the moment there is something of their
+     own to show. */
   cover = [
-    'Brand identity and systems',
-    'websites and landing pages',
-    'product and UI design',
-    'design systems',
-    'social templates',
-    'pitch decks and investor materials',
-    'one-pagers and sales collateral',
-    'marketing and ad creative',
-    'email design',
-    '5 +',
+    { label: 'Brand identity and systems', shots: ['work-branding-design-1', 'work-branding-design-2'] },
+    { label: 'Websites and landing pages', shots: ['work-landing-page-1', 'work-landing-page-2'] },
+    { label: 'Product and UI design', shots: ['work-product-design-1', 'work-product-design-2'] },
+    { label: 'Design systems', shots: ['work-product-design-3', 'work-product-design-4'] },
+    { label: 'Social templates', shots: ['work-social-media-1', 'work-social-media-2'] },
+    { label: 'Pitch decks and investor materials', shots: ['work-pitch-deck-1', 'work-pitch-deck-2'] },
+    { label: 'One-pagers and sales collateral', shots: ['work-one-pagers-1', 'work-one-pagers-2'] },
+    { label: 'Marketing and ad creative', shots: ['work-marketing-design-1', 'work-social-media-3'] },
+    { label: 'Email design', shots: ['work-landing-page-3', 'work-landing-page-4'] },
   ],
   ctaTitle = 'Ready to get going?',
   ctaLabel = 'Talk to us',
   ctaHref = '/contact',
 } = Astro.props;
+
+/**
+ * The pixel triangle, which is Pascal's triangle with the even numbers left
+ * out — the oldest way there is of drawing a shape out of a rule rather than a
+ * hand. Five rows: a point, a pair, a pair further apart, four across, and the
+ * two far corners on their own.
+ *
+ * Laid on a grid twice as wide as it is deep, so each row's cells step out by
+ * one column on each side and the whole thing falls at 45 degrees — the same
+ * angle the list beside it steps at.
+ */
+const TRI_ROWS = 5;
+const TRI_COLS = 2 * TRI_ROWS - 1;
+
+const odd = (row: number, k: number) => {
+  /* C(row, k) is odd exactly when k's bits are a subset of row's — Kummer's
+     theorem, and it saves working out the numbers at all. */
+  return (row & k) === k;
+};
+
+const cells: Array<{ row: number; col: number }> = [];
+for (let row = 0; row < TRI_ROWS; row += 1) {
+  for (let k = 0; k <= row; k += 1) {
+    if (odd(row, k)) cells.push({ row: row + 1, col: TRI_ROWS - row + 2 * k });
+  }
+}
+
+/** The first kind of work is the one shown before anything is read. */
+const START = 1;
 ---
 
 <section
@@ -83,32 +121,55 @@ const {
   <div class="inc__block">
     <h2 class="inc__label" id="inc-title">{includedTitle}</h2>
 
-    {/*
-      Dragged, and scrollable underneath that. The reference cuts the fifth card
-      at the frame, and that crop is the point — it says the list runs on. But a
-      card that can only be half-read is only half-content, so the row moves:
-      a swipe on a phone, a shift-wheel or a keyboard anywhere, and a hand on a
-      desktop (src/scripts/included.ts). Nothing moves on its own; there is
-      enough on this page that does.
-    */}
-    <ul class="inc__cards" data-inc-drag>
-      {
-        included.map((item, i) => (
-          <li class="inc__card">
-            <span class="inc__num">{String(i + 1).padStart(2, '0')}.</span>
-            <p class="inc__card-label">{item.label}</p>
+    <div class="inc__promise">
+      {/* Drawn rather than drawn out: the cells are worked out above and set
+          on the grid by row and column. Decorative — the list beside it says
+          everything this says. */}
+      <div class="inc__tri" aria-hidden="true">
+        {cells.map((cell) => <span class="inc__tri-cell" style={`--r:${cell.row};--c:${cell.col}`} />)}
+      </div>
+
+      <ul class="inc__steps">
+        {included.map((item, i) => (
+          <li class="inc__step" style={`--i:${i}`}>
+            {item}
           </li>
-        ))
-      }
-    </ul>
+        ))}
+      </ul>
+    </div>
   </div>
 
   <div class="inc__block inc__block--split">
     <h3 class="inc__label">{coverTitle}</h3>
 
-    <ul class="inc__pills">
-      {cover.map((item) => <li class="inc__pill">{item}</li>)}
-    </ul>
+    {/* The kinds of work, and the shots of whichever one is being read. The
+        list is the content and it is all there at once; the shots are its
+        illustration, so they answer to the pointer and the keyboard and are
+        hidden from a reader who is not using either (included.ts). */}
+    <div class="inc__cover">
+      <ul class="inc__kinds" data-inc-kinds>
+        {cover.map((item, i) => (
+          <li>
+            <button class="inc__kind" type="button" data-inc-kind={i} aria-current={i === START ? 'true' : undefined}>
+              {item.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div class="inc__shots" aria-hidden="true">
+        {cover.map((item, i) => (
+          <div class="inc__pair" data-inc-pair={i} data-on={i === START ? '' : undefined}>
+            {item.shots.map((shot, j) => (
+              <picture class:list={['inc__shot', `inc__shot--${j + 1}`]}>
+                <source srcset={`/media/${shot}.avif`} type="image/avif" />
+                <img src={`/media/${shot}.webp`} alt="" loading="lazy" decoding="async" />
+              </picture>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   </div>
 
   <div class="inc__cta">
@@ -135,10 +196,10 @@ const {
        edges step in and out read as a mistake rather than as a decision. */
     --inc-gutter: var(--section-padding-x);
 
-    /* The card, from the reference at 1440: 292 wide, 317 tall, 35 apart. */
-    --inc-card-w: clamp(15rem, 20.3vw, 20rem);
-    --inc-card-h: clamp(15rem, 22vw, 21.5rem);
-    --inc-card-gap: clamp(1rem, 2.4vw, 2.25rem);
+    /* One square of the triangle, and the step the list moves by — the same
+       number, because the two shapes are the same shape. 39px at 1440, off the
+       reference. */
+    --inc-cell: clamp(1.375rem, 2.7vw, 2.4375rem);
 
     position: relative;
     /* OVER Two ways in, and this is the one place on the page where a section
@@ -164,7 +225,6 @@ const {
        then the two move together, with no gap between them at any point. */
     margin-top: calc(-1 * var(--inc-join));
     padding-block: clamp(3rem, 7.4svh, 5.5rem) clamp(2.5rem, 6svh, 4.5rem);
-    /* The card row runs off the right-hand edge on purpose. */
     overflow: hidden;
   }
 
@@ -188,105 +248,157 @@ const {
     color: rgb(255 255 255 / 0.85);
   }
 
-  /* --- The cards ------------------------------------------------------------
-     A row that overflows its gutter. `overflow-x: auto` with the scrollbar
-     hidden: at rest it is exactly the reference's crop, and the cards past the
-     edge are reachable rather than decorative. */
-  .inc__cards {
+  /* --- The promises ---------------------------------------------------------
+     The triangle on the left and the staircase of lines on the right, the two
+     of them falling away from each other at the same angle. */
+  .inc__promise {
     display: flex;
-    gap: var(--inc-card-gap);
-    margin-top: clamp(1.5rem, 4svh, 2.75rem);
-    /* Out to the section's edge on the right so the row bleeds, and padded
-       back on the right so the last card can be scrolled clear of it. */
-    margin-right: calc(-1 * var(--inc-gutter));
-    padding-right: var(--inc-gutter);
-    overflow-x: auto;
-    scrollbar-width: none;
-    /* Each card stops where it is asked to rather than halfway across an
-       edge — the crop is a composition at rest, not a state to leave the
-       reader in. */
-    scroll-snap-type: x proximity;
-    overscroll-behavior-x: contain;
+    align-items: flex-start;
+    gap: clamp(1.5rem, 4vw, 4.5rem);
+    margin-top: clamp(1.5rem, 4svh, 2.5rem);
   }
 
-  .inc__cards::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* The cursor says the row can be taken hold of, and says it only where there
-     is a cursor to say it to. `grabbing` while the drag is running is set from
-     the attribute the script puts on, so the hand does not flick back to
-     `grab` the moment the pointer leaves a card. */
-  @media (hover: hover) and (pointer: fine) {
-    .inc__cards {
-      cursor: grab;
-    }
-
-    .inc__cards[data-inc-dragging] {
-      cursor: grabbing;
-      /* A drag across words selects them by default, which turns a pull into a
-         highlight. */
-      user-select: none;
-    }
-  }
-
-  .inc__card {
+  .inc__tri {
     flex: none;
+    display: grid;
+    grid-template-columns: repeat(9, var(--inc-cell));
+    grid-auto-rows: var(--inc-cell);
+  }
+
+  .inc__tri-cell {
+    grid-row: var(--r);
+    grid-column: var(--c);
+    background: var(--color-ink-invert);
+  }
+
+  .inc__steps {
     display: flex;
     flex-direction: column;
-    width: var(--inc-card-w);
-    height: var(--inc-card-h);
-    padding: clamp(1rem, 1.7vw, 1.5rem);
-    scroll-snap-align: start;
-    /* A step off the section's black rather than a colour of its own — the
-       reference's cards are barely lighter than the ground they sit on, and
-       the edge is the only thing that draws them. */
-    background: rgb(255 255 255 / 0.045);
+    /* The lines sit on the triangle's own rows: same height, same rhythm, so
+       the two shapes step together down the block. */
+    gap: 0;
   }
 
-  .inc__num {
-    font-size: 0.8125rem;
-    letter-spacing: 0.02em;
-    font-variant-numeric: tabular-nums;
-    color: rgb(255 255 255 / 0.4);
-  }
-
-  /* At the foot of the card, which is where the reference sets it: the number
-     is at the top, the words are at the bottom, and the space between them is
-     the card. */
-  .inc__card-label {
-    margin-top: auto;
+  /* One step further in per line, and the bullet is a real marker rather than a
+     character in the text — so a screen reader hears a list and the indent is
+     measured from the same cell the triangle is built from. */
+  .inc__step {
+    display: flex;
+    align-items: center;
+    min-height: var(--inc-cell);
+    padding-left: calc(var(--i) * var(--inc-cell));
     font-size: clamp(0.875rem, 1.04vw, 0.9375rem);
     line-height: 1.5;
     letter-spacing: -0.01em;
     color: rgb(255 255 255 / 0.9);
   }
 
+  .inc__step::before {
+    content: '';
+    flex: none;
+    width: 3px;
+    height: 3px;
+    margin-right: 0.75rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
   /* --- The coverage ---------------------------------------------------------
-     The heading on the left, the field on the right, and a good deal of empty
-     between them: the reference starts the pills a little past the middle and
-     runs them to the same right edge as everything else. */
+     The heading on the left and, in the other column, the kinds of work with
+     the shots of whichever one is being read. */
   .inc__block--split {
     display: grid;
-    grid-template-columns: minmax(0, 43fr) minmax(0, 57fr);
-    gap: clamp(1.5rem, 3vw, 3rem);
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.25rem, 3svh, 2rem);
+  }
+
+  .inc__cover {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 4rem);
     align-items: start;
   }
 
-  .inc__pills {
+  .inc__kinds {
     display: flex;
-    flex-wrap: wrap;
-    gap: clamp(0.625rem, 1vw, 0.875rem);
+    flex-direction: column;
   }
 
-  .inc__pill {
-    padding: 0.8125rem 1.375rem;
-    border: 1px solid rgb(255 255 255 / 0.28);
-    border-radius: 999px;
-    font-size: clamp(0.8125rem, 0.97vw, 0.875rem);
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    color: rgb(255 255 255 / 0.92);
+  /* A button, because it changes what is on screen beside it. It is set as
+     type, not as a control: the list is read as a list and the one being read
+     is the one in full ink. */
+  .inc__kind {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: clamp(1.25rem, 2.4vw, 2.125rem);
+    font-weight: 400;
+    line-height: 1.48;
+    letter-spacing: -0.025em;
+    text-align: left;
+    color: rgb(255 255 255 / 0.32);
+    cursor: pointer;
+    transition: color 0.35s var(--ease-out-expo);
+  }
+
+  .inc__kind[aria-current='true'],
+  .inc__kind:hover,
+  .inc__kind:focus-visible {
+    color: var(--color-ink-invert);
+  }
+
+  /* The shots: two of them, the second larger and dropped below the first, so
+     the pair reads as work laid down rather than as a pair of thumbnails. One
+     grid cell holds every pair, and only the one being read is painted. */
+  .inc__shots {
+    position: relative;
+    display: grid;
+    align-self: start;
+  }
+
+  .inc__pair {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(0.5rem, 1.2vw, 1rem);
+    opacity: 0;
+    transition: opacity 0.4s var(--ease-out-expo);
+    pointer-events: none;
+  }
+
+  .inc__pair[data-on] {
+    opacity: 1;
+  }
+
+  .inc__shot {
+    display: block;
+    flex: 1 1 0;
+  }
+
+  /* One shape for every shot, whatever the file is: the work on file runs from
+     square social posts to long landing pages, and a column that changed
+     height with the line under the cursor would be the loudest thing in the
+     block. Cropped to the middle rather than letterboxed. */
+  .inc__shot img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border: 1px solid rgb(255 255 255 / 0.14);
+  }
+
+  /* The first sits high and small, the second lower and larger — the
+     reference's own arrangement. */
+  .inc__shot--1 {
+    flex-basis: 44%;
+  }
+
+  .inc__shot--2 {
+    flex-basis: 56%;
+    margin-top: clamp(0.75rem, 2vw, 1.75rem);
   }
 
   /* --- The ask --------------------------------------------------------------
@@ -371,16 +483,41 @@ const {
     color: var(--color-ink-invert);
   }
 
-  @media (max-width: 48rem) {
-    .inc {
-      --inc-card-w: 15rem;
-      --inc-card-h: 14rem;
+  /* --- Narrow ---------------------------------------------------------------
+     The triangle goes under the list rather than beside it, and the shots come
+     under the kinds of work: at this measure a second column is two columns of
+     nothing. */
+  @media (max-width: 60rem) {
+    .inc__cover {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(1.5rem, 4svh, 2.5rem);
     }
 
-    /* One column: at a phone's measure the heading and the field cannot be
-       side by side without the pills wrapping one to a line. */
-    .inc__block--split {
-      grid-template-columns: minmax(0, 1fr);
+    .inc__shots {
+      max-width: 28rem;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .inc {
+      --inc-cell: clamp(1rem, 4.6vw, 1.5rem);
+    }
+
+    .inc__promise {
+      flex-direction: column;
+      gap: clamp(1.25rem, 4svh, 2rem);
+    }
+
+    /* The staircase flattens: five lines each one cell further in is a column
+       of ragged text on a phone, and the last line would be half a screen from
+       the left edge. */
+    .inc__step {
+      align-items: flex-start;
+      padding-left: 0;
+    }
+
+    .inc__step::before {
+      margin-top: 0.625rem;
     }
 
     .inc__cta {
