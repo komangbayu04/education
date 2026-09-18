@@ -44,7 +44,10 @@ const note =
 <Base title={`${title} — Tribe`} description={intro}>
   {/* The nav is overlaid, not stacked — see Nav.astro. On the home page the
       hero reserves that height itself; here the page has to. */}
-  <div class="cs">
+  {/* The capsule reads "Our work" for the whole study — this is the work, and
+      the home page's chapter of the same name is now "Our service". The
+      footer declares its own name and takes over at the end. */}
+  <div class="cs" data-nav-section="Our work">
     {/* The head is the fact row rather than a standfirst — see `facts` in
         CaseStudyHero. The summary still stands as the page's description in
         the document head, and the introduction under the hero says it in
