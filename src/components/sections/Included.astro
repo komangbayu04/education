@@ -91,12 +91,16 @@ const {
  * one column on each side and the whole thing falls at 45 degrees — the same
  * angle the list beside it steps at.
  *
- * EIGHT ROWS, not five. The drawing is the size it should be and the squares
+ * SEVEN ROWS, not five. The drawing is the size it should be and the squares
  * inside it were too big for it, so the rule is run further and the cell is cut
- * to match: fifteen columns of 40px where there were nine of 66, which is the
- * same 594 across and a row shallower down. Eight is also where the pattern
- * pays off — the last row is every column filled, which five never reaches. */
-const TRI_ROWS = 8;
+ * to match: thirteen columns of 46px where there were nine of 66, which is the
+ * same 594 across.
+ *
+ * It ran to eight for a while, and eight is where the pattern fills its last
+ * row completely — a solid band of squares across the foot. That band is what
+ * closed the shape off and it was asked for gone, so the drawing stops a row
+ * short of it and ends on four squares instead. */
+const TRI_ROWS = 7;
 const TRI_COLS = 2 * TRI_ROWS - 1;
 
 const odd = (row: number, k: number) => {
@@ -201,10 +205,10 @@ const START = 1;
        edges step in and out read as a mistake rather than as a decision. */
     --inc-gutter: var(--section-padding-x);
 
-    /* One square of the triangle: 40px at 1440. Fifteen of them across keeps
+    /* One square of the triangle: 46px at 1440. Thirteen of them across keeps
        the drawing the same four tenths of the measure it was at 66 — the size
        was right and only the grain was too coarse. */
-    --inc-cell: clamp(0.8125rem, 2.75vw, 2.475rem);
+    --inc-cell: clamp(0.9375rem, 3.17vw, 2.85rem);
 
     /* And the step the list moves by, which is NOT the cell. It was, back when
        the squares were small enough that one of them was a sensible indent; at
