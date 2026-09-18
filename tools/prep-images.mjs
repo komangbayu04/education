@@ -415,12 +415,27 @@ const photos = [
   /* The Overclock study's introduction: the still on the left of the pair. The
      film beside it is not here — ffmpeg does that, and the command is in the
      README with the others. */
+  /* And the construction across the column of "A system with a story". Same
+     white-on-black line work, same flatten. */
+  {
+    src: `${SRC}/case-study/overclock/story-wide.png`,
+    name: 'overclock-story-wide',
+    maxW: 2400,
+    avif: true,
+    quality: 82,
+    flatten: true,
+  },
+
   {
     src: `${SRC}/case-study/overclock/intro-left.png`,
     name: 'overclock-intro-still',
     maxW: 2400,
     avif: true,
-    quality: 80,
+    quality: 82,
+    /* Flattened, like everything else here, and this one needs it to be the
+       black it already is: the drawing is white line work on a black field
+       with a transparent background, and composited on white it would be
+       white on white. */
     flatten: true,
   },
 ];
