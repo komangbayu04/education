@@ -16,6 +16,7 @@ import CaseStudyHero from '../components/case-study/CaseStudyHero.astro';
 import CaseStudyIntro from '../components/case-study/CaseStudyIntro.astro';
 import CaseStudyBand from '../components/case-study/CaseStudyBand.astro';
 import CaseStudyStory from '../components/case-study/CaseStudyStory.astro';
+import CaseStudyCast from '../components/case-study/CaseStudyCast.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
 import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
@@ -102,6 +103,22 @@ const note =
       large={{ alt: 'Overclock, the cast of characters' }}
       small={{ alt: 'Overclock, the system in use' }}
       note="Overclock Accelerator runs cohort programs for individuals, including AI Ops, and separate training for teams and executives inside companies. It teaches working engineers and operators to build and ship with AI."
+    />
+
+    {/* The characters. The three across the top run off both edges of the
+        screen on purpose — see CaseStudyCast. All four frames are empty until
+        the artwork lands. */}
+    <CaseStudyCast
+      id="cs-cast"
+      trio={[
+        { alt: 'Overclock character, left' },
+        { alt: 'Overclock character, centre' },
+        { alt: 'Overclock character, right' },
+      ]}
+      note="Overclock combines dot-com nostalgia with curious robots, making a fast-moving subject approachable. It offers every learner an entry point into the story and gives new cohorts a direction to explore."
+      eyebrow="Meet Arlo, Novo, and Vero"
+      heading="Three robots bring personality to the system. Each gives Overclock a different voice, mood, and point of view."
+      feature={{ alt: 'Arlo, Novo and Vero' }}
     />
 
     {/* Program. The statement alone — the artwork for it is the pair below,

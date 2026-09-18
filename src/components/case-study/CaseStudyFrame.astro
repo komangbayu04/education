@@ -1,0 +1,67 @@
+---
+/**
+ * One frame of artwork on a case study, and the placeholder for it.
+ *
+ * The contract every slot on these pages uses, in one place: `video` is
+ * footage (extensionless — webm and mp4 are offered), `src` is a still
+ * (extensionless — avif and webp), and neither is a black rectangle at the
+ * right size. `ratio` is what holds that size before anything lands, so the
+ * page below a frame does not move when the artwork arrives.
+ *
+ * Written for CaseStudyCast; the older sections carry their own copy of this
+ * markup and are left alone rather than churned.
+ */
+
+export interface FrameArt {
+  src?: string;
+  video?: string;
+  poster?: string;
+  alt?: string;
+  ratio?: string;
+}
+
+interface Props extends FrameArt {
+  /** Extra classes from the layout that owns this frame. */
+  class?: string;
+  /** The shape to hold when the frame itself does not name one. */
+  fallbackRatio?: string;
+}
+
+const { src, video, poster, alt, ratio, class: cls, fallbackRatio = '1' } = Astro.props;
+---
+
+<figure class:list={['cs-frame', cls]} style={`--ratio:${ratio ?? fallbackRatio}`}>
+  {
+    video ? (
+      <video autoplay muted loop playsinline preload="metadata" poster={poster} aria-label={alt} tabindex="-1">
+        <source src={`${video}.webm`} type="video/webm" />
+        <source src={`${video}.mp4`} type="video/mp4" />
+      </video>
+    ) : src ? (
+      <picture>
+        <source srcset={`${src}.avif`} type="image/avif" />
+        <img src={`${src}.webp`} alt={alt ?? ''} loading="lazy" decoding="async" />
+      </picture>
+    ) : null
+  }
+</figure>
+
+<style>
+  .cs-frame {
+    position: relative;
+    margin: 0;
+    aspect-ratio: var(--ratio);
+    overflow: hidden;
+    /* The placeholder ground, and the letterbox behind anything whose shape
+       does not match the slot exactly. */
+    background: #000;
+  }
+
+  .cs-frame :global(img),
+  .cs-frame :global(video) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>
