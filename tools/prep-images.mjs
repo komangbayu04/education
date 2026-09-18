@@ -411,6 +411,18 @@ const photos = [
     flatten: true,
     ...opts,
   })),
+
+  /* The Overclock study's introduction: the still on the left of the pair. The
+     film beside it is not here — ffmpeg does that, and the command is in the
+     README with the others. */
+  {
+    src: `${SRC}/case-study/overclock/intro-left.png`,
+    name: 'overclock-intro-still',
+    maxW: 2400,
+    avif: true,
+    quality: 80,
+    flatten: true,
+  },
 ];
 
 for (const {

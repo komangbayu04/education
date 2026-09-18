@@ -166,6 +166,16 @@ ffmpeg -i "image/hero-bg-mobile .mp4" -an   -c:v libvpx-vp9 -crf 48 -b:v 0 -row-
 ffmpeg -i "public/media/hero-video.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/hero-video-poster.webp"
 
 ffmpeg -i "public/media/hero-video-mobile.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/hero-video-mobile-poster.webp"
+
+# The Overclock study's introduction film — square, 29s, and scenery rather
+# than something to be watched, so it is encoded down to the size the chapter
+# covers run at: 640 wide at 24fps, 3.6 MB and 2.3 MB. The source is a 40 MB
+# master and is not in the repo (see .gitignore).
+ffmpeg -i "image/case-study/overclock/intro-right.mp4" -an -vf "scale=640:-2,fps=24"   -c:v libx264 -profile:v high -crf 32 -preset slow -pix_fmt yuv420p   -movflags +faststart "public/media/overclock-intro-film.mp4"
+
+ffmpeg -i "image/case-study/overclock/intro-right.mp4" -an -vf "scale=640:-2,fps=24"   -c:v libvpx-vp9 -crf 50 -b:v 0 -row-mt 1   "public/media/overclock-intro-film.webm"
+
+ffmpeg -i "public/media/overclock-intro-film.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/overclock-intro-film-poster.webp"
 ```
 
 plus a VP9 `.webm` sibling (470 KB, served first) and a first-frame

@@ -65,11 +65,10 @@ const note =
       poster="/media/overclock-cover-poster.webp"
     />
 
-    {/* The statement, and the two frames under it — the tall one on the left
-        and the smaller one stepped down the right. BOTH ARE EMPTY ON PURPOSE:
-        they are black rectangles at the right size until the artwork for them
-        lands. Give each one `src` (an image, extensionless) or `video` (also
-        extensionless) and nothing else here has to change.
+    {/* The statement, and the two frames under it — the still on the left and
+        the film stepped down the right. Each carries its own shape: 4351x3305
+        for the still, square for the film, both read off the files themselves
+        so neither is cropped to a guess.
 
         This is where the full-bleed band used to be. The band played the
         chapter cover, which is the same film the hero above is already
@@ -78,8 +77,17 @@ const note =
       eyebrow="Introduction"
       copy={intro}
       aside={note}
-      main={{ alt: 'Overclock, mark construction' }}
-      side={{ alt: 'Overclock, motion study' }}
+      main={{
+        src: '/media/overclock-intro-still',
+        ratio: '4351 / 3305',
+        alt: 'Overclock, the mark drawn out',
+      }}
+      side={{
+        video: '/media/overclock-intro-film',
+        poster: '/media/overclock-intro-film-poster.webp',
+        ratio: '1',
+        alt: 'Overclock, in motion',
+      }}
     />
 
     {/* The vision: the claim set in from the gutter, and the whole screen

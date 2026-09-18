@@ -32,3 +32,9 @@ image/Bg-hero-dekstop.mp4
 # not worth a permanent place in the history. The ffmpeg command that produces
 # them is in the README.
 image/na-video/
+
+# The Overclock introduction film's master, 40 MB, out for the same reason as
+# the hero's: what the site serves is the encode —
+# public/media/overclock-intro-film.{mp4,webm} — and that is committed. The
+# ffmpeg command that produces it is in the README.
+image/case-study/overclock/intro-right.mp4
