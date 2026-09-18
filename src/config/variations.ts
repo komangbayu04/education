@@ -33,6 +33,20 @@ export interface VariationAxis {
 
 export const VARIATIONS: VariationAxis[] = [
   {
+    id: 'offer',
+    label: 'Service section',
+    options: [
+      /* The window opening onto one panel at a time: Sprint held, then
+         crossfaded into Retainer. TwoWays.astro with Offer.astro twice,
+         stacked, and src/scripts/twoWays.ts for the handover. */
+      { id: 'stacked', label: 'One at a time' },
+      /* The same window, opening onto both panels at once — Sprint on the
+         left, Retainer on the right, each half the screen. No handover: the
+         two are read together and compared rather than shown in turn. */
+      { id: 'split', label: 'Side by side' },
+    ],
+  },
+  {
     id: 'testimonials',
     label: 'Testimonial section',
     options: [

@@ -1,5 +1,6 @@
 import { gsap, ScrollTrigger } from './gsap';
 import { prefersReducedMotion } from './utils/device';
+import { getVariant } from '../config/variations';
 
 /**
  * Two ways in — the window opening.
@@ -73,13 +74,23 @@ export function initTwoWays(): () => void {
      giveaway at the time was `tones: ["dark", "light"]` — which is no longer a
      test of anything, because both panels are white type on a dark photograph
      now. Read the names if this ever has to be checked again. */
-  const over = section.querySelector<HTMLElement>('[data-two-pane] [data-offer]');
-  const under = section.querySelector<HTMLElement>(
-    '.two__pane--under [data-offer]',
-  );
+  /* SIDE BY SIDE is the other reading of this section — the "Service section"
+     axis in src/config/variations.ts. The window still opens, and it opens onto
+     one pane holding both panels; there is no handover to build, because
+     nothing is uncovered from anything. Everything below that names `over` and
+     `under` is about the handover, so in this cut `over` is the pair (its words
+     arrive together as the window finishes) and `under` is nothing. */
+  const split = getVariant('offer') === 'split';
+
   const wordsOf = (el: HTMLElement | null) =>
     el ? gsap.utils.toArray<HTMLElement>('[data-offer-copy]', el) : [];
-  const overWords = wordsOf(over);
+
+  const pair = section.querySelector<HTMLElement>('[data-two-split]');
+  const over = split ? null : section.querySelector<HTMLElement>('[data-two-pane] [data-offer]');
+  const under = split
+    ? null
+    : section.querySelector<HTMLElement>('.two__pane--under [data-offer]');
+  const overWords = split ? wordsOf(pair) : wordsOf(over);
   const underWords = wordsOf(under);
   const zone = section.querySelector<HTMLElement>('[data-two-zone]');
 
@@ -243,7 +254,18 @@ export function initTwoWays(): () => void {
     );
   }
 
-  const handover = initOfferHandover({ steps, over, under, overWords, underWords, zone });
+  /* And with both panels on the screen the dark ground is there the moment the
+     window is, so the nav is told by the same clock the window runs on rather
+     than by a handover that never happens. */
+  if (split && zone) {
+    tl.fromTo(zone, { opacity: 0 }, { opacity: 1, ease: 'none', duration: 0.3 }, 0.55);
+  }
+
+  const handover = split
+    ? () => {
+        if (zone) gsap.set(zone, { clearProps: 'opacity' });
+      }
+    : initOfferHandover({ steps, over, under, overWords, underWords, zone });
   const exit = initTwoExit(section);
 
   return () => {
