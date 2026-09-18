@@ -90,8 +90,13 @@ const {
  * Laid on a grid twice as wide as it is deep, so each row's cells step out by
  * one column on each side and the whole thing falls at 45 degrees — the same
  * angle the list beside it steps at.
- */
-const TRI_ROWS = 5;
+ *
+ * EIGHT ROWS, not five. The drawing is the size it should be and the squares
+ * inside it were too big for it, so the rule is run further and the cell is cut
+ * to match: fifteen columns of 40px where there were nine of 66, which is the
+ * same 594 across and a row shallower down. Eight is also where the pattern
+ * pays off — the last row is every column filled, which five never reaches. */
+const TRI_ROWS = 8;
 const TRI_COLS = 2 * TRI_ROWS - 1;
 
 const odd = (row: number, k: number) => {
@@ -125,7 +130,7 @@ const START = 1;
       {/* Drawn rather than drawn out: the cells are worked out above and set
           on the grid by row and column. Decorative — the list beside it says
           everything this says. */}
-      <div class="inc__tri" aria-hidden="true">
+      <div class="inc__tri" aria-hidden="true" style={`--cols:${TRI_COLS}`}>
         {cells.map((cell) => <span class="inc__tri-cell" style={`--r:${cell.row};--c:${cell.col}`} />)}
       </div>
 
@@ -196,11 +201,10 @@ const START = 1;
        edges step in and out read as a mistake rather than as a decision. */
     --inc-gutter: var(--section-padding-x);
 
-    /* One square of the triangle: 66px at 1440, off the reference. The
-       triangle is nine of them across, so it is a good four tenths of the
-       measure and reads as the drawing it is rather than as an ornament beside
-       the list. */
-    --inc-cell: clamp(1.375rem, 4.6vw, 4.125rem);
+    /* One square of the triangle: 40px at 1440. Fifteen of them across keeps
+       the drawing the same four tenths of the measure it was at 66 — the size
+       was right and only the grain was too coarse. */
+    --inc-cell: clamp(0.8125rem, 2.75vw, 2.475rem);
 
     /* And the step the list moves by, which is NOT the cell. It was, back when
        the squares were small enough that one of them was a sensible indent; at
@@ -268,23 +272,24 @@ const START = 1;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    gap: 0;
+    gap: clamp(1.5rem, 4.5vw, 4rem);
     margin-top: clamp(1.5rem, 4svh, 2.5rem);
   }
 
-  /* Pulled back over the triangle's last column, which is empty on every row
-     but the bottom one — so the first line starts where the drawing has
-     already thinned out and the two shapes read as one composition instead of
-     two columns with a corridor between them. */
+  /* As deep as the drawing beside it, with the lines shared out over that
+     depth: five lines against eight rows of squares do not fall on the same
+     pitch, and the list stopping two rows short of the triangle's foot is the
+     one thing that would say they were laid out separately. */
   .inc__steps {
     flex: none;
-    margin-left: calc(-1 * var(--inc-cell));
+    align-self: stretch;
+    justify-content: space-between;
   }
 
   .inc__tri {
     flex: none;
     display: grid;
-    grid-template-columns: repeat(9, var(--inc-cell));
+    grid-template-columns: repeat(var(--cols), var(--inc-cell));
     grid-auto-rows: var(--inc-cell);
   }
 
@@ -297,8 +302,6 @@ const START = 1;
   .inc__steps {
     display: flex;
     flex-direction: column;
-    /* The lines sit on the triangle's own rows: same height, same rhythm, so
-       the two shapes step together down the block. */
     gap: 0;
   }
 
