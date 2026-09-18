@@ -10,6 +10,11 @@
  *
  * It sat at /work/overclock, which still answers: astro.config.mjs redirects
  * it here, so anything already pointing at the old address keeps working.
+ *
+ * The page is the sections of the new design and nothing else. What it used to
+ * carry — Program, Why companies call, Website, Materials, the result table and
+ * the hand-off to the next project — is out; the components are still in
+ * src/components/case-study/ and the other study still uses several of them.
  */
 import Base from '../layouts/Base.astro';
 import CaseStudyHero from '../components/case-study/CaseStudyHero.astro';
@@ -21,10 +26,6 @@ import CaseStudyGrid from '../components/case-study/CaseStudyGrid.astro';
 import CaseStudyStrip from '../components/case-study/CaseStudyStrip.astro';
 import CaseStudyTally from '../components/case-study/CaseStudyTally.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
-import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
-import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
-import CaseStudyResult from '../components/case-study/CaseStudyResult.astro';
-import CaseStudyNext from '../components/case-study/CaseStudyNext.astro';
 import Footer from '../components/layout/Footer.astro';
 
 const title = 'Overclock';
@@ -192,114 +193,6 @@ const note =
       frame={{ alt: 'An Overclock cohort call' }}
     />
 
-    {/* Program. The statement alone — the artwork for it is the pair below,
-        which is why no tiles are passed. */}
-    <CaseStudyOverview
-      id="cs-program"
-      eyebrow="Program"
-      heading="An accelerator teaching engineers and operators to build with AI."
-      caption="Overclock exists for leaders being asked to make AI real inside their company. Three things are usually in the way: overwhelming options, uneven team capability, and no structured on-ramp."
-    />
-
-    <CaseStudyOverview
-      id="cs-why"
-      layout="lift"
-      eyebrow="Why companies call"
-      heading="Similar scenarios. From mandate to measurement."
-      wide={{
-        src: '/media/work-one-pagers-1',
-        alt: 'Overclock Accelerator one-pager: why companies call',
-        ratio: '16 / 9',
-      }}
-      side={{
-        src: '/media/work-branding-design-2',
-        alt: 'Overclock visual assets, brand guidelines',
-        ratio: '16 / 9',
-      }}
-    />
-
-    {/* Website. The claim, the line under it, and the same line again beside
-        the screens that make the point — the repetition is the frame's. */}
-    <CaseStudyExperience
-      eyebrow="Website"
-      heading="Identity, website, and program materials — one system across every cohort."
-      caption="Each surface starts from the same mark, type, and visual language."
-      aside="Each surface starts from the same mark, type, and visual language."
-      screens={{
-        src: '/media/overclock-device',
-        alt: 'The Overclock site on a tablet',
-        ratio: '1400 / 1374',
-      }}
-      pair={{
-        large: {
-          src: '/media/work-branding-design-3',
-          alt: 'Prompt foundations that shaped Overclock\'s visual style',
-          ratio: '16 / 9',
-        },
-        small: {
-          src: '/media/work-branding-design-2',
-          alt: 'Dot-driven visual assets from the Overclock brand system',
-          ratio: '16 / 9',
-        },
-        caption: 'Each asset starts from a system that already exists.',
-      }}
-    />
-
-    {/* Materials. It sits after the website section because that is the order
-        the frame reads in: the product first, then the material that goes out
-        around it. */}
-    <CaseStudyVideos
-      eyebrow="Materials"
-      heading="Program one-pagers, brand guidelines, and the visual language a cohort can ship with."
-      caption="Each asset starts from a system that already exists. Throughput climbs."
-      pair={{
-        tall: {
-          src: '/media/work-one-pagers-1',
-          ratio: '16 / 9',
-          label: 'Overclock Accelerator one-pager',
-        },
-        wide: {
-          src: '/media/work-one-pagers-2',
-          ratio: '16 / 9',
-          label: 'Program one-pager',
-        },
-      }}
-      assets={[
-        {
-          src: '/media/work-one-pagers-3',
-          ratio: '16 / 9',
-          size: 0.81,
-          label: 'Program one-pager',
-        },
-        {
-          src: '/media/work-one-pagers-4',
-          ratio: '16 / 9',
-          size: 0.74,
-          label: 'Program one-pager',
-        },
-      ]}
-    />
-
-    <CaseStudyResult
-      title="An ongoing partnership"
-      rows={[
-        { value: 'Identity', label: 'Brand system across the program.' },
-        { value: 'Website', label: 'The public face of every cohort.' },
-        { value: 'Materials', label: 'One-pagers and assets that ship with the work.' },
-      ]}
-    />
-
-    {/* Hands the reader to the next project. Must stay directly above the
-        footer: its bottom seam is painted in the footer's own colour. */}
-    <CaseStudyNext
-      title="Nerd Apply"
-      copy="A privacy-first admissions data platform for college counselors, built on 500,000+ de-identified real applications across 1,000+ colleges."
-      ctaHref="/work/college-counseling-platform"
-      image="/media/showcase-device"
-      imageAlt="The Nerd Apply platform running on a phone"
-      ground="#061630"
-      tags={['Admissions software', 'Product', 'Design system']}
-    />
   </div>
 
   <Footer />
@@ -311,6 +204,26 @@ const note =
        own padding, and since the sections butt directly against each other
        (their gap is exactly 0), the space between any two is twice this. */
     --cs-section-y: clamp(3rem, 6.6vw, 6rem);
+
+    /* OVER THE CLOSING SCREEN, and opaque, which is what makes the footer
+       behave here the way it does on the home page. That screen is fixed at
+       the bottom of the window from the first pixel of the page and sits at
+       z-index 0 behind everything; the page is what covers it until its spacer
+       arrives and uncovers it.
+
+       Without these two lines the page had no ground of its own — the white
+       came from the document, which paints BEHIND a fixed element — so the
+       footer's own black showed through every gap between sections, all the
+       way up the page. Measured at four scroll positions: the element at the
+       bottom-left corner of the window was the footer's link column at every
+       one of them.
+
+       The ground is also what the seam at the top of the footer is painted in:
+       footer.ts reads it off whatever sits above the spacer, and a transparent
+       element is not an answer. */
+    position: relative;
+    z-index: 1;
+    background: var(--color-bg-primary);
 
     padding-top: var(--nav-height);
   }
