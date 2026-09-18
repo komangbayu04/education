@@ -17,6 +17,7 @@ import CaseStudyIntro from '../components/case-study/CaseStudyIntro.astro';
 import CaseStudyBand from '../components/case-study/CaseStudyBand.astro';
 import CaseStudyStory from '../components/case-study/CaseStudyStory.astro';
 import CaseStudyCast from '../components/case-study/CaseStudyCast.astro';
+import CaseStudyGrid from '../components/case-study/CaseStudyGrid.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
 import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
@@ -119,6 +120,16 @@ const note =
       eyebrow="Meet Arlo, Novo, and Vero"
       heading="Three robots bring personality to the system. Each gives Overclock a different voice, mood, and point of view."
       feature={{ alt: 'Arlo, Novo and Vero' }}
+    />
+
+    {/* The people. Nine tiles butted together — the wall is the point, so it
+        is one picture rather than nine. All nine are empty until the stills or
+        the clips land; each takes `src` or `video` on its own. */}
+    <CaseStudyGrid
+      id="cs-humans"
+      eyebrow="Humans in the loop"
+      heading="People choose education on trust. Instructors, operators, and graduates appear as themselves—alongside the characters built to represent them."
+      tiles={Array.from({ length: 9 }, (_, i) => ({ alt: `Overclock cohort, frame ${i + 1}` }))}
     />
 
     {/* Program. The statement alone — the artwork for it is the pair below,

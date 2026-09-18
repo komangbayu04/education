@@ -1,0 +1,89 @@
+---
+/**
+ * Case-study grid — a labelled statement, and a wall of frames under it.
+ *
+ * The frame uses this where the point is how MANY there are: nine faces on a
+ * call, a contact sheet, a set of covers. So the tiles are all one size and
+ * butted almost against each other — the wall is the picture, and a gutter
+ * wide enough to read as spacing would turn it back into nine pictures.
+ *
+ * The copy is set in from the gutter, on the same line the other statements on
+ * the page start on.
+ *
+ * Every tile is a placeholder until it is fed — see CaseStudyFrame.
+ */
+import CaseStudyFrame, { type FrameArt } from './CaseStudyFrame.astro';
+
+interface Props {
+  id?: string;
+  eyebrow?: string;
+  heading: string;
+  /** The tiles, in reading order. */
+  tiles: FrameArt[];
+  /** How many across. Three is the frame's. */
+  columns?: number;
+  /** The shape every tile is cut to unless it names its own. */
+  ratio?: string;
+}
+
+const { id = 'cs-grid', eyebrow = 'In use', heading, tiles, columns = 3, ratio = '16 / 9' } =
+  Astro.props;
+
+const labelId = `${id}-label`;
+---
+
+<section class="cs-grid u-container" aria-labelledby={labelId} data-cs-reveal>
+  <div class="cs-grid__copy">
+    <p class="cs-grid__eyebrow u-label" id={labelId}>{eyebrow}</p>
+    <h2 class="cs-grid__heading">{heading}</h2>
+  </div>
+
+  <div class="cs-grid__wall" style={`--cols:${columns}`}>
+    {tiles.map((tile) => <CaseStudyFrame {...tile} fallbackRatio={ratio} />)}
+  </div>
+</section>
+
+<style>
+  .cs-grid {
+    padding-block: var(--cs-section-y, clamp(3rem, 6vw, 5.5rem));
+  }
+
+  /* Set in from the gutter, like the vision and the cast above it. */
+  .cs-grid__copy {
+    margin-left: 16%;
+  }
+
+  .cs-grid__eyebrow {
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-grid__heading {
+    max-width: 21em;
+    margin-top: clamp(0.75rem, 1.4vw, 1.125rem);
+    font-size: clamp(1.375rem, 2.7vw, 2.4375rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  /* A hairline between tiles rather than a gutter: it separates them without
+     spacing them out, which is what keeps the wall reading as one thing. */
+  .cs-grid__wall {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    gap: clamp(2px, 0.35vw, 5px);
+    margin-top: clamp(1.75rem, 3.4vw, 3rem);
+  }
+
+  @media (max-width: 48rem) {
+    .cs-grid__copy {
+      margin-left: 0;
+    }
+
+    /* Two across on a phone: at three, a 16:9 tile is 110px wide and a face in
+       it is the size of a full stop. */
+    .cs-grid__wall {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
