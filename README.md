@@ -176,6 +176,24 @@ ffmpeg -i "image/case-study/overclock/intro-right.mp4" -an -vf "scale=640:-2,fps
 ffmpeg -i "image/case-study/overclock/intro-right.mp4" -an -vf "scale=640:-2,fps=24"   -c:v libvpx-vp9 -crf 50 -b:v 0 -row-mt 1   "public/media/overclock-intro-film.webm"
 
 ffmpeg -i "public/media/overclock-intro-film.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/overclock-intro-film-poster.webp"
+
+# The pair in "A system with a story": a 1920x1104 film on the left at 1280
+# wide, and a square one on the right at 720. Both are short loops and both
+# come in around 2 MB and 90 KB respectively. The left one's master is 17 MB
+# and is not in the repo (see .gitignore); the right one's is small enough to
+# keep.
+ffmpeg -i "image/case-study/overclock/story-large.mp4" -an -vf "scale=1280:-2"   -c:v libx264 -profile:v high -crf 30 -preset slow -pix_fmt yuv420p   -movflags +faststart "public/media/overclock-story-large.mp4"
+
+ffmpeg -i "image/case-study/overclock/story-large.mp4" -an -vf "scale=1280:-2"   -c:v libvpx-vp9 -crf 50 -b:v 0 -row-mt 1   "public/media/overclock-story-large.webm"
+
+ffmpeg -i "image/case-study/overclock/story-small.mp4" -an -vf "scale=720:-2"   -c:v libx264 -profile:v high -crf 30 -preset slow -pix_fmt yuv420p   -movflags +faststart "public/media/overclock-story-small.mp4"
+
+ffmpeg -i "image/case-study/overclock/story-small.mp4" -an -vf "scale=720:-2"   -c:v libvpx-vp9 -crf 44 -b:v 0 -row-mt 1   "public/media/overclock-story-small.webm"
+
+# Posters for both, from the encodes.
+ffmpeg -i "public/media/overclock-story-large.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/overclock-story-large-poster.webp"
+
+ffmpeg -i "public/media/overclock-story-small.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/overclock-story-small-poster.webp"
 ```
 
 plus a VP9 `.webm` sibling (470 KB, served first) and a first-frame

@@ -38,3 +38,8 @@ image/na-video/
 # public/media/overclock-intro-film.{mp4,webm} — and that is committed. The
 # ffmpeg command that produces it is in the README.
 image/case-study/overclock/intro-right.mp4
+
+# And the left-hand film of "A system with a story", 17 MB, out for the same
+# reason. Its encodes — public/media/overclock-story-large.{mp4,webm} — are
+# committed, and the command is in the README.
+image/case-study/overclock/story-large.mp4
