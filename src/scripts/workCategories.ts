@@ -496,6 +496,23 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
     onLeave: () => tl.progress(1).pause(),
     onEnterBack: () => tl.reverse(),
     onLeaveBack: () => tl.progress(0).pause(),
+    /* AND EVERY TURN INSIDE THE OVERLAP, which the four crossings above cannot
+       see. They fire on the edges, so a reader who starts back up the page and
+       changes their mind before reaching the top of the overlap is inside the
+       range with the timeline still running backwards, and nothing tells it to
+       turn round — it finishes reversing, the field clears, and the reader goes
+       down into Two ways in with no pixels at all. Reported exactly that way:
+       the transition is missing after going back up and coming down again.
+
+       Direction, not position: this only ever turns a running timeline round,
+       and at either end play() and reverse() have nothing left to do. */
+    onUpdate: (self) => {
+      if (self.direction === 1) {
+        if (tl.reversed() || (!tl.isActive() && tl.progress() < 1)) tl.play();
+      } else if (!tl.reversed() && tl.progress() > 0) {
+        tl.reverse();
+      }
+    },
     invalidateOnRefresh: true,
     onRefresh: rebuild,
   });
