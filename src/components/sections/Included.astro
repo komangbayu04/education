@@ -251,11 +251,21 @@ const START = 1;
   /* --- The promises ---------------------------------------------------------
      The triangle on the left and the staircase of lines on the right, the two
      of them falling away from each other at the same angle. */
+  /* The pair is centred in the block rather than set out from the left edge:
+     the triangle falls away to the right and the list steps away to the left,
+     so the two of them read as one shape with a middle, and that middle
+     belongs on the page's. The label above it stays on the gutter, where every
+     other label on the page is. */
   .inc__promise {
     display: flex;
     align-items: flex-start;
+    justify-content: center;
     gap: clamp(1.5rem, 4vw, 4.5rem);
     margin-top: clamp(1.5rem, 4svh, 2.5rem);
+  }
+
+  .inc__steps {
+    flex: none;
   }
 
   .inc__tri {
