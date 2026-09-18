@@ -47,6 +47,19 @@ export const VARIATIONS: VariationAxis[] = [
     ],
   },
   {
+    id: 'promises',
+    label: 'Both models include',
+    options: [
+      /* The drawing and the staircase: a pixel triangle with the promises
+         stepping away from it line by line. Included.astro. */
+      { id: 'triangle', label: 'Pixel triangle' },
+      /* The other reading of the same five lines: a ruled table across the
+         whole screen, one promise a row, numbered, with a run of squares at
+         the end of each that grows as the list does. */
+      { id: 'ledger', label: 'Ruled table' },
+    ],
+  },
+  {
     id: 'testimonials',
     label: 'Testimonial section',
     options: [

@@ -146,6 +146,27 @@ const START = 1;
         ))}
       </ul>
     </div>
+
+    {/* THE OTHER READING of the same five lines — the "Both models include"
+        axis in src/config/variations.ts. A ruled table the width of the
+        screen: a number, the promise, and a run of squares that grows a
+        square a row, so the pixel language is in the rhythm of the list
+        rather than in a drawing beside it. Both are in the markup because the
+        choice is the reader's, made in the browser, and this site is built
+        once; the stylesheet displays whichever one is picked. */}
+    <ol class="inc__ledger">
+      {included.map((item, i) => (
+        <li class="inc__row">
+          <span class="inc__row-num">{String(i + 1).padStart(2, '0')}</span>
+          <span class="inc__row-text">{item}</span>
+          <span class="inc__row-pix" aria-hidden="true">
+            {Array.from({ length: i + 1 }, () => (
+              <span />
+            ))}
+          </span>
+        </li>
+      ))}
+    </ol>
   </div>
 
   <div class="inc__block inc__block--split">
@@ -331,6 +352,97 @@ const START = 1;
     margin-right: 0.75rem;
     border-radius: 50%;
     background: currentColor;
+  }
+
+  /* --- The promises, the other way ------------------------------------------
+     A table rather than a picture: five ruled rows across the whole screen,
+     each one numbered, with a run of squares at its end. Read down rather than
+     across, which is the opposite of the triangle's composition — that one is
+     a shape with a list beside it and this one is the list itself.
+
+     FULL BLEED, out of the block's gutter to both edges. A table is a
+     structure and a structure that stops short of the edges is a card; the
+     rules have to run out of the screen for the section to read as ruled
+     rather than as boxed. */
+  .inc__ledger {
+    --ledger-line: rgb(255 255 255 / 0.16);
+
+    display: none;
+    width: 100dvw;
+    margin-left: calc(50% - 50dvw);
+    margin-top: clamp(1.5rem, 4svh, 2.5rem);
+    border-top: 1px solid var(--ledger-line);
+  }
+
+  .inc__row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: clamp(1rem, 3vw, 3rem);
+    padding: clamp(0.875rem, 2.2vw, 1.5rem) var(--inc-gutter);
+    border-bottom: 1px solid var(--ledger-line);
+    transition: background-color 0.4s var(--ease-out-expo);
+  }
+
+  /* The row lifts off the ground under a cursor. Nothing moves and nothing
+     grows: the ledger's whole point is that the rows are the same, so the only
+     thing that may change is which one is being read. */
+  @media (hover: hover) and (pointer: fine) {
+    .inc__row:hover {
+      background-color: rgb(255 255 255 / 0.05);
+    }
+
+    .inc__row:hover .inc__row-num {
+      color: var(--color-ink-invert);
+    }
+
+    .inc__row:hover .inc__row-pix span {
+      background: var(--color-ink-invert);
+    }
+  }
+
+  /* Tabular figures so the numbers sit in one column without being set in a
+     column of their own. */
+  .inc__row-num {
+    min-width: 2.5ch;
+    font-size: clamp(1.5rem, 3.2vw, 2.875rem);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: rgb(255 255 255 / 0.3);
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .inc__row-text {
+    font-size: clamp(0.9375rem, 1.5vw, 1.375rem);
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+    color: rgb(255 255 255 / 0.92);
+  }
+
+  /* One square a row, so the run is the list counting itself. Right-aligned,
+     so the squares grow towards the reader down the page. */
+  .inc__row-pix {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .inc__row-pix span {
+    width: clamp(0.5rem, 0.9vw, 0.75rem);
+    aspect-ratio: 1;
+    background: rgb(255 255 255 / 0.45);
+    transition: background-color 0.4s var(--ease-out-expo);
+  }
+
+  /* Which one is on the page. The triangle is the default, so it is what an
+     unswitched build shows and what a reader with no JS gets. */
+  :global(html[data-var-promises='ledger']) .inc__promise {
+    display: none;
+  }
+
+  :global(html[data-var-promises='ledger']) .inc__ledger {
+    display: block;
   }
 
   /* --- The coverage ---------------------------------------------------------
@@ -553,6 +665,20 @@ const START = 1;
     .inc__cta {
       flex-direction: column;
       align-items: flex-start;
+    }
+
+    /* The number goes over the line rather than beside it: at this width a
+       number, a sentence and a run of squares on one row leave the sentence
+       four words across. The squares go with it — they are the list counting
+       itself, and a count nobody can see the end of counts nothing. */
+    .inc__row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.5rem;
+      padding-block: 1rem;
+    }
+
+    .inc__row-pix {
+      display: none;
     }
   }
 </style>
