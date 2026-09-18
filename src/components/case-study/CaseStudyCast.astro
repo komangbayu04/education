@@ -44,12 +44,22 @@ const FEATURE = '3 / 4';
 ---
 
 <section class="cs-cast" aria-labelledby={labelId} data-cs-reveal>
-  {/* WIDER THAN THE WINDOW, and clipped by the section rather than by the page:
-      the row is 134% of the screen and centred on it, so the middle frame is on
-      the screen's own axis and the outer two run off both edges by the same
-      amount. `dvw` rather than `vw` so a visible scrollbar cannot turn the
-      overflow into horizontal scroll. */}
-  <div class="cs-cast__trio" aria-hidden={trio.every((art) => !art.src && !art.video) || undefined}>
+  {/* WIDER THAN THE WINDOW, AND IT SLIDES. The row is a scroller the width of
+      the screen with the characters laid across it, so at rest the middle one
+      is on the screen's own axis and the outer two are cut by both edges —
+      and a swipe, a trackpad, a shift-wheel or a drag moves along the row.
+      Where it starts and the drag itself are in src/scripts/caseStudy.ts;
+      everything else here is the browser's own scrolling, which is better than
+      anything a script could do for a touch screen.
+
+      The padding on the ends is what lets the first and last characters reach
+      the middle of the screen — without it they stop against the edges and
+      the row cannot centre them. */}
+  <div
+    class="cs-cast__trio"
+    data-cast-rail
+    aria-hidden={trio.every((art) => !art.src && !art.video) || undefined}
+  >
     {/* Each frame in a box of this section's own. A scoped rule cannot reach
         into another component, so the sizing lives on the wrapper and the frame
         simply fills it. */}
@@ -90,10 +100,40 @@ const FEATURE = '3 / 4';
   .cs-cast__trio {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 15dvw;
-    width: 134dvw;
-    margin-left: calc(50% - 67dvw);
+    width: 100dvw;
+    margin-left: calc(50% - 50dvw);
+    /* Half the screen less half the widest character: enough for any of them
+       to sit on the screen's middle. */
+    padding-inline: calc(50dvw - 19.5dvw);
+    overflow-x: auto;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    /* Settles on a character rather than between two, without fighting a
+       deliberate scroll to somewhere in between. */
+    scroll-snap-type: x proximity;
+  }
+
+  .cs-cast__trio::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cs-cast__slot {
+    scroll-snap-align: center;
+  }
+
+  /* The hand says it can be taken hold of, and only where there is a cursor to
+     say it to. `grabbing` comes from the attribute the script puts on, so it
+     does not flick back the moment the pointer leaves a frame mid-drag. */
+  @media (hover: hover) and (pointer: fine) {
+    .cs-cast__trio {
+      cursor: grab;
+    }
+
+    .cs-cast__trio[data-dragging] {
+      cursor: grabbing;
+      user-select: none;
+    }
   }
 
   .cs-cast__lead {
@@ -150,8 +190,6 @@ const FEATURE = '3 / 4';
   @media (max-width: 48rem) {
     .cs-cast__trio {
       gap: 8dvw;
-      width: 150dvw;
-      margin-left: calc(50% - 75dvw);
     }
 
     .cs-cast__note {

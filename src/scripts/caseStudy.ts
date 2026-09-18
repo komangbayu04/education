@@ -431,14 +431,19 @@ function initVideos(cleanups: Array<() => void>): void {
  * is reimplemented here. This adds the one thing a scroller does not give a
  * mouse: dragging it.
  *
+ * Applied to every rail on these pages that is meant to be pulled — the
+ * marketing row and the cast's characters.
+ *
  * Touch is left alone deliberately — the browser's own scrolling is better than
  * anything driven off pointer events, and taking it over would cost the fling
  * and the rubber-banding with it.
  */
-function initMarketingRail(cleanups: Array<() => void>): void {
-  const rail = document.querySelector<HTMLElement>('[data-cs-mkt-rail]');
-  if (!rail) return;
+function initDragRails(cleanups: Array<() => void>): void {
+  const rails = gsap.utils.toArray<HTMLElement>('[data-cs-mkt-rail], [data-cast-rail]');
+  rails.forEach((rail) => initDragRail(rail, cleanups));
+}
 
+function initDragRail(rail: HTMLElement, cleanups: Array<() => void>): void {
   const controller = new AbortController();
   const { signal } = controller;
 
@@ -510,6 +515,58 @@ function initMarketingRail(cleanups: Array<() => void>): void {
 }
 
 /**
+ * The cast's row, which starts in the middle rather than at its left end.
+ *
+ * The three characters are laid across a scroller a screen wide with padding at
+ * both ends, so the row's resting composition — the middle one centred, the
+ * outer two cut by the edges — is a scroll position rather than a layout. It
+ * has to be set, because a scroller opens at 0, which here is a screen of
+ * padding with the first character at the far right of it.
+ *
+ * Only before the reader has touched it: once they have moved the row, where it
+ * sits is theirs, and a resize that yanked it back to the middle would be the
+ * page taking the gesture away.
+ */
+function initCastRail(cleanups: Array<() => void>): void {
+  const rail = document.querySelector<HTMLElement>('[data-cast-rail]');
+  if (!rail) return;
+
+  const slots = gsap.utils.toArray<HTMLElement>('.cs-cast__slot', rail);
+  const middle = slots[Math.floor(slots.length / 2)];
+  if (!middle) return;
+
+  let moved = false;
+
+  const centre = () => {
+    if (moved) return;
+    /* `offsetLeft` is measured inside the scroller, so it already includes the
+       padding at the start of the row. */
+    rail.scrollLeft = middle.offsetLeft + middle.offsetWidth / 2 - rail.clientWidth / 2;
+  };
+
+  centre();
+
+  const controller = new AbortController();
+  const { signal } = controller;
+
+  /* Anything the reader does to the row counts, including a fling that is
+     still settling — so the flag is set on the scroll itself rather than on
+     the gestures, and set after the first centring has already happened. */
+  rail.addEventListener('pointerdown', () => { moved = true; }, { signal });
+  rail.addEventListener('wheel', () => { moved = true; }, { signal, passive: true });
+  rail.addEventListener('touchstart', () => { moved = true; }, { signal, passive: true });
+
+  /* The row is sized in `dvw`, so its geometry changes with the window. */
+  const observer = new ResizeObserver(centre);
+  observer.observe(rail);
+
+  cleanups.push(() => {
+    controller.abort();
+    observer.disconnect();
+  });
+}
+
+/**
  * Core experience — one feature open at a time.
  *
  * The open item is an attribute; the description's reveal and the panel's
@@ -564,7 +621,8 @@ export function initCaseStudy(): () => void {
 
   initRail(cleanups);
   initVideos(cleanups);
-  initMarketingRail(cleanups);
+  initDragRails(cleanups);
+  initCastRail(cleanups);
   initExperience(cleanups);
   cleanups.push(initCaseStudyReveal());
 
