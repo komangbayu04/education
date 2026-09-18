@@ -1,0 +1,100 @@
+---
+/**
+ * Case-study strip — a labelled statement, and a row of work that runs off
+ * both edges of the screen.
+ *
+ * The frame uses this for the output: a piece in the middle at full size with
+ * the next ones cut by the left and right edges, so the row reads as a shelf
+ * the reader is standing in front of rather than as three chosen items. The
+ * widths are the composition, so each frame states its own in `width` (a share
+ * of the screen) and its own shape in `ratio`.
+ *
+ * Wider than the window, and clipped by the section rather than the page:
+ * `dvw` so a visible scrollbar cannot turn the overflow into horizontal scroll.
+ *
+ * Every frame is a placeholder until it is fed — see CaseStudyFrame.
+ */
+import CaseStudyFrame, { type FrameArt } from './CaseStudyFrame.astro';
+
+/** One piece on the shelf. `width` is a percentage of the screen. */
+export interface StripItem extends FrameArt {
+  width?: number;
+}
+
+interface Props {
+  id?: string;
+  eyebrow?: string;
+  heading: string;
+  items: StripItem[];
+  /** The gap between pieces, as a share of the screen. */
+  gap?: number;
+}
+
+const { id = 'cs-strip', eyebrow = 'The output', heading, items, gap = 8 } = Astro.props;
+
+const labelId = `${id}-label`;
+
+/** What a piece is cut to when it does not say: the shape of a sheet. */
+const SHEET = '3 / 2';
+---
+
+<section class="cs-strip" aria-labelledby={labelId} data-cs-reveal>
+  <div class="u-container">
+    <p class="cs-strip__eyebrow u-label" id={labelId}>{eyebrow}</p>
+    <h2 class="cs-strip__heading">{heading}</h2>
+  </div>
+
+  <div class="cs-strip__shelf" style={`--gap:${gap}dvw`}>
+    {
+      items.map((item) => (
+        <div class="cs-strip__slot" style={`--w:${item.width ?? 30}dvw`}>
+          <CaseStudyFrame {...item} fallbackRatio={item.ratio ?? SHEET} />
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .cs-strip {
+    padding-block: var(--cs-section-y, clamp(3rem, 6vw, 5.5rem));
+    /* What keeps the shelf's overflow off the page's scrollbar. */
+    overflow: hidden;
+  }
+
+  .cs-strip__eyebrow {
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-strip__heading {
+    max-width: 21em;
+    margin-top: clamp(0.75rem, 1.4vw, 1.125rem);
+    font-size: clamp(1.375rem, 2.7vw, 2.4375rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  /* Centred on the screen and allowed to be wider than it, so whatever is in
+     the middle is on the screen's own axis and the pieces either side are cut
+     by the same amount. */
+  .cs-strip__shelf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap);
+    margin-top: clamp(2rem, 4.5vw, 4rem);
+  }
+
+  .cs-strip__slot {
+    flex: 0 0 var(--w);
+  }
+
+  /* On a phone the shelf holds its crop but loosens: at a desktop's gaps the
+     middle piece is all there is on the screen and the cut ones are off it. */
+  @media (max-width: 48rem) {
+    .cs-strip__shelf {
+      gap: calc(var(--gap) * 0.5);
+    }
+  }
+</style>

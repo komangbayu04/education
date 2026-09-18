@@ -18,6 +18,7 @@ import CaseStudyBand from '../components/case-study/CaseStudyBand.astro';
 import CaseStudyStory from '../components/case-study/CaseStudyStory.astro';
 import CaseStudyCast from '../components/case-study/CaseStudyCast.astro';
 import CaseStudyGrid from '../components/case-study/CaseStudyGrid.astro';
+import CaseStudyStrip from '../components/case-study/CaseStudyStrip.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
 import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
@@ -130,6 +131,21 @@ const note =
       eyebrow="Humans in the loop"
       heading="People choose education on trust. Instructors, operators, and graduates appear as themselves—alongside the characters built to represent them."
       tiles={Array.from({ length: 9 }, (_, i) => ({ alt: `Overclock cohort, frame ${i + 1}` }))}
+    />
+
+    {/* The output, as a shelf that runs off both edges: the piece in the
+        middle whole, the ones either side cut by the screen. The widths are
+        the composition — see CaseStudyStrip — and every frame is empty until
+        the artwork lands. */}
+    <CaseStudyStrip
+      id="cs-scale"
+      eyebrow="One system, built to scale"
+      heading="Tribe designed Overclock's identity, digital home, program materials, and launch engine: one expressive system for cohorts, company training, and community."
+      items={[
+        { width: 30, ratio: '3 / 4', alt: 'Overclock, launch email' },
+        { width: 52, ratio: '3 / 2', alt: 'Overclock, program toolkit' },
+        { width: 30, ratio: '3 / 4', alt: 'Overclock, programme one-pager' },
+      ]}
     />
 
     {/* Program. The statement alone — the artwork for it is the pair below,
