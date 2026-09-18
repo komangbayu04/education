@@ -19,6 +19,7 @@ import CaseStudyStory from '../components/case-study/CaseStudyStory.astro';
 import CaseStudyCast from '../components/case-study/CaseStudyCast.astro';
 import CaseStudyGrid from '../components/case-study/CaseStudyGrid.astro';
 import CaseStudyStrip from '../components/case-study/CaseStudyStrip.astro';
+import CaseStudyTally from '../components/case-study/CaseStudyTally.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
 import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
@@ -174,6 +175,21 @@ const note =
       large={{ ratio: '5 / 4', alt: 'The Overclock site on a laptop' }}
       small={{ ratio: '5 / 6', alt: 'Overclock, a page from the site' }}
       note="The site is built for three kinds of visitor: someone ready to enroll, someone who wants to speak to an advisor first, and someone who is only reading."
+    />
+
+    {/* What the partnership adds up to, and the frame under it — empty until
+        the artwork lands. */}
+    <CaseStudyTally
+      id="cs-repeat"
+      eyebrow="Launch, learn, repeat"
+      heading="Every cohort needs a full runway: acquisition, onboarding, learning materials, company decks, and the moments in between."
+      lead="An ongoing partnership"
+      counts={[
+        { value: '16 mo.', label: 'Of continuous partnership' },
+        { value: '15 cohorts', label: 'Running on the brand' },
+        { value: '10K+ assets', label: 'Created from the system' },
+      ]}
+      frame={{ alt: 'An Overclock cohort call' }}
     />
 
     {/* Program. The statement alone — the artwork for it is the pair below,
