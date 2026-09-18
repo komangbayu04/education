@@ -1,23 +1,85 @@
 ---
 /**
- * Case-study introduction — the labelled statement under the hero band.
+ * Case-study introduction — the labelled statement under the hero band, and
+ * the two frames that open the study.
  *
- * One eyebrow, one paragraph. The measure is set in em so the three lines the
- * frame shows survive the fluid type scale instead of reflowing at every
- * width.
+ * TWO SHAPES, and which one is built depends on what it is given:
+ *
+ *   the statement  an eyebrow and one paragraph, set large. This is what every
+ *                  case study had and what the other one still uses.
+ *
+ *   the opening    the same statement, and under it a tall frame on the left
+ *                  with a short note and a second, smaller frame stepped down
+ *                  the right — the Overclock frame. Built when `main` is
+ *                  given.
+ *
+ * THE FRAMES ARE PLACEHOLDERS UNTIL THEY ARE FED. A frame with no `src` and no
+ * `video` is drawn as its own black rectangle at the right size, so the page
+ * stands up complete and the artwork drops into the same boxes when it lands —
+ * pass `src` (extensionless: an avif and a webp are requested from it) or
+ * `video` (extensionless: webm and mp4) and nothing else about the page moves.
  */
+
+/** One of the two frames. */
+export interface Frame {
+  /** Extensionless under /media — .avif and .webp are both requested. */
+  src?: string;
+  /** Extensionless under /media — .webm and .mp4 are both offered. Wins over
+   *  `src` when both are given. */
+  video?: string;
+  poster?: string;
+  alt?: string;
+  /** Its shape, as a CSS aspect-ratio. */
+  ratio?: string;
+}
 
 interface Props {
   eyebrow?: string;
   copy: string;
+  /** The short paragraph beside the frames. Only read when `main` is given. */
+  aside?: string;
+  main?: Frame;
+  side?: Frame;
 }
 
-const { eyebrow = 'Introduction', copy } = Astro.props;
+const { eyebrow = 'Introduction', copy, aside, main, side } = Astro.props;
+
+const RATIO = '1.1';
 ---
 
 <section class="cs-intro u-container" aria-labelledby="cs-intro-label" data-cs-reveal>
   <p class="cs-intro__eyebrow u-label" id="cs-intro-label">{eyebrow}</p>
-  <p class="cs-intro__copy">{copy}</p>
+  <p class:list={['cs-intro__copy', { 'cs-intro__copy--lead': main }]}>{copy}</p>
+
+  {
+    main && (
+      <div class="cs-intro__frames">
+        {aside && <p class="cs-intro__aside">{aside}</p>}
+
+        {[
+          { frame: main, cls: 'cs-intro__main' },
+          { frame: side, cls: 'cs-intro__side' },
+        ].map(
+          ({ frame, cls }) =>
+            frame && (
+              <figure class:list={['cs-intro__frame', cls]} style={`--ratio:${frame.ratio ?? RATIO}`}>
+                {frame.video ? (
+                  <video autoplay muted loop playsinline preload="metadata" poster={frame.poster} aria-label={frame.alt} tabindex="-1">
+                    <source src={`${frame.video}.webm`} type="video/webm" />
+                    <source src={`${frame.video}.mp4`} type="video/mp4" />
+                  </video>
+                ) : frame.src ? (
+                  <picture>
+                    <source srcset={`${frame.src}.avif`} type="image/avif" />
+                    <img src={`${frame.src}.webp`} alt={frame.alt ?? ''} loading="lazy" decoding="async" />
+                  </picture>
+                ) : null}
+              </figure>
+            ),
+        )}
+      </div>
+    )
+  }
 </section>
 
 <style>
@@ -41,5 +103,97 @@ const { eyebrow = 'Introduction', copy } = Astro.props;
     /* globals.css sets text-wrap: pretty on every <p>; here it pulls words
        down early and turns the frame's three lines into four. */
     text-wrap: initial;
+  }
+
+  /* Smaller, and wider in measure: this one is four lines of a statement with
+     artwork under it rather than the whole of the section. */
+  .cs-intro__copy--lead {
+    max-width: 21em;
+    font-size: clamp(1.25rem, 2.6vw, 2.375rem);
+    line-height: 1.28;
+  }
+
+  /* --- The opening ---------------------------------------------------------
+     The tall frame down the left, the note and the second frame stepped down
+     the right. One grid: the note is the first row of the right-hand column and
+     the frame under it takes the second, while the left frame spans both — so
+     the step between the two frames is the height of the note rather than a
+     number picked to look like it. */
+  .cs-intro__frames {
+    display: grid;
+    grid-template-columns: minmax(0, 56fr) minmax(0, 40fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: clamp(1.5rem, 3.4vw, 3.25rem);
+    row-gap: clamp(1.25rem, 2.4vw, 2rem);
+    margin-top: clamp(1.75rem, 3.4vw, 3rem);
+  }
+
+  .cs-intro__main {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  /* Held to the right of its own column, as the frame has it — the note is a
+     caption to the study rather than a column of body copy. */
+  .cs-intro__aside {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    /* 311px at 1440, which is the width the note is given in the frame. */
+    max-width: 32ch;
+    font-size: var(--text-caption);
+    line-height: 1.6;
+    color: var(--color-ink-secondary);
+  }
+
+  .cs-intro__side {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  /* The frame itself, and the placeholder both at once: the black is the box's
+     own ground, so an empty frame is the same rectangle as a filled one. */
+  .cs-intro__frame {
+    position: relative;
+    margin: 0;
+    aspect-ratio: var(--ratio);
+    overflow: hidden;
+    background: #000;
+  }
+
+  .cs-intro__frame img,
+  .cs-intro__frame video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* --- Narrow --------------------------------------------------------------
+     One column: the note first, then the two frames under it. At this measure
+     the right-hand column is too narrow to hold a frame at all. */
+  @media (max-width: 48rem) {
+    .cs-intro__frames {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: none;
+    }
+
+    .cs-intro__aside {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+      max-width: none;
+    }
+
+    .cs-intro__main {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .cs-intro__side {
+      grid-column: 1;
+      grid-row: 3;
+    }
   }
 </style>

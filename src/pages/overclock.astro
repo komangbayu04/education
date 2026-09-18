@@ -14,7 +14,6 @@
 import Base from '../layouts/Base.astro';
 import CaseStudyHero from '../components/case-study/CaseStudyHero.astro';
 import CaseStudyIntro from '../components/case-study/CaseStudyIntro.astro';
-import CaseStudyBand from '../components/case-study/CaseStudyBand.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
 import CaseStudyVideos from '../components/case-study/CaseStudyVideos.astro';
 import CaseStudyExperience from '../components/case-study/CaseStudyExperience.astro';
@@ -27,7 +26,12 @@ const summary =
   'Overclock is an AI capability partner for enterprise teams, delivering ten-week accelerator cohorts, workflow-based corporate training, and embedded technical consulting.';
 
 const intro =
-  "We've worked with Overclock on identity, website, and program materials across cohorts. What began as a mark became the system everything the program puts in front of a founder is built from.";
+  'AI is changing how work gets done. Overclock gives engineers, operators, and teams a place to learn by building and leave ready to ship.';
+
+/* The note beside the frames. It carries what the old introduction said in
+   prose — who we have worked with them on what, and since when. */
+const note =
+  'Tribe has designed every surface of Overclock since 2025, including the identity, the website, the program materials, and the marketing. Overclock teaches in cohorts, trains teams and executives inside companies, and runs a community around both, and all of it runs on one system.';
 ---
 
 <Base title={`${title} — Tribe`} description={intro}>
@@ -54,15 +58,21 @@ const intro =
       poster="/media/overclock-cover-poster.webp"
     />
 
-    <CaseStudyIntro eyebrow="Introduction" copy={intro} />
+    {/* The statement, and the two frames under it — the tall one on the left
+        and the smaller one stepped down the right. BOTH ARE EMPTY ON PURPOSE:
+        they are black rectangles at the right size until the artwork for them
+        lands. Give each one `src` (an image, extensionless) or `video` (also
+        extensionless) and nothing else here has to change.
 
-    {/* Full-bleed motion under the introduction, as the frame has it. The
-        chapter cover holds this slot until dedicated case-study footage
-        lands — same place in the layout, same ratio. */}
-    <CaseStudyBand
-      video="/media/overclock-cover"
-      poster="/media/overclock-cover-poster.webp"
-      label="Overclock, opening"
+        This is where the full-bleed band used to be. The band played the
+        chapter cover, which is the same film the hero above is already
+        playing — the frames are what the design puts here instead. */}
+    <CaseStudyIntro
+      eyebrow="Introduction"
+      copy={intro}
+      aside={note}
+      main={{ alt: 'Overclock, mark construction' }}
+      side={{ alt: 'Overclock, motion study' }}
     />
 
     {/* Program. The statement alone — the artwork for it is the pair below,
