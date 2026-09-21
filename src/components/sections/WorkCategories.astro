@@ -230,14 +230,12 @@ const {
           data-nav-over={category.ink === 'dark' ? undefined : 'dark'}
           data-nav-section={category.eyebrow ? 'Our work' : 'Our service'}
         >
-          {/* The whole picture is a way in, as it is on fantasy's list. Out of
-              the tab order and hidden from assistive tech, because the button
-              below is the same link with a name — this one is for the pointer
-              only. */}
-          <a
+          {/* The picture only — NOT a link. It used to be one, the whole
+              screen a way in as on fantasy's list; now the button below is the
+              one way in, so a click anywhere else on the picture does nothing
+              and text over it can be selected. */}
+          <div
             class="cat__media"
-            href={category.href}
-            tabindex="-1"
             aria-hidden="true"
             style={`--cat-gradient:${category.gradient ?? '0, 0, 0'};background:${category.tone}`}
           >
@@ -277,7 +275,7 @@ const {
                 </picture>
               )
             )}
-          </a>
+          </div>
 
           <div class="cat__content">
             <div class="cat__texts" data-cat-texts>
@@ -430,7 +428,6 @@ const {
     z-index: 1;
     display: block;
     overflow: hidden;
-    pointer-events: auto;
   }
 
   .cat__film,

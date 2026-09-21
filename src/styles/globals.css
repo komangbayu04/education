@@ -320,9 +320,11 @@ ul {
   list-style: none;
 }
 
+/* Grey, and see-through, so a selection shows on every ground: it was ink on
+   ink-invert, which on the dark sections is a black block behind white type —
+   the words simply vanished. The text keeps its own colour. */
 ::selection {
-  background: var(--color-ink);
-  color: var(--color-ink-invert);
+  background: rgb(140 140 140 / 0.5);
 }
 
 /* --------------------------------------------------------------------------
