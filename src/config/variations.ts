@@ -57,6 +57,11 @@ export const VARIATIONS: VariationAxis[] = [
          whole screen, one promise a row, numbered, with a run of squares at
          the end of each that grows as the list does. */
       { id: 'ledger', label: 'Ruled table' },
+      /* Both blocks in one screen, side by side: the promises as a checklist
+         on the left with the shot of whichever kind of work is being read
+         under it, and the kinds of work set large down the right. The list
+         bows out towards the line being read. */
+      { id: 'duo', label: 'Checklist + list' },
     ],
   },
   {
