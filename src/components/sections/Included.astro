@@ -1029,4 +1029,15 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
       display: none;
     }
   }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .inc__check,
+    .inc__row-text,
+    .inc__step {
+      font-size: 1rem;
+    }
+  }
 </style>

@@ -445,4 +445,13 @@ const bands = {
       padding-bottom: clamp(2.5rem, 10vw, 3.5rem);
     }
   }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .cs-next__copy {
+      font-size: 1rem;
+    }
+  }
 </style>

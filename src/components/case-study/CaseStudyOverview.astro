@@ -394,4 +394,13 @@ const cells = pixelField(7716, 9, [0.05, 0.09, 0.14, 0.2, 0.26, 0.32, 0.38, 0.44
       width: 46%;
     }
   }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .cs-ov__caption {
+      font-size: 1rem;
+    }
+  }
 </style>

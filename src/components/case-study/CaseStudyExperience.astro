@@ -322,4 +322,15 @@ const {
       gap: clamp(1rem, 3vw, 1.5rem);
     }
   }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .cs-ex__aside,
+    .cs-ex__caption,
+    .cs-ex__pair-caption {
+      font-size: 1rem;
+    }
+  }
 </style>

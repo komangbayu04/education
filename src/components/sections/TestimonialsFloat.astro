@@ -302,7 +302,13 @@ const spot = (i: number) => {
                     type="button"
                     data-tmf-open={tile.film}
                     aria-label={`Watch ${tile.item.name}'s testimonial`}
-                  />
+                  >
+                    <span class="tmf__badge" aria-hidden="true">
+                      <svg viewBox="0 0 12 14" fill="none">
+                        <path d="M12 7 0 14V0z" fill="currentColor" />
+                      </svg>
+                    </span>
+                  </button>
                 </>
               ) : (
                 /* PLACEHOLDER. Decorative and inert — it stands for a film
@@ -600,10 +606,30 @@ const spot = (i: number) => {
     outline-offset: -3px;
   }
 
-  /* NO BADGE. The film plays itself, muted, and the whole of it is the way
-     in — a play mark on something already playing says the opposite of what
-     is happening. The button over it keeps the label for anyone who cannot
-     see the film. */
+  /* THE PLAY MARK, always. The film on the tile is a silent preview; the
+     mark says there is a testimonial to watch — with sound, in the popup — and
+     that pressing opens it. A white square, as the site's other play marks
+     are. Decorative: the button around it carries the label. */
+  .tmf__badge {
+    display: grid;
+    place-items: center;
+    width: clamp(1.875rem, 2.4vw, 2.6875rem);
+    aspect-ratio: 1;
+    background: var(--color-bg-primary);
+    color: var(--color-ink);
+    transition: scale 0.4s var(--ease-out-expo);
+  }
+
+  .tmf__badge svg {
+    width: 0.6875rem;
+    /* Optically centred: a triangle's weight sits left of its box's middle. */
+    margin-left: 2px;
+  }
+
+  .tmf__open:hover .tmf__badge,
+  .tmf__open:focus-visible .tmf__badge {
+    scale: 1.08;
+  }
 
   /* ===================== Lightbox =====================
      The section's own ground and rule, the film in the middle, the arrows at
@@ -1161,5 +1187,15 @@ const spot = (i: number) => {
      is a declaration that never survives to the page. */
   :global(html[data-var-testimonials='float']) .tmf {
     display: flow-root;
+  }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .tmf__headline,
+    .tmf__quote {
+      font-size: 1rem;
+    }
   }
 </style>

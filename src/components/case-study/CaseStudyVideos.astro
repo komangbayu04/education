@@ -353,4 +353,13 @@ const labelId = eyebrow || heading ? 'cs-vid-label' : undefined;
       height: clamp(11rem, 46vw, 16rem);
     }
   }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .cs-vid__caption {
+      font-size: 1rem;
+    }
+  }
 </style>

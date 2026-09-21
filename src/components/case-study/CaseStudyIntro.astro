@@ -196,4 +196,13 @@ const RATIO = '1.1';
       grid-row: 3;
     }
   }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .cs-intro__aside {
+      font-size: 1rem;
+    }
+  }
 </style>

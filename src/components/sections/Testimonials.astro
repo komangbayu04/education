@@ -316,8 +316,10 @@ const badge = `<span class="tm__badge" aria-hidden="true">
     margin-left: 2px;
   }
 
-  .tm__tile:not([data-playing]) :global(.tm__badge-pause),
-  .tm__tile[data-playing] :global(.tm__badge-play) {
+  /* Always the play mark: the tile's film is a silent preview, and the mark
+     says there is a testimonial to watch with sound behind it. A pause mark
+     while the preview ran read as "this is the film, already playing". */
+  .tm__open :global(.tm__badge-pause) {
     display: none;
   }
 

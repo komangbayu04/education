@@ -250,4 +250,13 @@ const PAIR = '7 / 8';
       max-width: none;
     }
   }
+
+  /* Body copy on a phone is 16px, the site's reading size — smaller than that
+     it is a squint on a handset, however well it sits on a desktop. Last in
+     the sheet so it wins over every earlier size for these. */
+  @media (max-width: 48rem) {
+    .cs-story__note {
+      font-size: 1rem;
+    }
+  }
 </style>
