@@ -119,7 +119,6 @@ const {
     { label: 'Work', href: '/#work' },
     { label: 'How we work', href: '/#how-we-work' },
     { label: 'What founders say', href: '/#founders' },
-    { label: 'Blog', href: '/#blog' },
   ],
   email = 'hello@tribelab.co',
   ctaLabel = 'Talk to us',
@@ -990,7 +989,7 @@ const {
        fits. The links do not wrap — each is one line at a finger's height —
        so a column narrower than "What founders say" does not wrap the phrase,
        it runs it into the column beside it: measured at 300 wide, that link
-       and "Blog" overlapped. */
+       and the one beside it overlapped. */
     @media (max-width: 21rem) {
       .ft__nav ul {
         grid-template-columns: minmax(0, 1fr);
@@ -1021,6 +1020,81 @@ const {
 
     .ft__legal {
       order: 2;
+    }
+
+    /* --- The speaker: photo left, name beside it ------------------------
+       The portrait moves to the left edge and the name and role sit to its
+       right, centred on it — one row, rather than a name at the top of the
+       screen and a picture floating opposite it. */
+    .fq__portrait {
+      right: auto;
+      left: var(--ft-gutter);
+      /* Level with the name block: the same figure the band's top padding is,
+         so the photo and the words start on one line. Its desktop `top` was a
+         different formula and left the name 26px below the photo's middle. */
+      top: max(
+        calc(clamp(1.5rem, 11svh, 6.5rem) + var(--fq-drop)),
+        calc(var(--close-band) + 1rem)
+      );
+    }
+
+    .fq__who {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-right: 0;
+      padding-left: calc(var(--fq-portrait-w) + var(--fq-portrait-gap));
+    }
+
+    /* --- The wordmark with the links beside it --------------------------
+       The wordmark on the left and the three links as one list to its right,
+       then the contact, then the legal line — each under the last, full
+       width. The cluster steps aside (`display: contents`) so the nav and the
+       contact can be placed in this grid separately. */
+    .ft__meta {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        'mark nav'
+        'contact contact'
+        'legal legal';
+      align-items: start;
+      column-gap: clamp(1.25rem, 6vw, 2rem);
+      row-gap: 1.75rem;
+    }
+
+    .ft__cluster {
+      display: contents;
+    }
+
+    .ft__wordmark {
+      grid-area: mark;
+      width: min(40vw, 10rem);
+    }
+
+    .ft__nav {
+      grid-area: nav;
+    }
+
+    .ft__nav ul {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 0.25rem;
+    }
+
+    /* Beside the wordmark the column is narrow — 132px at 320 wide, against
+       156 for "What founders say" on one line. Unwrapped it ran off the
+       screen and the phone widened the whole page to hold it; a second line
+       is what the words should do instead. */
+    .ft__link {
+      white-space: normal;
+    }
+
+    .ft__contact {
+      grid-area: contact;
+    }
+
+    .ft__legal {
+      grid-area: legal;
     }
   }
 
