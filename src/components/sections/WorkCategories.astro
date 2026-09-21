@@ -380,7 +380,14 @@ const {
     position: sticky;
     top: 0;
     z-index: 1;
-    height: 100svh;
+    /* THE LARGE VIEWPORT, as the hero's. At `100svh` this was the screen with
+       the phone's URL bar showing, and when the bar slid away on scroll the
+       window grew past the stage and left a strip of whatever was under it at
+       the foot — reported on a real phone as the section cut off at the bottom.
+       `100lvh` is already the height with the bar gone. The description and
+       the button stay on the small viewport (`.cat__content`, from the top), so
+       they are never set under a bar that is showing. */
+    height: 100lvh;
     /* On the stage and not on the section: the section's box outlives the
        stage by a screen, and a ground painted there would be a screen of black
        over Two ways in after the pixel field has handed over to it. */
@@ -652,7 +659,8 @@ const {
     display: flex;
     flex-direction: column;
     gap: 100svh;
-    margin-top: -100svh;
+    /* The stage's own height, so the list still starts at the section's top. */
+    margin-top: -100lvh;
     padding: calc(var(--cat-opening) + 100svh) 0 calc(100svh + var(--two-join));
     overflow-x: clip;
     pointer-events: none;

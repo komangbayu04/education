@@ -54,12 +54,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin);
         }
         VARIATIONS.forEach(function (axis) {
           var pick = saved[axis.id];
-          var valid = axis.options.some(function (o) {
-            return o.id === pick;
-          });
+          var has = function (id) {
+            return axis.options.some(function (o) {
+              return o.id === id;
+            });
+          };
+          var fallback = has(axis.default) ? axis.default : axis.options[0].id;
           document.documentElement.setAttribute(
             'data-var-' + axis.id,
-            valid ? pick : axis.options[0].id,
+            has(pick) ? pick : fallback,
           );
         });
       })();

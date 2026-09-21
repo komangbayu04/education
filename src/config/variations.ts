@@ -16,7 +16,8 @@
  *         if (getVariant('hero') === 'alt-2') { ...build the other timeline... }
  *
  * To add a new axis, add an entry here — the switch UI and the pre-paint script
- * pick it up on their own. The first option is the default.
+ * pick it up on their own. The default is the axis's `default`, or its first
+ * option when it names none.
  */
 
 export interface VariationOption {
@@ -28,6 +29,8 @@ export interface VariationAxis {
   id: string;
   /** Heading shown above the option row in the panel. */
   label: string;
+  /** The option a first visit gets. Omitted, it is the first option. */
+  default?: string;
   options: [VariationOption, ...VariationOption[]];
 }
 
@@ -35,6 +38,7 @@ export const VARIATIONS: VariationAxis[] = [
   {
     id: 'offer',
     label: 'Service section',
+    default: 'split',
     options: [
       /* The window opening onto one panel at a time: Sprint held, then
          crossfaded into Retainer. TwoWays.astro with Offer.astro twice,
@@ -49,6 +53,7 @@ export const VARIATIONS: VariationAxis[] = [
   {
     id: 'promises',
     label: 'Both models include',
+    default: 'duo',
     options: [
       /* The drawing and the staircase: a pixel triangle with the promises
          stepping away from it line by line. Included.astro. */
@@ -67,6 +72,7 @@ export const VARIATIONS: VariationAxis[] = [
   {
     id: 'testimonials',
     label: 'Testimonial section',
+    default: 'float',
     options: [
       /* The pinned film wall: one film alone, then a three-column wall
          scrolling up under the title. Testimonials.astro. */
@@ -83,12 +89,21 @@ export const VARIATIONS: VariationAxis[] = [
   },
 ];
 
-/** localStorage key holding the `{ [axisId]: optionId }` map. */
-export const STORAGE_KEY = 'tribe:variations';
+/** localStorage key holding the `{ [axisId]: optionId }` map. Versioned: the
+ *  defaults moved to split / duo / float, and a pick saved under the old key
+ *  would otherwise keep a returning reader on the old cut. */
+export const STORAGE_KEY = 'tribe:variations:v2';
 
-/** The default pick for every axis — its first option. */
+/** One axis's default — its `default`, or its first option. */
+export function defaultOf(axis: VariationAxis): string {
+  return axis.default && axis.options.some((o) => o.id === axis.default)
+    ? axis.default
+    : axis.options[0].id;
+}
+
+/** The default pick for every axis. */
 export function defaults(): Record<string, string> {
-  return Object.fromEntries(VARIATIONS.map((axis) => [axis.id, axis.options[0].id]));
+  return Object.fromEntries(VARIATIONS.map((axis) => [axis.id, defaultOf(axis)]));
 }
 
 /** The reader's saved picks, merged over the defaults. Safe on the server. */
@@ -111,8 +126,8 @@ export function resolve(): Record<string, string> {
 export function getVariant(axisId: string): string {
   const axis = VARIATIONS.find((a) => a.id === axisId);
   if (!axis) return '';
-  if (typeof document === 'undefined') return axis.options[0].id;
-  return document.documentElement.dataset[`var${cap(axisId)}`] || axis.options[0].id;
+  if (typeof document === 'undefined') return defaultOf(axis);
+  return document.documentElement.dataset[`var${cap(axisId)}`] || defaultOf(axis);
 }
 
 /** Save one axis and reflect it onto <html>. Does not reload — the caller decides. */
