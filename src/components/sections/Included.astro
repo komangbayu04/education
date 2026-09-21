@@ -1040,4 +1040,16 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
       font-size: 1rem;
     }
   }
+
+  /* On a phone the picture follows the list at its own height. The square
+     slot is there on a desktop so the column never changes height as the
+     picture changes shape; stacked, it left about 180px of nothing above a
+     landscape shot. */
+  @media (max-width: 48rem) {
+    .inc__duo-shots {
+      aspect-ratio: auto;
+      margin-top: 0;
+      padding-top: 1.75rem;
+    }
+  }
 </style>

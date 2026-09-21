@@ -1122,7 +1122,10 @@ const spot = (i: number) => {
       display: flex;
       flex-direction: column;
       gap: clamp(2rem, 9vw, 3rem);
-      padding-bottom: 50svh;
+      /* A fifth of a screen under the last card, not half: the section lets go
+         and the footer starts to show while that card is still in the middle
+         of the screen, rather than after it has risen to the top. */
+      padding-bottom: 20svh;
     }
 
     :global(html[data-js='true']) .tmf__film {
