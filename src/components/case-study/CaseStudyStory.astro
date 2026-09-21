@@ -210,9 +210,12 @@ const PAIR = '7 / 8';
     grid-row: 1;
   }
 
+  /* A margin note's measure on desktop and tablet, not the frame's full
+     width above it. */
   .cs-story__note {
     grid-column: 2;
     grid-row: 2;
+    max-width: 290px;
     font-size: var(--text-caption);
     line-height: 1.6;
     color: var(--color-ink-secondary);
@@ -244,6 +247,7 @@ const PAIR = '7 / 8';
     .cs-story__note {
       grid-column: 1;
       grid-row: 3;
+      max-width: none;
     }
   }
 </style>
