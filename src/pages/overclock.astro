@@ -26,6 +26,7 @@ import CaseStudyGrid from '../components/case-study/CaseStudyGrid.astro';
 import CaseStudyStrip from '../components/case-study/CaseStudyStrip.astro';
 import CaseStudyTally from '../components/case-study/CaseStudyTally.astro';
 import CaseStudyOverview from '../components/case-study/CaseStudyOverview.astro';
+import CaseStudyNext from '../components/case-study/CaseStudyNext.astro';
 import Footer from '../components/layout/Footer.astro';
 
 const title = 'Overclock';
@@ -223,6 +224,20 @@ const note =
         { value: '10K+ assets', label: 'Created from the system' },
       ]}
       frame={{ alt: 'An Overclock cohort call' }}
+    />
+
+    {/* Hands the reader to the next project, on the pale ground. Must stay
+        directly above the footer: its bottom seam is painted in the footer's
+        own colour. */}
+    <CaseStudyNext
+      tone="light"
+      title="Nerd Apply"
+      copy="An accelerator teaching engineers and operators to build with AI. Identity, website, and program materials across cohorts."
+      ctaHref="/work/college-counseling-platform"
+      image="/media/showcase-device"
+      imageAlt="The Nerd Apply site on a phone"
+      ground="radial-gradient(70% 90% at 0% 0%, #021741 0%, rgb(2 23 65 / 0) 100%), linear-gradient(100deg, #3d88ea 0%, #2f9ff0 55%, #2bb6ef 100%)"
+      tags={['Accelerator', 'Brand Design', 'Web Design']}
     />
 
   </div>

@@ -15,6 +15,11 @@
  *
  * Below the panel's content sits a rule with the project's tags right-aligned
  * under it, which is what closes the section off before the black.
+ *
+ * `tone="light"` is the same panel on a warm pale ground with ink on it — the
+ * Overclock page's version. The seams need nothing: the top band is still the
+ * page's white scattering down into the ground, the bottom one still the
+ * footer's black rising out of it.
  */
 import { pixelField } from '../../lib/pixelField';
 
@@ -29,6 +34,8 @@ interface Props {
   /** Ground the device sits on — the next project's colour, not this page's. */
   ground?: string;
   tags?: string[];
+  /** Dark by default; light is the pale ground with ink on it. */
+  tone?: 'dark' | 'light';
 }
 
 const {
@@ -40,6 +47,7 @@ const {
   imageAlt = '',
   ground = '#2c5c50',
   tags = [],
+  tone = 'dark',
 } = Astro.props;
 
 /* Both bands are read as rows, not columns: the density runs down the band,
@@ -67,7 +75,11 @@ const bands = {
 {/* data-nav-over: the page's dark ground now, so the fixed bar inverts its
     wordmark while this is behind it — the same marker the marketing band
     carried before that section went white. */}
-<section class="cs-next" aria-labelledby="cs-next-title" data-nav-over="dark">
+<section
+  class:list={['cs-next', { 'cs-next--light': tone === 'light' }]}
+  aria-labelledby="cs-next-title"
+  data-nav-over={tone === 'dark' ? 'dark' : undefined}
+>
   {/* Decorative — the seams carry no meaning the copy doesn't already. */}
   <div class="cs-next__band cs-next__band--top cs-next__band--wide" aria-hidden="true">
     {bands.wideTop.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
@@ -302,6 +314,85 @@ const bands = {
     font-size: var(--text-caption);
     line-height: 1.2;
     white-space: nowrap;
+  }
+
+  /* --- Light ---------------------------------------------------------------
+     The frame's version: a warm pale ground, ink on it, a black button with
+     its corners softened, and outlined pills. The picture is a touch wider and
+     the device in it stands whole across the box rather than cropped into its
+     corner — the ground behind it is the project's own. */
+  .cs-next--light {
+    background: #f5f4f0;
+    color: var(--color-ink);
+  }
+
+  /* Sizes off the frame at 1440: a 68px title, the body at 16px broken after
+     "build with", a 216 by 53 button, 136 by 41 pills. */
+  .cs-next--light {
+    padding-top: calc(4 / 48 * 100% + clamp(0.5rem, 1vw, 1rem));
+  }
+
+  /* Two columns only where there is room — the one-column phone layout
+     further down is weaker than this selector and would lose to it. */
+  @media (min-width: 48.0625rem) {
+    .cs-next--light .cs-next__lead {
+      grid-template-columns: minmax(0, 1fr) 34.8%;
+    }
+  }
+
+  .cs-next--light .cs-next__title {
+    font-size: clamp(2rem, 4.72vw, 4.25rem);
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .cs-next--light .cs-next__copy {
+    max-width: 30.5em;
+    margin-top: clamp(0.75rem, 1.6vw, 1.5rem);
+    font-size: 1rem;
+  }
+
+  .cs-next--light .cs-next__cta {
+    padding: 1rem 3.25rem;
+    letter-spacing: 0;
+    border-radius: 0.5rem;
+    background: var(--color-ink);
+    color: var(--color-ink-invert);
+  }
+
+  .cs-next--light .cs-next__cta:hover,
+  .cs-next--light .cs-next__cta:focus-visible {
+    background: #2a2a2a;
+  }
+
+  .cs-next--light .cs-next__media {
+    position: relative;
+    aspect-ratio: 219 / 126;
+  }
+
+  .cs-next--light .cs-next__media img {
+    position: absolute;
+    top: 3%;
+    left: 50%;
+    width: auto;
+    height: 112%;
+    margin: 0;
+    translate: -50% 0;
+  }
+
+  .cs-next--light .cs-next__tags {
+    border-top-color: #dddcda;
+  }
+
+  .cs-next--light .cs-next__tags {
+    gap: clamp(0.5rem, 1.25vw, 1.125rem);
+  }
+
+  .cs-next--light .cs-next__tag {
+    padding: 0.6875rem 1.375rem;
+    border-color: #d6d5d2;
+    color: var(--color-ink);
+    font-size: clamp(0.875rem, 1.1vw, 1rem);
   }
 
   /* --- Responsive ---------------------------------------------------------- */
