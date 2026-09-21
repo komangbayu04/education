@@ -313,16 +313,13 @@ const cells = pixelField(20260804, ROWS, DENSITY);
     }
   }
 
-  /* The three columns become two and then one: DELIVERABLES carries four pills
-     and is the first to run out of room. */
+  /* Still one row on a tablet: TYPE and STAGE take only what their one pill
+     needs, and DELIVERABLES has the rest — its pills wrap inside the column
+     rather than the column dropping under the other two. */
   @media (max-width: 62rem) {
     .cs-hero__facts {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: clamp(1.25rem, 3vw, 2rem);
-    }
-
-    .cs-hero__fact:last-child {
-      grid-column: 1 / -1;
+      grid-template-columns: max-content max-content minmax(0, 1fr);
+      column-gap: clamp(2rem, 5vw, 3.5rem);
     }
   }
 
@@ -333,9 +330,15 @@ const cells = pixelField(20260804, ROWS, DENSITY);
       --cs-indent: 0%;
     }
 
+    /* TYPE and STAGE side by side, DELIVERABLES across the full width under
+       them — its four pills would not fit beside the other two. */
     .cs-hero__facts {
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1.25rem;
+    }
+
+    .cs-hero__fact:last-child {
+      grid-column: 1 / -1;
     }
 
     .cs-hero__meta {
