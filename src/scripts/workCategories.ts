@@ -196,11 +196,14 @@ export function initWorkCategories(): () => void {
          the next category arrives. Scrolled back past, the scrub runs it down. */
       if (texts && end) {
         const clearOf = () => texts.offsetTop - TEXTS_CLEAR;
+        /* autoAlpha, not opacity: at nought the words are hidden as well as
+           clear, so the selectable text and the button do not sit invisibly
+           over the picture taking its clicks before they have faded up. */
         const tween = gsap.fromTo(
           texts,
-          { opacity: 0 },
+          { autoAlpha: 0 },
           {
-            opacity: 1,
+            autoAlpha: 1,
             ease: 'none',
             scrollTrigger: {
               trigger: end,
@@ -215,7 +218,7 @@ export function initWorkCategories(): () => void {
         cleanups.push(() => {
           tween.scrollTrigger?.kill();
           tween.kill();
-          gsap.set(texts, { clearProps: 'opacity' });
+          gsap.set(texts, { clearProps: 'opacity,visibility' });
         });
       }
 

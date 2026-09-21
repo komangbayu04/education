@@ -527,7 +527,13 @@ const {
      which is the same thing as not having written it. At 16px this measure
      takes about 42 characters, so the copy above is cut to fit three of them
      and every item was measured at the widths below. */
+  /* SELECTABLE. The block around it lets the pointer through to the picture
+     link (pointer-events: none), and so did the text — so a drag across a
+     description started dragging the link instead of selecting the words.
+     The words themselves take the pointer back; the empty space around them
+     still goes to the picture. The titles below do the same. */
   .cat__blurb {
+    pointer-events: auto;
     max-width: 335px;
     font-size: 20px;
     line-height: 1.4;
@@ -692,6 +698,11 @@ const {
      same bite out of a phone's title as out of a 1440's. Set solid and tracked
      in. The phone figure keeps a vw ceiling so a long word can never be wider
      than a very narrow screen. */
+  .cat__num,
+  .cat__title {
+    pointer-events: auto;
+  }
+
   .cat__title {
     font-family: var(--font-display);
     font-size: min(36px, 12vw);

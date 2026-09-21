@@ -260,7 +260,10 @@ export function initHero(): () => void {
     const each = TEXT_FOR * 0.55;
     const gap = lines.length > 1 ? (TEXT_FOR - each) / (lines.length - 1) : 0;
 
-    tl.set(reveal, { autoAlpha: 1 }, TEXT_AT);
+    /* And it takes the pointer once it is showing — the stylesheet keeps it
+       inert while hidden, and left that way the sentence could not be
+       selected: a drag across it went to the picture underneath. */
+    tl.set(reveal, { autoAlpha: 1, pointerEvents: 'auto' }, TEXT_AT);
     tl.fromTo(
       lines,
       { autoAlpha: 0, y: 22, filter: 'blur(14px)' },
@@ -301,7 +304,7 @@ export function initHero(): () => void {
       height: '',
     });
     if (reveal) {
-      gsap.set(reveal, { clearProps: 'opacity,visibility,transform' });
+      gsap.set(reveal, { clearProps: 'opacity,visibility,transform,pointerEvents' });
       if (lines.length) gsap.set(lines, { clearProps: 'opacity,visibility,transform,filter' });
       reveal.setAttribute('aria-hidden', 'true');
     }
