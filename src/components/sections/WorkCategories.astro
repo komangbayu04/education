@@ -189,9 +189,11 @@ const {
   id="work"
   aria-label="Our service"
   {/* WHAT THE CAPSULE READS HERE. The chapter is the kinds of work we do —
-      brand, web, product, marketing — rather than the work itself, and "Our
-      work" belongs to a project: the Overclock study says that, and nothing
-      else on the site does. */}
+      brand, web, product, marketing — rather than the work itself, so it is
+      "Our service". Except while Overclock is on the stage: that item is a
+      piece of work, so its layer names itself "Our work" (each layer below
+      declares its own name, and the painted layer, being later in the
+      document, wins over this). */}
   data-nav-section="Our service"
   data-cat
 >
@@ -226,6 +228,7 @@ const {
           data-cat-layer
           data-ink={category.ink}
           data-nav-over={category.ink === 'dark' ? undefined : 'dark'}
+          data-nav-section={category.eyebrow ? 'Our work' : 'Our service'}
         >
           {/* The whole picture is a way in, as it is on fantasy's list. Out of
               the tab order and hidden from assistive tech, because the button
