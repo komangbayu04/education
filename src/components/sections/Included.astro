@@ -118,6 +118,41 @@ for (let row = 0; row < TRI_ROWS; row += 1) {
 
 /** The first kind of work is the one shown before anything is read. */
 const START = 1;
+
+/**
+ * The colour of each picture's own top and bottom edges, for Checklist + list.
+ *
+ * That layout shows every picture WHOLE inside a square, so a landscape shot
+ * leaves a band above and below it. Filled with a colour of its own choosing
+ * the band would read as a mount; filled with the picture's own edge it reads
+ * as more of the picture. So the edge is measured here, at build, off the file
+ * the page is going to serve: the top and bottom rows, averaged, and the two
+ * averaged again — a shot is framed by one colour, not two.
+ */
+import sharp from 'sharp';
+
+const edgeColour = async (shot: string): Promise<string> => {
+  try {
+    const file = `public/media/${shot}.webp`;
+    const { width = 0, height = 0 } = await sharp(file).metadata();
+    const band = Math.max(1, Math.round(height * 0.02));
+    const mean = async (top: number) => {
+      const { channels } = await sharp(file)
+        .extract({ left: 0, top, width, height: band })
+        .stats();
+      return channels.slice(0, 3).map((c) => c.mean);
+    };
+    const [a, b] = await Promise.all([mean(0), mean(height - band)]);
+    const [r, g, bl] = a.map((v, i) => Math.round((v + b[i]) / 2));
+    return `rgb(${r} ${g} ${bl})`;
+  } catch {
+    /* A file that cannot be read is a band of the section's own black, which
+       is what it would have been with no measuring at all. */
+    return 'rgb(0 0 0)';
+  }
+};
+
+const pads = await Promise.all(cover.map((item) => edgeColour(item.shots[0])));
 ---
 
 <section
@@ -194,7 +229,12 @@ const START = 1;
 
       <div class="inc__duo-shots" aria-hidden="true">
         {cover.map((item, i) => (
-          <picture class="inc__duo-shot" data-inc-pair={i} data-on={i === START ? '' : undefined}>
+          <picture
+            class="inc__duo-shot"
+            data-inc-pair={i}
+            data-on={i === START ? '' : undefined}
+            style={`--pad:${pads[i]}`}
+          >
             <source srcset={`/media/${item.shots[0]}.avif`} type="image/avif" />
             <img src={`/media/${item.shots[0]}.webp`} alt="" loading="lazy" decoding="async" />
           </picture>
@@ -203,17 +243,19 @@ const START = 1;
     </div>
 
     <div class="inc__duo-right">
-      <p class="inc__label">{coverTitle}</p>
+      <div class="inc__duo-list">
+        <p class="inc__label">{coverTitle}</p>
 
-      <ul class="inc__arc" data-inc-kinds>
-        {cover.map((item, i) => (
-          <li>
-            <button class="inc__arc-kind" type="button" data-inc-kind={i} aria-current={i === START ? 'true' : undefined}>
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
+        <ul class="inc__arc" data-inc-kinds>
+          {cover.map((item, i) => (
+            <li>
+              <button class="inc__arc-kind" type="button" data-inc-kind={i} aria-current={i === START ? 'true' : undefined}>
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -564,17 +606,48 @@ const START = 1;
     opacity: 1;
   }
 
+  /* WHOLE, NOT CROPPED. The square is the slot and the picture is fitted
+     inside it at its own shape; whatever it leaves above and below is filled
+     with the picture's own edge colour, measured at build (see `pads`), so the
+     band reads as more of the picture rather than as a mount around it. It was
+     `cover`, which cut a landscape shot down to its middle square — a website
+     losing both its sides. */
+  .inc__duo-shot {
+    background: var(--pad, #000);
+  }
+
   .inc__duo-shot img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 
-  /* The list sits against the right of its column, as the reference has it,
-     with its label over it on the same left edge. */
+  /* The column is its whole grid track, and the list inside it is as wide as
+     its own longest line and pushed to the right — as the reference has it,
+     with the label over it on the same left edge.
+
+     THE TYPE IS SIZED TO THE COLUMN, not only to the window. The lines do not
+     wrap, and the longest of them — "Pitch decks and investor materials" — is
+     about fifteen times its own font size across; sized off the window alone,
+     a window narrow enough for the columns to be tight ran it off the
+     right-hand edge of the screen. `cqi` is the column's own width, so the
+     type steps down before that can happen, with room left for the arc's
+     lean. */
   .inc__duo-right {
-    justify-self: end;
+    container-type: inline-size;
+  }
+
+  .inc__duo-list {
+    /* The arc's step, here rather than on the lines so the list can make room
+       for it: three steps of lean are kept clear on the right, so the longest
+       line, leaning its furthest, stops on the margin rather than past it. */
+    --arc-step: clamp(0.35rem, 0.85vw, 0.85rem);
+
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
+    padding-right: calc(3 * var(--arc-step));
   }
 
   .inc__arc {
@@ -600,15 +673,13 @@ const START = 1;
      rather than a slide, and a pointer running down the list should see the
      shape flow after it rather than snap to each line. */
   .inc__arc-kind {
-    --arc-step: clamp(0.35rem, 0.85vw, 0.85rem);
-
     position: relative;
     display: block;
     padding: 0;
     border: 0;
     background: none;
     font-family: inherit;
-    font-size: clamp(1.5rem, 3vw, 2.75rem);
+    font-size: min(clamp(1.5rem, 3vw, 2.75rem), calc(100cqi / 17));
     font-weight: 400;
     line-height: 1.5;
     letter-spacing: -0.025em;
@@ -916,8 +987,9 @@ const START = 1;
       row-gap: clamp(2rem, 6svh, 3rem);
     }
 
-    .inc__duo-right {
-      justify-self: start;
+    .inc__duo-list {
+      margin-left: 0;
+      padding-right: 0;
     }
 
     .inc__arc-kind {
