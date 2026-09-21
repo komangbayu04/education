@@ -51,6 +51,9 @@ interface Props {
    * what both of these were until their pictures arrived.
    */
   art?: string;
+  /** What is drawn in the ring: chevrons running forward for a sprint, an
+   *  endless line for a retainer. */
+  icon?: 'sprint' | 'retainer';
 }
 
 const {
@@ -65,6 +68,7 @@ const {
      an unreadable panel. */
   tone = 'dark',
   art = '/media/offer-sprint',
+  icon = 'sprint',
 } = Astro.props;
 ---
 
@@ -98,7 +102,35 @@ const {
     <p class="offer__terms">
       {/* The ring is a bullet, not a control. Drawn rather than a character so
           its weight matches the type beside it at every size. */}
-      <span class="offer__ring" aria-hidden="true"></span>
+      <span class="offer__ring" aria-hidden="true">
+        {
+          icon === 'sprint' ? (
+            /* Three chevrons, dim to bright — and the brightness runs through
+               them left to right, over and over, so the mark keeps moving
+               forward the way the offer does. */
+            <svg class="offer__icon offer__icon--sprint" viewBox="0 0 24 24" fill="none">
+              <path d="M4.5 7l5 5-5 5" />
+              <path d="M9.5 7l5 5-5 5" />
+              <path d="M14.5 7l5 5-5 5" />
+            </svg>
+          ) : (
+            /* The endless line, with a brighter stretch of it travelling round
+               for good — a loop that does not stop, like the arrangement. */
+            <svg class="offer__icon offer__icon--retainer" viewBox="0 0 24 24" fill="none">
+              <path
+                class="offer__loop-base"
+                pathLength="100"
+                d="M12 12c-2-2.6-3.6-3.8-5.2-3.8a3.8 3.8 0 0 0 0 7.6c1.6 0 3.2-1.2 5.2-3.8s3.6-3.8 5.2-3.8a3.8 3.8 0 0 1 0 7.6c-1.6 0-3.2-1.2-5.2-3.8z"
+              />
+              <path
+                class="offer__loop-run"
+                pathLength="100"
+                d="M12 12c-2-2.6-3.6-3.8-5.2-3.8a3.8 3.8 0 0 0 0 7.6c1.6 0 3.2-1.2 5.2-3.8s3.6-3.8 5.2-3.8a3.8 3.8 0 0 1 0 7.6c-1.6 0-3.2-1.2-5.2-3.8z"
+              />
+            </svg>
+          )
+        }
+      </span>
       {terms}
     </p>
   </div>
@@ -255,12 +287,103 @@ const {
     color: color-mix(in srgb, var(--offer-ink) 55%, transparent);
   }
 
+  /* Large enough to hold a drawn mark: at the old 18px the icon inside would
+     have been nine pixels of blur. */
   .offer__ring {
     flex: none;
-    width: 1.125rem;
-    height: 1.125rem;
-    border: 1px solid color-mix(in srgb, var(--offer-ink) 45%, transparent);
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid color-mix(in srgb, var(--offer-ink) 30%, transparent);
     border-radius: 50%;
+  }
+
+  .offer__icon {
+    width: 62%;
+    height: 62%;
+    overflow: visible;
+    color: var(--offer-ink);
+  }
+
+  /* --- Sprint: the chevrons -------------------------------------------------
+     Resting dim to bright, left to right, as drawn. The animation sends a
+     brightening through them in the same direction, one after another, and
+     nudges each forward as it lights. */
+  .offer__icon--sprint path {
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: butt;
+    stroke-linejoin: miter;
+    opacity: 0.3;
+    animation: offer-chevron 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .offer__icon--sprint path:nth-child(2) {
+    animation-delay: 0.18s;
+  }
+
+  .offer__icon--sprint path:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+
+  @keyframes offer-chevron {
+    0%,
+    100% {
+      opacity: 0.25;
+      translate: 0 0;
+    }
+    40% {
+      opacity: 1;
+      translate: 1.2px 0;
+    }
+  }
+
+  /* --- Retainer: the endless line ------------------------------------------ */
+  .offer__icon--retainer path {
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .offer__loop-base {
+    opacity: 0.4;
+  }
+
+  /* A third of the line, lit, going round. `pathLength` makes the dash a
+     share of the loop rather than a length in pixels. */
+  .offer__loop-run {
+    stroke-dasharray: 34 66;
+    animation: offer-loop 2.4s linear infinite;
+  }
+
+  @keyframes offer-loop {
+    from {
+      stroke-dashoffset: 100;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Still, and drawn as the reference draws them. */
+  @media (prefers-reduced-motion: reduce) {
+    .offer__icon--sprint path,
+    .offer__loop-run {
+      animation: none;
+    }
+
+    .offer__icon--sprint path:nth-child(2) {
+      opacity: 0.6;
+    }
+
+    .offer__icon--sprint path:nth-child(3) {
+      opacity: 1;
+    }
+
+    .offer__loop-run {
+      stroke-dasharray: none;
+    }
   }
 
   /* --- Leaving ---------------------------------------------------------------

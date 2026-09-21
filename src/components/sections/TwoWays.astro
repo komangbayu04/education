@@ -90,6 +90,7 @@ const {
           terms="Ongoing, month to month"
           tone="dark"
           art="/media/offer-retainer"
+          icon="retainer"
         />
       </div>
 
@@ -116,6 +117,7 @@ const {
             terms="Ongoing, month to month"
             tone="dark"
             art="/media/offer-retainer"
+            icon="retainer"
           />
         </div>
       </div>
@@ -330,9 +332,14 @@ const {
 
   /* Cut to the half it is read in, so it breaks into lines inside its own
      column instead of running under the panel beside it. */
+  /* ALWAYS TWO LINES on a screen wide enough to put the halves side by side.
+     Each sentence is about 27em long, so a 20em measure can never hold it on
+     one line and never needs three; `balance` then evens the two out instead
+     of leaving a short tail. `min` keeps it inside a narrow half. */
   .two__half :global(.offer__summary) {
-    max-width: none;
+    max-width: min(20em, 100%);
     font-size: clamp(1.125rem, 2.1vw, 1.9375rem);
+    text-wrap: balance;
   }
 
   :global(html[data-var-offer='split']) .two__pane--split {
