@@ -67,7 +67,11 @@ export function initFooter(): () => void {
     while (node) {
       const style = getComputedStyle(node);
       if (style.display !== 'none') {
-        const ground = style.backgroundColor;
+        /* A section at the foot of a page wrapper can name itself as the strip
+           the seam falls out of — the case-study pages sit inside one element
+           with a white ground, and their last panel is a different colour. */
+        const inner = node.querySelector<HTMLElement>('[data-footer-seam]');
+        const ground = (inner ? getComputedStyle(inner) : style).backgroundColor;
         /* Transparent is not an answer — it means this element paints nothing
            and what shows through it is something else's ground. */
         if (ground && !/^rgba\(0, 0, 0, 0\)$|^transparent$/.test(ground)) {

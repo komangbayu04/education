@@ -79,6 +79,7 @@ const bands = {
   class:list={['cs-next', { 'cs-next--light': tone === 'light' }]}
   aria-labelledby="cs-next-title"
   data-nav-over={tone === 'dark' ? 'dark' : undefined}
+  data-footer-seam={tone === 'light' || undefined}
 >
   {/* Decorative — the seams carry no meaning the copy doesn't already. */}
   <div class="cs-next__band cs-next__band--top cs-next__band--wide" aria-hidden="true">
@@ -123,12 +124,20 @@ const bands = {
     }
   </div>
 
-  <div class="cs-next__band cs-next__band--bottom cs-next__band--wide" aria-hidden="true">
-    {bands.wideBottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
-  </div>
-  <div class="cs-next__band cs-next__band--bottom cs-next__band--narrow" aria-hidden="true">
-    {bands.narrowBottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
-  </div>
+  {/* No black band on the light panel: the footer's own seam does the
+      handover there, painted in this panel's ground (data-footer-seam). */}
+  {
+    tone === 'dark' && (
+      <>
+        <div class="cs-next__band cs-next__band--bottom cs-next__band--wide" aria-hidden="true">
+          {bands.wideBottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+        </div>
+        <div class="cs-next__band cs-next__band--bottom cs-next__band--narrow" aria-hidden="true">
+          {bands.narrowBottom.map((cell) => <span style={`grid-column:${cell.row};grid-row:${cell.col}`} />)}
+        </div>
+      </>
+    )
+  }
 </section>
 
 <style>
@@ -330,6 +339,8 @@ const bands = {
      "build with", a 216 by 53 button, 136 by 41 pills. */
   .cs-next--light {
     padding-top: calc(4 / 48 * 100% + clamp(0.5rem, 1vw, 1rem));
+    /* Only the breathing room: there is no band at the foot to clear. */
+    padding-bottom: clamp(3rem, 6.6vw, 6rem);
   }
 
   /* Two columns only where there is room — the one-column phone layout
@@ -424,6 +435,14 @@ const bands = {
 
     .cs-next__band--narrow {
       display: grid;
+    }
+  }
+
+  /* After the phone padding above, which is sized for a bottom band the light
+     panel does not have. */
+  @media (max-width: 48rem) {
+    .cs-next.cs-next--light {
+      padding-bottom: clamp(2.5rem, 10vw, 3.5rem);
     }
   }
 </style>
