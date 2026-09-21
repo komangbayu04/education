@@ -432,7 +432,7 @@ function initVideos(cleanups: Array<() => void>): void {
  * mouse: dragging it.
  *
  * Applied to the marketing row. The cast is a loop with motion of its own —
- * see initCastLoop.
+ * see initLoops.
  *
  * Touch is left alone deliberately — the browser's own scrolling is better than
  * anything driven off pointer events, and taking it over would cost the fling
@@ -603,31 +603,137 @@ function initDragRail(rail: HTMLElement, cleanups: Array<() => void>): void {
 }
 
 /**
- * The cast — a loop of characters that is dragged round.
- *
- * Every frame sits in the same cell and is placed from one number, `pos`: the
- * frame at index `pos` is in the middle, full size, and every other one sits
- * its distance from it along the row, a side frame's size. Between two whole
- * numbers the two frames either side of the middle trade places — the one
- * leaving shrinks as it goes, the one arriving grows into the middle — because
- * size is worked out from distance, not from being "the current one".
- *
- * Distances are taken the short way round the loop, so there is no end: a
- * frame that leaves one edge far enough is already waiting off the other.
+ * How a loop lays its frames out. The engine below only knows a position, and
+ * asks the layout everything else.
+ */
+interface LoopLayout {
+  /** Reads the sizes off the page, again on every resize. Returns how much
+   *  a position has to be multiplied by to stay on the same spot. */
+  measure(): number;
+  /** Puts every frame where it goes for this position. */
+  place(pos: number): void;
+  /** Pixels of drag per unit of position. */
+  pixels(): number;
+  /** The resting position nearest this one. */
+  rest(pos: number): number;
+  /** The resting position one frame along, `dir` being 1 or -1. */
+  step(pos: number, dir: number): number;
+  /** The resting position that puts this frame in the middle, the short way. */
+  centre(slot: number, pos: number): number;
+}
+
+/** A distance, taken the short way round a loop of this length. */
+const around = (d: number, length: number) => ((((d + length / 2) % length) + length) % length) - length / 2;
+
+/**
+ * The cast's loop: frames of one width, the middle one full size and the rest
+ * smaller. Position is counted in frames, so frame `pos` is in the middle.
+ * Between two whole numbers the frames either side of the middle trade places
+ * — the one leaving shrinks, the one arriving grows — because size is worked
+ * out from distance rather than from being "the current one".
+ */
+function scaleLayout(rail: HTMLElement, slots: HTMLElement[]): LoopLayout {
+  const n = slots.length;
+  let near = 1;
+  let far = 1;
+  let ratio = 0.8;
+
+  return {
+    measure() {
+      const style = getComputedStyle(rail);
+      const lead = slots[0].offsetWidth;
+      const gap = parseFloat(style.columnGap) || 0;
+      ratio = parseFloat(style.getPropertyValue('--loop-ratio')) || 0.8;
+      near = (lead * (1 + ratio)) / 2 + gap;
+      far = lead * ratio + gap;
+      return 1;
+    },
+    place(pos) {
+      slots.forEach((slot, i) => {
+        const d = around(i - pos, n);
+        const a = Math.abs(d);
+        const x = Math.sign(d) * (Math.min(a, 1) * near + Math.max(a - 1, 0) * far);
+        slot.style.translate = `${x.toFixed(2)}px 0`;
+        slot.style.scale = (1 - Math.min(a, 1) * (1 - ratio)).toFixed(4);
+      });
+    },
+    pixels: () => near,
+    rest: (pos) => Math.round(pos),
+    step: (pos, dir) => Math.round(pos) + dir,
+    centre: (slot, pos) => Math.round(pos + around(slot - pos, n)),
+  };
+}
+
+/**
+ * The shelf's loop: pieces of their own widths and shapes, none of them
+ * resized. Position is in pixels along the row, so a piece whose centre is at
+ * `pos` is in the middle; it rests with one piece or another centred.
+ */
+function shelfLayout(rail: HTMLElement, slots: HTMLElement[]): LoopLayout {
+  let centres: number[] = [];
+  let length = 1;
+
+  const points = (pos: number) => {
+    const out: number[] = [];
+    const base = Math.floor(pos / length) * length;
+    [-1, 0, 1].forEach((k) => centres.forEach((c) => out.push(base + k * length + c)));
+    return out.sort((a, b) => a - b);
+  };
+
+  return {
+    measure() {
+      const gap = parseFloat(getComputedStyle(rail).columnGap) || 0;
+      let run = 0;
+      centres = slots.map((slot) => {
+        const w = slot.offsetWidth;
+        const c = run + w / 2;
+        run += w + gap;
+        return c;
+      });
+      const was = length;
+      length = run || 1;
+      return length / was;
+    },
+    place(pos) {
+      slots.forEach((slot, i) => {
+        slot.style.translate = `${around(centres[i] - pos, length).toFixed(2)}px 0`;
+      });
+    },
+    pixels: () => 1,
+    rest(pos) {
+      return points(pos).reduce((best, p) => (Math.abs(p - pos) < Math.abs(best - pos) ? p : best));
+    },
+    step(pos, dir) {
+      const at = this.rest(pos);
+      const all = points(at);
+      return dir > 0 ? all.find((p) => p > at + 1) ?? at : [...all].reverse().find((p) => p < at - 1) ?? at;
+    },
+    centre: (slot, pos) => pos + around(centres[slot] - pos, length),
+  };
+}
+
+/**
+ * The loops on a case-study page — rows of frames that are dragged round and
+ * never end: the cast's (`data-cs-loop="scale"`) and the shelf's
+ * (`data-cs-loop="shelf"`). What differs between them is the layout; how they
+ * move is this.
  *
  * The hand moves a target and the row eases towards it each frame, so it is
  * as smooth as the screen rather than as the mouse. Let go, and the speed it
- * was let go at carries it on a little before it settles on the nearest
- * character. Touch, a sideways trackpad swipe, a click on a side frame and the
- * arrow keys all move it the same way.
+ * was let go at carries it on a little before a tween brings it to rest on
+ * the nearest frame. Touch, a sideways trackpad swipe, a click on a frame to
+ * one side and the arrow keys all move it the same way.
  */
-function initCastLoop(cleanups: Array<() => void>): void {
-  const rail = document.querySelector<HTMLElement>('[data-cast-loop]');
-  if (!rail) return;
-  const slots = gsap.utils.toArray<HTMLElement>('[data-cast-slot]', rail);
-  const n = slots.length;
-  if (n < 2) return;
+function initLoops(cleanups: Array<() => void>): void {
+  gsap.utils.toArray<HTMLElement>('[data-cs-loop]').forEach((rail) => {
+    const slots = gsap.utils.toArray<HTMLElement>('[data-cs-loop-slot]', rail);
+    if (slots.length < 2) return;
+    const layout = rail.dataset.csLoop === 'shelf' ? shelfLayout(rail, slots) : scaleLayout(rail, slots);
+    initLoop(rail, layout, cleanups);
+  });
+}
 
+function initLoop(rail: HTMLElement, layout: LoopLayout, cleanups: Array<() => void>): void {
   const THRESHOLD = 4;
   /** How far behind the hand the row follows, per frame. Lower is softer. */
   const FOLLOW = 0.2;
@@ -635,11 +741,9 @@ function initCastLoop(cleanups: Array<() => void>): void {
   const CARRY = 12;
   const reduced = prefersReducedMotion();
 
-  let pos = Number(rail.dataset.start) || 0;
+  layout.measure();
+  let pos = layout.centre(Number(rail.dataset.start) || 0, 0);
   let target = pos;
-  let near = 1;
-  let far = 1;
-  let ratio = 0.8;
   let frame = 0;
   let settle: gsap.core.Tween | null = null;
   let down = false;
@@ -648,43 +752,19 @@ function initCastLoop(cleanups: Array<() => void>): void {
   let startPos = 0;
   let trail: Array<{ x: number; t: number }> = [];
 
-  /** A frame's distance from the middle, the short way round the loop. */
-  const offset = (i: number) => ((((i - pos + n / 2) % n) + n) % n) - n / 2;
-
-  /* The numbers the stylesheet lays the resting row out with, in pixels. The
-     gap is the rail's `column-gap`, which the browser hands back resolved. */
-  const measure = () => {
-    const style = getComputedStyle(rail);
-    const lead = slots[0].offsetWidth;
-    const gap = parseFloat(style.columnGap) || 0;
-    ratio = parseFloat(style.getPropertyValue('--cast-ratio')) || 0.8;
-    near = (lead * (1 + ratio)) / 2 + gap;
-    far = lead * ratio + gap;
-  };
-
-  const place = () => {
-    slots.forEach((slot, i) => {
-      const d = offset(i);
-      const a = Math.abs(d);
-      const x = Math.sign(d) * (Math.min(a, 1) * near + Math.max(a - 1, 0) * far);
-      slot.style.translate = `${x.toFixed(2)}px 0`;
-      slot.style.scale = (1 - Math.min(a, 1) * (1 - ratio)).toFixed(4);
-    });
-  };
-
   const run = () => {
     pos += (target - pos) * FOLLOW;
-    if (Math.abs(target - pos) < 0.0005) pos = target;
-    place();
+    if (Math.abs(target - pos) * layout.pixels() < 0.2) pos = target;
+    layout.place(pos);
     frame = down || pos !== target ? requestAnimationFrame(run) : 0;
   };
 
-  const start = () => {
+  const follow = () => {
     if (!frame) frame = requestAnimationFrame(run);
   };
 
-  /* Brought to rest on a character by a tween rather than the follow, so the
-     last stretch decelerates to a stop instead of creeping up on it. */
+  /* Brought to rest by a tween rather than the follow, so the last stretch
+     decelerates to a stop instead of creeping up on it. */
   const goTo = (end: number, duration = 0.9) => {
     cancelAnimationFrame(frame);
     frame = 0;
@@ -696,12 +776,17 @@ function initCastLoop(cleanups: Array<() => void>): void {
       ease: 'power3.out',
       onUpdate: () => {
         pos = target = state.p;
-        place();
+        layout.place(pos);
       },
       onComplete: () => {
         settle = null;
       },
     });
+  };
+
+  const halt = () => {
+    settle?.kill();
+    settle = null;
   };
 
   const controller = new AbortController();
@@ -711,8 +796,7 @@ function initCastLoop(cleanups: Array<() => void>): void {
     'pointerdown',
     (event: PointerEvent) => {
       if (event.button !== 0) return;
-      settle?.kill();
-      settle = null;
+      halt();
       down = true;
       dragged = false;
       startX = event.clientX;
@@ -731,11 +815,10 @@ function initCastLoop(cleanups: Array<() => void>): void {
         dragged = true;
         rail.setAttribute('data-dragging', '');
         if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
-        start();
+        follow();
       }
       if (!dragged) return;
-      /* A middle-to-neighbour distance of hand moves the row one character. */
-      target = startPos - delta / near;
+      target = startPos - delta / layout.pixels();
       trail.push({ x: event.clientX, t: performance.now() });
       if (trail.length > 5) trail.shift();
     },
@@ -749,11 +832,11 @@ function initCastLoop(cleanups: Array<() => void>): void {
     if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
 
     if (!dragged) {
-      /* A click on a side frame brings that one to the middle. */
-      const slot = (event.target as HTMLElement).closest<HTMLElement>('[data-cast-slot]');
+      /* A click on a frame to one side brings that one to the middle. */
+      const slot = (event.target as HTMLElement).closest<HTMLElement>('[data-cs-loop-slot]');
       if (!slot) return;
-      const d = offset(Number(slot.dataset.castSlot));
-      if (Math.abs(d) > 0.5) goTo(Math.round(pos + d));
+      const end = layout.centre(Number(slot.dataset.csLoopSlot), pos);
+      if (Math.abs(end - pos) * layout.pixels() > 2) goTo(end);
       return;
     }
 
@@ -761,7 +844,7 @@ function initCastLoop(cleanups: Array<() => void>): void {
     const last = trail[trail.length - 1];
     const dt = Math.max(1, last.t - first.t);
     const speed = ((first.x - last.x) / dt) * 16.7;
-    goTo(Math.round(target + (speed * CARRY) / near));
+    goTo(layout.rest(target + (speed * CARRY) / layout.pixels()));
   };
 
   rail.addEventListener('pointerup', release, { signal });
@@ -786,12 +869,11 @@ function initCastLoop(cleanups: Array<() => void>): void {
     (event: WheelEvent) => {
       if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
       event.preventDefault();
-      settle?.kill();
-      settle = null;
-      target += event.deltaX / near;
-      start();
+      halt();
+      target += event.deltaX / layout.pixels();
+      follow();
       clearTimeout(wheelEnd);
-      wheelEnd = window.setTimeout(() => goTo(Math.round(target), 0.7), 140);
+      wheelEnd = window.setTimeout(() => goTo(layout.rest(target), 0.7), 140);
     },
     { signal, passive: false },
   );
@@ -801,19 +883,22 @@ function initCastLoop(cleanups: Array<() => void>): void {
     (event: KeyboardEvent) => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       event.preventDefault();
-      goTo(Math.round(target) + (event.key === 'ArrowRight' ? 1 : -1), 0.7);
+      goTo(layout.step(target, event.key === 'ArrowRight' ? 1 : -1), 0.7);
     },
     { signal },
   );
 
-  /* The sizes are in dvw, so the spacing changes with the window. */
+  /* The sizes are in dvw, so the spacing changes with the window — and a
+     position in pixels is scaled with it, so the row stays on the frame it
+     was on. */
   const observer = new ResizeObserver(() => {
-    measure();
-    place();
+    const factor = layout.measure();
+    pos *= factor;
+    target *= factor;
+    layout.place(pos);
   });
   observer.observe(rail);
-  measure();
-  place();
+  layout.place(pos);
 
   cleanups.push(() => {
     controller.abort();
@@ -880,7 +965,7 @@ export function initCaseStudy(): () => void {
   initRail(cleanups);
   initVideos(cleanups);
   initDragRails(cleanups);
-  initCastLoop(cleanups);
+  initLoops(cleanups);
   initExperience(cleanups);
   cleanups.push(initCaseStudyReveal());
 

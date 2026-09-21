@@ -150,6 +150,11 @@ const note =
       eyebrow="Meet Arlo, Novo, and Vero"
       heading="Three robots bring personality to the system. Each gives Overclock a different voice, mood, and point of view."
       feature={{ alt: 'Arlo, Novo and Vero' }}
+      reel={[
+        { alt: 'Overclock character, one' },
+        { alt: 'Overclock character, two' },
+        { alt: 'Overclock character, three' },
+      ]}
     />
 
     {/* The people, as ONE picture rather than a grid of them: the wall of
@@ -192,16 +197,16 @@ const note =
 
     <CaseStudyBand ratio="16 / 9" />
 
-    {/* The site for a visitor. The scene runs off the left-hand edge and the
-        second frame sits beside it with its note — both empty until the
-        artwork lands. */}
+    {/* The site for a visitor, laid out exactly as A system with a story: the
+        wide frame across the column and the pair with its note under it, at
+        the same shapes. All three empty until the artwork lands. */}
     <CaseStudyStory
       id="cs-next"
-      bleed
       eyebrow="Designed for the next move"
       heading="The site meets people where they are: ready to enroll, looking for guidance, or simply exploring what AI could change for them."
-      large={{ ratio: '5 / 4', alt: 'The Overclock site on a laptop' }}
-      small={{ ratio: '5 / 6', alt: 'Overclock, a page from the site' }}
+      wide={{ ratio: '4032 / 2250', alt: 'The Overclock site' }}
+      large={{ ratio: '1920 / 1104', alt: 'The Overclock site on a laptop' }}
+      small={{ ratio: '1', alt: 'Overclock, a page from the site' }}
       note="The site is built for three kinds of visitor: someone ready to enroll, someone who wants to speak to an advisor first, and someone who is only reading."
     />
 

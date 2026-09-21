@@ -12,6 +12,13 @@
  * Wider than the window, and clipped by the section rather than the page:
  * `dvw` so a visible scrollbar cannot turn the overflow into horizontal scroll.
  *
+ * AND IT LOOPS. The pieces are repeated until the row is comfortably wider
+ * than the screen, each sits in the same cell placed by a transform, and the
+ * reader drags the shelf round — with no end in either direction and every
+ * piece keeping its own width and shape. The motion is initLoops in
+ * src/scripts/caseStudy.ts; the inline values below are the resting
+ * composition, so the shelf is laid out before the script runs.
+ *
  * Every frame is a placeholder until it is fed — see CaseStudyFrame.
  */
 import CaseStudyFrame, { type FrameArt } from './CaseStudyFrame.astro';
@@ -36,6 +43,38 @@ const labelId = `${id}-label`;
 
 /** What a piece is cut to when it does not say: the shape of a sheet. */
 const SHEET = '3 / 2';
+
+/* The loop, worked out in two units — screen widths and gaps — because the gap
+   halves on a phone and a position has to follow it there. */
+const widthOf = (item: StripItem) => item.width ?? 30;
+const widest = Math.max(...items.map(widthOf));
+const once = items.reduce((sum, item) => sum + widthOf(item) + gap, 0);
+/** Copies until the row is wide enough that a piece leaving one edge is well
+ *  off the screen before it reappears at the other. */
+const copies = Math.max(2, Math.ceil((100 + 2 * widest) / once));
+const slots = Array.from({ length: copies * items.length }, (_, i) => items[i % items.length]);
+/** Each piece's centre, as [screen widths, gaps] from the start of the row. */
+let run = 0;
+const centres = slots.map((item, i) => {
+  const c: [number, number] = [run + widthOf(item) / 2, i];
+  run += widthOf(item);
+  return c;
+});
+const total: [number, number] = [run, slots.length];
+/** The middle piece of the middle copy starts in the middle. */
+const START = Math.floor(copies / 2) * items.length + Math.floor(items.length / 2);
+/** A piece's distance from the middle, the short way round, in desktop terms
+ *  to decide which way round; then kept as its two parts. */
+const place = (i: number): [number, number] => {
+  let w = centres[i][0] - centres[START][0];
+  let g = centres[i][1] - centres[START][1];
+  const len = total[0] + total[1] * gap;
+  const x = w + g * gap;
+  if (x >= len / 2) { w -= total[0]; g -= total[1]; }
+  if (x < -len / 2) { w += total[0]; g += total[1]; }
+  return [w, g];
+};
+const empty = items.every((item) => !item.src && !item.video);
 ---
 
 <section class="cs-strip" aria-labelledby={labelId} data-cs-reveal>
@@ -44,13 +83,25 @@ const SHEET = '3 / 2';
     <h2 class="cs-strip__heading">{heading}</h2>
   </div>
 
-  <div class="cs-strip__shelf" style={`--gap:${gap}dvw`}>
+  <div
+    class="cs-strip__shelf"
+    style={`--gap:${gap}dvw`}
+    data-cs-loop="shelf"
+    data-start={START}
+    aria-hidden={empty || undefined}
+    tabindex={empty ? undefined : 0}
+    aria-roledescription={empty ? undefined : 'carousel'}
+    aria-label={empty ? undefined : `${eyebrow}. Use the arrow keys to move.`}
+  >
     {
-      items.map((item) => (
-        <div class="cs-strip__slot" style={`--w:${item.width ?? 30}dvw`}>
-          <CaseStudyFrame {...item} fallbackRatio={item.ratio ?? SHEET} />
-        </div>
-      ))
+      slots.map((item, i) => {
+        const [w, g] = place(i);
+        return (
+          <div class="cs-strip__slot" data-cs-loop-slot={i} style={`--w:${widthOf(item)}dvw;--xw:${w};--xg:${g}`}>
+            <CaseStudyFrame {...item} fallbackRatio={item.ratio ?? SHEET} />
+          </div>
+        );
+      })
     }
   </div>
 </section>
@@ -79,22 +130,49 @@ const SHEET = '3 / 2';
      the middle is on the screen's own axis and the pieces either side are cut
      by the same amount. */
   .cs-strip__shelf {
-    display: flex;
+    --gap-at: var(--gap);
+    display: grid;
     align-items: center;
-    justify-content: center;
-    gap: var(--gap);
+    justify-items: center;
+    /* One column, so this spaces nothing — it is where the script reads the
+       gap from, resolved to pixels. */
+    column-gap: var(--gap-at);
+    width: 100dvw;
     margin-top: clamp(2rem, 4.5vw, 4rem);
+    overflow: hidden;
+    /* Vertical scrolling stays the page's; a sideways swipe is the shelf's. */
+    touch-action: pan-y;
+    outline: none;
   }
 
   .cs-strip__slot {
-    flex: 0 0 var(--w);
+    grid-area: 1 / 1;
+    width: var(--w);
+    translate: calc(var(--xw) * 1dvw + var(--xg) * var(--gap-at)) 0;
+    will-change: translate;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .cs-strip__shelf {
+      cursor: grab;
+    }
+
+    .cs-strip__shelf[data-dragging] {
+      cursor: grabbing;
+      user-select: none;
+    }
+  }
+
+  .cs-strip__shelf:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: -1px;
   }
 
   /* On a phone the shelf holds its crop but loosens: at a desktop's gaps the
      middle piece is all there is on the screen and the cut ones are off it. */
   @media (max-width: 48rem) {
     .cs-strip__shelf {
-      gap: calc(var(--gap) * 0.5);
+      --gap-at: calc(var(--gap) * 0.5);
     }
   }
 </style>

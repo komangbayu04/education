@@ -1,0 +1,132 @@
+---
+/**
+ * Case-study loop — a row of upright frames the width of the screen that is
+ * dragged round and never ends.
+ *
+ * A LOOP, NOT A ROW. Every frame sits in the same cell and is placed by a
+ * transform: the one in the middle full size, the rest smaller and spaced out
+ * either side, the outermost cut by the screen's edges. Dragging moves them all
+ * along together — the middle one shrinks as it leaves and the one arriving
+ * grows into its place — and the frames wrap round, so there is no end in
+ * either direction. The motion is initLoops in src/scripts/caseStudy.ts; the
+ * inline values here are the resting composition, so the row is already laid
+ * out before the script runs.
+ *
+ * The frames given are repeated as many times as it takes to fill the loop.
+ * Every frame is a placeholder until it is fed — see CaseStudyFrame.
+ */
+import CaseStudyFrame, { type FrameArt } from './CaseStudyFrame.astro';
+
+interface Props {
+  frames: FrameArt[];
+  /** The shape a frame is cut to when it does not say. */
+  ratio?: string;
+  /** Which of `frames` starts in the middle. */
+  start?: number;
+  /** What the row is, for a screen reader. */
+  label?: string;
+}
+
+const { frames, ratio = '0.81', start = 1, label = 'Pictures' } = Astro.props;
+
+/** Frames a loop needs so the same one never shows twice at once: the middle,
+ *  two either side on screen and one either side waiting off it. */
+const LOOP = 7;
+const slots = Array.from({ length: Math.ceil(LOOP / frames.length) * frames.length }, (_, i) => frames[i % frames.length]);
+/** The starting frame, in whichever copy puts it nearest the middle. */
+const START = Math.floor(slots.length / frames.length / 2) * frames.length + Math.min(start, frames.length - 1);
+/** A frame's distance from the middle, the short way round the loop. */
+const wrap = (d: number) => {
+  const n = slots.length;
+  return ((((d + n / 2) % n) + n) % n) - n / 2;
+};
+const empty = frames.every((art) => !art.src && !art.video);
+---
+
+<div
+  class="cs-loop"
+  data-cs-loop="scale"
+  data-start={START}
+  aria-hidden={empty || undefined}
+  tabindex={empty ? undefined : 0}
+  aria-roledescription={empty ? undefined : 'carousel'}
+  aria-label={empty ? undefined : `${label}. Use the arrow keys to move.`}
+>
+  {
+    slots.map((art, i) => {
+      const d = wrap(i - START);
+      const a = Math.abs(d);
+      return (
+        <div
+          class="cs-loop__slot"
+          data-cs-loop-slot={i}
+          style={`--sgn:${Math.sign(d)};--k1:${Math.min(a, 1)};--k2:${Math.max(a - 1, 0)}`}
+        >
+          <CaseStudyFrame {...art} fallbackRatio={ratio} />
+        </div>
+      );
+    })
+  }
+</div>
+
+<style>
+  /* The sizes, as custom properties so the script works from the same numbers
+     the stylesheet lays the row out with. A side frame is 21/26 of the middle
+     one on every screen, so that share is one number. */
+  .cs-loop {
+    --loop-lead: 26dvw;
+    --loop-ratio: 0.8077;
+    --loop-gap: 5dvw;
+    /* Centre to centre: the middle frame to its neighbour, and between two
+       neighbours further out. */
+    --loop-near: calc(var(--loop-lead) * (1 + var(--loop-ratio)) / 2 + var(--loop-gap));
+    --loop-far: calc(var(--loop-lead) * var(--loop-ratio) + var(--loop-gap));
+
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    /* One column, so this spaces nothing — it is where the script reads the
+       gap from, resolved to pixels. */
+    column-gap: var(--loop-gap);
+    width: 100dvw;
+    margin-left: calc(50% - 50dvw);
+    overflow: hidden;
+    /* Vertical scrolling stays the page's; a sideways swipe is the row's. */
+    touch-action: pan-y;
+    outline: none;
+  }
+
+  .cs-loop__slot {
+    grid-area: 1 / 1;
+    width: var(--loop-lead);
+    translate: calc(var(--sgn) * (var(--k1) * var(--loop-near) + var(--k2) * var(--loop-far))) 0;
+    scale: calc(1 - var(--k1) * (1 - var(--loop-ratio)));
+    will-change: translate, scale;
+  }
+
+  /* The hand says it can be taken hold of, and only where there is a cursor to
+     say it to. `grabbing` comes from the attribute the script puts on, so it
+     does not flick back the moment the pointer leaves a frame mid-drag. */
+  @media (hover: hover) and (pointer: fine) {
+    .cs-loop {
+      cursor: grab;
+    }
+
+    .cs-loop[data-dragging] {
+      cursor: grabbing;
+      user-select: none;
+    }
+  }
+
+  .cs-loop:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: -1px;
+  }
+
+  /* A phone is narrow enough that the desktop share is a thumbnail. */
+  @media (max-width: 48rem) {
+    .cs-loop {
+      --loop-lead: 52dvw;
+    }
+  }
+</style>
