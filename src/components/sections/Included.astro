@@ -585,11 +585,26 @@ const START = 1;
      and less, so the list bows out towards wherever the reader is — the shape
      follows the pointer down the column. `--shift` is written per line by
      included.ts; without it every line sits flush and the list is simply a
-     list. */
+     list.
+
+     A TRANSFORM, NOT PADDING. It was padding, and padding is layout: every
+     line that moved changed the width of the column, the column is set
+     against the right-hand edge, so the whole of it — label included — slid
+     sideways each time the pointer crossed a line. A translate moves what is
+     drawn and nothing that is measured, so the column and its label hold
+     still and only the words travel. It is also what the compositor can run
+     on its own, which is the difference between the stepped, stiff movement
+     there was and a smooth one.
+
+     Small steps and a long, soft ease: the arc is a lean towards the reader
+     rather than a slide, and a pointer running down the list should see the
+     shape flow after it rather than snap to each line. */
   .inc__arc-kind {
+    --arc-step: clamp(0.35rem, 0.85vw, 0.85rem);
+
     position: relative;
     display: block;
-    padding: 0 0 0 calc(var(--shift, 0) * clamp(0.5rem, 1.2vw, 1.25rem));
+    padding: 0;
     border: 0;
     background: none;
     font-family: inherit;
@@ -601,28 +616,61 @@ const START = 1;
     white-space: nowrap;
     color: rgb(255 255 255 / 0.3);
     cursor: pointer;
+    translate: calc(var(--shift, 0) * var(--arc-step)) 0;
     transition:
-      color 0.35s var(--ease-out-expo),
-      padding 0.5s var(--ease-out-expo);
+      translate 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+      color 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .inc__arc-kind[aria-current='true'],
-  .inc__arc-kind:hover,
   .inc__arc-kind:focus-visible {
     color: var(--color-ink-invert);
   }
 
-  /* A single square beside the line being read — the site's pixel, pointing. */
-  .inc__arc-kind[aria-current='true']::before {
+  /* Hover lifts a line only part of the way, so the one the pointer is on and
+     the one the picture belongs to are never confused for a frame between
+     them. */
+  .inc__arc-kind:hover:not([aria-current='true']) {
+    color: rgb(255 255 255 / 0.6);
+  }
+
+  /* A single square beside the line being read — the site's pixel, pointing.
+     Every line carries one and only the current line's is shown, so it fades
+     and settles into place rather than blinking from one line to the next. */
+  .inc__arc-kind::before {
     content: '';
     position: absolute;
     top: 50%;
-    left: calc(var(--shift, 0) * clamp(0.5rem, 1.2vw, 1.25rem) - 2.25rem);
+    left: -2.25rem;
     width: 0.625rem;
     aspect-ratio: 1;
     background: var(--color-ink-invert);
+    opacity: 0;
     translate: 0 -50%;
     rotate: 20deg;
+    scale: 0.4;
+    transition:
+      opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      scale 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .inc__arc-kind[aria-current='true']::before {
+    opacity: 1;
+    scale: 1;
+  }
+
+  /* The picture crossfades on the same clock as the words, so the two arrive
+     together. */
+  .inc__duo-shot {
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .inc__arc-kind,
+    .inc__arc-kind::before,
+    .inc__duo-shot {
+      transition: none;
+    }
   }
 
   /* --- The coverage ---------------------------------------------------------
@@ -873,12 +921,12 @@ const START = 1;
     }
 
     .inc__arc-kind {
-      padding-left: 0;
+      translate: none;
       font-size: clamp(1.25rem, 6vw, 1.75rem);
       white-space: normal;
     }
 
-    .inc__arc-kind[aria-current='true']::before {
+    .inc__arc-kind::before {
       display: none;
     }
   }
