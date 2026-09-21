@@ -93,6 +93,10 @@ const FEATURE = '3 / 4';
 <style>
   .cs-cast {
     padding-block: var(--cs-section-y, clamp(3rem, 6vw, 5.5rem));
+    /* Closer to the section above than the page's rhythm would put it: the
+       characters are the pictures that section's statement introduces, and at
+       the full gap they read as the start of something new. */
+    padding-top: calc(var(--cs-section-y, clamp(3rem, 6vw, 5.5rem)) * 0.3);
     /* What keeps the row's overflow off the page's scrollbar. */
     overflow: hidden;
   }
@@ -100,12 +104,14 @@ const FEATURE = '3 / 4';
   .cs-cast__trio {
     display: flex;
     align-items: center;
-    gap: 15dvw;
+    gap: 6dvw;
     width: 100dvw;
     margin-left: calc(50% - 50dvw);
-    /* Half the screen less half the widest character: enough for any of them
-       to sit on the screen's middle. */
-    padding-inline: calc(50dvw - 19.5dvw);
+    /* Half the screen less half the NARROWEST character: enough for every one
+       of them, the outer two included, to reach the screen's middle. Measured
+       against the widest it left the outer two 36px short of it at 1440, and a
+       row that settles on a character has to be able to centre each one. */
+    padding-inline: calc(50dvw - 10.5dvw);
     overflow-x: auto;
     scrollbar-width: none;
     overscroll-behavior-x: contain;
@@ -136,15 +142,18 @@ const FEATURE = '3 / 4';
     }
   }
 
+  /* Two thirds of what they were. At 39 and 32 per cent of the screen the
+     middle character alone was taller than the window, so the row could never
+     be seen whole — and the point of a cast is that you see them together. */
   .cs-cast__lead {
-    flex: 0 0 39dvw;
+    flex: 0 0 26dvw;
   }
 
   /* Shorter as well as narrower, and centred against the tall one — the frame
      has the pair sitting inside the middle frame's height rather than level
      with it. */
   .cs-cast__side {
-    flex: 0 0 32dvw;
+    flex: 0 0 21dvw;
   }
 
   /* A margin note: as far left as the page goes and no wider than a note needs
@@ -189,7 +198,17 @@ const FEATURE = '3 / 4';
      trio keeps its bleed, because a cut-off cast is the composition. */
   @media (max-width: 48rem) {
     .cs-cast__trio {
-      gap: 8dvw;
+      gap: 5dvw;
+      padding-inline: calc(50dvw - 21dvw);
+    }
+
+    /* A phone is narrow enough that the desktop share is a thumbnail. */
+    .cs-cast__lead {
+      flex-basis: 52dvw;
+    }
+
+    .cs-cast__side {
+      flex-basis: 42dvw;
     }
 
     .cs-cast__note {

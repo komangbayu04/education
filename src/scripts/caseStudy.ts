@@ -450,20 +450,62 @@ function initDragRail(rail: HTMLElement, cleanups: Array<() => void>): void {
   /** Pixels before a press counts as a drag rather than a click — below this a
    *  slightly unsteady hand on a link would cancel it. */
   const THRESHOLD = 4;
+  /** How far behind the hand the row follows, per frame. Lower is softer. */
+  const FOLLOW = 0.22;
+  /** How far a release carries on, as frames of the speed it was let go at. */
+  const CARRY = 14;
 
   let down = false;
   let dragged = false;
   let startX = 0;
   let startScroll = 0;
+  let target = 0;
+  let current = 0;
+  let frame = 0;
+  /* The last few pointer positions, for the speed at release. */
+  let trail: Array<{ x: number; t: number }> = [];
+  let settle: gsap.core.Tween | null = null;
+  let snapType = '';
+
+  /* SMOOTHED, NOT SET. It wrote the pointer's position straight into
+     scrollLeft on every move event, which is only as smooth as the mouse
+     reports — and the rail's own scroll-snap then pulled against every one of
+     those writes. Both showed as a row that jumped under the hand. Now the
+     hand only moves a target, and the row eases towards it a share of the way
+     each frame, with snapping switched off for as long as the hand is on it. */
+  const follow = () => {
+    current += (target - current) * FOLLOW;
+    if (Math.abs(target - current) < 0.5) current = target;
+    rail.scrollLeft = current;
+    frame = down || current !== target ? requestAnimationFrame(follow) : 0;
+  };
+
+  /** Where the row can come to rest: the positions of whatever it snaps to. */
+  const restingPoints = (): number[] => {
+    const points: number[] = [];
+    const padStart = parseFloat(getComputedStyle(rail).paddingLeft || '0');
+    [...rail.children].forEach((child) => {
+      const el = child as HTMLElement;
+      const align = getComputedStyle(el).scrollSnapAlign;
+      if (!align || align === 'none') return;
+      if (align.includes('center')) points.push(el.offsetLeft + el.offsetWidth / 2 - rail.clientWidth / 2);
+      else points.push(el.offsetLeft - padStart);
+    });
+    return points;
+  };
 
   rail.addEventListener(
     'pointerdown',
     (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
+      settle?.kill();
+      settle = null;
       down = true;
       dragged = false;
       startX = event.clientX;
       startScroll = rail.scrollLeft;
+      target = current = startScroll;
+      trail = [{ x: event.clientX, t: performance.now() }];
     },
     { signal },
   );
@@ -477,20 +519,61 @@ function initDragRail(rail: HTMLElement, cleanups: Array<() => void>): void {
       if (!dragged && Math.abs(delta) > THRESHOLD) {
         dragged = true;
         rail.setAttribute('data-dragging', '');
+        snapType = rail.style.scrollSnapType;
+        rail.style.scrollSnapType = 'none';
         /* Captured only once it is a drag, so the pointer can leave the rail
            mid-gesture without the row stopping dead at the edge. */
         if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
+        if (!frame) frame = requestAnimationFrame(follow);
       }
 
-      if (dragged) rail.scrollLeft = startScroll - delta;
+      if (dragged) {
+        target = startScroll - delta;
+        trail.push({ x: event.clientX, t: performance.now() });
+        if (trail.length > 5) trail.shift();
+      }
     },
     { signal },
   );
 
   const release = (event: PointerEvent) => {
+    if (!down) return;
     down = false;
     rail.removeAttribute('data-dragging');
     if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+    if (!dragged) return;
+
+    /* The speed it was let go at, carried on for a while and then brought to
+       the nearest resting point — so a flick travels and a slow release
+       settles where it is, and either way the row ends on a character rather
+       than between two. */
+    const first = trail[0];
+    const last = trail[trail.length - 1];
+    const dt = Math.max(1, last.t - first.t);
+    const speed = ((first.x - last.x) / dt) * 16.7;
+    const max = rail.scrollWidth - rail.clientWidth;
+    let end = Math.min(max, Math.max(0, target + speed * CARRY));
+
+    const points = restingPoints();
+    if (points.length) {
+      end = points.reduce((best, p) => (Math.abs(p - end) < Math.abs(best - end) ? p : best), points[0]);
+      end = Math.min(max, Math.max(0, end));
+    }
+
+    cancelAnimationFrame(frame);
+    frame = 0;
+    settle = gsap.to(rail, {
+      scrollLeft: end,
+      duration: 0.9,
+      ease: 'power3.out',
+      onUpdate: () => {
+        current = target = rail.scrollLeft;
+      },
+      onComplete: () => {
+        rail.style.scrollSnapType = snapType;
+        settle = null;
+      },
+    });
   };
 
   rail.addEventListener('pointerup', release, { signal });
@@ -511,7 +594,12 @@ function initDragRail(rail: HTMLElement, cleanups: Array<() => void>): void {
     { signal, capture: true },
   );
 
-  cleanups.push(() => controller.abort());
+  cleanups.push(() => {
+    controller.abort();
+    cancelAnimationFrame(frame);
+    settle?.kill();
+    rail.style.scrollSnapType = snapType;
+  });
 }
 
 /**
