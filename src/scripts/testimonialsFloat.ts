@@ -99,9 +99,8 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
   const body = section.querySelector<HTMLElement>('[data-tmf-lb-body]');
   const frame = section.querySelector<HTMLElement>('[data-tmf-lb-frame]');
   const video = section.querySelector<HTMLVideoElement>('[data-tmf-lb-video]');
-  const play = section.querySelector<HTMLButtonElement>('[data-tmf-lb-play]');
   const close = section.querySelector<HTMLButtonElement>('[data-tmf-lb-close]');
-  if (!dialog || !body || !frame || !video || !play || !close) return;
+  if (!dialog || !body || !frame || !video || !close) return;
   // No modal dialog, no lightbox — the previews still play in place.
   if (typeof dialog.showModal !== 'function') return;
 
@@ -129,6 +128,22 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
     else dialog.style.removeProperty('--tmf-ar');
   };
 
+  /**
+   * Starts the film WITH SOUND — the press that opened the popup, or the arrow
+   * that moved it on, is the gesture a browser asks for before it lets a page
+   * make a noise. If it refuses anyway (a strict autoplay setting, a device in
+   * silent mode that reports it as a refusal), the film still starts, muted,
+   * rather than sitting there stopped with nothing on it to press; a press on
+   * the film then brings the sound in.
+   */
+  const playWithSound = () => {
+    video.muted = false;
+    video.play().catch(() => {
+      video.muted = true;
+      void video.play().catch(() => {});
+    });
+  };
+
   /** Point the player and the words at one film. */
   const show = (index: number, withSound: boolean) => {
     const preview = films.get(index);
@@ -150,7 +165,7 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
       if (!el.hidden) panel = el;
     });
 
-    if (withSound) void video.play().catch(() => {});
+    if (withSound) playWithSound();
     return panel as HTMLElement | null;
   };
 
@@ -195,7 +210,7 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
     }
 
     // The press is the gesture that lets it play with sound.
-    void video.play().catch(() => {});
+    playWithSound();
   };
 
   let stepping = false;
@@ -287,22 +302,27 @@ function initLightbox(section: HTMLElement, previews: Previews, cleanups: Array<
     button.addEventListener('click', () => step(Number(button.dataset.tmfLbStep)), { signal });
   });
 
-  /* The play mark starts the film; once it is playing the browser's own
-     controls take over, and when it stops the mark comes back. */
-  play.addEventListener('click', () => void video.play().catch(() => {}), { signal });
-
+  /* No play mark and no controls. The film is its own control: a press on it
+     pauses and resumes — and if the browser made it start muted, the first
+     press brings the sound in instead of stopping it. */
   video.addEventListener(
-    'play',
+    'click',
     () => {
-      frame.setAttribute('data-playing', '');
-      video.controls = true;
+      if (video.muted) {
+        video.muted = false;
+        if (video.paused) void video.play().catch(() => {});
+        return;
+      }
+      if (video.paused) void video.play().catch(() => {});
+      else video.pause();
     },
     { signal },
   );
 
+  video.addEventListener('play', () => frame.setAttribute('data-playing', ''), { signal });
+
   const stopped = () => {
     frame.removeAttribute('data-playing');
-    video.controls = false;
   };
   video.addEventListener('pause', stopped, { signal });
   video.addEventListener('ended', stopped, { signal });

@@ -215,10 +215,7 @@ const spot = (i: number) => {
   ].join(';');
 };
 
-const badge = `<span class="tmf__badge" aria-hidden="true">
-  <svg class="tmf__badge-play" viewBox="0 0 12 14" fill="none"><path d="M12 7 0 14V0z" fill="currentColor" /></svg>
-  <svg class="tmf__badge-pause" viewBox="0 0 12 14" fill="none"><path d="M1 0h3v14H1zM8 0h3v14H8z" fill="currentColor" /></svg>
-</span>`;
+
 ---
 
 {
@@ -305,9 +302,7 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
                     type="button"
                     data-tmf-open={tile.film}
                     aria-label={`Watch ${tile.item.name}'s testimonial`}
-                  >
-                    <Fragment set:html={badge} />
-                  </button>
+                  />
                 </>
               ) : (
                 /* PLACEHOLDER. Decorative and inert — it stands for a film
@@ -338,15 +333,6 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     <div class="tmf__lb-body" data-tmf-lb-body>
       <div class="tmf__lb-frame" data-tmf-lb-frame>
         <video class="tmf__lb-video" data-tmf-lb-video playsinline preload="none"></video>
-        <button class="tmf__lb-play" type="button" data-tmf-lb-play aria-label="Play">
-          <svg viewBox="0 0 16 16" aria-hidden="true" shape-rendering="crispEdges">
-            <path
-              fill="currentColor"
-              fill-rule="evenodd"
-              d="M4 2h2v1h1v1h1v1h1v1h1v1h1v2h-1v1h-1v1h-1v1h-1v1h-1v1h-2zM6 5v6h1v-1h1v-1h1v-2h-1v-1h-1v-1z"
-            />
-          </svg>
-        </button>
       </div>
 
       {
@@ -614,40 +600,10 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     outline-offset: -3px;
   }
 
-  /* The badge in the middle of the film — a pause mark while the silent
-     preview runs, a play mark when it is not. Decorative: the button around
-     it carries the label.
-
-     :global throughout — the badge arrives through set:html, so it carries no
-     scoping attribute and a plain scoped selector matches none of it. */
-  .tmf__open :global(.tmf__badge) {
-    display: grid;
-    place-items: center;
-    width: clamp(1.875rem, 2.4vw, 2.6875rem);
-    aspect-ratio: 1;
-    background: var(--color-bg-primary);
-    color: var(--color-ink);
-    transition: scale 0.4s var(--ease-out-expo);
-  }
-
-  .tmf__open :global(.tmf__badge svg) {
-    grid-area: 1 / 1;
-    width: 0.6875rem;
-  }
-
-  .tmf__open :global(.tmf__badge-play) {
-    margin-left: 2px;
-  }
-
-  .tmf__film:not([data-playing]) :global(.tmf__badge-pause),
-  .tmf__film[data-playing] :global(.tmf__badge-play) {
-    display: none;
-  }
-
-  .tmf__open:hover :global(.tmf__badge),
-  .tmf__open:focus-visible :global(.tmf__badge) {
-    scale: 1.08;
-  }
+  /* NO BADGE. The film plays itself, muted, and the whole of it is the way
+     in — a play mark on something already playing says the opposite of what
+     is happening. The button over it keeps the label for anyone who cannot
+     see the film. */
 
   /* ===================== Lightbox =====================
      The section's own ground and rule, the film in the middle, the arrows at
@@ -749,39 +705,11 @@ const badge = `<span class="tmf__badge" aria-hidden="true">
     object-fit: cover;
   }
 
-  /* The play mark, square and white, on the middle of the film. While the
-     film plays it gives way to the browser's own controls. */
-  .tmf__lb-play {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    display: grid;
-    place-items: center;
-    width: clamp(2.5rem, 3.4vw, 3rem);
-    aspect-ratio: 1;
-    padding: 0;
-    border: 0;
-    background: #fff;
-    color: var(--color-ink);
-    translate: -50% -50%;
+  /* No play mark and no controls: the film starts with sound as the popup
+     opens, and the film itself is the one control — pressing it pauses and
+     resumes (testimonialsFloat.ts). */
+  .tmf__lb-video {
     cursor: pointer;
-    transition:
-      scale 0.3s var(--ease-out-expo),
-      opacity 0.2s ease;
-  }
-
-  .tmf__lb-play svg {
-    width: 55%;
-  }
-
-  .tmf__lb-play:hover,
-  .tmf__lb-play:focus-visible {
-    scale: 1.08;
-  }
-
-  .tmf__lb-frame[data-playing] .tmf__lb-play {
-    opacity: 0;
-    pointer-events: none;
   }
 
   .tmf__lb-panel {
