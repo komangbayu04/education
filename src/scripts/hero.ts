@@ -241,22 +241,49 @@ export function initHero(): () => void {
 
   /* And then the sentence, on a frame that has stopped moving — and a beat of
      pin after it with nothing happening at all, which is the whole of what
-     "read this before the page goes on" costs. */
-  if (reveal) {
+     "read this before the page goes on" costs.
+
+     A LINE AT A TIME, OUT OF FOCUS. It came up as one block, the three lines
+     fading in together and flat, which read as a caption being switched on.
+     Now the block itself is simply turned on at the start of the stretch and
+     each line arrives in turn under it: rising a little, fading up and
+     sharpening out of a blur, the next one starting before the last has
+     settled. The blur is what takes the flatness out — the words come into
+     focus over the landscape rather than appearing on top of it.
+
+     The stretch is the same `TEXT_FOR`, shared out: each line takes a little
+     over half of it and they start a fifth of it apart, so the last is sharp
+     exactly when the old block used to be. Scrubbed like everything else in
+     the scene, so it runs backwards and out of focus again on the way up. */
+  const lines = reveal ? gsap.utils.toArray<HTMLElement>('.hero__reveal-line', reveal) : [];
+  if (reveal && lines.length) {
+    const each = TEXT_FOR * 0.55;
+    const gap = lines.length > 1 ? (TEXT_FOR - each) / (lines.length - 1) : 0;
+
+    tl.set(reveal, { autoAlpha: 1 }, TEXT_AT);
     tl.fromTo(
-      reveal,
-      { autoAlpha: 0, y: 16 },
+      lines,
+      { autoAlpha: 0, y: 22, filter: 'blur(14px)' },
       {
         autoAlpha: 1,
         y: 0,
-        duration: TEXT_FOR,
+        filter: 'blur(0px)',
+        duration: each,
+        stagger: gap,
         ease: 'power2.out',
-        immediateRender: false,
-        onStart: () => reveal.setAttribute('aria-hidden', 'false'),
-        onReverseComplete: () => reveal.setAttribute('aria-hidden', 'true'),
+        /* Rendered at build, which the other tweens here are not. The block is
+           turned on at the start of the stretch, and a line whose own turn has
+           not come yet would otherwise be sitting there sharp and at full
+           strength under it — measured just after the start, the second and
+           third lines were fully drawn while the first was still coming into
+           focus. Parked at their start instead, which is invisible anyway
+           until the block is turned on. */
+        immediateRender: true,
       },
       TEXT_AT,
     );
+    tl.call(() => reveal.setAttribute('aria-hidden', 'false'), undefined, TEXT_AT + 0.001);
+    tl.call(() => reveal.setAttribute('aria-hidden', 'true'), undefined, TEXT_AT);
   }
 
   return () => {
@@ -275,6 +302,7 @@ export function initHero(): () => void {
     });
     if (reveal) {
       gsap.set(reveal, { clearProps: 'opacity,visibility,transform' });
+      if (lines.length) gsap.set(lines, { clearProps: 'opacity,visibility,transform,filter' });
       reveal.setAttribute('aria-hidden', 'true');
     }
     ScrollTrigger.refresh();
