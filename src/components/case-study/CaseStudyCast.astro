@@ -4,10 +4,10 @@
  *
  * Four parts, in the order the frame reads:
  *
- *   the trio     three upright frames across the top, wider than the screen: the
- *                middle one is centred and taller, the two beside it are cut by
- *                the left and right edges. Being cut is the point — it says
- *                there is a cast rather than three pictures.
+ *   the trio     upright frames across the top in a loop that can be dragged:
+ *                the middle one centred and larger, the rest smaller either
+ *                side, the outermost cut by the edges. Being cut is the point —
+ *                it says there is a cast rather than a few pictures.
  *
  *   the note     a narrow paragraph at the far left under them, the width of a
  *                margin note.
@@ -23,8 +23,9 @@ import CaseStudyFrame, { type FrameArt } from './CaseStudyFrame.astro';
 
 interface Props {
   id?: string;
-  /** Exactly three, left to right. The middle one is the tall one. */
-  trio: [FrameArt, FrameArt, FrameArt];
+  /** The characters, in order. The row starts on the second one. Repeated
+   *  as many times as it takes to fill a loop wider than the screen. */
+  trio: FrameArt[];
   /** The margin note under the trio. */
   note?: string;
   eyebrow?: string;
@@ -41,34 +42,53 @@ const labelId = `${id}-label`;
 const CHARACTER = '0.81';
 /** And the feature under the statement, which is taller again. */
 const FEATURE = '3 / 4';
+
+/** Frames a loop needs so that the same one never shows twice at once: the
+ *  middle, two either side on screen and one either side waiting off it. */
+const LOOP = 7;
+const slots = Array.from({ length: Math.ceil(LOOP / trio.length) * trio.length }, (_, i) => trio[i % trio.length]);
+/** The second character, in whichever copy puts it nearest the middle. */
+const START = Math.floor(slots.length / trio.length / 2) * trio.length + Math.min(1, trio.length - 1);
+/** A frame's distance from the middle, the short way round the loop. */
+const wrap = (d: number) => {
+  const n = slots.length;
+  return ((((d + n / 2) % n) + n) % n) - n / 2;
+};
+const empty = trio.every((art) => !art.src && !art.video);
 ---
 
 <section class="cs-cast" aria-labelledby={labelId} data-cs-reveal>
-  {/* WIDER THAN THE WINDOW, AND IT SLIDES. The row is a scroller the width of
-      the screen with the characters laid across it, so at rest the middle one
-      is on the screen's own axis and the outer two are cut by both edges —
-      and a swipe, a trackpad, a shift-wheel or a drag moves along the row.
-      Where it starts and the drag itself are in src/scripts/caseStudy.ts;
-      everything else here is the browser's own scrolling, which is better than
-      anything a script could do for a touch screen.
-
-      The padding on the ends is what lets the first and last characters reach
-      the middle of the screen — without it they stop against the edges and
-      the row cannot centre them. */}
+  {/* A LOOP, NOT A ROW. Every frame sits in the same cell and is placed by a
+      transform: the one in the middle full size, the rest smaller and spaced
+      out either side, the outermost cut by the screen's edges. Dragging moves
+      them all along together — the middle one shrinks as it leaves and the one
+      arriving grows into its place — and the cast wraps round, so there is no
+      end in either direction. The motion is src/scripts/caseStudy.ts; the
+      inline positions here are the resting composition, so the row is already
+      laid out before the script runs. */}
   <div
     class="cs-cast__trio"
-    data-cast-rail
-    aria-hidden={trio.every((art) => !art.src && !art.video) || undefined}
+    data-cast-loop
+    data-start={START}
+    aria-hidden={empty || undefined}
+    tabindex={empty ? undefined : 0}
+    aria-roledescription={empty ? undefined : 'carousel'}
+    aria-label={empty ? undefined : 'Characters. Use the arrow keys to move.'}
   >
-    {/* Each frame in a box of this section's own. A scoped rule cannot reach
-        into another component, so the sizing lives on the wrapper and the frame
-        simply fills it. */}
     {
-      trio.map((art, i) => (
-        <div class:list={['cs-cast__slot', i === 1 ? 'cs-cast__lead' : 'cs-cast__side']}>
-          <CaseStudyFrame {...art} fallbackRatio={CHARACTER} />
-        </div>
-      ))
+      slots.map((art, i) => {
+        const d = wrap(i - START);
+        const a = Math.abs(d);
+        return (
+          <div
+            class="cs-cast__slot"
+            data-cast-slot={i}
+            style={`--sgn:${Math.sign(d)};--k1:${Math.min(a, 1)};--k2:${Math.max(a - 1, 0)}`}
+          >
+            <CaseStudyFrame {...art} fallbackRatio={CHARACTER} />
+          </div>
+        );
+      })
     }
   </div>
 
@@ -101,31 +121,38 @@ const FEATURE = '3 / 4';
     overflow: hidden;
   }
 
+  /* The sizes, as custom properties so the script reads the same numbers the
+     stylesheet lays out with. A side frame is 21/26 of the middle one on every
+     screen, so that share is one number. */
   .cs-cast__trio {
-    display: flex;
+    --cast-lead: 26dvw;
+    --cast-ratio: 0.8077;
+    --cast-gap: 5dvw;
+    /* Centre to centre: the middle frame to its neighbour, and between two
+       neighbours further out. */
+    --cast-near: calc(var(--cast-lead) * (1 + var(--cast-ratio)) / 2 + var(--cast-gap));
+    --cast-far: calc(var(--cast-lead) * var(--cast-ratio) + var(--cast-gap));
+
+    display: grid;
     align-items: center;
-    gap: 6dvw;
+    justify-items: center;
+    /* One column, so this spaces nothing — it is where the script reads the
+       gap from, resolved to pixels. */
+    column-gap: var(--cast-gap);
     width: 100dvw;
     margin-left: calc(50% - 50dvw);
-    /* Half the screen less half the NARROWEST character: enough for every one
-       of them, the outer two included, to reach the screen's middle. Measured
-       against the widest it left the outer two 36px short of it at 1440, and a
-       row that settles on a character has to be able to centre each one. */
-    padding-inline: calc(50dvw - 10.5dvw);
-    overflow-x: auto;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
-    /* Settles on a character rather than between two, without fighting a
-       deliberate scroll to somewhere in between. */
-    scroll-snap-type: x proximity;
-  }
-
-  .cs-cast__trio::-webkit-scrollbar {
-    display: none;
+    overflow: hidden;
+    /* Vertical scrolling stays the page's; a sideways swipe is the row's. */
+    touch-action: pan-y;
+    outline: none;
   }
 
   .cs-cast__slot {
-    scroll-snap-align: center;
+    grid-area: 1 / 1;
+    width: var(--cast-lead);
+    translate: calc(var(--sgn) * (var(--k1) * var(--cast-near) + var(--k2) * var(--cast-far))) 0;
+    scale: calc(1 - var(--k1) * (1 - var(--cast-ratio)));
+    will-change: translate, scale;
   }
 
   /* The hand says it can be taken hold of, and only where there is a cursor to
@@ -142,18 +169,9 @@ const FEATURE = '3 / 4';
     }
   }
 
-  /* Two thirds of what they were. At 39 and 32 per cent of the screen the
-     middle character alone was taller than the window, so the row could never
-     be seen whole — and the point of a cast is that you see them together. */
-  .cs-cast__lead {
-    flex: 0 0 26dvw;
-  }
-
-  /* Shorter as well as narrower, and centred against the tall one — the frame
-     has the pair sitting inside the middle frame's height rather than level
-     with it. */
-  .cs-cast__side {
-    flex: 0 0 21dvw;
+  .cs-cast__trio:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: -1px;
   }
 
   /* A margin note: as far left as the page goes and no wider than a note needs
@@ -197,18 +215,10 @@ const FEATURE = '3 / 4';
      The indents go: at this measure they are lost width and nothing else. The
      trio keeps its bleed, because a cut-off cast is the composition. */
   @media (max-width: 48rem) {
-    .cs-cast__trio {
-      gap: 5dvw;
-      padding-inline: calc(50dvw - 21dvw);
-    }
-
     /* A phone is narrow enough that the desktop share is a thumbnail. */
-    .cs-cast__lead {
-      flex-basis: 52dvw;
-    }
-
-    .cs-cast__side {
-      flex-basis: 42dvw;
+    .cs-cast__trio {
+      --cast-lead: 52dvw;
+      --cast-gap: 5dvw;
     }
 
     .cs-cast__note {

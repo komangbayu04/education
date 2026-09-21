@@ -431,15 +431,15 @@ function initVideos(cleanups: Array<() => void>): void {
  * is reimplemented here. This adds the one thing a scroller does not give a
  * mouse: dragging it.
  *
- * Applied to every rail on these pages that is meant to be pulled — the
- * marketing row and the cast's characters.
+ * Applied to the marketing row. The cast is a loop with motion of its own —
+ * see initCastLoop.
  *
  * Touch is left alone deliberately — the browser's own scrolling is better than
  * anything driven off pointer events, and taking it over would cost the fling
  * and the rubber-banding with it.
  */
 function initDragRails(cleanups: Array<() => void>): void {
-  const rails = gsap.utils.toArray<HTMLElement>('[data-cs-mkt-rail], [data-cast-rail]');
+  const rails = gsap.utils.toArray<HTMLElement>('[data-cs-mkt-rail]');
   rails.forEach((rail) => initDragRail(rail, cleanups));
 }
 
@@ -603,54 +603,224 @@ function initDragRail(rail: HTMLElement, cleanups: Array<() => void>): void {
 }
 
 /**
- * The cast's row, which starts in the middle rather than at its left end.
+ * The cast — a loop of characters that is dragged round.
  *
- * The three characters are laid across a scroller a screen wide with padding at
- * both ends, so the row's resting composition — the middle one centred, the
- * outer two cut by the edges — is a scroll position rather than a layout. It
- * has to be set, because a scroller opens at 0, which here is a screen of
- * padding with the first character at the far right of it.
+ * Every frame sits in the same cell and is placed from one number, `pos`: the
+ * frame at index `pos` is in the middle, full size, and every other one sits
+ * its distance from it along the row, a side frame's size. Between two whole
+ * numbers the two frames either side of the middle trade places — the one
+ * leaving shrinks as it goes, the one arriving grows into the middle — because
+ * size is worked out from distance, not from being "the current one".
  *
- * Only before the reader has touched it: once they have moved the row, where it
- * sits is theirs, and a resize that yanked it back to the middle would be the
- * page taking the gesture away.
+ * Distances are taken the short way round the loop, so there is no end: a
+ * frame that leaves one edge far enough is already waiting off the other.
+ *
+ * The hand moves a target and the row eases towards it each frame, so it is
+ * as smooth as the screen rather than as the mouse. Let go, and the speed it
+ * was let go at carries it on a little before it settles on the nearest
+ * character. Touch, a sideways trackpad swipe, a click on a side frame and the
+ * arrow keys all move it the same way.
  */
-function initCastRail(cleanups: Array<() => void>): void {
-  const rail = document.querySelector<HTMLElement>('[data-cast-rail]');
+function initCastLoop(cleanups: Array<() => void>): void {
+  const rail = document.querySelector<HTMLElement>('[data-cast-loop]');
   if (!rail) return;
+  const slots = gsap.utils.toArray<HTMLElement>('[data-cast-slot]', rail);
+  const n = slots.length;
+  if (n < 2) return;
 
-  const slots = gsap.utils.toArray<HTMLElement>('.cs-cast__slot', rail);
-  const middle = slots[Math.floor(slots.length / 2)];
-  if (!middle) return;
+  const THRESHOLD = 4;
+  /** How far behind the hand the row follows, per frame. Lower is softer. */
+  const FOLLOW = 0.2;
+  /** How far a release carries on, as frames of the speed it was let go at. */
+  const CARRY = 12;
+  const reduced = prefersReducedMotion();
 
-  let moved = false;
+  let pos = Number(rail.dataset.start) || 0;
+  let target = pos;
+  let near = 1;
+  let far = 1;
+  let ratio = 0.8;
+  let frame = 0;
+  let settle: gsap.core.Tween | null = null;
+  let down = false;
+  let dragged = false;
+  let startX = 0;
+  let startPos = 0;
+  let trail: Array<{ x: number; t: number }> = [];
 
-  const centre = () => {
-    if (moved) return;
-    /* `offsetLeft` is measured inside the scroller, so it already includes the
-       padding at the start of the row. */
-    rail.scrollLeft = middle.offsetLeft + middle.offsetWidth / 2 - rail.clientWidth / 2;
+  /** A frame's distance from the middle, the short way round the loop. */
+  const offset = (i: number) => ((((i - pos + n / 2) % n) + n) % n) - n / 2;
+
+  /* The numbers the stylesheet lays the resting row out with, in pixels. The
+     gap is the rail's `column-gap`, which the browser hands back resolved. */
+  const measure = () => {
+    const style = getComputedStyle(rail);
+    const lead = slots[0].offsetWidth;
+    const gap = parseFloat(style.columnGap) || 0;
+    ratio = parseFloat(style.getPropertyValue('--cast-ratio')) || 0.8;
+    near = (lead * (1 + ratio)) / 2 + gap;
+    far = lead * ratio + gap;
   };
 
-  centre();
+  const place = () => {
+    slots.forEach((slot, i) => {
+      const d = offset(i);
+      const a = Math.abs(d);
+      const x = Math.sign(d) * (Math.min(a, 1) * near + Math.max(a - 1, 0) * far);
+      slot.style.translate = `${x.toFixed(2)}px 0`;
+      slot.style.scale = (1 - Math.min(a, 1) * (1 - ratio)).toFixed(4);
+    });
+  };
+
+  const run = () => {
+    pos += (target - pos) * FOLLOW;
+    if (Math.abs(target - pos) < 0.0005) pos = target;
+    place();
+    frame = down || pos !== target ? requestAnimationFrame(run) : 0;
+  };
+
+  const start = () => {
+    if (!frame) frame = requestAnimationFrame(run);
+  };
+
+  /* Brought to rest on a character by a tween rather than the follow, so the
+     last stretch decelerates to a stop instead of creeping up on it. */
+  const goTo = (end: number, duration = 0.9) => {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    settle?.kill();
+    const state = { p: pos };
+    settle = gsap.to(state, {
+      p: end,
+      duration: reduced ? 0 : duration,
+      ease: 'power3.out',
+      onUpdate: () => {
+        pos = target = state.p;
+        place();
+      },
+      onComplete: () => {
+        settle = null;
+      },
+    });
+  };
 
   const controller = new AbortController();
   const { signal } = controller;
 
-  /* Anything the reader does to the row counts, including a fling that is
-     still settling — so the flag is set on the scroll itself rather than on
-     the gestures, and set after the first centring has already happened. */
-  rail.addEventListener('pointerdown', () => { moved = true; }, { signal });
-  rail.addEventListener('wheel', () => { moved = true; }, { signal, passive: true });
-  rail.addEventListener('touchstart', () => { moved = true; }, { signal, passive: true });
+  rail.addEventListener(
+    'pointerdown',
+    (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      settle?.kill();
+      settle = null;
+      down = true;
+      dragged = false;
+      startX = event.clientX;
+      startPos = target = pos;
+      trail = [{ x: event.clientX, t: performance.now() }];
+    },
+    { signal },
+  );
 
-  /* The row is sized in `dvw`, so its geometry changes with the window. */
-  const observer = new ResizeObserver(centre);
+  rail.addEventListener(
+    'pointermove',
+    (event: PointerEvent) => {
+      if (!down) return;
+      const delta = event.clientX - startX;
+      if (!dragged && Math.abs(delta) > THRESHOLD) {
+        dragged = true;
+        rail.setAttribute('data-dragging', '');
+        if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
+        start();
+      }
+      if (!dragged) return;
+      /* A middle-to-neighbour distance of hand moves the row one character. */
+      target = startPos - delta / near;
+      trail.push({ x: event.clientX, t: performance.now() });
+      if (trail.length > 5) trail.shift();
+    },
+    { signal },
+  );
+
+  const release = (event: PointerEvent) => {
+    if (!down) return;
+    down = false;
+    rail.removeAttribute('data-dragging');
+    if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+
+    if (!dragged) {
+      /* A click on a side frame brings that one to the middle. */
+      const slot = (event.target as HTMLElement).closest<HTMLElement>('[data-cast-slot]');
+      if (!slot) return;
+      const d = offset(Number(slot.dataset.castSlot));
+      if (Math.abs(d) > 0.5) goTo(Math.round(pos + d));
+      return;
+    }
+
+    const first = trail[0];
+    const last = trail[trail.length - 1];
+    const dt = Math.max(1, last.t - first.t);
+    const speed = ((first.x - last.x) / dt) * 16.7;
+    goTo(Math.round(target + (speed * CARRY) / near));
+  };
+
+  rail.addEventListener('pointerup', release, { signal });
+  rail.addEventListener('pointercancel', release, { signal });
+
+  /* A drag that moved must not also open whatever it finished on top of. */
+  rail.addEventListener(
+    'click',
+    (event) => {
+      if (!dragged) return;
+      event.preventDefault();
+      event.stopPropagation();
+      dragged = false;
+    },
+    { signal, capture: true },
+  );
+
+  /* A sideways swipe on a trackpad. A vertical wheel is the page's. */
+  let wheelEnd = 0;
+  rail.addEventListener(
+    'wheel',
+    (event: WheelEvent) => {
+      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      settle?.kill();
+      settle = null;
+      target += event.deltaX / near;
+      start();
+      clearTimeout(wheelEnd);
+      wheelEnd = window.setTimeout(() => goTo(Math.round(target), 0.7), 140);
+    },
+    { signal, passive: false },
+  );
+
+  rail.addEventListener(
+    'keydown',
+    (event: KeyboardEvent) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      goTo(Math.round(target) + (event.key === 'ArrowRight' ? 1 : -1), 0.7);
+    },
+    { signal },
+  );
+
+  /* The sizes are in dvw, so the spacing changes with the window. */
+  const observer = new ResizeObserver(() => {
+    measure();
+    place();
+  });
   observer.observe(rail);
+  measure();
+  place();
 
   cleanups.push(() => {
     controller.abort();
     observer.disconnect();
+    cancelAnimationFrame(frame);
+    clearTimeout(wheelEnd);
+    settle?.kill();
   });
 }
 
@@ -710,7 +880,7 @@ export function initCaseStudy(): () => void {
   initRail(cleanups);
   initVideos(cleanups);
   initDragRails(cleanups);
-  initCastRail(cleanups);
+  initCastLoop(cleanups);
   initExperience(cleanups);
   cleanups.push(initCaseStudyReveal());
 
