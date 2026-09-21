@@ -45,6 +45,9 @@ export function initIncluded(): () => void {
     if (!list || !pairs.length) return;
 
     const kinds = [...list.querySelectorAll<HTMLButtonElement>('[data-inc-kind]')];
+    /* A frame that takes the shape of the picture in it, where the scope has
+       one — Checklist + list. The stylesheet eases the change. */
+    const frame = scope.querySelector<HTMLElement>('[data-inc-frame]');
 
     const show = (index: number) => {
       kinds.forEach((kind) => {
@@ -57,7 +60,9 @@ export function initIncluded(): () => void {
         }
       });
       pairs.forEach((pair) => {
-        pair.toggleAttribute('data-on', Number(pair.dataset.incPair) === index);
+        const on = Number(pair.dataset.incPair) === index;
+        pair.toggleAttribute('data-on', on);
+        if (on && frame && pair.dataset.ratio) frame.style.setProperty('--inc-ratio', pair.dataset.ratio);
       });
     };
 

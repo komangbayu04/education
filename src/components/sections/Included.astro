@@ -120,39 +120,27 @@ for (let row = 0; row < TRI_ROWS; row += 1) {
 const START = 1;
 
 /**
- * The colour of each picture's own top and bottom edges, for Checklist + list.
+ * The shape of each picture, for Checklist + list.
  *
- * That layout shows every picture WHOLE inside a square, so a landscape shot
- * leaves a band above and below it. Filled with a colour of its own choosing
- * the band would read as a mount; filled with the picture's own edge it reads
- * as more of the picture. So the edge is measured here, at build, off the file
- * the page is going to serve: the top and bottom rows, averaged, and the two
- * averaged again — a shot is framed by one colour, not two.
+ * That layout's frame takes the shape of whichever picture is showing, and
+ * eases from one shape to the next as the reader moves down the list — so
+ * every picture is shown whole and at its own proportions, with no band above
+ * or below it and nothing cut off its sides. The shapes are read here, at
+ * build, off the files the page is going to serve.
  */
 import sharp from 'sharp';
 
-const edgeColour = async (shot: string): Promise<string> => {
+const shapeOf = async (shot: string): Promise<number> => {
   try {
-    const file = `public/media/${shot}.webp`;
-    const { width = 0, height = 0 } = await sharp(file).metadata();
-    const band = Math.max(1, Math.round(height * 0.02));
-    const mean = async (top: number) => {
-      const { channels } = await sharp(file)
-        .extract({ left: 0, top, width, height: band })
-        .stats();
-      return channels.slice(0, 3).map((c) => c.mean);
-    };
-    const [a, b] = await Promise.all([mean(0), mean(height - band)]);
-    const [r, g, bl] = a.map((v, i) => Math.round((v + b[i]) / 2));
-    return `rgb(${r} ${g} ${bl})`;
+    const { width = 1, height = 1 } = await sharp(`public/media/${shot}.webp`).metadata();
+    return Number((width / height).toFixed(4));
   } catch {
-    /* A file that cannot be read is a band of the section's own black, which
-       is what it would have been with no measuring at all. */
-    return 'rgb(0 0 0)';
+    /* A file that cannot be read gets a square, which is what the frame was. */
+    return 1;
   }
 };
 
-const pads = await Promise.all(cover.map((item) => edgeColour(item.shots[0])));
+const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
 ---
 
 <section
@@ -228,17 +216,19 @@ const pads = await Promise.all(cover.map((item) => edgeColour(item.shots[0])));
       </ul>
 
       <div class="inc__duo-shots" aria-hidden="true">
+        <div class="inc__duo-frame" data-inc-frame style={`--inc-ratio:${shapes[START]}`}>
         {cover.map((item, i) => (
           <picture
             class="inc__duo-shot"
             data-inc-pair={i}
             data-on={i === START ? '' : undefined}
-            style={`--pad:${pads[i]}`}
+            data-ratio={shapes[i]}
           >
             <source srcset={`/media/${item.shots[0]}.avif`} type="image/avif" />
             <img src={`/media/${item.shots[0]}.webp`} alt="" loading="lazy" decoding="async" />
           </picture>
         ))}
+        </div>
       </div>
     </div>
 
@@ -303,6 +293,14 @@ const pads = await Promise.all(cover.map((item) => edgeColour(item.shots[0])));
 </section>
 
 <style>
+  /* The frame's shape in Checklist + list, registered so it can be eased —
+     see `.inc__duo-shots`. */
+  @property --inc-ratio {
+    syntax: '<number>';
+    inherits: false;
+    initial-value: 1;
+  }
+
   .inc {
     /* How far this section is pulled up under Two ways in's last screen, and
        the length of the fade between them. One window: the offer panel
@@ -583,16 +581,40 @@ const pads = await Promise.all(cover.map((item) => edgeColour(item.shots[0])));
     color: rgb(255 255 255 / 0.7);
   }
 
-  /* The picture of the kind of work being read. One cell holds all nine and
-     only the current one is painted, so the column never changes height as
-     the reader moves down the list. */
+  /* The picture of the kind of work being read, in a frame the shape of the
+     picture. One cell holds all nine and only the current one is painted.
+
+     THE SHAPE EASES. `--inc-ratio` is written by included.ts from the picture
+     that is showing, and it is a REGISTERED property — a number the browser
+     knows how to interpolate — so moving from a wide shot to a square one is
+     the frame growing taller over most of a second rather than jumping. An
+     unregistered custom property changes in one frame, which is what
+     `aspect-ratio` on its own would have done too. The frame is anchored to
+     the foot of its column, so it grows and shrinks upwards and nothing under
+     it moves. */
+  /* THE SLOT IS SQUARE AND THE FRAME SITS AT ITS FOOT. The slot reserves the
+     tallest shape any picture here has, so the column — and the section, and
+     everything under the section — is the same height whichever picture is
+     showing; the frame inside it takes the picture's shape and grows and
+     shrinks upwards from the slot's bottom edge. Without the slot a square
+     picture made the column taller than its row and pushed the rest of the
+     page down by 113px each time the reader landed on one. */
   .inc__duo-shots {
     display: grid;
+    align-items: end;
     width: min(100%, 26rem);
     aspect-ratio: 1;
     margin-top: auto;
     padding-top: clamp(2rem, 6svh, 4rem);
     box-sizing: content-box;
+  }
+
+  .inc__duo-frame {
+    display: grid;
+    width: 100%;
+    aspect-ratio: var(--inc-ratio);
+    overflow: hidden;
+    transition: --inc-ratio 0.8s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .inc__duo-shot {
@@ -606,21 +628,16 @@ const pads = await Promise.all(cover.map((item) => edgeColour(item.shots[0])));
     opacity: 1;
   }
 
-  /* WHOLE, NOT CROPPED. The square is the slot and the picture is fitted
-     inside it at its own shape; whatever it leaves above and below is filled
-     with the picture's own edge colour, measured at build (see `pads`), so the
-     band reads as more of the picture rather than as a mount around it. It was
-     `cover`, which cut a landscape shot down to its middle square — a website
-     losing both its sides. */
-  .inc__duo-shot {
-    background: var(--pad, #000);
-  }
-
+  /* `cover`, because at rest the frame IS the picture's shape and there is
+     nothing to cut. It only matters for the moment the frame is between two
+     shapes, and there a picture that fills the frame and is trimmed a little
+     at its edges reads as one picture settling; one that sits inside it with
+     bands above and below reads as a box being resized around it. */
   .inc__duo-shot img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
   }
 
   /* The column is its whole grid track, and the list inside it is as wide as
@@ -739,7 +756,8 @@ const pads = await Promise.all(cover.map((item) => edgeColour(item.shots[0])));
   @media (prefers-reduced-motion: reduce) {
     .inc__arc-kind,
     .inc__arc-kind::before,
-    .inc__duo-shot {
+    .inc__duo-shot,
+    .inc__duo-frame {
       transition: none;
     }
   }
