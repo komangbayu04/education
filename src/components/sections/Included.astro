@@ -611,6 +611,15 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
 
   .inc__duo-frame {
     display: grid;
+    /* ONE TRACK THE FRAME'S OWN SIZE. Left to itself the grid's one row sized
+       to the tallest thing in it — the square picture, 416px, even while the
+       frame itself was 234 — so every picture was stretched to a square and
+       `cover` cut its sides off to fill it; the frame was the right shape and
+       the picture in it was not. Measured on the pitch deck: "Zaha Studio" lost
+       its first letters. Zero-floored tracks take the frame's size instead of
+       their content's. */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     width: 100%;
     aspect-ratio: var(--inc-ratio);
     overflow: hidden;
