@@ -240,7 +240,7 @@ const bands = {
   .cs-next__copy {
     max-width: 30em;
     margin-top: clamp(0.625rem, 1.2vw, 1rem);
-    font-size: var(--text-caption);
+    font-size: var(--text-body);
     line-height: 1.55;
   }
 
@@ -248,17 +248,22 @@ const bands = {
      Square, not a pill: the pills in this section are the tags, and the two
      must not read as the same control. */
   .cs-next__cta {
+    /* THE SITE'S BUTTON: the hero's, to the property — 45px tall, 24px
+       either side, 4px corners, 12px medium caps at 0.06em. Every button on
+       the homepage and the case studies is this one. */
     display: inline-flex;
     align-items: center;
+    height: 45px;
     margin-top: clamp(1.25rem, 2.6vw, 2rem);
-    padding: 0.9rem 1.5rem;
+    padding: 0 1.5rem;
+    border-radius: 4px;
     /* Inverted with the ground. It was ink on white, which on black is a
        button the same colour as the section it sits in. */
     background: var(--color-bg-primary);
     color: var(--color-ink);
-    font-size: var(--text-caption);
+    font-size: 0.75rem;
     font-weight: 500;
-    letter-spacing: var(--tracking-wide);
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     transition: background-color 0.3s;
   }
@@ -336,7 +341,8 @@ const bands = {
   }
 
   /* Sizes off the frame at 1440: a 68px title, the body at 16px broken after
-     "build with", a 216 by 53 button, 136 by 41 pills. */
+     "build with". The button and the pills are the site's own (see
+     .cs-next__cta and the hero's tags), not sizes of their own. */
   .cs-next--light {
     padding-top: calc(4 / 48 * 100% + clamp(0.5rem, 1vw, 1rem));
     /* Only the breathing room: there is no band at the foot to clear. */
@@ -364,9 +370,6 @@ const bands = {
   }
 
   .cs-next--light .cs-next__cta {
-    padding: 1rem 3.25rem;
-    letter-spacing: 0;
-    border-radius: 0.5rem;
     background: var(--color-ink);
     color: var(--color-ink-invert);
   }
@@ -400,10 +403,8 @@ const bands = {
   }
 
   .cs-next--light .cs-next__tag {
-    padding: 0.6875rem 1.375rem;
     border-color: #d6d5d2;
     color: var(--color-ink);
-    font-size: clamp(0.875rem, 1.1vw, 1rem);
   }
 
   /* --- Responsive ---------------------------------------------------------- */

@@ -48,7 +48,7 @@ const { title = 'Result', rows } = Astro.props;
   }
 
   .cs-res__title {
-    font-size: clamp(1.5rem, 3.3vw, 2.5rem);
+    font-size: var(--text-statement);
     letter-spacing: -0.02em;
   }
 
@@ -80,7 +80,7 @@ const { title = 'Result', rows } = Astro.props;
 
   .cs-res__label {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: var(--text-caption);
     font-weight: 500;
     letter-spacing: var(--tracking-wide);
     line-height: 1.4;

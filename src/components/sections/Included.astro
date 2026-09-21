@@ -426,7 +426,7 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
     align-items: center;
     min-height: var(--inc-cell);
     padding-left: calc(var(--i) * var(--inc-step));
-    font-size: clamp(0.875rem, 1.04vw, 0.9375rem);
+    font-size: var(--text-body);
     line-height: 1.5;
     letter-spacing: -0.01em;
     color: rgb(255 255 255 / 0.9);
@@ -569,7 +569,7 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    font-size: clamp(0.9375rem, 1.1vw, 1.0625rem);
+    font-size: var(--text-body);
     line-height: 1.45;
     letter-spacing: -0.01em;
     color: rgb(255 255 255 / 0.88);
@@ -913,15 +913,18 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 2.75rem;
-    padding: 0.6875rem 1.625rem;
-    border-radius: 0.625rem;
+    /* THE SITE'S BUTTON: the hero's, to the property — 45px tall, 24px
+       either side, 4px corners, 12px medium caps at 0.06em. Every button on
+       the homepage and the case studies is this one. */
+    height: 45px;
+    padding: 0 1.5rem;
+    border-radius: 4px;
     overflow: hidden;
     background: var(--color-bg-primary);
     color: var(--color-ink);
     font-size: 0.75rem;
     font-weight: 500;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     will-change: transform;
   }
@@ -1051,5 +1054,16 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
       margin-top: 0;
       padding-top: 1.75rem;
     }
+  }
+
+  /* Checklist + list is the section's first block whenever it is showing.
+     It comes after the promises block in the markup, though, and a hidden
+     sibling still counts for the spacing between blocks — so it picked up the
+     gap meant for a second block and sat 76px lower than the section's own
+     padding puts it. Written in that rule's own shape plus one class, so it
+     outranks it — Astro scopes every part of a combinator, and a plain
+     `.inc__block.inc__duo` came out the weaker of the two. */
+  .inc__block + .inc__block.inc__duo {
+    margin-top: 0;
   }
 </style>
