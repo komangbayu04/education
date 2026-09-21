@@ -1059,7 +1059,9 @@ const {
         'contact contact'
         'legal legal';
       align-items: start;
-      column-gap: clamp(1.25rem, 6vw, 2rem);
+      /* Clear air between the wordmark and the list, so the list reads as its
+         own column rather than a caption hanging off the mark. */
+      column-gap: clamp(2.25rem, 11vw, 3.5rem);
       row-gap: 1.75rem;
     }
 
@@ -1069,7 +1071,9 @@ const {
 
     .ft__wordmark {
       grid-area: mark;
-      width: min(40vw, 10rem);
+      /* A touch narrower than it was, to pay for the wider gap: at 390 the
+         list keeps "What founders say" on one line. */
+      width: min(38vw, 10rem);
     }
 
     .ft__nav {
@@ -1078,7 +1082,7 @@ const {
 
     .ft__nav ul {
       grid-template-columns: minmax(0, 1fr);
-      row-gap: 0.25rem;
+      row-gap: 0;
     }
 
     /* Beside the wordmark the column is narrow — 132px at 320 wide, against
@@ -1087,6 +1091,13 @@ const {
        is what the words should do instead. */
     .ft__link {
       white-space: normal;
+    }
+
+    /* A tighter list: 32px a row rather than the 44px touch floor, which spread
+       three short links down most of the wordmark's height and more. Still a
+       comfortable target for three items with nothing else beside them. */
+    .ft__nav .ft__link {
+      min-height: 2rem;
     }
 
     .ft__contact {
