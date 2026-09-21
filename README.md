@@ -190,6 +190,16 @@ ffmpeg -i "image/case-study/overclock/story-small.mp4" -an -vf "scale=720:-2"   
 
 ffmpeg -i "image/case-study/overclock/story-small.mp4" -an -vf "scale=720:-2"   -c:v libvpx-vp9 -crf 44 -b:v 0 -row-mt 1   "public/media/overclock-story-small.webm"
 
+# The vision band: 1920x1080 and 50 seconds, so it is taken down to 1440 wide
+# at 24fps to come in at 5.9 MB and 4.6 MB — a full-bleed film that long cannot
+# be carried at the size the short loops are. The master is 49 MB and is not in
+# the repo (see .gitignore).
+ffmpeg -i "image/case-study/overclock/vision.mp4" -an -vf "scale=1440:-2,fps=24"   -c:v libx264 -profile:v high -crf 32 -preset slow -pix_fmt yuv420p   -movflags +faststart "public/media/overclock-vision.mp4"
+
+ffmpeg -i "image/case-study/overclock/vision.mp4" -an -vf "scale=1440:-2,fps=24"   -c:v libvpx-vp9 -crf 52 -b:v 0 -row-mt 1   "public/media/overclock-vision.webm"
+
+ffmpeg -i "public/media/overclock-vision.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/overclock-vision-poster.webp"
+
 # Posters for both, from the encodes.
 ffmpeg -i "public/media/overclock-story-large.mp4" -vframes 1   -c:v libwebp -quality 80 "public/media/overclock-story-large-poster.webp"
 

@@ -43,3 +43,7 @@ image/case-study/overclock/intro-right.mp4
 # reason. Its encodes — public/media/overclock-story-large.{mp4,webm} — are
 # committed, and the command is in the README.
 image/case-study/overclock/story-large.mp4
+
+# The vision band's master, 49 MB, out for the same reason; its encodes —
+# public/media/overclock-vision.{mp4,webm} — are committed.
+image/case-study/overclock/vision.mp4
