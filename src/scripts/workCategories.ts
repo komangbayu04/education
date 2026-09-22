@@ -466,16 +466,19 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
      still with nothing of its own happening yet. `--two-join` is where that is
      actually set. */
   const twoTrack = two.querySelector<HTMLElement>('.two__track');
-  /* TWO CARDS is the exception. Nothing of Two ways in is parked there — it
-     scrolls as ordinary page under Our work's still-held screen — so the gap
-     measured below would be the whole section, and the join would run
-     backwards from its far end: scrolling up with the cards already on the
-     screen and half of What both models include under them, the tiles came
-     back and the Marketing screen with them. A fifth of a window keeps both
-     ends of the join at the section's top, where it starts. */
+  /* TWO CARDS is the exception. Its screen is held for `--two-hold` rather
+     than a whole join, by the one step in its track, so that step IS the
+     window — the gap measured below would be the whole screen. */
   const cards = getVariant('offer') === 'cards';
+  const hold = cards ? twoTrack?.querySelector<HTMLElement>('[data-two-step]') : null;
+  /* And in that cut the join only runs backwards once the reader has gone
+     back up through most of the hold, not the moment they reach it: arriving
+     at the section from below, the screen parks with its title in full view
+     and the reader has to keep going for the tiles to come back. Reversed on
+     entry, the Marketing screen returned before the section had even settled. */
+  const BACK_AT = 0.3;
   const window_ = () => {
-    if (cards) return 0.2 * globalThis.innerHeight;
+    if (cards) return hold?.offsetHeight || 0.6 * globalThis.innerHeight;
     if (!twoTrack) return globalThis.innerHeight;
     const gap = twoTrack.getBoundingClientRect().top - two.getBoundingClientRect().top;
     return gap > 0 ? gap : globalThis.innerHeight;
@@ -507,7 +510,9 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
        already finished and these do nothing. */
     onEnter: () => tl.play(),
     onLeave: () => tl.progress(1).pause(),
-    onEnterBack: () => tl.reverse(),
+    onEnterBack: () => {
+      if (!cards) tl.reverse();
+    },
     onLeaveBack: () => tl.progress(0).pause(),
     /* AND EVERY TURN INSIDE THE OVERLAP, which the four crossings above cannot
        see. They fire on the edges, so a reader who starts back up the page and
@@ -522,7 +527,7 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
     onUpdate: (self) => {
       if (self.direction === 1) {
         if (tl.reversed() || (!tl.isActive() && tl.progress() < 1)) tl.play();
-      } else if (!tl.reversed() && tl.progress() > 0) {
+      } else if (!tl.reversed() && tl.progress() > 0 && (!cards || self.progress < BACK_AT)) {
         tl.reverse();
       }
     },

@@ -362,6 +362,12 @@ const {
     /* Not `overflow: clip` — any overflow other than `visible` here would
        become the scrollport the stage sticks inside, and it does not scroll. */
     isolation: isolate;
+    /* NOT A TARGET ITSELF. The box runs a screen and more past the stage, over
+       Two ways in, which is pulled up underneath it for the pixel join — and a
+       transparent box still takes the pointer, so nothing in Two ways in could
+       be clicked or hovered. The parts of this that are meant to be (the
+       button, the description, the titles) each take it back with `auto`. */
+    pointer-events: none;
     color: var(--color-ink-invert);
   }
 

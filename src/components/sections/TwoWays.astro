@@ -493,20 +493,26 @@ const {
      models include follows it in flow on the same black rather than being
      pulled up to rise over it (see Included.astro).
 
-     What stays is the join ABOVE, the pixel reveal out of Our work, and it
-     needs nothing held here: Our work's own screen stays stuck over this for
-     the length of `--two-join` and is what the field paints over, so by the
-     time the tiles clear this is simply the page scrolling under them. So the
-     screen is not sticky and the track is empty — held, it would park the
-     cards with a screen of black under them for the next section to climb
-     into, which is the rise this reading does without. */
+     What stays is the join ABOVE, the pixel reveal out of Our work, and this
+     screen is held at the top for `--two-hold` of scroll while it plays. Not
+     held, the section was scrolling under the tiles the whole time, so by the
+     time they cleared the title had already gone by — and going back up, the
+     join reversed the moment the section was reached rather than once the
+     reader had actually gone back through it. The screen is at least a whole
+     window tall, so nothing is ever seen under it while it is held. */
   .two__cards {
     display: none;
   }
 
+  :global(html[data-var-offer='cards']) .two {
+    /* How long the screen is held while the pixel join plays. workCategories.ts
+       reads the step this sets rather than the number itself. */
+    --two-hold: 60svh;
+  }
+
   :global(html[data-var-offer='cards']) .two__stick {
-    position: relative;
     height: auto;
+    min-height: 100lvh;
     overflow: visible;
     padding: max(clamp(5.5rem, 14svh, 9rem), calc(var(--nav-height) + 2rem)) 0
       clamp(1rem, 3svh, 2rem);
@@ -563,6 +569,10 @@ const {
 
   :global(html[data-var-offer='cards']) .two__step {
     height: 0;
+  }
+
+  :global(html[data-var-offer='cards']) .two__step:first-child {
+    height: var(--two-hold);
   }
 
   /* Stacked on a phone, and taller: side by side at 390 wide each card is
