@@ -59,6 +59,10 @@ export function initTwoWays(): () => void {
   const section = document.querySelector<HTMLElement>('[data-two]');
   if (!section) return () => {};
 
+  /* TWO CARDS has no window to open, no handover and no exit — the section is
+     ordinary page, and the only motion into it is Our work's pixel join. */
+  if (getVariant('offer') === 'cards') return () => {};
+
   const win = section.querySelector<HTMLElement>('[data-two-window]');
   const copy = section.querySelector<HTMLElement>('.two__copy');
   const steps = gsap.utils.toArray<HTMLElement>('[data-two-step]', section);

@@ -186,6 +186,12 @@ import Footer from '../components/layout/Footer.astro';
     opacity: 0;
   }
 
+  /* Two cards runs Two ways in on black, so the field is black too — the
+     same rule as above: the tiles are the ground of the section arriving. */
+  :global(html[data-var-offer='cards']) .pixels :global(span) {
+    background: var(--color-bg-included);
+  }
+
   /* --- The Overclock / Our work join ---------------------------------------
 
      Both halves of it are here because it is one arrangement between two

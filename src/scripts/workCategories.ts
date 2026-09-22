@@ -1,5 +1,6 @@
 import { gsap, ScrollTrigger, SplitText } from './gsap';
 import { prefersReducedMotion } from './utils/device';
+import { getVariant } from '../config/variations';
 
 /**
  * Our work — fantasy.co's services list, and what drives it.
@@ -465,7 +466,16 @@ function initWorkPixels(section: HTMLElement, reduced: boolean): () => void {
      still with nothing of its own happening yet. `--two-join` is where that is
      actually set. */
   const twoTrack = two.querySelector<HTMLElement>('.two__track');
+  /* TWO CARDS is the exception. Nothing of Two ways in is parked there — it
+     scrolls as ordinary page under Our work's still-held screen — so the gap
+     measured below would be the whole section, and the join would run
+     backwards from its far end: scrolling up with the cards already on the
+     screen and half of What both models include under them, the tiles came
+     back and the Marketing screen with them. A fifth of a window keeps both
+     ends of the join at the section's top, where it starts. */
+  const cards = getVariant('offer') === 'cards';
   const window_ = () => {
+    if (cards) return 0.2 * globalThis.innerHeight;
     if (!twoTrack) return globalThis.innerHeight;
     const gap = twoTrack.getBoundingClientRect().top - two.getBoundingClientRect().top;
     return gap > 0 ? gap : globalThis.innerHeight;

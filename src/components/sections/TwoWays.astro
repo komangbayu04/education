@@ -70,6 +70,31 @@ const {
       <h2 class="two__title" id="two-title">{title}</h2>
     </div>
 
+    {/* TWO CARDS — the third reading of the "Service section" axis. No window
+        and nothing uncovered: the label and sentence on the left, the two
+        offers under them side by side as cards, on the same black as What
+        both models include, which follows straight on in flow rather than
+        rising over this. The stylesheet shows this or the window, never both,
+        and twoWays.ts builds nothing for it. */}
+    <div class="two__cards">
+      <div class="two__card">
+        <Offer layout="card" />
+      </div>
+
+      <div class="two__card">
+        <Offer
+          layout="card"
+          number="02"
+          name="Retainer"
+          summary="Your design function, year-round, across every surface."
+          terms="Ongoing, month to month"
+          tone="dark"
+          art="/media/offer-retainer"
+          icon="retainer"
+        />
+      </div>
+    </div>
+
     {/*
       The window. Clipped to a rectangle low and centre on the screen, and
       opened to the full frame by the scroll — see src/scripts/twoWays.ts.
@@ -458,6 +483,98 @@ const {
        sentence takes the column and the centring is the column's own. */
     .two__title {
       width: auto;
+    }
+  }
+
+  /* --- Two cards ------------------------------------------------------------
+     The third reading of the Service section axis. The screen is ordinary
+     page here: a black block with the label and the sentence on the gutter and
+     the two offers as cards under them. No window, so no zoom; and What both
+     models include follows it in flow on the same black rather than being
+     pulled up to rise over it (see Included.astro).
+
+     What stays is the join ABOVE, the pixel reveal out of Our work, and it
+     needs nothing held here: Our work's own screen stays stuck over this for
+     the length of `--two-join` and is what the field paints over, so by the
+     time the tiles clear this is simply the page scrolling under them. So the
+     screen is not sticky and the track is empty — held, it would park the
+     cards with a screen of black under them for the next section to climb
+     into, which is the rise this reading does without. */
+  .two__cards {
+    display: none;
+  }
+
+  :global(html[data-var-offer='cards']) .two__stick {
+    position: relative;
+    height: auto;
+    overflow: visible;
+    padding: max(clamp(5.5rem, 14svh, 9rem), calc(var(--nav-height) + 2rem)) 0
+      clamp(1rem, 3svh, 2rem);
+    background: var(--color-bg-included);
+    color: var(--color-ink-invert);
+  }
+
+  :global(html[data-var-offer='cards']) .two__copy {
+    position: static;
+    padding: 0 var(--section-padding-x);
+    text-align: left;
+  }
+
+  :global(html[data-var-offer='cards']) .two__eyebrow {
+    color: rgb(255 255 255 / 0.85);
+  }
+
+  :global(html[data-var-offer='cards']) .two__title {
+    margin-inline: 0;
+    margin-top: clamp(1.25rem, 3.5svh, 2.25rem);
+  }
+
+  :global(html[data-var-offer='cards']) .two__window {
+    display: none;
+  }
+
+  /* The nav's dark ground is the whole screen here, from the first frame. */
+  :global(html[data-var-offer='cards']) .two__zone {
+    inset: 0;
+    opacity: 1;
+  }
+
+  :global(html[data-var-offer='cards']) .two__cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.75rem, 1.4vw, 1.25rem);
+    max-width: var(--content-max-width);
+    margin: clamp(2rem, 6svh, 3.5rem) auto 0;
+    padding-inline: var(--section-padding-x);
+  }
+
+  .two__card {
+    position: relative;
+    aspect-ratio: 16 / 9.4;
+    border-radius: 4px;
+    overflow: hidden;
+    /* Its own stacking context, so the panel's layers stay inside it. */
+    isolation: isolate;
+  }
+
+  :global(html[data-var-offer='cards']) .two__track {
+    margin-top: 0;
+  }
+
+  :global(html[data-var-offer='cards']) .two__step {
+    height: 0;
+  }
+
+  /* Stacked on a phone, and taller: side by side at 390 wide each card is
+     180px across, and the sentence and the foot row need a card's width to
+     themselves. */
+  @media (max-width: 48rem) {
+    :global(html[data-var-offer='cards']) .two__cards {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .two__card {
+      aspect-ratio: 4 / 5;
     }
   }
 </style>

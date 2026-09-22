@@ -49,9 +49,9 @@ export const TESTIMONIALS: Testimonial[] = [
     role: 'CEO, Atrium Academy',
     company: 'Atrium Academy',
     logo: '/media/logo-atrium.svg',
-    headline: 'Are you kidding me? This was a no brainer retainer.',
+    headline: 'Are you kidding me? This was a no-brainer retainer.',
     quote:
-      '"We basically get the output of a full time design team without the overhead of having to hire, manage, and train them. Design is the last thing I have to worry about, thanks to Tribe."',
+      '"We basically get the output of a full-time design team without the overhead of having to hire, manage, and train them. Design is the last thing I have to worry about, thanks to Tribe."',
   },
   {
     name: 'Ahmed F. Haque',

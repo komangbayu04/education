@@ -150,15 +150,15 @@ const {
       label: 'Brand Design',
       lines: ['Brand', 'Design'],
       blurb:
-        'Marks, type, colour and motion, with the rules that keep them holding together everywhere the brand turns up.',
+        'Marks, type, color and motion, with the rules that keep them holding together everywhere the brand turns up.',
       href: '/work',
       art: '/media/work-brand-design',
       tone: '#101010',
     },
     {
       number: '04',
-      label: 'Pitch Deck',
-      lines: ['Pitch', 'Deck'],
+      label: 'Pitch Decks',
+      lines: ['Pitch', 'Decks'],
       blurb:
         'The story a room has to follow in twenty minutes — cut and designed so the argument carries without you narrating it.',
       href: '/work',
@@ -170,7 +170,7 @@ const {
       label: 'Marketing Design',
       lines: ['Marketing', 'Design'],
       blurb:
-        'Campaign and social work that stays recognisable at the size a feed shows it, in the volume a calendar actually needs.',
+        'Campaign and social work that stays recognizable at the size a feed shows it, in the volume a calendar actually needs.',
       href: '/work',
       /* The one item that is line art on white — see `ink` above for what that
          costs and why the three properties below travel together. */
@@ -187,14 +187,15 @@ const {
 <section
   class="cat"
   id="work"
-  aria-label="Our service"
+  aria-label="Our services"
   {/* WHAT THE CAPSULE READS HERE. The chapter is the kinds of work we do —
       brand, web, product, marketing — rather than the work itself, so it is
-      "Our service". Except while Overclock is on the stage: that item is a
-      piece of work, so its layer names itself "Our work" (each layer below
+      "Our services", plural, as there are five of them. Except while
+      Overclock is on the stage: that item is a piece of work, so its layer
+      names itself "Our work" (each layer below
       declares its own name, and the painted layer, being later in the
       document, wins over this). */}
-  data-nav-section="Our service"
+  data-nav-section="Our services"
   data-cat
 >
   {/* Where the opening ends: the film has finished growing when this reaches
@@ -228,7 +229,7 @@ const {
           data-cat-layer
           data-ink={category.ink}
           data-nav-over={category.ink === 'dark' ? undefined : 'dark'}
-          data-nav-section={category.eyebrow ? 'Our work' : 'Our service'}
+          data-nav-section={category.eyebrow ? 'Our work' : 'Our services'}
         >
           {/* The picture only — NOT a link. It used to be one, the whole
               screen a way in as on fantasy's list; now the button below is the
@@ -710,8 +711,8 @@ const {
 
   .cat__title {
     font-family: var(--font-display);
-    /* All three sizes a fifth up on what they were (36 / 58 / 96). */
-    font-size: min(43px, 14.4vw);
+    /* Two tenths down on the fifth-up set (43 / 70 / 115), a tenth at a time. */
+    font-size: min(35px, 11.7vw);
     font-weight: 400;
     line-height: 1;
     letter-spacing: -0.03em;
@@ -767,7 +768,7 @@ const {
     }
 
     .cat__title {
-      font-size: 70px;
+      font-size: 57px;
     }
   }
 
@@ -783,7 +784,7 @@ const {
     }
 
     .cat__title {
-      font-size: 115px;
+      font-size: 94px;
     }
   }
 

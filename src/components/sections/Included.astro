@@ -60,7 +60,7 @@ const {
     'Art direction from the founder on every deliverable',
     'Brand, web, product, and marketing under one team',
   ],
-  coverTitle = "What's type of work we cover?",
+  coverTitle = 'What type of work do we cover?',
   /* PLACEHOLDER SHOTS. Design systems and email design have no work on file
      yet, so they borrow the nearest thing — product for one, landing pages for
      the other. They should be replaced the moment there is something of their
@@ -351,6 +351,16 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
     margin-top: calc(-1 * var(--inc-join));
     padding-block: clamp(3rem, 7.4svh, 5.5rem) clamp(2.5rem, 6svh, 4.5rem);
     overflow: hidden;
+  }
+
+  /* TWO CARDS, the Service section reading where Two ways in is ordinary page
+     on this same black: nothing to rise over, so this is not pulled up and
+     simply follows it. And back under Our work (2), level with Two ways in —
+     the pixel join reverses from its far end, where this already fills the
+     window, and at 2 it would paint over the Marketing screen coming back. */
+  :global(html[data-var-offer='cards']) .inc {
+    z-index: 1;
+    margin-top: 0;
   }
 
   .inc__block {

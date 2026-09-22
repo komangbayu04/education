@@ -54,6 +54,16 @@ interface Props {
   /** What is drawn in the ring: chevrons running forward for a sprint, an
    *  endless line for a retainer. */
   icon?: 'sprint' | 'retainer';
+  /**
+   * `panel` is the full screen the window opens onto. `card` is the same panel
+   * as one of a pair of cards side by side — the "Two cards" reading of the
+   * "Service section" axis — laid out to the card rather than to the screen,
+   * with its words shown from the first frame and a button at its foot.
+   */
+  layout?: 'panel' | 'card';
+  /** The card's button. Only a card has one. */
+  ctaLabel?: string;
+  ctaHref?: string;
 }
 
 const {
@@ -69,10 +79,18 @@ const {
   tone = 'dark',
   art = '/media/offer-sprint',
   icon = 'sprint',
+  layout = 'panel',
+  ctaLabel = 'Contact us',
+  ctaHref = '/contact',
 } = Astro.props;
+
+const card = layout === 'card';
+/* A panel's words wait for its window to open (see the stylesheet's last
+   rule). A card has no window, so its words are never held back. */
+const held = card ? undefined : '';
 ---
 
-<div class:list={['offer', `offer--${tone}`]} data-offer data-offer-tone={tone}>
+<div class:list={['offer', `offer--${tone}`, { 'offer--card': card }]} data-offer data-offer-tone={tone}>
   {
     art && (
       <div class="offer__art" aria-hidden="true">
@@ -90,15 +108,19 @@ const {
     )
   }
 
-  <p class="offer__index" data-offer-copy>
+  <p class="offer__index" data-offer-copy={held}>
     <span class="offer__mark" aria-hidden="true">//</span>
     {number}
   </p>
 
-  <div class="offer__copy" data-offer-copy>
+  <div class="offer__copy" data-offer-copy={held}>
     <p class="offer__name">{name}</p>
     <p class="offer__summary">{summary}</p>
 
+    {/* The foot row: the terms, and on a card the button across from them.
+        `display: contents` on a panel, so there the terms are a child of the
+        copy block exactly as they always were. */}
+    <div class="offer__foot">
     <p class="offer__terms">
       {/* The ring is a bullet, not a control. Drawn rather than a character so
           its weight matches the type beside it at every size. */}
@@ -133,6 +155,18 @@ const {
       </span>
       {terms}
     </p>
+
+    {
+      card && (
+        <a class="offer__cta" href={ctaHref} data-magnetic="0.2">
+          <span class="offer__cta-fill" aria-hidden="true"></span>
+          <span class="offer__cta-label" data-magnetic-inner>
+            {ctaLabel}
+          </span>
+        </a>
+      )
+    }
+    </div>
   </div>
 </div>
 
@@ -287,6 +321,105 @@ const {
     color: color-mix(in srgb, var(--offer-ink) 55%, transparent);
   }
 
+  .offer__foot {
+    display: contents;
+  }
+
+  /* --- As a card ------------------------------------------------------------
+     The same panel, one of two side by side ("Two cards" in the Service
+     section axis). Everything is measured off the card rather than the screen:
+     the number in its top corner, and the name, sentence and foot row at its
+     bottom, with the button across from the terms. */
+  .offer--card {
+    --card-pad: clamp(1.25rem, 2.2vw, 2rem);
+
+    padding-inline: var(--card-pad);
+  }
+
+  .offer--card .offer__index {
+    top: var(--card-pad);
+    left: var(--card-pad);
+  }
+
+  .offer--card .offer__copy {
+    left: var(--card-pad);
+    right: var(--card-pad);
+    bottom: var(--card-pad);
+    gap: clamp(0.75rem, 1.4vw, 1.25rem);
+  }
+
+  .offer--card .offer__summary {
+    max-width: 17em;
+    font-size: clamp(1.25rem, 1.9vw, 1.75rem);
+  }
+
+  .offer--card .offer__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    width: 100%;
+    margin-top: clamp(0.75rem, 2.2vw, 2rem);
+  }
+
+  .offer--card .offer__terms {
+    margin-top: 0;
+    color: color-mix(in srgb, var(--offer-ink) 75%, transparent);
+  }
+
+  /* The hero's button, at a card's size: white, uppercase, the fill wiping up
+     from the foot on hover and the ring left behind — see `.hero__btn`. */
+  .offer__cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 1.25rem;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    will-change: transform;
+  }
+
+  .offer__cta-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-ink);
+    transform: scaleY(0);
+    transform-origin: bottom center;
+    transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  .offer__cta-label {
+    position: relative;
+    z-index: 2;
+    transition: color 0.4s var(--ease-out-expo);
+  }
+
+  .offer__cta:hover,
+  .offer__cta:focus-visible {
+    box-shadow: inset 0 0 0 1px #ffffff;
+  }
+
+  .offer__cta:hover .offer__cta-fill,
+  .offer__cta:focus-visible .offer__cta-fill {
+    transform: scaleY(1);
+  }
+
+  .offer__cta:hover .offer__cta-label,
+  .offer__cta:focus-visible .offer__cta-label {
+    color: #ffffff;
+  }
+
   /* Large enough to hold a drawn mark: at the old 18px the icon inside would
      have been nine pixels of blur. */
   .offer__ring {
@@ -434,6 +567,10 @@ const {
     .offer__summary {
       max-width: none;
       font-size: clamp(1.375rem, 6.4vw, 2rem);
+    }
+
+    .offer--card .offer__summary {
+      font-size: clamp(1.25rem, 5.6vw, 1.625rem);
     }
 
     /* AND THE SCRIM IS HEAVIER ON A PHONE, because the crop is what changes.

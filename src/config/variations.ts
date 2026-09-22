@@ -48,6 +48,11 @@ export const VARIATIONS: VariationAxis[] = [
          left, Retainer on the right, each half the screen. No handover: the
          two are read together and compared rather than shown in turn. */
       { id: 'split', label: 'Side by side' },
+      /* No window at all: the label and sentence, and the two offers under
+         them as cards side by side, on the same black as What both models
+         include, which follows in flow instead of rising over it. The pixel
+         join out of Marketing is kept; the zoom is not. */
+      { id: 'cards', label: 'Two cards' },
     ],
   },
   {
