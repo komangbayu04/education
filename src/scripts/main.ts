@@ -58,6 +58,7 @@ function initPage(): void {
     return () => cleanups.forEach((fn) => fn());
   });
 
+  ScrollTrigger.clearScrollMemory('manual');
   ScrollTrigger.refresh();
 
   /* Only now, after the refresh. Every section below the scene is moved by the
@@ -67,17 +68,16 @@ function initPage(): void {
      for that section, not to watch the page travel to it. */
   scrollToHash(true);
 
-  /* And with no fragment asked for, the top — but only the first time this
-     tab loads the page. Later runs of this function are view transitions,
-     which have their own rule a few lines down (`astro:after-swap`), and
-     resetting here as well would take the reader back to the top of every
-     page they navigate to rather than only the one they refreshed. */
-  if (firstLoad && !location.hash) scrollToTop();
-  firstLoad = false;
+  /* And with no fragment asked for, the top — on every arrival, not only a
+     refresh. A page is opened at its start whether it was reached by a link
+     or by Back. `astro:after-swap` already put the window there, but the
+     refresh above can put it back: ScrollTrigger remembers the window's last
+     scroll and restores it after measuring, and that memory can still be the
+     outgoing page's position if the swap's scroll event had not been handled
+     yet — which is how a case study came up halfway down, at the depth the
+     homepage had been left at. */
+  if (!location.hash) scrollToTop();
 }
-
-/** Whether initPage has run yet in this tab. See the reset above. */
-let firstLoad = true;
 
 function destroyPage(): void {
   ctx?.revert();
@@ -111,8 +111,19 @@ document.addEventListener('astro:page-load', () => {
   initPage();
 });
 
-document.addEventListener('astro:before-swap', () => {
+document.addEventListener('astro:before-swap', (event) => {
   destroyPage();
+
+  /* The router replaces <html>'s attributes with the incoming page's, and the
+     incoming page was parsed, not run — so it arrives without the ones the
+     pre-paint script in Base.astro writes: `data-js`, and the reader's
+     variation picks. Without them every `html[data-var-…]` rule stops
+     matching and the homepage came back from a case study as a cut nobody had
+     picked. Carried across onto the new document before the swap copies it. */
+  const next = (event as unknown as { newDocument: Document }).newDocument.documentElement;
+  for (const { name, value } of [...document.documentElement.attributes]) {
+    if (name === 'data-js' || name.startsWith('data-var-')) next.setAttribute(name, value);
+  }
 });
 
 document.addEventListener('astro:after-swap', () => {

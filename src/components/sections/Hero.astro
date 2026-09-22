@@ -432,6 +432,13 @@ const {
 
   .hero__head {
     position: relative;
+    /* The headline and the line under it sit over the sky and the leaves.
+       Diffuse only — no tight layer: at this size a shadow hugging the
+       letters reads as a stroke round them. Two wide blurs instead, a glow
+       behind the words that lifts white off bright sky without an edge. */
+    text-shadow:
+      0 4px 30px rgb(0 0 0 / 0.28),
+      0 8px 80px rgb(0 0 0 / 0.22);
   }
 
   .hero__title {

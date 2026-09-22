@@ -1,4 +1,6 @@
 import { gsap, ScrollTrigger } from './gsap';
+import { getLenis } from './scroll';
+import { prefersReducedMotion } from './utils/device';
 
 /**
  * The closing screen, which the page does not scroll to.
@@ -179,9 +181,116 @@ export function initFooter(): () => void {
         },
       );
 
+      /* THE SNAP. Once a fifth of the block is uncovered on the way down, the
+         page stops waiting for the wheel and lifts itself the rest of the way,
+         and what is written on the photograph springs into place as it lands.
+
+         Nothing in it is ever SET, only moved — a copy that is placed somewhere
+         and then animated from there is a jump the reader sees. So two
+         independent motions, each continuous:
+
+           the rise   scroll-linked. The copy sits a little low while the page
+                      is still on it and comes up with the reveal, so it is
+                      travelling, not parked at the foot of the screen, and it
+                      is exactly home when the page is. On `y`.
+
+           the spring the overshoot on arrival, begun while the page is still
+                      decelerating so it reads as the same movement carrying
+                      on: up past home and settling back. On `yPercent`, so it
+                      adds to the rise instead of fighting it for `y`.
+
+         A fixed block cannot be scrolled past its top — there is no room above
+         it for the page to overshoot into — so the spring is the copy's, not
+         the page's. Armed again once the reader is back in the section above. */
+      const content = gsap.utils.toArray<HTMLElement>(close.querySelectorAll('.fq, .ft'));
+      let armed = true;
+      let snap: gsap.core.Tween | null = null;
+
+      gsap.fromTo(
+        content,
+        { y: 64 },
+        {
+          y: 0,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: spacer,
+            start: 'top bottom',
+            end: 'bottom bottom',
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
+
+      /* The spring, in pixels, written as a percentage of each element. */
+      const SPRING = 14;
+      const spring = () =>
+        gsap
+          .timeline({ defaults: { overwrite: 'auto' } })
+          .to(content, {
+            yPercent: (_: number, el: HTMLElement) => (-SPRING / Math.max(1, el.offsetHeight)) * 100,
+            duration: 0.32,
+            ease: 'power2.out',
+            stagger: 0.05,
+          })
+          .to(content, { yPercent: 0, duration: 0.9, ease: 'elastic.out(1, 0.45)', stagger: 0.05 });
+
+      const DURATION = 0.85;
+
+      const lift = () => {
+        const lenis = getLenis();
+        const end = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        const proxy = { y: window.scrollY };
+        lenis?.stop();
+
+        snap = gsap.to(proxy, {
+          y: end,
+          duration: DURATION,
+          /* Gentle at the start so the wheel's own motion runs straight into
+             it, and still moving at the end so the spring has momentum to
+             carry on from. */
+          ease: 'power2.inOut',
+          onUpdate: () => {
+            if (lenis) lenis.scrollTo(proxy.y, { immediate: true, force: true });
+            else window.scrollTo(0, proxy.y);
+          },
+          onComplete: () => {
+            lenis?.start();
+            snap = null;
+          },
+        });
+
+        gsap.delayedCall(DURATION * 0.72, spring);
+      };
+
+      const snapTrigger = ScrollTrigger.create({
+        trigger: spacer,
+        /* From the moment the spacer's top enters to the moment a fifth of
+           the block is showing. */
+        start: 'top bottom',
+        end: () => `top+=${Math.round(spacer.offsetHeight * 0.2)} bottom`,
+        invalidateOnRefresh: true,
+        onLeave: () => {
+          if (!armed || snap || prefersReducedMotion()) return;
+          armed = false;
+          lift();
+        },
+        onLeaveBack: () => {
+          armed = true;
+        },
+      });
+
       return () => {
         guard.disconnect();
         close.style.visibility = '';
+        snapTrigger.kill();
+        if (snap) {
+          snap.kill();
+          getLenis()?.start();
+        }
+        gsap.killTweensOf(content);
+        gsap.killTweensOf(spring);
+        gsap.set(content, { clearProps: 'transform' });
       };
     });
 
