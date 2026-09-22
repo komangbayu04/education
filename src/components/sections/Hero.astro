@@ -326,7 +326,12 @@ const {
     /* Sky behind white type is bright at the top of the frame. A soft shadow
        rather than a scrim, so the landscape is not dimmed to carry a
        sentence. */
-    text-shadow: 0 1px 24px rgb(0 0 0 / 0.35);
+    /* Two layers: a thin, tight one that edges every letter so it stays sharp
+       over the bright leaves, and the soft wide one under it that lifts the
+       whole line off the picture. */
+    text-shadow:
+      0 1px 2px rgb(0 0 0 / 0.5),
+      0 1px 24px rgb(0 0 0 / 0.35);
     /* Inert until the scroll hands it over — it is over the picture, and a
        sentence nobody can see should not be taking clicks off it either. */
     opacity: 0;
