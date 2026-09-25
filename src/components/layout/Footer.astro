@@ -415,11 +415,39 @@ const {
   }
 
   /* The photograph, behind everything in the block. */
+  /* THE PHOTOGRAPH RUNS ON ABOVE THE BLOCK, and nothing is written on the part
+     that does.
+
+     The closing screen is fixed and the page is a sheet drawn off it, and when
+     the sheet lands it bounces — see the snap in src/scripts/footer.ts. A
+     bounce is only a bounce if something is uncovered by it, and the block
+     stops a cell short of the screen, so there was barely a cell to uncover:
+     the sheet could lift thirty pixels before it was pulling the page off the
+     top of the picture and showing the ground behind it. Thirty pixels of
+     cream moving against cream is not a movement anyone sees.
+
+     So the picture is given a run of headroom it does not otherwise need. The
+     block, the copy and the seam are all where they were; the photograph
+     simply starts higher than the block does, and the sheet has somewhere to
+     bounce into. */
+  .close {
+    --close-lift: 7rem;
+  }
+
   .close__media {
     position: absolute;
     inset: 0;
     z-index: 0;
     overflow: hidden;
+  }
+
+  /* Desktop and tablet only. On a phone the block is in the page rather than
+     fixed behind it, there is no sheet to draw off it and no snap — the run
+     above would simply be a strip of photograph above the footer. */
+  @media (min-width: 48.0625rem) {
+    .close__media {
+      top: calc(-1 * var(--close-lift));
+    }
   }
 
   .close__media img,
@@ -942,6 +970,29 @@ const {
     .close {
       position: relative;
       height: auto;
+
+      /* THE BAND THE BOUNCE UNCOVERS. The arrival is the same here as it is on
+         a desktop — the sheet above is drawn off the block and springs as it
+         lands (see the snap in src/scripts/footer.ts) — and a spring needs
+         somewhere to spring into. On a desktop that is the strip of screen the
+         fixed block stops short of, plus the run of photograph above it. Here
+         the block is in the page and the sheet's bottom edge is right on its
+         top edge, so there was nothing to uncover but the page's own ground.
+
+         So the block starts higher than it appears to: it is pulled up by this
+         much and its contents are pushed back down by the same, which leaves
+         every line exactly where it was and a band of the block's own
+         photograph lying under the foot of the section above. The seam moves
+         down with the contents — it opens the block where the block looks like
+         it starts, not where its box does. */
+      --close-rise: 4.5rem;
+
+      margin-top: calc(-1 * var(--close-rise));
+      padding-top: var(--close-rise);
+    }
+
+    .close__seam {
+      top: var(--close-rise);
     }
 
     .fq__band {
@@ -1058,7 +1109,11 @@ const {
         'mark nav'
         'contact contact'
         'legal legal';
-      align-items: start;
+      /* The mark against the middle of the list, not against its first line.
+         The two are one row read across, and the mark is a drawn word rather
+         than a heading over the links — hung from the top of the row it sat
+         level with "Work" and the rest of the list ran on past it. */
+      align-items: center;
       /* Clear air between the wordmark and the list, so the list reads as its
          own column rather than a caption hanging off the mark. */
       column-gap: clamp(2.25rem, 11vw, 3.5rem);

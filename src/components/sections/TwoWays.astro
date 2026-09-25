@@ -356,15 +356,18 @@ const {
   }
 
   /* Cut to the half it is read in, so it breaks into lines inside its own
-     column instead of running under the panel beside it. */
-  /* ALWAYS TWO LINES on a screen wide enough to put the halves side by side.
-     Each sentence is about 27em long, so a 20em measure can never hold it on
-     one line and never needs three; `balance` then evens the two out instead
-     of leaving a short tail. `min` keeps it inside a narrow half. */
+     column instead of running under the panel beside it. `balance` evens the
+     lines rather than leaving a one-word tail. */
   .two__half :global(.offer__summary) {
-    max-width: min(20em, 100%);
-    font-size: clamp(1.125rem, 2.1vw, 1.9375rem);
+    max-width: min(26em, 100%);
     text-wrap: balance;
+  }
+
+  /* The name carries the half, so it is set to the half's width rather than
+     the screen's — see .offer__name in Offer.astro for why it is the heading
+     and the sentence is body copy. */
+  .two__half :global(.offer__name) {
+    font-size: clamp(1.25rem, 2.4vw, 2.125rem);
   }
 
   :global(html[data-var-offer='split']) .two__pane--split {
@@ -384,6 +387,16 @@ const {
   :global(html[data-var-offer='split']) .two__step:nth-child(4),
   :global(html[data-var-offer='split']) .two__step:nth-child(5) {
     height: 0;
+  }
+
+  /* AND THE TAIL IS SHORTER. The track outlives the screen it belongs to: once
+     the held screen has let go, what is left of the track is plain ground with
+     nothing on it, and What both models include cannot start until it has been
+     scrolled through. At 60svh that was half a screen of black between the two
+     panels and the first line of the next section. The screen itself is not
+     touched — this is only the pause after it. */
+  :global(html[data-var-offer='split']) .two__step:first-child {
+    --two-step: 22svh;
   }
 
   /* On a phone the two are stacked, half a screen each: side by side at 390
@@ -508,14 +521,31 @@ const {
     /* How long the screen is held while the pixel join plays. workCategories.ts
        reads the step this sets rather than the number itself. */
     --two-hold: 60svh;
+    /* AND THE GROUND IS THE SECTION'S HERE, not the screen's. The screen is
+       painted rather than the section everywhere else, so that the ground goes
+       when the screen does — but in this cut the screen no longer fills the
+       section: the track under it is the scroll the screen is held for, and it
+       was left unpainted, so the page's cream showed under the cards as a band
+       of white. */
+    background: var(--color-bg-included);
   }
 
   :global(html[data-var-offer='cards']) .two__stick {
     height: auto;
-    min-height: 100lvh;
+    /* NOT A WHOLE WINDOW ANY MORE. It was `min-height: 100lvh`, and with the
+       label, the sentence and the cards taking less than that, the remainder
+       sat under the cards as two hundred pixels of ground — read as a gap
+       between this section and the next rather than as the foot of a screen.
+       The block is as tall as what is in it now, and what follows the cards is
+       the 80px below.
+
+       Nothing above it moves: the label, the sentence and the cards are laid
+       out from the top of the block exactly as they were. */
     overflow: visible;
-    padding: max(clamp(5.5rem, 14svh, 9rem), calc(var(--nav-height) + 2rem)) 0
-      clamp(1rem, 3svh, 2rem);
+    /* Tighter at the head than it was — 5.5rem to 9rem of clearance over the
+       bar put the label a long way down a screen that only carries a sentence
+       and two cards — and 100px under the cards before the section below. */
+    padding: max(clamp(3rem, 8svh, 4.5rem), calc(var(--nav-height) + 1.25rem)) 0 100px;
     background: var(--color-bg-included);
     color: var(--color-ink-invert);
   }
@@ -571,6 +601,11 @@ const {
     height: 0;
   }
 
+  /* The hold, and it is a hold again: with the sticky screens working (see
+     `overflow-x: clip` on body in globals.css) this scroll is spent with the
+     cards held at the top while the pixel field plays over them, not on a
+     stretch of empty ground below them. Shortened to 18svh while it was the
+     latter, which left the field with a third of the window it needs. */
   :global(html[data-var-offer='cards']) .two__step:first-child {
     height: var(--two-hold);
   }
@@ -584,7 +619,11 @@ const {
     }
 
     .two__card {
-      aspect-ratio: 4 / 5;
+      /* Shorter on a phone than the 4:5 it was: stacked, two portrait cards
+         were a screen and a half of scrolling for two panels that say a line
+         each. Square keeps the picture behind the copy readable while letting
+         both cards and the sentence above them sit in one screen. */
+      aspect-ratio: 1 / 1;
     }
   }
 </style>

@@ -146,6 +146,135 @@ export function initFooter(): () => void {
 
     mm.add('(max-width: 48rem)', () => {
       gsap.set(zone, { opacity: 1 });
+
+      /* THE SAME ARRIVAL AS THE DESKTOP'S, and the same thing bounces: the
+         sheet, not what it uncovers. The block is in the page here rather than
+         fixed behind it, so the sheet is simply the section above it and the
+         room it springs into is the band the block hides under that section —
+         `--close-rise` in Footer.astro.
+
+         The one thing this has to do that the desktop does not is put the
+         sheet in front. The block sits under the section above by that band,
+         and being later in the document it would otherwise paint over it. */
+      const sheetNow = (): HTMLElement | null => {
+        let node = close.previousElementSibling as HTMLElement | null;
+        while (node) {
+          if (getComputedStyle(node).display !== 'none') return node;
+          node = node.previousElementSibling as HTMLElement | null;
+        }
+        return null;
+      };
+
+      const lifted: HTMLElement[] = [];
+      const front = (el: HTMLElement) => {
+        if (lifted.includes(el)) return;
+        lifted.push(el);
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        el.style.zIndex = '1';
+      };
+
+      const cells = gsap.utils.toArray<HTMLElement>(close.querySelectorAll('.close__seam span'));
+      let sheet: HTMLElement | null = null;
+      let armed = true;
+      let snap: gsap.core.Tween | null = null;
+
+      /* The band, less a margin, so a rounding never pulls the sheet off the
+         top of the photograph. */
+      const overshoot = () => {
+        const rise = parseFloat(getComputedStyle(close).getPropertyValue('--close-rise')) || 0;
+        return Math.max(24, Math.min(rise * 16 - 8, 96));
+      };
+
+      const hideCells = () => {
+        if (prefersReducedMotion()) return;
+        gsap.set(cells, { autoAlpha: 0 });
+      };
+      hideCells();
+
+      const bounce = () => {
+        sheet = sheetNow();
+        if (!sheet) return;
+        front(sheet);
+        gsap
+          .timeline({ defaults: { overwrite: 'auto' } })
+          .to(sheet, { y: () => -overshoot(), duration: 0.22, ease: 'power2.out' })
+          .to(sheet, { y: 0, duration: 1.45, ease: 'elastic.out(1, 0.28)' })
+          .fromTo(
+            cells,
+            { autoAlpha: 0 },
+            {
+              autoAlpha: 1,
+              duration: 0.18,
+              ease: 'none',
+              stagger: { amount: 0.5, from: 'random' },
+            },
+            0.46,
+          );
+      };
+
+      const DURATION = 0.85;
+
+      const lift = () => {
+        const lenis = getLenis();
+        const end = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        const proxy = { y: window.scrollY };
+        lenis?.stop();
+
+        snap = gsap.to(proxy, {
+          y: end,
+          duration: DURATION,
+          ease: 'power2.inOut',
+          onUpdate: () => {
+            if (lenis) lenis.scrollTo(proxy.y, { immediate: true, force: true });
+            else window.scrollTo(0, proxy.y);
+          },
+          onComplete: () => {
+            lenis?.start();
+            snap = null;
+          },
+        });
+
+        gsap.delayedCall(DURATION * 0.8, bounce);
+      };
+
+      /* The block itself is the trigger here — the spacer it is measured
+         against on a desktop is not displayed at this width. A fifth of it
+         showing is its top reaching four fifths of the way up the window. */
+      const snapTrigger = ScrollTrigger.create({
+        trigger: close,
+        start: 'top bottom',
+        end: 'top 80%',
+        invalidateOnRefresh: true,
+        onLeave: () => {
+          if (!armed || snap || prefersReducedMotion()) return;
+          armed = false;
+          lift();
+        },
+        onLeaveBack: () => {
+          armed = true;
+          gsap.killTweensOf(cells);
+          hideCells();
+        },
+      });
+
+      return () => {
+        snapTrigger.kill();
+        if (snap) {
+          snap.kill();
+          getLenis()?.start();
+        }
+        gsap.killTweensOf(bounce);
+        gsap.killTweensOf(cells);
+        gsap.set(cells, { clearProps: 'opacity,visibility' });
+        if (sheet) {
+          gsap.killTweensOf(sheet);
+          gsap.set(sheet, { clearProps: 'transform' });
+        }
+        lifted.forEach((el) => {
+          el.style.removeProperty('z-index');
+          el.style.removeProperty('position');
+        });
+      };
     });
 
     mm.add('(min-width: 48.0625rem)', () => {
@@ -182,58 +311,100 @@ export function initFooter(): () => void {
       );
 
       /* THE SNAP. Once a fifth of the block is uncovered on the way down, the
-         page stops waiting for the wheel and lifts itself the rest of the way,
-         and what is written on the photograph springs into place as it lands.
+         page stops waiting for the wheel and lifts the rest of the way itself,
+         and the sheet it lifts bounces as it comes to rest.
 
-         Nothing in it is ever SET, only moved — a copy that is placed somewhere
-         and then animated from there is a jump the reader sees. So two
-         independent motions, each continuous:
+         IT IS THE SHEET THAT BOUNCES, NOT WHAT IS UNDER IT. The closing block
+         is fixed and the page slides off it, like a blind being drawn or the
+         cover pulled across a car boot: the thing that springs is the sheet
+         going up, and the photograph, the wordmark and the links it uncovers
+         are simply there, still. Copy that bounced into place was the page
+         announcing itself twice.
 
-           the rise   scroll-linked. The copy sits a little low while the page
-                      is still on it and comes up with the reveal, so it is
-                      travelling, not parked at the foot of the screen, and it
-                      is exactly home when the page is. On `y`.
+         So the bounce is a short overshoot on the last section — the strip of
+         it that stays showing above the block — and back. Its travel is capped
+         by how much of that strip there is: further than the strip is deep and
+         the page would be pulled off the top of the block, showing the ground
+         behind it. Armed again once the reader is back in the section above. */
+      /* WHICH ELEMENT THE SHEET IS, asked rather than assumed. The section
+         above the spacer is whichever cut of chapter 8 the reader has picked,
+         and the other two are still in the page with `display: none` on them —
+         so the sibling immediately before the spacer is, two times out of
+         three, a section that paints nothing. Bouncing that moved nothing at
+         all. Same walk as paintSeam above, and made at the moment it is
+         needed, because the pick can change without the page reloading. */
+      const sheetNow = (): HTMLElement | null => {
+        let node = spacer.previousElementSibling as HTMLElement | null;
+        while (node) {
+          if (getComputedStyle(node).display !== 'none') return node;
+          node = node.previousElementSibling as HTMLElement | null;
+        }
+        return null;
+      };
 
-           the spring the overshoot on arrival, begun while the page is still
-                      decelerating so it reads as the same movement carrying
-                      on: up past home and settling back. On `yPercent`, so it
-                      adds to the rise instead of fighting it for `y`.
-
-         A fixed block cannot be scrolled past its top — there is no room above
-         it for the page to overshoot into — so the spring is the copy's, not
-         the page's. Armed again once the reader is back in the section above. */
-      const content = gsap.utils.toArray<HTMLElement>(close.querySelectorAll('.fq, .ft'));
+      let sheet: HTMLElement | null = null;
       let armed = true;
       let snap: gsap.core.Tween | null = null;
 
-      gsap.fromTo(
-        content,
-        { y: 64 },
-        {
-          y: 0,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: spacer,
-            start: 'top bottom',
-            end: 'bottom bottom',
-            scrub: true,
-            invalidateOnRefresh: true,
-          },
-        },
-      );
+      /* How far the sheet may travel: the strip of it above the block, plus the
+         run of photograph above that (`--close-lift` in Footer.astro), less a
+         margin so a rounding never pulls the sheet off the top of the picture.
+         Read at the moment it is used, because both are window-relative. */
+      const overshoot = () => {
+        const strip = close.getBoundingClientRect().top;
+        const lift = parseFloat(getComputedStyle(close).getPropertyValue('--close-lift')) || 0;
+        const room = strip + lift * 16 - 8;
+        return Math.max(24, Math.min(room, 96));
+      };
 
-      /* The spring, in pixels, written as a percentage of each element. */
-      const SPRING = 14;
-      const spring = () =>
+      /* AND THE SQUARES FALL IN AFTER IT. The seam is a row of cells of the
+         section's own colour, cut out of the top of the block — the strip
+         above dissolving into the photograph. Drawn with the block, it was
+         simply there the moment the sheet cleared it, and it sat in exactly
+         the place the eye was watching: the bounce happened behind a pattern
+         that had not moved, which is most of why the bounce was hard to see.
+
+         So the cells are held back and dealt in once the sheet has settled —
+         the edge lands, and then the strip crumbles into it. Held back only
+         while there is a bounce to wait for: with reduced motion, or before
+         the page has ever been scrolled this far, they are just there. */
+      const cells = gsap.utils.toArray<HTMLElement>(close.querySelectorAll('.close__seam span'));
+      const hideCells = () => {
+        if (prefersReducedMotion()) return;
+        gsap.set(cells, { autoAlpha: 0 });
+      };
+      hideCells();
+
+      /* Up fast, down slow and wobbling — a blind let go of rather than a panel
+         being placed. Nearly a second and a half of settling: at a quarter of
+         that the bounce was over before the eye had found it. */
+      const bounce = () => {
+        sheet = sheetNow();
+        if (!sheet) return;
         gsap
           .timeline({ defaults: { overwrite: 'auto' } })
-          .to(content, {
-            yPercent: (_: number, el: HTMLElement) => (-SPRING / Math.max(1, el.offsetHeight)) * 100,
-            duration: 0.32,
-            ease: 'power2.out',
-            stagger: 0.05,
-          })
-          .to(content, { yPercent: 0, duration: 0.9, ease: 'elastic.out(1, 0.45)', stagger: 0.05 });
+          .to(sheet, { y: () => -overshoot(), duration: 0.22, ease: 'power2.out' })
+          .to(sheet, { y: 0, duration: 1.45, ease: 'elastic.out(1, 0.28)' })
+          /* Dealt at random rather than swept, which is how every other field
+             of squares on this site arrives — and dealt ON THE FIRST BOUNCE,
+             not after the last of them. 0.46s in: the sheet is up and back
+             down and has just passed its resting line for the first time
+             (measured off this ease — rest is crossed at 0.32 and the far
+             side of the first swing is reached at 0.44). The squares land as
+             the edge hits, and the small wobble that is left runs under them
+             rather than being waited out with nothing happening. */
+          .fromTo(
+            cells,
+            { autoAlpha: 0 },
+            {
+              autoAlpha: 1,
+              duration: 0.18,
+              ease: 'none',
+              stagger: { amount: 0.5, from: 'random' },
+            },
+            0.46,
+          );
+      };
 
       const DURATION = 0.85;
 
@@ -247,7 +418,7 @@ export function initFooter(): () => void {
           y: end,
           duration: DURATION,
           /* Gentle at the start so the wheel's own motion runs straight into
-             it, and still moving at the end so the spring has momentum to
+             it, and still moving at the end so the bounce has momentum to
              carry on from. */
           ease: 'power2.inOut',
           onUpdate: () => {
@@ -260,7 +431,7 @@ export function initFooter(): () => void {
           },
         });
 
-        gsap.delayedCall(DURATION * 0.72, spring);
+        gsap.delayedCall(DURATION * 0.8, bounce);
       };
 
       const snapTrigger = ScrollTrigger.create({
@@ -277,6 +448,10 @@ export function initFooter(): () => void {
         },
         onLeaveBack: () => {
           armed = true;
+          /* Back in the section above: the seam is covered again, so it is
+             taken back for the next arrival rather than left dealt. */
+          gsap.killTweensOf(cells);
+          hideCells();
         },
       });
 
@@ -288,9 +463,13 @@ export function initFooter(): () => void {
           snap.kill();
           getLenis()?.start();
         }
-        gsap.killTweensOf(content);
-        gsap.killTweensOf(spring);
-        gsap.set(content, { clearProps: 'transform' });
+        gsap.killTweensOf(bounce);
+        gsap.killTweensOf(cells);
+        gsap.set(cells, { clearProps: 'opacity,visibility' });
+        if (sheet) {
+          gsap.killTweensOf(sheet);
+          gsap.set(sheet, { clearProps: 'transform' });
+        }
       };
     });
 

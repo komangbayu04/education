@@ -361,6 +361,9 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
   :global(html[data-var-offer='cards']) .inc {
     z-index: 1;
     margin-top: 0;
+    /* The 80px between the cards and this section is given by the block above
+       — see its padding — so this adds none of its own on top of it. */
+    padding-top: 0;
   }
 
   .inc__block {
@@ -895,14 +898,21 @@ const shapes = await Promise.all(cover.map((item) => shapeOf(item.shots[0])));
     padding-top: clamp(2rem, 5svh, 3.5rem);
   }
 
-  /* The rule is a child's border rather than the section's, so it sits inside
-     the gutter with the content instead of running edge to edge. */
+  /* EDGE TO EDGE, like the line that closes the section under it. Held inside
+     the gutter it read as a divider between two blocks of content; the screen's
+     full width is what makes it the line the section ends on.
+
+     Drawn off the centre rather than off this box, because this box is the
+     content column — capped and centred — and the line is the window's. The
+     section clips, so a viewport width cannot become sideways scroll, and
+     `dvw` keeps a visible scrollbar out of the measurement. */
   .inc__cta::before {
     content: '';
     position: absolute;
     top: 0;
-    left: var(--inc-gutter);
-    right: var(--inc-gutter);
+    left: 50%;
+    width: 100dvw;
+    translate: -50% 0;
     border-top: 1px solid rgb(255 255 255 / 0.16);
   }
 

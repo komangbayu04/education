@@ -263,7 +263,20 @@ body {
   line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  /* `clip`, NOT `hidden`, and the difference is the whole of a bug.
+
+     Both stop a stray pixel of width from becoming sideways scroll. But
+     `hidden` makes the element a scroll container, and a scroll container is
+     what `position: sticky` sticks to — so every sticky screen on this page
+     was measuring itself against a box that never scrolls, and none of them
+     stuck. What that looked like: Two ways in's screen was supposed to be held
+     at the top while the pixel field played over it, and instead it scrolled
+     away at once, leaving the scroll it was meant to be held for as a stretch
+     of empty ground between the cards and the section below.
+
+     `clip` clips without scrolling, so nothing is a scroller and the sticky
+     screens hold. */
+  overflow-x: clip;
 }
 
 /* Lenis's own stylesheet (imported from scroll.ts) covers height, nested
