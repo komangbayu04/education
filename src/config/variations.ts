@@ -38,7 +38,11 @@ export const VARIATIONS: VariationAxis[] = [
   {
     id: 'offer',
     label: 'Service section',
-    default: 'split',
+    /* TWO CARDS, from the review on 22 Sep: What both models include sliding up
+       over the offer was read as having to close one thing to read the next.
+       This cut has nothing to close — the cards are page, and that section
+       follows them on the same black. */
+    default: 'cards',
     options: [
       /* The window opening onto one panel at a time: Sprint held, then
          crossfaded into Retainer. TwoWays.astro with Offer.astro twice,
@@ -94,10 +98,11 @@ export const VARIATIONS: VariationAxis[] = [
   },
 ];
 
-/** localStorage key holding the `{ [axisId]: optionId }` map. Versioned: the
- *  defaults moved to split / duo / float, and a pick saved under the old key
- *  would otherwise keep a returning reader on the old cut. */
-export const STORAGE_KEY = 'tribe:variations:v2';
+/** localStorage key holding the `{ [axisId]: optionId }` map. Versioned, and
+ *  bumped whenever the defaults move: a pick saved under the old key would
+ *  otherwise keep everyone who has opened the site on the cut it replaced.
+ *  v2 was split / duo / float; v3 moves the offer to the cards. */
+export const STORAGE_KEY = 'tribe:variations:v3';
 
 /** One axis's default — its `default`, or its first option. */
 export function defaultOf(axis: VariationAxis): string {

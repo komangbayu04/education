@@ -114,14 +114,53 @@ export function initWorkCategories(): () => void {
    *   none has arrived yet          the first.
    */
   let active = 0;
+
+  /* EVERY ITEM'S FILM STARTS WHEN THE ITEM DOES. They are loops with no end to
+     arrive at, so left running they were simply wherever the page's own clock
+     had carried them: a reader who reached Brand Design forty seconds in saw
+     it from the middle, and one who scrolled back to an item saw it from a
+     different place again. Wound back to the first frame and played as the
+     item takes the stage, each film is the piece it was cut as.
+
+     The one being left is paused, which is the reason for doing this here
+     rather than with an observer: five loops decoding behind a screen that is
+     showing one of them is five decoders running for nothing.
+
+     `play()` returns a promise that rejects if the element is taken off
+     screen mid-start; the films are muted and autoplaying, so there is nothing
+     to recover — it is swallowed. */
+  const films = layers.map((layer) => layer.querySelector<HTMLVideoElement>('video'));
+
+  const roll = (i: number) => {
+    films.forEach((film, k) => {
+      if (!film) return;
+      if (k !== i) {
+        film.pause();
+        return;
+      }
+      try {
+        film.currentTime = 0;
+      } catch {
+        /* Not seekable yet — it plays from wherever it is and the next arrival
+           winds it back. */
+      }
+      void film.play().catch(() => {});
+    });
+  };
+
   const show = (i: number) => {
     if (i === active) return;
     layers[active]?.classList.remove('is-active');
     layers[i]?.classList.add('is-active');
     active = i;
+    roll(i);
   };
 
   layers.forEach((layer, i) => layer.classList.toggle('is-active', i === 0));
+  /* The first item is the one on the stage before a reader has scrolled at
+     all, so it is the one left running; the rest stop where their `autoplay`
+     started them and wait for their turn. */
+  roll(0);
 
   const settle = () => {
     const vh = window.innerHeight;
@@ -161,6 +200,10 @@ export function initWorkCategories(): () => void {
   cleanups.push(() => {
     stage.kill();
     layers.forEach((layer, i) => layer.classList.toggle('is-active', i === 0));
+    /* Left playing on the way out: the page this tears down for is another
+       page, and a paused film in a cached document is a film that never starts
+       again if the reader comes back to it. */
+    films.forEach((film) => film && void film.play().catch(() => {}));
   });
 
   // --- The texts and the letters -------------------------------------------
@@ -288,6 +331,9 @@ export function initWorkCategories(): () => void {
     cleanups.push(() => splits.forEach((split) => split.revert()));
   }
 
+  // --- Films that run out of picture ---------------------------------------
+  cleanups.push(initFilmLoops(section));
+
   // --- The outro -----------------------------------------------------------
   cleanups.push(initWorkPixels(section, reduced));
 
@@ -295,6 +341,44 @@ export function initWorkCategories(): () => void {
     cleanups.forEach((fn) => fn());
     ScrollTrigger.refresh();
   };
+}
+
+/**
+ * Cuts a film's loop short where the film empties out before it ends.
+ *
+ * Marketing Design's is line art on white and the taxi drives clean out of the
+ * frame: its last second and a half is a blank white screen, and a reader who
+ * reached the section during that window saw the page go white until the loop
+ * came round — reported in the review on 22 Sep, where it read as the page
+ * breaking and coming back on a refresh, because a refresh starts the film at
+ * its first frame.
+ *
+ * `data-cat-until` on the video is where its picture is still whole, in
+ * seconds, and this sends it back to the start there. `timeupdate` fires four
+ * times a second or so, which is close enough for a cut a second and a half
+ * from the end; the native `loop` stays on as the backstop.
+ *
+ * The file itself is untouched, so replacing the film — also asked for in that
+ * review, since Marketing Design's is a taxi and says nothing about marketing
+ * design — takes this with it.
+ */
+function initFilmLoops(section: HTMLElement): () => void {
+  const films = gsap.utils.toArray<HTMLVideoElement>('video[data-cat-until]', section);
+  if (!films.length) return () => {};
+
+  const stops = films.map((film) => {
+    const until = Number(film.dataset.catUntil);
+    if (!Number.isFinite(until) || until <= 0) return () => {};
+
+    const check = () => {
+      if (film.currentTime >= until) film.currentTime = 0;
+    };
+
+    film.addEventListener('timeupdate', check);
+    return () => film.removeEventListener('timeupdate', check);
+  });
+
+  return () => stops.forEach((stop) => stop());
 }
 
 /**

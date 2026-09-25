@@ -73,6 +73,21 @@ interface Category {
   video?: string;
   /** The film's first frame, without an extension, as webp. */
   poster?: string;
+  /**
+   * Where the film's loop is cut, in seconds — for a film that runs out of
+   * picture before it runs out of time.
+   *
+   * Marketing Design's is line art on paper white and the taxi drives out of
+   * the frame: measured, the frame is 45% ink at 6s, 12% at 8s and pure white
+   * from 9s to its end at 10, so a reader who arrived in that window was shown
+   * an empty white screen until the loop came round — reported in the review
+   * on 22 Sep as the page going blank and coming back on a refresh.
+   *
+   * Cut in the player rather than in the file, so the artwork on disk is
+   * untouched: when the film is to be replaced (also asked for in that review)
+   * this comes off with it.
+   */
+  playUntil?: number;
   /** The button's label, where it differs from the list's. */
   cta?: string;
   /** `object-position` for the shot, for the ones whose crop needs steering. */
@@ -103,10 +118,15 @@ interface Category {
 interface Props {
   categories?: Category[];
   viewLabel?: string;
+  /** The second button on every item — see `.cat__actions`. */
+  contactLabel?: string;
+  contactHref?: string;
 }
 
 const {
   viewLabel = 'Explore',
+  contactLabel = 'Contact us',
+  contactHref = '/contact',
   categories = [
     {
       eyebrow: 'Case study',
@@ -132,7 +152,8 @@ const {
       blurb:
         'Marketing sites and platforms, designed and built end to end — so what ships is what was drawn, at the speed the launch needs.',
       href: '/work',
-      art: '/media/work-website-design',
+      video: '/media/work-website-design',
+      poster: '/media/work-website-design-poster',
       tone: '#101010',
     },
     {
@@ -152,7 +173,8 @@ const {
       blurb:
         'Marks, type, color and motion, with the rules that keep them holding together everywhere the brand turns up.',
       href: '/work',
-      art: '/media/work-brand-design',
+      video: '/media/work-brand-design',
+      poster: '/media/work-brand-design-poster',
       tone: '#101010',
     },
     {
@@ -162,7 +184,8 @@ const {
       blurb:
         'The story a room has to follow in twenty minutes — cut and designed so the argument carries without you narrating it.',
       href: '/work',
-      art: '/media/work-pitch-deck',
+      video: '/media/work-pitch-deck',
+      poster: '/media/work-pitch-deck-poster',
       tone: '#151515',
     },
     {
@@ -170,12 +193,15 @@ const {
       label: 'Marketing Design',
       lines: ['Marketing', 'Design'],
       blurb:
-        'Campaign and social work that stays recognizable at the size a feed shows it, in the volume a calendar actually needs.',
+        'Social posts, ad creative and landing pages — recognizable at the size a feed shows them, in the volume a calendar actually needs.',
       href: '/work',
       /* The one item that is line art on white — see `ink` above for what that
          costs and why the three properties below travel together. */
       video: '/media/work-marketing',
       poster: '/media/work-marketing-poster',
+      /* See `playUntil`: the last second and a half of this film is an empty
+         white screen. */
+      playUntil: 6.5,
       tone: '#ffffff',
       gradient: '255, 255, 255',
       ink: 'dark',
@@ -257,6 +283,7 @@ const {
                 preload="auto"
                 poster={category.poster ? `${category.poster}.webp` : undefined}
                 tabindex="-1"
+                data-cat-until={category.playUntil}
                 style={category.focus ? `object-position:${category.focus}` : undefined}
               >
                 <source src={`${category.video}.webm`} type="video/webm" />
@@ -282,16 +309,28 @@ const {
             <div class="cat__texts" data-cat-texts>
               <p class="cat__blurb">{category.blurb}</p>
 
-              {/* The hero's button, to the property — its height, its radius,
+              {/* TWO WAYS OUT OF AN ITEM, because there are two readers: one
+                  who wants to see this kind of work and one who has read
+                  enough and wants to talk to someone. Sending both to the same
+                  page makes the second of them find the way themselves.
+
+                  The hero's button, to the property — its height, its radius,
                   its uppercase label, the fill that wipes up from the foot on
-                  hover, and the magnetic lean. It was a glass capsule with an
-                  arrow in it, which is fantasy's button and not this site's;
-                  asked for one button, the page has one button. */}
-              <a class="cat__cta" href={category.href} data-magnetic="0.2">
-                <span class="cat__cta-fill" aria-hidden="true"></span>
-                <span class="cat__cta-label" data-magnetic-inner>{category.cta ?? viewLabel}</span>
-                <span class="u-sr-only">{` — ${category.label}`}</span>
-              </a>
+                  hover, and the magnetic lean; and the hero's ghost beside it,
+                  which is the same button with its ground taken away. */}
+              <div class="cat__actions">
+                <a class="cat__cta" href={category.href} data-magnetic="0.2">
+                  <span class="cat__cta-fill" aria-hidden="true"></span>
+                  <span class="cat__cta-label" data-magnetic-inner>{category.cta ?? viewLabel}</span>
+                  <span class="u-sr-only">{` — ${category.label}`}</span>
+                </a>
+
+                <a class="cat__cta cat__cta--ghost" href={contactHref} data-magnetic="0.2">
+                  <span class="cat__cta-fill" aria-hidden="true"></span>
+                  <span class="cat__cta-label" data-magnetic-inner>{contactLabel}</span>
+                  <span class="u-sr-only">{` — ${category.label}`}</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -549,7 +588,10 @@ const {
     font-size: 20px;
     line-height: 1.4;
     letter-spacing: -0.01em;
-    opacity: 0.6;
+    /* Up from 0.6. The pictures in this section are the whole screen and the
+       words are a paragraph in the corner of one; at six tenths the copy was
+       losing an argument it should not have been having. */
+    opacity: 0.78;
     text-wrap: pretty;
   }
 
@@ -592,6 +634,33 @@ const {
     transform: scaleY(0);
     transform-origin: bottom center;
     transition: transform 0.55s var(--ease-out-expo);
+  }
+
+  /* The pair sits on one line and wraps rather than shrinking, so on a narrow
+     item the second button goes under the first at its full size. */
+  .cat__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    pointer-events: auto;
+  }
+
+  /* The hero's ghost: the same button with its ground taken away and a hairline
+     where the ground was, so the two read as one control and its quieter half
+     rather than as two buttons. */
+  .cat__cta--ghost {
+    background: transparent;
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.7);
+  }
+
+  .cat__cta--ghost .cat__cta-fill {
+    background: #ffffff;
+  }
+
+  .cat__cta--ghost:hover .cat__cta-label,
+  .cat__cta--ghost:focus-visible .cat__cta-label {
+    color: var(--color-ink);
   }
 
   .cat__cta-label {
@@ -639,6 +708,21 @@ const {
   .cat__layer[data-ink='dark'] .cat__cta:hover .cat__cta-label,
   .cat__layer[data-ink='dark'] .cat__cta:focus-visible .cat__cta-label {
     color: var(--color-ink);
+  }
+
+  .cat__layer[data-ink='dark'] .cat__cta--ghost {
+    background: transparent;
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.45);
+  }
+
+  .cat__layer[data-ink='dark'] .cat__cta--ghost .cat__cta-fill {
+    background: var(--color-ink);
+  }
+
+  .cat__layer[data-ink='dark'] .cat__cta--ghost:hover .cat__cta-label,
+  .cat__layer[data-ink='dark'] .cat__cta--ghost:focus-visible .cat__cta-label {
+    color: #ffffff;
   }
 
   /* =====================================================================
@@ -810,6 +894,22 @@ const {
   @media (max-width: 48rem) {
     .cat__blurb {
       font-size: 1rem;
+    }
+
+    /* THE CROP MOVES, the film still fills the screen. Overclock's cover is a
+       wide shot and a phone screen is a tall rectangle, so `cover` keeps the
+       height and shows about a quarter of the width — and the item's own crop,
+       `right top`, took that quarter off the right-hand end, which put the
+       monitor hard against the edge of the screen with its right side cut off.
+
+       62% reads the window from nearer the middle: the monitor comes away from
+       the edge and sits over to the right of the screen with its left side and
+       the desk under it in frame. Measured on the film at 412x841, at three
+       seconds and at eighteen. */
+    .cat__film[data-cat-grow] {
+      /* `!important` because the item's own crop is written as an inline style
+         by `focus` above, and nothing in a stylesheet outranks that. */
+      object-position: 62% top !important;
     }
   }
 </style>

@@ -83,6 +83,18 @@ const {
       href: '/overclock',
       video: '/media/overclock-cover',
       poster: '/media/overclock-cover-poster.webp',
+      /* WHERE THE SUBJECT IS, across the film — and it is not the middle. The
+         machine stands in the right-hand half of a 16:9 frame, and this cell
+         is portrait, so a centred crop cut the monitor in half and gave the
+         rest of the frame to empty green wall.
+
+         MEASURED, not chosen: frames sampled the length of the film and the
+         monitor's edges read off them. The camera pulls back over the first
+         second and then holds from 4s to 31s with the monitor spanning 49% to
+         81.8% of the width — so 65% is its centre for all but the opening
+         beat, where it is a little left of the cell's middle. See the note on
+         `--shot-x` in the stylesheet for what the number does. */
+      focus: '65%',
       image: '/media/nav-overclock',
       imageAlt: 'Overclock running on a tablet',
       blurb:
@@ -178,6 +190,7 @@ const {
               class="nav__work-card"
               data-nav-work-card={i}
               data-active={i === 0 ? '' : undefined}
+              style={project.focus ? `--shot-x:${project.focus}` : undefined}
             >
               <div class="nav__work-shot">
                 {
@@ -704,18 +717,38 @@ const {
      column's width — measured, it spanned 42% to 59% of the viewport inside a
      cell that ran 34% to 68%. */
   .nav__work-shot {
+    position: relative;
     height: 100%;
     min-height: 0;
     overflow: hidden;
   }
 
+  /* THE CROP IS TAKEN AROUND A POINT IN THE FILM, not around its middle.
+     `--shot-x` is where the subject stands across the frame — 50% unless a
+     project says otherwise — and the film is laid so that point falls on the
+     middle of the cell: `left: 50%` puts its left edge there, and shifting it
+     back by `--shot-x` of its OWN width brings that point onto it.
+
+     Which is what `object-position` could not do. Its percentage aligns the
+     same share of the image with the same share of the box, so the point it
+     centres moves with the cell's proportions — and that cell runs from 0.68
+     to 1.01 across the widths this panel is read at. Here the answer is one
+     number about the film, and it holds at every one of them.
+
+     Sized by height, never by width: the cell is portrait and the films are
+     16:9, so the height is always what has to be covered and the width always
+     overhangs. */
   .nav__work-shot video,
   .nav__work-shot img {
+    position: absolute;
+    top: 0;
+    left: 50%;
     display: block;
-    width: 100%;
+    width: auto;
+    max-width: none;
     height: 100%;
+    transform: translateX(calc(-1 * var(--shot-x, 50%)));
     object-fit: cover;
-    object-position: center top;
   }
 
   .nav__work-blurb {
@@ -880,9 +913,14 @@ const {
       align-self: flex-start;
     }
 
+    /* Whole, so there is nothing to take a crop around: back into the flow at
+       the cell's own width, and `--shot-x` has nothing to do here. */
     .nav__work-shot video,
     .nav__work-shot img {
+      position: static;
+      width: 100%;
       height: auto;
+      transform: none;
       object-fit: contain;
     }
 
